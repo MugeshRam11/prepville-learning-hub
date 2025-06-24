@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BookOpen, Mail, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -15,7 +14,7 @@ const Footer = () => {
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-                ThePrepVille
+                Study Hub
               </span>
             </div>
             <p className="text-muted-foreground mb-4 max-w-md">
@@ -25,7 +24,7 @@ const Footer = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center text-sm text-muted-foreground">
                 <Mail className="w-4 h-4 mr-2" />
-                contact@theprepville.com
+                contact@studyhub.com
               </div>
             </div>
           </div>
@@ -56,7 +55,7 @@ const Footer = () => {
         <div className="border-t pt-8 mt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © 2024 ThePrepVille. All rights reserved.
+              © 2024 Study Hub. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy Policy</Link>
