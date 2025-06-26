@@ -1,12 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, BookOpen, User, Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Menu, BookOpen, User, Search, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import type { User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   const navigation = [
     { name: 'Subjects', href: '/subjects' },
@@ -15,6 +20,34 @@ const Header = () => {
     { name: 'Analytics', href: '/analytics' },
     { name: 'Pricing', href: '/pricing' },
   ];
+
+  useEffect(() => {
+    // Get initial session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success('Successfully signed out');
+      navigate('/');
+    } catch (error) {
+      toast.error('Error signing out');
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,13 +81,30 @@ const Header = () => {
             <Search className="w-4 h-4 mr-2" />
             Search
           </Button>
-          <Button variant="outline" size="sm">
-            <User className="w-4 h-4 mr-2" />
-            Login
-          </Button>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-            Get Started
-          </Button>
+          
+          {user ? (
+            <>
+              <span className="hidden md:inline text-sm text-muted-foreground">
+                {user.email}
+              </span>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/auth">
+                  <User className="w-4 h-4 mr-2" />
+                  Login
+                </Link>
+              </Button>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700" asChild>
+                <Link to="/auth">Get Started</Link>
+              </Button>
+            </>
+          )}
 
           {/* Mobile menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -76,12 +126,29 @@ const Header = () => {
                   </Link>
                 ))}
                 <div className="pt-4 border-t">
-                  <Button className="w-full mb-2" variant="outline">
-                    Login
-                  </Button>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    Get Started
-                  </Button>
+                  {user ? (
+                    <>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {user.email}
+                      </p>
+                      <Button className="w-full" variant="outline" onClick={handleSignOut}>
+                        Sign Out
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button className="w-full mb-2" variant="outline" asChild>
+                        <Link to="/auth" onClick={() => setIsOpen(false)}>
+                          Login
+                        </Link>
+                      </Button>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-700" asChild>
+                        <Link to="/auth" onClick={() => setIsOpen(false)}>
+                          Get Started
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </SheetContent>
