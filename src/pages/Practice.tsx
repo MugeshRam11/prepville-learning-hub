@@ -6,8 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, BookOpen, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Practice = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -39,7 +42,9 @@ const Practice = () => {
                   <p className="text-muted-foreground mb-4">
                     5-10 question mini-quizzes for quick topic review
                   </p>
-                  <Button className="w-full">Start Quick Quiz</Button>
+                  <Button className="w-full" onClick={() => navigate('/quick-practice')}>
+                    Start Quick Quiz
+                  </Button>
                 </CardContent>
               </Card>
 
