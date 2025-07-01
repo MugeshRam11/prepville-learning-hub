@@ -7,8 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Subjects from "./pages/Subjects";
 import Practice from "./pages/Practice";
-import QuickPractice from "./pages/QuickPractice";
-import Quiz from "./pages/Quiz";
 import Videos from "./pages/Videos";
 import Analytics from "./pages/Analytics";
 import Pricing from "./pages/Pricing";
@@ -27,8 +25,6 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/subjects" element={<Subjects />} />
           <Route path="/practice" element={<Practice />} />
-          <Route path="/quick-practice" element={<QuickPractice />} />
-          <Route path="/quiz/:quizId" element={<Quiz />} />
           <Route path="/videos" element={<Videos />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/pricing" element={<Pricing />} />
