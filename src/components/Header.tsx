@@ -2,15 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, BookOpen, Search, LogOut, User } from 'lucide-react';
+import { Menu, BookOpen, Search, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import type { User as UserType } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<UserType | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
   const navigation = [
@@ -95,10 +95,7 @@ const Header = () => {
           ) : (
             <>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/auth">
-                  <User className="w-4 h-4 mr-2" />
-                  Login
-                </Link>
+                <Link to="/auth">Login</Link>
               </Button>
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700" asChild>
                 <Link to="/auth">Get Started</Link>
