@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -12,6 +11,15 @@ import { useNavigate } from 'react-router-dom';
 
 // Mock data for tests
 const mockTests = [
+  {
+    id: 'speed-distance-time',
+    title: 'Speed, Distance, Time',
+    subject: 'Mathematics',
+    topic: 'Number (Unit 1)',
+    questions: 5,
+    timeMinutes: 5,
+    difficulty: 'Easy'
+  },
   {
     id: 'algebra-basics',
     title: 'Algebra Basics',

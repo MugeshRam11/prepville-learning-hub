@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -10,6 +9,44 @@ import { Clock, ArrowLeft, CheckCircle } from 'lucide-react';
 
 // Mock quiz data
 const mockQuizData = {
+  'speed-distance-time': {
+    title: 'Speed, Distance, Time',
+    subject: 'Mathematics',
+    topic: 'Number (Unit 1)',
+    timeMinutes: 5,
+    questions: [
+      {
+        id: 1,
+        question: 'A train travels 120 km in 2 hours. What is its average speed?',
+        options: ['60 km/h', '100 km/h', '40 km/h', '70 km/h'],
+        correctAnswer: 0
+      },
+      {
+        id: 2,
+        question: 'If a cyclist moves at 15 km/h for 2.5 hours, how far do they travel?',
+        options: ['25.5 km', '35 km', '37.5 km', '30 km'],
+        correctAnswer: 2
+      },
+      {
+        id: 3,
+        question: 'A bus takes 4 hours to travel 180 km. What is its speed?',
+        options: ['36 km/h', '45 km/h', '50 km/h', '60 km/h'],
+        correctAnswer: 1
+      },
+      {
+        id: 4,
+        question: 'How long will it take a car to travel 150 km at a speed of 50 km/h?',
+        options: ['3 hours', '2.5 hours', '4 hours', '3.5 hours'],
+        correctAnswer: 0
+      },
+      {
+        id: 5,
+        question: 'If a plane flies at 480 km/h and travels for 1.5 hours, how far does it go?',
+        options: ['620 km', '700 km', '720 km', '640 km'],
+        correctAnswer: 2
+      }
+    ]
+  },
   'algebra-basics': {
     title: 'Algebra Basics',
     subject: 'Mathematics',
