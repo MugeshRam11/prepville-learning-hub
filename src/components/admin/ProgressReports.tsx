@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,34 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Download, TrendingUp, Users, Award, Clock } from 'lucide-react';
 
+interface TopicStats {
+  total: number;
+  sum: number;
+  attempts: number;
+}
+
+interface TopicPerformance {
+  topic: string;
+  averageScore: number;
+  attempts: number;
+}
+
+interface TestTypeDistribution {
+  name: string;
+  value: number;
+}
+
+interface ScoreDistribution {
+  range: string;
+  count: number;
+}
+
 const ProgressReports = () => {
   const [reportData, setReportData] = useState({
-    topicPerformance: [],
-    userProgress: [],
-    testTypeDistribution: [],
-    scoreDistribution: []
+    topicPerformance: [] as TopicPerformance[],
+    userProgress: [] as any[],
+    testTypeDistribution: [] as TestTypeDistribution[],
+    scoreDistribution: [] as ScoreDistribution[]
   });
   const [selectedPeriod, setSelectedPeriod] = useState('7days');
   const [loading, setLoading] = useState(true);
@@ -38,7 +59,7 @@ const ProgressReports = () => {
         .gte('completed_at', startDate.toISOString());
 
       // Process topic performance
-      const topicStats = {};
+      const topicStats: Record<string, TopicStats> = {};
       attempts?.forEach(attempt => {
         const topicName = attempt.tests?.topics?.name || 'Unknown';
         if (!topicStats[topicName]) {
@@ -56,7 +77,7 @@ const ProgressReports = () => {
       }));
 
       // Process test type distribution
-      const testTypeStats = {};
+      const testTypeStats: Record<string, number> = {};
       attempts?.forEach(attempt => {
         const testType = attempt.tests?.test_type || 'unknown';
         testTypeStats[testType] = (testTypeStats[testType] || 0) + 1;
@@ -68,7 +89,7 @@ const ProgressReports = () => {
       }));
 
       // Process score distribution
-      const scoreRanges = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
+      const scoreRanges: Record<string, number> = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
       attempts?.forEach(attempt => {
         const score = attempt.score;
         if (score <= 20) scoreRanges['0-20']++;

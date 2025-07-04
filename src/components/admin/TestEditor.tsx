@@ -8,19 +8,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Plus } from 'lucide-react';
+import { Database } from '@/integrations/supabase/types';
 
-const TestEditor = ({ test, topics, onClose, onSave }) => {
+type TestType = Database['public']['Enums']['test_type'];
+type DifficultyLevel = Database['public']['Enums']['difficulty_level'];
+type Pathway = Database['public']['Enums']['pathway'];
+
+interface TestEditorProps {
+  test?: any;
+  topics: any[];
+  onClose: () => void;
+  onSave: () => void;
+}
+
+const TestEditor = ({ test, topics, onClose, onSave }: TestEditorProps) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    test_type: 'quick_test',
+    test_type: 'quick_test' as TestType,
     topic_id: '',
-    difficulty_level: 'medium',
-    pathway: 'standard',
+    difficulty_level: 'medium' as DifficultyLevel,
+    pathway: 'standard' as Pathway,
     time_limit_minutes: 30,
     is_active: true
   });
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,10 +40,10 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
       setFormData({
         title: test.title || '',
         description: test.description || '',
-        test_type: test.test_type || 'quick_test',
+        test_type: test.test_type as TestType || 'quick_test',
         topic_id: test.topic_id || '',
-        difficulty_level: test.difficulty_level || 'medium',
-        pathway: test.pathway || 'standard',
+        difficulty_level: test.difficulty_level as DifficultyLevel || 'medium',
+        pathway: test.pathway as Pathway || 'standard',
         time_limit_minutes: test.time_limit_minutes || 30,
         is_active: test.is_active ?? true
       });
@@ -39,7 +51,7 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
     }
   }, [test]);
 
-  const fetchQuestions = async (testId) => {
+  const fetchQuestions = async (testId: string) => {
     try {
       const { data, error } = await supabase
         .from('questions')
@@ -64,7 +76,14 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
         const { error } = await supabase
           .from('tests')
           .update({
-            ...formData,
+            title: formData.title,
+            description: formData.description,
+            test_type: formData.test_type,
+            topic_id: formData.topic_id,
+            difficulty_level: formData.difficulty_level,
+            pathway: formData.pathway,
+            time_limit_minutes: formData.time_limit_minutes,
+            is_active: formData.is_active,
             total_questions: questions.length,
             updated_at: new Date().toISOString()
           })
@@ -76,7 +95,14 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
         const { data, error } = await supabase
           .from('tests')
           .insert({
-            ...formData,
+            title: formData.title,
+            description: formData.description,
+            test_type: formData.test_type,
+            topic_id: formData.topic_id,
+            difficulty_level: formData.difficulty_level,
+            pathway: formData.pathway,
+            time_limit_minutes: formData.time_limit_minutes,
+            is_active: formData.is_active,
             total_questions: questions.length
           })
           .select()
@@ -106,17 +132,17 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
       option_d: '',
       correct_answer: 'A',
       explanation: '',
-      difficulty_level: 'medium'
+      difficulty_level: 'medium' as DifficultyLevel
     }]);
   };
 
-  const updateQuestion = (index, field, value) => {
+  const updateQuestion = (index: number, field: string, value: any) => {
     const newQuestions = [...questions];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     setQuestions(newQuestions);
   };
 
-  const removeQuestion = (index) => {
+  const removeQuestion = (index: number) => {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
@@ -160,7 +186,7 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Test Type</label>
-              <Select value={formData.test_type} onValueChange={(value) => setFormData({ ...formData, test_type: value })}>
+              <Select value={formData.test_type} onValueChange={(value: TestType) => setFormData({ ...formData, test_type: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -188,7 +214,7 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Difficulty</label>
-              <Select value={formData.difficulty_level} onValueChange={(value) => setFormData({ ...formData, difficulty_level: value })}>
+              <Select value={formData.difficulty_level} onValueChange={(value: DifficultyLevel) => setFormData({ ...formData, difficulty_level: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -209,7 +235,7 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Pathway</label>
-              <Select value={formData.pathway} onValueChange={(value) => setFormData({ ...formData, pathway: value })}>
+              <Select value={formData.pathway} onValueChange={(value: Pathway) => setFormData({ ...formData, pathway: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -315,7 +341,7 @@ const TestEditor = ({ test, topics, onClose, onSave }) => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Difficulty</label>
-                      <Select value={question.difficulty_level} onValueChange={(value) => updateQuestion(index, 'difficulty_level', value)}>
+                      <Select value={question.difficulty_level} onValueChange={(value: DifficultyLevel) => updateQuestion(index, 'difficulty_level', value)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
