@@ -9,7 +9,277 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          first_name: string | null
+          id: string
+          is_active: boolean | null
+          last_name: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          first_name?: string | null
+          id: string
+          is_active?: boolean | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          first_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          difficulty_level:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          explanation: string | null
+          id: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_image_url: string | null
+          question_text: string
+          test_id: string | null
+          topic_id: string | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          explanation?: string | null
+          id?: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_image_url?: string | null
+          question_text: string
+          test_id?: string | null
+          topic_id?: string | null
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          explanation?: string | null
+          id?: string
+          option_a?: string
+          option_b?: string
+          option_c?: string
+          option_d?: string
+          question_image_url?: string | null
+          question_text?: string
+          test_id?: string | null
+          topic_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_attempts: {
+        Row: {
+          answers: Json | null
+          completed_at: string | null
+          id: string
+          score: number
+          test_id: string | null
+          time_taken_seconds: number | null
+          total_questions: number
+          user_id: string | null
+        }
+        Insert: {
+          answers?: Json | null
+          completed_at?: string | null
+          id?: string
+          score?: number
+          test_id?: string | null
+          time_taken_seconds?: number | null
+          total_questions: number
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json | null
+          completed_at?: string | null
+          id?: string
+          score?: number
+          test_id?: string | null
+          time_taken_seconds?: number | null
+          total_questions?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_attempts_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tests: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          difficulty_level:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          id: string
+          is_active: boolean | null
+          pathway: Database["public"]["Enums"]["pathway"] | null
+          test_type: Database["public"]["Enums"]["test_type"]
+          time_limit_minutes: number | null
+          title: string
+          topic_id: string | null
+          total_questions: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          id?: string
+          is_active?: boolean | null
+          pathway?: Database["public"]["Enums"]["pathway"] | null
+          test_type: Database["public"]["Enums"]["test_type"]
+          time_limit_minutes?: number | null
+          title: string
+          topic_id?: string | null
+          total_questions?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          id?: string
+          is_active?: boolean | null
+          pathway?: Database["public"]["Enums"]["pathway"] | null
+          test_type?: Database["public"]["Enums"]["test_type"]
+          time_limit_minutes?: number | null
+          title?: string
+          topic_id?: string | null
+          total_questions?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tests_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          unit_number: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          unit_number?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          unit_number?: number | null
+        }
+        Relationships: []
+      }
+      user_answers: {
+        Row: {
+          attempt_id: string | null
+          id: string
+          is_correct: boolean
+          question_id: string | null
+          selected_answer: string | null
+          time_spent_seconds: number | null
+        }
+        Insert: {
+          attempt_id?: string | null
+          id?: string
+          is_correct: boolean
+          question_id?: string | null
+          selected_answer?: string | null
+          time_spent_seconds?: number | null
+        }
+        Update: {
+          attempt_id?: string | null
+          id?: string
+          is_correct?: boolean
+          question_id?: string | null
+          selected_answer?: string | null
+          time_spent_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "test_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +288,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      difficulty_level: "easy" | "medium" | "hard"
+      pathway: "standard" | "extended"
+      test_type: "quick_test" | "topic_practice" | "mock_test"
+      user_role: "admin" | "student" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +406,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      difficulty_level: ["easy", "medium", "hard"],
+      pathway: ["standard", "extended"],
+      test_type: ["quick_test", "topic_practice", "mock_test"],
+      user_role: ["admin", "student", "moderator"],
+    },
   },
 } as const

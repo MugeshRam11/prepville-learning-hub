@@ -1,0 +1,349 @@
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { ArrowLeft, Save, Plus } from 'lucide-react';
+
+const TestEditor = ({ test, topics, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    test_type: 'quick_test',
+    topic_id: '',
+    difficulty_level: 'medium',
+    pathway: 'standard',
+    time_limit_minutes: 30,
+    is_active: true
+  });
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (test) {
+      setFormData({
+        title: test.title || '',
+        description: test.description || '',
+        test_type: test.test_type || 'quick_test',
+        topic_id: test.topic_id || '',
+        difficulty_level: test.difficulty_level || 'medium',
+        pathway: test.pathway || 'standard',
+        time_limit_minutes: test.time_limit_minutes || 30,
+        is_active: test.is_active ?? true
+      });
+      fetchQuestions(test.id);
+    }
+  }, [test]);
+
+  const fetchQuestions = async (testId) => {
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('test_id', testId)
+        .order('created_at');
+
+      if (error) throw error;
+      setQuestions(data || []);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+    }
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      let testId = test?.id;
+      
+      if (test) {
+        // Update existing test
+        const { error } = await supabase
+          .from('tests')
+          .update({
+            ...formData,
+            total_questions: questions.length,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', test.id);
+
+        if (error) throw error;
+      } else {
+        // Create new test
+        const { data, error } = await supabase
+          .from('tests')
+          .insert({
+            ...formData,
+            total_questions: questions.length
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        testId = data.id;
+      }
+
+      toast.success(`Test ${test ? 'updated' : 'created'} successfully`);
+      onSave();
+    } catch (error) {
+      console.error('Error saving test:', error);
+      toast.error('Failed to save test');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addQuestion = () => {
+    setQuestions([...questions, {
+      id: Date.now(), // temporary ID
+      question_text: '',
+      option_a: '',
+      option_b: '',
+      option_c: '',
+      option_d: '',
+      correct_answer: 'A',
+      explanation: '',
+      difficulty_level: 'medium'
+    }]);
+  };
+
+  const updateQuestion = (index, field, value) => {
+    const newQuestions = [...questions];
+    newQuestions[index] = { ...newQuestions[index], [field]: value };
+    setQuestions(newQuestions);
+  };
+
+  const removeQuestion = (index) => {
+    setQuestions(questions.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" onClick={onClose}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {test ? 'Edit Test' : 'Create New Test'}
+            </h1>
+            <p className="text-gray-600">
+              {test ? 'Modify test details and questions' : 'Set up a new practice test'}
+            </p>
+          </div>
+        </div>
+        <Button onClick={handleSave} disabled={loading}>
+          <Save className="w-4 h-4 mr-2" />
+          {loading ? 'Saving...' : 'Save Test'}
+        </Button>
+      </div>
+
+      {/* Test Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Title</label>
+              <Input
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Test title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Test Type</label>
+              <Select value={formData.test_type} onValueChange={(value) => setFormData({ ...formData, test_type: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quick_test">Quick Test</SelectItem>
+                  <SelectItem value="topic_practice">Topic Practice</SelectItem>
+                  <SelectItem value="mock_test">Mock Test</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Topic</label>
+              <Select value={formData.topic_id} onValueChange={(value) => setFormData({ ...formData, topic_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select topic" />
+                </SelectTrigger>
+                <SelectContent>
+                  {topics.map((topic) => (
+                    <SelectItem key={topic.id} value={topic.id}>
+                      {topic.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Difficulty</label>
+              <Select value={formData.difficulty_level} onValueChange={(value) => setFormData({ ...formData, difficulty_level: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Time Limit (minutes)</label>
+              <Input
+                type="number"
+                value={formData.time_limit_minutes}
+                onChange={(e) => setFormData({ ...formData, time_limit_minutes: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Pathway</label>
+              <Select value={formData.pathway} onValueChange={(value) => setFormData({ ...formData, pathway: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard</SelectItem>
+                  <SelectItem value="extended">Extended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Description</label>
+            <Textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Test description"
+              rows={3}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Questions */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Questions ({questions.length})</CardTitle>
+            <Button onClick={addQuestion}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Question
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {questions.map((question, index) => (
+              <Card key={question.id || index} className="border-l-4 border-l-blue-500">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium">Question {index + 1}</h4>
+                    <Button variant="ghost" size="sm" onClick={() => removeQuestion(index)}>
+                      Remove
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Question Text</label>
+                    <Textarea
+                      value={question.question_text}
+                      onChange={(e) => updateQuestion(index, 'question_text', e.target.value)}
+                      placeholder="Enter your question here..."
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Option A</label>
+                      <Input
+                        value={question.option_a}
+                        onChange={(e) => updateQuestion(index, 'option_a', e.target.value)}
+                        placeholder="Option A"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Option B</label>
+                      <Input
+                        value={question.option_b}
+                        onChange={(e) => updateQuestion(index, 'option_b', e.target.value)}
+                        placeholder="Option B"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Option C</label>
+                      <Input
+                        value={question.option_c}
+                        onChange={(e) => updateQuestion(index, 'option_c', e.target.value)}
+                        placeholder="Option C"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Option D</label>
+                      <Input
+                        value={question.option_d}
+                        onChange={(e) => updateQuestion(index, 'option_d', e.target.value)}
+                        placeholder="Option D"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Correct Answer</label>
+                      <Select value={question.correct_answer} onValueChange={(value) => updateQuestion(index, 'correct_answer', value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A">Option A</SelectItem>
+                          <SelectItem value="B">Option B</SelectItem>
+                          <SelectItem value="C">Option C</SelectItem>
+                          <SelectItem value="D">Option D</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Difficulty</label>
+                      <Select value={question.difficulty_level} onValueChange={(value) => updateQuestion(index, 'difficulty_level', value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="easy">Easy</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="hard">Hard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Explanation (Optional)</label>
+                    <Textarea
+                      value={question.explanation || ''}
+                      onChange={(e) => updateQuestion(index, 'explanation', e.target.value)}
+                      placeholder="Explain the correct answer..."
+                      rows={2}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default TestEditor;
