@@ -15,24 +15,57 @@ const SignInForm = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const cleanupAuthState = () => {
+    // Clear all auth-related storage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      // Clean up any existing auth state
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log('Global signout failed, continuing...');
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
       if (error) {
-        toast.error(error.message);
-      } else {
+        if (error.message.includes('Email not confirmed')) {
+          toast.error('Please check your email and click the confirmation link before signing in.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password. Please check your credentials and try again.');
+        } else {
+          toast.error(error.message);
+        }
+      } else if (data.user) {
         toast.success('Successfully signed in!');
-        navigate('/');
+        // Force page reload for clean state
+        window.location.href = '/';
       }
     } catch (error) {
-      toast.error('An unexpected error occurred');
+      console.error('Sign in error:', error);
+      toast.error('An unexpected error occurred during sign in');
     } finally {
       setLoading(false);
     }
@@ -49,6 +82,7 @@ const SignInForm = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          autoComplete="email"
         />
       </div>
       
@@ -62,6 +96,7 @@ const SignInForm = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
           />
           <Button
             type="button"

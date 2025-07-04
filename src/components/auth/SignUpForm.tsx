@@ -19,6 +19,20 @@ const SignUpForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const cleanupAuthState = () => {
+    // Clear all auth-related storage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -40,12 +54,23 @@ const SignUpForm = () => {
     setLoading(true);
 
     try {
+      // Clean up any existing auth state
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log('Global signout failed, continuing...');
+      }
+
       const nameParts = fullName.trim().split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
@@ -60,12 +85,29 @@ const SignUpForm = () => {
       });
 
       if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Account created! Please check your email for the confirmation link.');
+        if (error.message.includes('already registered')) {
+          toast.error('An account with this email already exists. Please sign in instead.');
+        } else {
+          toast.error(error.message);
+        }
+      } else if (data.user) {
+        if (data.user.email_confirmed_at) {
+          toast.success('Account created successfully! You can now sign in.');
+        } else {
+          toast.success('Account created! Please check your email for the confirmation link.');
+        }
+        
+        // Clear the form
+        setFullName('');
+        setEmail('');
+        setPhone('');
+        setRole('');
+        setPassword('');
+        setConfirmPassword('');
       }
     } catch (error) {
-      toast.error('An unexpected error occurred');
+      console.error('Sign up error:', error);
+      toast.error('An unexpected error occurred during sign up');
     } finally {
       setLoading(false);
     }
@@ -85,6 +127,7 @@ const SignUpForm = () => {
             onChange={(e) => setFullName(e.target.value)}
             className="pl-10"
             required
+            autoComplete="name"
           />
         </div>
       </div>
@@ -101,12 +144,13 @@ const SignUpForm = () => {
             onChange={(e) => setEmail(e.target.value)}
             className="pl-10"
             required
+            autoComplete="email"
           />
         </div>
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number</Label>
+        <Label htmlFor="phone">Phone Number (Optional)</Label>
         <div className="relative">
           <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -116,6 +160,7 @@ const SignUpForm = () => {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="pl-10"
+            autoComplete="tel"
           />
         </div>
       </div>
@@ -128,10 +173,7 @@ const SignUpForm = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="student">Student</SelectItem>
-            <SelectItem value="teacher">Teacher</SelectItem>
-            <SelectItem value="parent">Parent</SelectItem>
-            <SelectItem value="tutor">Tutor</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
+            <SelectItem value="admin">Administrator</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -143,11 +185,12 @@ const SignUpForm = () => {
           <Input
             id="signup-password"
             type={showPassword ? "text" : "password"}
-            placeholder="Create a strong password"
+            placeholder="Create a strong password (min 6 characters)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="pl-10 pr-10"
             required
+            autoComplete="new-password"
           />
           <Button
             type="button"
@@ -177,6 +220,7 @@ const SignUpForm = () => {
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="pl-10 pr-10"
             required
+            autoComplete="new-password"
           />
           <Button
             type="button"

@@ -5,12 +5,13 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, BookOpen, Search, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import type { User } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
   const navigation = [
@@ -21,31 +22,70 @@ const Header = () => {
     { name: 'Pricing', href: '/pricing' },
   ];
 
-  useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-    };
-    getSession();
+  const cleanupAuthState = () => {
+    // Clear all auth-related storage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
 
-    // Listen for auth changes
+  useEffect(() => {
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setSession(session);
         setUser(session?.user ?? null);
+        
+        // Defer any additional data fetching
+        if (session?.user && event === 'SIGNED_IN') {
+          setTimeout(() => {
+            // Any additional user data fetching can go here
+            console.log('User signed in:', session.user.email);
+          }, 0);
+        }
       }
     );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email);
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clean up auth state first
+      cleanupAuthState();
+      
+      // Attempt global sign out
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Global signout error:', err);
+      }
+      
       toast.success('Successfully signed out');
-      navigate('/');
+      
+      // Force page reload for clean state
+      window.location.href = '/auth';
     } catch (error) {
+      console.error('Sign out error:', error);
       toast.error('Error signing out');
+      
+      // Force page reload anyway
+      window.location.href = '/auth';
     }
   };
 
