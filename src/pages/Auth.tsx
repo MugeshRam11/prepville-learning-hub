@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthHeader from '@/components/auth/AuthHeader';
 import SignInForm from '@/components/auth/SignInForm';
 import SignUpForm from '@/components/auth/SignUpForm';
+import DemoUserButton from '@/components/auth/DemoUserButton';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -52,6 +53,19 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
+            <DemoUserButton />
+            
+            <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
             <Tabs defaultValue="signin" className="w-full">
               <TabsContent value="signin">
                 <SignInForm />
