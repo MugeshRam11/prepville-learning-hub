@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import QuizHeader from '@/components/quiz/QuizHeader';
+import QuizProgress from '@/components/quiz/QuizProgress';
+import QuizQuestion from '@/components/quiz/QuizQuestion';
+import QuizResults from '@/components/quiz/QuizResults';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Clock, ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 // Mock quiz data
 const mockQuizData = {
@@ -95,7 +98,7 @@ const Quiz = () => {
 
   useEffect(() => {
     if (quizData) {
-      setTimeLeft(quizData.timeMinutes * 60); // Convert to seconds
+      setTimeLeft(quizData.timeMinutes * 60);
     }
   }, [quizData]);
 
@@ -150,12 +153,6 @@ const Quiz = () => {
     setIsCompleted(true);
   };
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
   const calculateScore = () => {
     let correct = 0;
     selectedAnswers.forEach((answer, index) => {
@@ -168,37 +165,21 @@ const Quiz = () => {
 
   if (isCompleted) {
     const score = calculateScore();
+    const correctAnswers = selectedAnswers.filter((answer, index) => 
+      answer === quizData.questions[index]?.correctAnswer).length;
+
     return (
-      <div className="min-h-screen flex flex-col">
+      <>
         <Header />
-        <main className="flex-1 flex items-center justify-center py-12">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-              <CardTitle>Quiz Completed!</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <div>
-                <p className="text-3xl font-bold text-green-600">{score}%</p>
-                <p className="text-muted-foreground">Your Score</p>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p>Correct: {selectedAnswers.filter((answer, index) => 
-                  answer === quizData.questions[index]?.correctAnswer).length} / {quizData.questions.length}</p>
-              </div>
-              <div className="space-y-2">
-                <Button className="w-full" onClick={() => navigate('/quick-practice')}>
-                  Take Another Quiz
-                </Button>
-                <Button variant="outline" className="w-full" onClick={() => navigate('/practice')}>
-                  Back to Practice
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+        <QuizResults
+          score={score}
+          correctAnswers={correctAnswers}
+          totalQuestions={quizData.questions.length}
+          onTakeAnother={() => navigate('/quick-practice')}
+          onBackToPractice={() => navigate('/practice')}
+        />
         <Footer />
-      </div>
+      </>
     );
   }
 
@@ -209,78 +190,26 @@ const Quiz = () => {
       <Header />
       <main className="flex-1 py-8">
         <div className="container max-w-4xl">
-          {/* Quiz Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <Button variant="ghost" onClick={() => navigate('/quick-practice')}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Badge variant="outline">{quizData.subject}</Badge>
-              <div className="flex items-center text-muted-foreground">
-                <Clock className="w-4 h-4 mr-1" />
-                {formatTime(timeLeft)}
-              </div>
-            </div>
-          </div>
+          <QuizHeader
+            subject={quizData.subject}
+            timeLeft={timeLeft}
+            onBack={() => navigate('/quick-practice')}
+          />
 
-          {/* Progress */}
-          <div className="mb-6">
-            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Question {currentQuestion + 1} of {quizData.questions.length}</span>
-              <span>{Math.round(((currentQuestion + 1) / quizData.questions.length) * 100)}% Complete</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                style={{ width: `${((currentQuestion + 1) / quizData.questions.length) * 100}%` }}
-              ></div>
-            </div>
-          </div>
+          <QuizProgress
+            currentQuestion={currentQuestion}
+            totalQuestions={quizData.questions.length}
+          />
 
-          {/* Question Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">{currentQ.question}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {currentQ.options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswerSelect(index)}
-                    className={`w-full p-4 text-left rounded-lg border transition-colors ${
-                      selectedAnswers[currentQuestion] === index
-                        ? 'border-blue-600 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="font-medium mr-3">{String.fromCharCode(65 + index)}.</span>
-                    {option}
-                  </button>
-                ))}
-              </div>
-
-              {/* Navigation Buttons */}
-              <div className="flex justify-between mt-6">
-                <Button
-                  variant="outline"
-                  onClick={handlePreviousQuestion}
-                  disabled={currentQuestion === 0}
-                >
-                  Previous
-                </Button>
-                <Button
-                  onClick={handleNextQuestion}
-                  disabled={selectedAnswers[currentQuestion] === undefined}
-                >
-                  {currentQuestion === quizData.questions.length - 1 ? 'Submit Quiz' : 'Next'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <QuizQuestion
+            question={currentQ}
+            selectedAnswer={selectedAnswers[currentQuestion]}
+            onAnswerSelect={handleAnswerSelect}
+            onNext={handleNextQuestion}
+            onPrevious={handlePreviousQuestion}
+            isFirstQuestion={currentQuestion === 0}
+            isLastQuestion={currentQuestion === quizData.questions.length - 1}
+          />
         </div>
       </main>
       <Footer />

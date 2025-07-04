@@ -1,13 +1,10 @@
+
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Clock, BookOpen, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import QuizFilters from '@/components/quiz/QuizFilters';
+import QuizGrid from '@/components/quiz/QuizGrid';
 
 // Mock data for tests
 const mockTests = [
@@ -76,15 +73,6 @@ const mockTests = [
   }
 ];
 
-const subjects = ['All Subjects', 'Mathematics', 'Physics', 'Chemistry', 'Biology'];
-
-const topicsBySubject = {
-  'Mathematics': ['All Topics', 'Algebra', 'Geometry', 'Calculus', 'Statistics'],
-  'Physics': ['All Topics', 'Mechanics', 'Thermodynamics', 'Electricity', 'Optics'],
-  'Chemistry': ['All Topics', 'Atoms & Molecules', 'Chemical Reactions', 'Organic Chemistry'],
-  'Biology': ['All Topics', 'Cell Biology', 'Evolution', 'Genetics', 'Ecology']
-};
-
 const QuickPractice = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
@@ -106,15 +94,6 @@ const QuickPractice = () => {
     navigate(`/quiz/${testId}`);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-800';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800';
-      case 'Hard': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -133,116 +112,19 @@ const QuickPractice = () => {
           </div>
         </section>
 
-        {/* Search and Filters */}
-        <section className="py-8 bg-white border-b">
-          <div className="container">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search tests by title, topic, or subject..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              
-              <div className="flex gap-4">
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Select Subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map(subject => (
-                      <SelectItem key={subject} value={subject}>
-                        {subject}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <QuizFilters
+          searchTerm={searchTerm}
+          selectedSubject={selectedSubject}
+          selectedTopic={selectedTopic}
+          onSearchChange={setSearchTerm}
+          onSubjectChange={setSelectedSubject}
+          onTopicChange={setSelectedTopic}
+        />
 
-                <Select 
-                  value={selectedTopic} 
-                  onValueChange={setSelectedTopic}
-                  disabled={selectedSubject === 'All Subjects'}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Select Topic" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedSubject !== 'All Subjects' && 
-                     topicsBySubject[selectedSubject as keyof typeof topicsBySubject]?.map(topic => (
-                      <SelectItem key={topic} value={topic}>
-                        {topic}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Test Cards Grid */}
-        <section className="py-12">
-          <div className="container">
-            <div className="mb-6">
-              <p className="text-muted-foreground">
-                Showing {filteredTests.length} test{filteredTests.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTests.map((test) => (
-                <Card key={test.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant="outline" className="text-xs">
-                        {test.subject}
-                      </Badge>
-                      <Badge className={`text-xs ${getDifficultyColor(test.difficulty)}`}>
-                        {test.difficulty}
-                      </Badge>
-                    </div>
-                    <CardTitle className="text-lg">{test.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{test.topic}</p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <BookOpen className="w-4 h-4 mr-1" />
-                          {test.questions} Questions
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {test.timeMinutes} mins
-                        </div>
-                      </div>
-                      <Button 
-                        className="w-full"
-                        onClick={() => handleStartTest(test.id)}
-                      >
-                        Start Test
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filteredTests.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">
-                  No tests found matching your criteria.
-                </p>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filter options.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
+        <QuizGrid
+          tests={filteredTests}
+          onStartTest={handleStartTest}
+        />
       </main>
       <Footer />
     </div>
