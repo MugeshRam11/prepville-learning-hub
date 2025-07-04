@@ -93,23 +93,30 @@ const Quiz = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const quizData = quizId ? mockQuizData[quizId as keyof typeof mockQuizData] : null;
 
   useEffect(() => {
-    if (quizData) {
+    if (quizData && !isInitialized) {
+      console.log('Initializing quiz:', quizData.title);
       setTimeLeft(quizData.timeMinutes * 60);
+      setCurrentQuestion(0);
+      setSelectedAnswers([]);
+      setIsCompleted(false);
+      setIsInitialized(true);
     }
-  }, [quizData]);
+  }, [quizData, isInitialized]);
 
   useEffect(() => {
-    if (timeLeft > 0 && !isCompleted) {
+    if (timeLeft > 0 && !isCompleted && isInitialized) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !isCompleted) {
+    } else if (timeLeft === 0 && !isCompleted && isInitialized) {
+      console.log('Time up! Submitting quiz...');
       handleSubmitQuiz();
     }
-  }, [timeLeft, isCompleted]);
+  }, [timeLeft, isCompleted, isInitialized]);
 
   if (!quizData) {
     return (
@@ -129,16 +136,34 @@ const Quiz = () => {
     );
   }
 
+  // Don't render quiz content until it's properly initialized
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Loading Quiz...</h1>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const handleAnswerSelect = (answerIndex: number) => {
+    console.log('Answer selected:', answerIndex, 'for question:', currentQuestion);
     const newAnswers = [...selectedAnswers];
     newAnswers[currentQuestion] = answerIndex;
     setSelectedAnswers(newAnswers);
   };
 
   const handleNextQuestion = () => {
+    console.log('Moving to next question. Current:', currentQuestion, 'Total:', quizData.questions.length);
     if (currentQuestion < quizData.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
+      console.log('Last question reached, submitting quiz...');
       handleSubmitQuiz();
     }
   };
@@ -150,6 +175,7 @@ const Quiz = () => {
   };
 
   const handleSubmitQuiz = () => {
+    console.log('Quiz submitted with answers:', selectedAnswers);
     setIsCompleted(true);
   };
 
