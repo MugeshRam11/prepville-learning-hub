@@ -114,138 +114,171 @@ const SignUpForm = () => {
   };
 
   return (
-    <form onSubmit={handleSignUp} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="fullName">Full Name</Label>
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="fullName"
-            type="text"
-            placeholder="Enter your full name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="pl-10"
-            required
-            autoComplete="name"
-          />
+    <div className="w-full max-w-md mx-auto">
+      <form onSubmit={handleSignUp} className="space-y-6">
+        {/* Full Name Field */}
+        <div className="space-y-2">
+          <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+            Full Name *
+          </Label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="Enter your full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              required
+              autoComplete="name"
+            />
+          </div>
         </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email Address</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="signup-email"
-            type="email"
-            placeholder="your.email@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="pl-10"
-            required
-            autoComplete="email"
-          />
+        
+        {/* Email Field */}
+        <div className="space-y-2">
+          <Label htmlFor="signup-email" className="text-sm font-medium text-gray-700">
+            Email Address *
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              id="signup-email"
+              type="email"
+              placeholder="your.email@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              required
+              autoComplete="email"
+            />
+          </div>
         </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number (Optional)</Label>
-        <div className="relative">
-          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="+1 (555) 123-4567"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="pl-10"
-            autoComplete="tel"
-          />
+        
+        {/* Phone Field */}
+        <div className="space-y-2">
+          <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+            Phone Number <span className="text-gray-500">(Optional)</span>
+          </Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+1 (555) 123-4567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              autoComplete="tel"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="role">Select Your Role</Label>
-        <Select value={role} onValueChange={setRole} required>
-          <SelectTrigger>
-            <SelectValue placeholder="Choose your role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="student">Student</SelectItem>
-            <SelectItem value="admin">Administrator</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="signup-password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Create a strong password (min 6 characters)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 pr-10"
-            required
-            autoComplete="new-password"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </Button>
+        {/* Role Field */}
+        <div className="space-y-2">
+          <Label htmlFor="role" className="text-sm font-medium text-gray-700">
+            Select Your Role *
+          </Label>
+          <Select value={role} onValueChange={setRole} required>
+            <SelectTrigger className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+              <SelectValue placeholder="Choose your role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="student">Student</SelectItem>
+              <SelectItem value="admin">Administrator</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+        
+        {/* Password Field */}
+        <div className="space-y-2">
+          <Label htmlFor="signup-password" className="text-sm font-medium text-gray-700">
+            Password *
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              id="signup-password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Create a strong password (min 6 characters)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-10 pr-12 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              required
+              autoComplete="new-password"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 w-9 p-0 hover:bg-gray-100"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4 text-gray-500" />
+              ) : (
+                <Eye className="h-4 w-4 text-gray-500" />
+              )}
+            </Button>
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="confirm-password"
-            type={showConfirmPassword ? "text" : "password"}
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="pl-10 pr-10"
-            required
-            autoComplete="new-password"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </Button>
+        {/* Confirm Password Field */}
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password" className="text-sm font-medium text-gray-700">
+            Confirm Password *
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              id="confirm-password"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="pl-10 pr-12 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              required
+              autoComplete="new-password"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 w-9 p-0 hover:bg-gray-100"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4 text-gray-500" />
+              ) : (
+                <Eye className="h-4 w-4 text-gray-500" />
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
-      
-      <Button 
-        type="submit" 
-        className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base font-medium"
-        disabled={loading}
-      >
-        {loading ? 'Creating Account...' : 'Create Account'}
-      </Button>
-    </form>
+        
+        {/* Submit Button */}
+        <Button 
+          type="submit" 
+          className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base font-medium mt-8 transition-colors"
+          disabled={loading}
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Creating Account...
+            </div>
+          ) : (
+            'Create Account'
+          )}
+        </Button>
+
+        {/* Helper Text */}
+        <p className="text-xs text-gray-500 text-center mt-4">
+          Fields marked with * are required
+        </p>
+      </form>
+    </div>
   );
 };
 
