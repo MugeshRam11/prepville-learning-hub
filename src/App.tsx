@@ -17,6 +17,10 @@ import Analytics from "./pages/Analytics";
 import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminMockTests from "./pages/AdminMockTests";
+import AdminMockTestCreate from "./pages/AdminMockTestCreate";
+import AdminMockTestView from "./pages/AdminMockTestView";
+import AdminMockTestEdit from "./pages/AdminMockTestEdit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +45,10 @@ const App = () => (
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/mock-tests" element={<AdminMockTests />} />
+          <Route path="/admin/mock-tests/create" element={<AdminMockTestCreate />} />
+          <Route path="/admin/mock-tests/view/:id" element={<AdminMockTestView />} />
+          <Route path="/admin/mock-tests/edit/:id" element={<AdminMockTestEdit />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

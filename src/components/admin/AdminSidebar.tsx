@@ -8,11 +8,12 @@ import {
   Settings, 
   HelpCircle,
   BookOpen,
-  LogOut
+  LogOut,
+  ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface AdminSidebarProps {
@@ -22,6 +23,7 @@ interface AdminSidebarProps {
 
 const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -29,14 +31,30 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     navigate('/');
   };
 
+  const handleNavigation = (tab: string, path?: string) => {
+    if (path) {
+      navigate(path);
+    } else {
+      onTabChange(tab);
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'tests', label: 'Test Management', icon: FileText },
+    { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
     { id: 'reports', label: 'Progress Reports', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'help', label: 'Help & Support', icon: HelpCircle },
   ];
+
+  const isActive = (item: any) => {
+    if (item.path) {
+      return location.pathname.startsWith(item.path);
+    }
+    return activeTab === item.id;
+  };
 
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -61,9 +79,9 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => onTabChange(item.id)}
+                  onClick={() => handleNavigation(item.id, item.path)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                    activeTab === item.id
+                    isActive(item)
                       ? 'bg-blue-50 text-blue-600 border border-blue-200'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
