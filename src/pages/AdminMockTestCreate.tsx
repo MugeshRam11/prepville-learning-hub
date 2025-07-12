@@ -9,11 +9,19 @@ import { toast } from 'sonner';
 import { ArrowLeft, Save, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
+import AdminSidebar from '@/components/admin/AdminSidebar';
+import type { Database } from '@/integrations/supabase/types';
+
+type TestSubject = Database['public']['Enums']['test_subject'];
 
 const AdminMockTestCreate = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [testInfo, setTestInfo] = useState({
+  const [testInfo, setTestInfo] = useState<{
+    title: string;
+    subject: TestSubject | '';
+    topic: string;
+  }>({
     title: '',
     subject: '',
     topic: ''
@@ -63,7 +71,7 @@ const AdminMockTestCreate = () => {
         .from('mock_tests')
         .insert({
           title: testInfo.title,
-          subject: testInfo.subject,
+          subject: testInfo.subject as TestSubject,
           topic: testInfo.topic,
           is_published: publish
         })
@@ -123,98 +131,101 @@ const AdminMockTestCreate = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => navigate('/admin/mock-tests')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Mock Tests
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Create New Mock Test</h1>
-              <p className="text-gray-600">Design and upload a comprehensive mock examination</p>
+    <div className="min-h-screen bg-gray-50 flex">
+      <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
+      <div className="flex-1 ml-64 p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => navigate('/admin/mock-tests')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Mock Tests
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Create New Mock Test</h1>
+                <p className="text-gray-600">Design and upload a comprehensive mock examination</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Test Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Test Title *</label>
-              <Input
-                value={testInfo.title}
-                onChange={(e) => setTestInfo({ ...testInfo, title: e.target.value })}
-                placeholder="e.g., Mathematics Mock Test - Algebra Fundamentals"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Test Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Subject *</label>
-                <Select
-                  value={testInfo.subject}
-                  onValueChange={(value) => setTestInfo({ ...testInfo, subject: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mathematics">Mathematics</SelectItem>
-                    <SelectItem value="science">Science</SelectItem>
-                    <SelectItem value="language_literature">Language & Literature</SelectItem>
-                    <SelectItem value="social_studies">Social Studies</SelectItem>
-                    <SelectItem value="physics">Physics</SelectItem>
-                    <SelectItem value="chemistry">Chemistry</SelectItem>
-                    <SelectItem value="biology">Biology</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Topic *</label>
+                <label className="block text-sm font-medium mb-2">Test Title *</label>
                 <Input
-                  value={testInfo.topic}
-                  onChange={(e) => setTestInfo({ ...testInfo, topic: e.target.value })}
-                  placeholder="e.g., Algebra, Force & Motion, etc."
+                  value={testInfo.title}
+                  onChange={(e) => setTestInfo({ ...testInfo, title: e.target.value })}
+                  placeholder="e.g., Mathematics Mock Test - Algebra Fundamentals"
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Question Builder */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Question Builder</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <QuestionBuilder questions={questions} setQuestions={setQuestions} />
-          </CardContent>
-        </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Subject *</label>
+                  <Select
+                    value={testInfo.subject}
+                    onValueChange={(value: TestSubject) => setTestInfo({ ...testInfo, subject: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mathematics">Mathematics</SelectItem>
+                      <SelectItem value="science">Science</SelectItem>
+                      <SelectItem value="language_literature">Language & Literature</SelectItem>
+                      <SelectItem value="social_studies">Social Studies</SelectItem>
+                      <SelectItem value="physics">Physics</SelectItem>
+                      <SelectItem value="chemistry">Chemistry</SelectItem>
+                      <SelectItem value="biology">Biology</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-4 pb-8">
-          <Button
-            variant="outline"
-            onClick={() => handleSave(false)}
-            disabled={loading}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save as Draft
-          </Button>
-          <Button
-            onClick={() => handleSave(true)}
-            disabled={loading}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            {loading ? 'Publishing...' : 'Publish Test'}
-          </Button>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Topic *</label>
+                  <Input
+                    value={testInfo.topic}
+                    onChange={(e) => setTestInfo({ ...testInfo, topic: e.target.value })}
+                    placeholder="e.g., Algebra, Force & Motion, etc."
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Question Builder */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Question Builder</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QuestionBuilder questions={questions} setQuestions={setQuestions} />
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-4 pb-8">
+            <Button
+              variant="outline"
+              onClick={() => handleSave(false)}
+              disabled={loading}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save as Draft
+            </Button>
+            <Button
+              onClick={() => handleSave(true)}
+              disabled={loading}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {loading ? 'Publishing...' : 'Publish Test'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
