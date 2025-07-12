@@ -121,8 +121,8 @@ const MockExamStart = () => {
     return answer?.content || '';
   };
 
-  const getAnsweredQuestions = () => {
-    const answeredSet = new Set();
+  const getAnsweredQuestions = (): Set<string> => {
+    const answeredSet = new Set<string>();
     answers.forEach(answer => {
       if (answer.subQuestionId) {
         answeredSet.add(`${answer.questionId}-${answer.subQuestionId}`);
