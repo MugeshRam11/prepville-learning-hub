@@ -68,9 +68,11 @@ const Practice = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-4">
-                    Full-length exam simulations with time limits
+                    Full-length exam simulations with comprehensive questions
                   </p>
-                  <Button className="w-full">Take Mock Exam</Button>
+                  <Button className="w-full" onClick={() => navigate('/mock-exams/select')}>
+                    Take Mock Exam
+                  </Button>
                 </CardContent>
               </Card>
             </div>

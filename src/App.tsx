@@ -9,6 +9,9 @@ import Subjects from "./pages/Subjects";
 import Practice from "./pages/Practice";
 import QuickPractice from "./pages/QuickPractice";
 import Quiz from "./pages/Quiz";
+import MockExamSelect from "./pages/MockExamSelect";
+import MockExamStart from "./pages/MockExamStart";
+import MockExamSummary from "./pages/MockExamSummary";
 import Videos from "./pages/Videos";
 import Analytics from "./pages/Analytics";
 import Pricing from "./pages/Pricing";
@@ -30,6 +33,9 @@ const App = () => (
           <Route path="/practice" element={<Practice />} />
           <Route path="/quick-practice" element={<QuickPractice />} />
           <Route path="/quiz/:quizId" element={<Quiz />} />
+          <Route path="/mock-exams/select" element={<MockExamSelect />} />
+          <Route path="/mock-exams/start" element={<MockExamStart />} />
+          <Route path="/mock-exams/summary" element={<MockExamSummary />} />
           <Route path="/videos" element={<Videos />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/pricing" element={<Pricing />} />
