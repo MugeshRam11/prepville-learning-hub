@@ -10,6 +10,7 @@ import { ArrowLeft, Save, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import SampleTestLoader from '@/components/admin/SampleTestLoader';
 import type { Database } from '@/integrations/supabase/types';
 
 type TestSubject = Database['public']['Enums']['test_subject'];
@@ -27,6 +28,38 @@ const AdminMockTestCreate = () => {
     topic: ''
   });
   const [questions, setQuestions] = useState([]);
+
+  const handleLoadSample = (sampleData: any) => {
+    setTestInfo({
+      title: sampleData.title,
+      subject: sampleData.subject,
+      topic: sampleData.topic
+    });
+    
+    const transformedQuestions = sampleData.questions.map((q: any) => ({
+      id: Date.now() + q.id,
+      question_number: q.question_number,
+      question_text: q.question_text,
+      question_image_url: q.question_image_url || '',
+      has_sub_questions: q.has_sub_questions,
+      marks: q.marks,
+      answer_key: q.answer_key || '',
+      word_limit: q.word_limit?.toString() || '',
+      difficulty: q.difficulty,
+      sub_questions: q.sub_questions?.map((sq: any) => ({
+        id: Date.now() + Math.random(),
+        sub_question_label: sq.sub_question_label,
+        sub_question_text: sq.sub_question_text,
+        sub_question_image_url: sq.sub_question_image_url || '',
+        marks: sq.marks,
+        answer_key: sq.answer_key || '',
+        word_limit: sq.word_limit?.toString() || ''
+      })) || []
+    }));
+    
+    setQuestions(transformedQuestions);
+    toast.success('Sample test loaded successfully!');
+  };
 
   const handleSave = async (publish = false) => {
     // Validation
@@ -148,6 +181,11 @@ const AdminMockTestCreate = () => {
               </div>
             </div>
           </div>
+
+          {/* Sample Test Loader */}
+          {questions.length === 0 && (
+            <SampleTestLoader onLoadSample={handleLoadSample} />
+          )}
 
           {/* Test Information */}
           <Card>

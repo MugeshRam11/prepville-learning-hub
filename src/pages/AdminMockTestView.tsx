@@ -132,6 +132,11 @@ const AdminMockTestView = () => {
                       </div>
                     </div>
                     <p className="text-gray-700 mb-2">{question.question_text}</p>
+                    {question.question_image_url && (
+                      <div className="mb-2">
+                        <img src={question.question_image_url} alt="Question image" className="max-w-md rounded" />
+                      </div>
+                    )}
                     {question.answer_key && (
                       <div className="bg-green-50 p-2 rounded">
                         <strong>Answer:</strong> {question.answer_key}
@@ -145,9 +150,14 @@ const AdminMockTestView = () => {
                               <h4 className="font-medium">
                                 {question.question_number}{subQ.sub_question_label}
                               </h4>
-                              <Badge variant="outline" size="sm">{subQ.marks} marks</Badge>
+                              <Badge variant="outline">{subQ.marks} marks</Badge>
                             </div>
                             <p className="text-gray-600 text-sm">{subQ.sub_question_text}</p>
+                            {subQ.sub_question_image_url && (
+                              <div className="my-2">
+                                <img src={subQ.sub_question_image_url} alt="Sub-question image" className="max-w-sm rounded" />
+                              </div>
+                            )}
                             {subQ.answer_key && (
                               <div className="bg-green-50 p-1 rounded text-sm mt-1">
                                 <strong>Answer:</strong> {subQ.answer_key}

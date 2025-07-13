@@ -11,12 +11,19 @@ import { toast } from 'sonner';
 import { ArrowLeft, Save, Upload } from 'lucide-react';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import type { Database } from '@/integrations/supabase/types';
+
+type TestSubject = Database['public']['Enums']['test_subject'];
 
 const AdminMockTestEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [testInfo, setTestInfo] = useState({
+  const [testInfo, setTestInfo] = useState<{
+    title: string;
+    subject: TestSubject | '';
+    topic: string;
+  }>({
     title: '',
     subject: '',
     topic: ''
@@ -104,7 +111,7 @@ const AdminMockTestEdit = () => {
         .from('mock_tests')
         .update({
           title: testInfo.title,
-          subject: testInfo.subject,
+          subject: testInfo.subject as TestSubject,
           topic: testInfo.topic,
           is_published: publish
         })
@@ -219,7 +226,7 @@ const AdminMockTestEdit = () => {
                   <label className="block text-sm font-medium mb-2">Subject *</label>
                   <Select
                     value={testInfo.subject}
-                    onValueChange={(value) => setTestInfo({ ...testInfo, subject: value })}
+                    onValueChange={(value: TestSubject) => setTestInfo({ ...testInfo, subject: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Subject" />
