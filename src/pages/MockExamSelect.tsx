@@ -22,8 +22,14 @@ const MockExamSelect = () => {
   const [selectedTopic, setSelectedTopic] = useState<string>('');
 
   const handleSubjectChange = (subject: string) => {
+    console.log('Subject selected:', subject);
     setSelectedSubject(subject);
     setSelectedTopic(''); // Reset topic when subject changes
+  };
+
+  const handleTopicChange = (topic: string) => {
+    console.log('Topic selected:', topic);
+    setSelectedTopic(topic);
   };
 
   const handleStartTest = () => {
@@ -35,6 +41,8 @@ const MockExamSelect = () => {
   };
 
   const availableTopics = selectedSubject ? mockSubjects[selectedSubject as keyof typeof mockSubjects] || [] : [];
+  console.log('Available topics:', availableTopics);
+  console.log('Selected subject:', selectedSubject);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -71,7 +79,7 @@ const MockExamSelect = () => {
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue placeholder="Choose a subject" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white">
                         {Object.keys(mockSubjects).map((subject) => (
                           <SelectItem key={subject} value={subject}>
                             {subject}
@@ -88,13 +96,13 @@ const MockExamSelect = () => {
                     </label>
                     <Select 
                       value={selectedTopic} 
-                      onValueChange={setSelectedTopic}
+                      onValueChange={handleTopicChange}
                       disabled={!selectedSubject}
                     >
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue placeholder={selectedSubject ? "Choose a topic" : "Select subject first"} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white">
                         {availableTopics.map((topic) => (
                           <SelectItem key={topic} value={topic}>
                             {topic}
@@ -112,6 +120,8 @@ const MockExamSelect = () => {
                         <span className="font-medium">Exam Details</span>
                       </div>
                       <div className="text-sm text-blue-600 space-y-1">
+                        <p>• Subject: {selectedSubject}</p>
+                        <p>• Topic: {selectedTopic}</p>
                         <p>• 8 comprehensive questions with sub-parts</p>
                         <p>• Mix of short and long-form answers</p>
                         <p>• No time limit - work at your own pace</p>
