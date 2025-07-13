@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BookOpen, Clock, FileText } from 'lucide-react';
 
 const mockSubjects = {
-  'Mathematics': ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Trigonometry'],
+  'Mathematics': ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Trigonometry', 'Graph Theory and Analysis', 'Graphs and Linear Equations'],
   'Science': ['Physics', 'Chemistry', 'Biology', 'Environmental Science'],
   'Language & Literature': ['Grammar', 'Composition', 'Literature Analysis', 'Creative Writing'],
   'Social Studies': ['History', 'Geography', 'Economics', 'Political Science'],
