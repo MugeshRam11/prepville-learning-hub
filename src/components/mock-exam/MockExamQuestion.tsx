@@ -43,7 +43,6 @@ const MockExamQuestion = ({
   };
 
   const saveDraft = () => {
-    // Here you could implement additional save logic
     console.log('Draft saved');
   };
 
@@ -100,6 +99,13 @@ const MockExamQuestion = ({
                   alt="Question illustration" 
                   className="max-w-full h-auto rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => window.open(question.image, '_blank')}
+                  onError={(e) => {
+                    console.error('Failed to load image:', question.image);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', question.image);
+                  }}
                 />
                 <p className="text-xs text-gray-500 mt-2">Click to view in full size</p>
               </div>
@@ -107,7 +113,7 @@ const MockExamQuestion = ({
 
             {/* Long content indicator */}
             <div className="text-sm text-gray-500 mb-4">
-              Scroll down if the question continues...
+              {question.image ? 'Refer to the image above. ' : ''}Scroll down if the question continues...
             </div>
           </CardContent>
         </Card>

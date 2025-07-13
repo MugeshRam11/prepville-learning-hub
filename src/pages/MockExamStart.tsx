@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import MockExamSidebar from '@/components/mock-exam/MockExamSidebar';
 import MockExamHeader from '@/components/mock-exam/MockExamHeader';
 import MockExamQuestion from '@/components/mock-exam/MockExamQuestion';
-import { mockQuestions } from '@/data/mockQuestions';
+import { mathGraphMockTest } from '@/data/mathGraphMockTest';
+import { sampleMathGraphTest } from '@/data/sampleMathGraphTest';
 import { Button } from '@/components/ui/button';
 
 export interface Question {
@@ -34,18 +35,52 @@ const MockExamStart = () => {
   const navigate = useNavigate();
   const { subject, topic } = location.state || {};
 
-  const [questions] = useState<Question[]>(mockQuestions);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentSubQuestionIndex, setCurrentSubQuestionIndex] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [startTime] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Load questions based on selected topic
+  useEffect(() => {
+    let testData = null;
+    
+    console.log('Loading test data for:', { subject, topic });
+    
+    if (topic === 'Graph Theory and Analysis') {
+      testData = mathGraphMockTest;
+    } else if (topic === 'Graphs and Linear Equations') {
+      testData = sampleMathGraphTest;
+    }
+    
+    if (testData) {
+      console.log('Test data found:', testData);
+      const formattedQuestions: Question[] = testData.questions.map(q => ({
+        id: q.id.toString(),
+        text: q.question_text,
+        marks: q.marks,
+        image: q.question_image_url || undefined,
+        passage: undefined,
+        subQuestions: q.sub_questions?.map(sq => ({
+          id: sq.id?.toString() || sq.sub_question_label,
+          text: sq.sub_question_text,
+          marks: sq.marks
+        }))
+      }));
+      
+      console.log('Formatted questions:', formattedQuestions);
+      setQuestions(formattedQuestions);
+    } else {
+      console.log('No test data found for topic:', topic);
+      setQuestions([]);
+    }
+  }, [subject, topic]);
+
   // Auto-save every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       console.log('Auto-saving answers...');
-      // Here you would typically save to localStorage or backend
       localStorage.setItem('mockExamAnswers', JSON.stringify(answers));
     }, 30000);
 
@@ -152,6 +187,17 @@ const MockExamStart = () => {
           <Button onClick={() => navigate('/mock-exams/select')}>
             Back to Selection
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Loading Test...</h2>
+          <p className="text-gray-600 mb-4">Preparing {topic} questions...</p>
         </div>
       </div>
     );
