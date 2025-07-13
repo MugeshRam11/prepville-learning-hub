@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import SampleTestLoader from '@/components/admin/SampleTestLoader';
+import MathGraphTestLoader from '@/components/admin/MathGraphTestLoader';
 import type { Database } from '@/integrations/supabase/types';
 
 type TestSubject = Database['public']['Enums']['test_subject'];
@@ -58,7 +58,7 @@ const AdminMockTestCreate = () => {
     }));
     
     setQuestions(transformedQuestions);
-    toast.success('Sample test loaded successfully!');
+    toast.success('Test loaded successfully!');
   };
 
   const handleSave = async (publish = false) => {
@@ -182,9 +182,12 @@ const AdminMockTestCreate = () => {
             </div>
           </div>
 
-          {/* Sample Test Loader */}
+          {/* Sample Test Loaders */}
           {questions.length === 0 && (
-            <SampleTestLoader onLoadSample={handleLoadSample} />
+            <div className="space-y-4">
+              <MathGraphTestLoader onLoadTest={handleLoadSample} />
+              <SampleTestLoader onLoadSample={handleLoadSample} />
+            </div>
           )}
 
           {/* Test Information */}
