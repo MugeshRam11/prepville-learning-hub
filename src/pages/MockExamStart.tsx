@@ -180,11 +180,17 @@ const MockExamStart = () => {
 
   if (!subject || !topic) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Session Error</h2>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-xl border border-purple-200">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-red-400 to-pink-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Session Error</h2>
           <p className="text-gray-600 mb-4">No exam session found.</p>
-          <Button onClick={() => navigate('/mock-exams/select')}>
+          <Button 
+            onClick={() => navigate('/mock-exams/select')}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+          >
             Back to Selection
           </Button>
         </div>
@@ -194,9 +200,12 @@ const MockExamStart = () => {
 
   if (questions.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Loading Test...</h2>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-xl border border-blue-200">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center animate-spin">
+            <span className="text-white text-2xl">📚</span>
+          </div>
+          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Loading Test...</h2>
           <p className="text-gray-600 mb-4">Preparing {topic} questions...</p>
         </div>
       </div>
@@ -204,7 +213,7 @@ const MockExamStart = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <MockExamHeader 
         subject={subject}
         topic={topic}
