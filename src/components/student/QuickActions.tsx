@@ -37,7 +37,7 @@ const QuickActions = () => {
       description: "Learn with classmates",
       icon: Users,
       color: "bg-gradient-to-r from-green-500 to-teal-500",
-      action: () => {}
+      action: () => navigate('/study-groups')
     },
     {
       title: "Video Lessons",

@@ -22,6 +22,7 @@ import AdminMockTests from "./pages/AdminMockTests";
 import AdminMockTestCreate from "./pages/AdminMockTestCreate";
 import AdminMockTestEdit from "./pages/AdminMockTestEdit";
 import AdminMockTestView from "./pages/AdminMockTestView";
+import StudyGroups from "./pages/StudyGroups";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/admin/mock-tests/create" element={<AdminMockTestCreate />} />
           <Route path="/admin/mock-tests/:id/edit" element={<AdminMockTestEdit />} />
           <Route path="/admin/mock-tests/:id/view" element={<AdminMockTestView />} />
+          <Route path="/study-groups" element={<StudyGroups />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
