@@ -25,11 +25,14 @@ import AdminMockTestView from "./pages/AdminMockTestView";
 import StudyGroups from "./pages/StudyGroups";
 import NotFound from "./pages/NotFound";
 
+import { AuthProvider } from '@/hooks/useAuth';
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -57,7 +60,8 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </AuthProvider>
+</QueryClientProvider>
 );
 
 export default App;
