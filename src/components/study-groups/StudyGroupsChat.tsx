@@ -60,27 +60,50 @@ const StudyGroupsChat = ({ groupId }: StudyGroupsChatProps) => {
         .from('study_questions')
         .select(`
           *,
-          study_groups_users!study_questions_asked_by_fkey (
-            username,
-            avatar_url,
-            reputation,
-            role
-          ),
           study_answers (
-            *,
-            study_groups_users!study_answers_answered_by_fkey (
-              username,
-              avatar_url,
-              reputation,
-              role
-            )
+            *
           )
         `)
         .eq('group_id', groupId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setQuestions(data || []);
+
+      // Fetch user details for questions and answers separately
+      const questionsWithUsers = await Promise.all(
+        (data || []).map(async (question) => {
+          // Get question author details
+          const { data: authorData } = await supabase
+            .from('study_groups_users')
+            .select('username, avatar_url, reputation, role')
+            .eq('user_id', question.asked_by)
+            .single();
+
+          // Get answer authors details
+          const answersWithUsers = await Promise.all(
+            (question.study_answers || []).map(async (answer: any) => {
+              const { data: answerAuthorData } = await supabase
+                .from('study_groups_users')
+                .select('username, avatar_url, reputation, role')
+                .eq('user_id', answer.answered_by)
+                .single();
+
+              return {
+                ...answer,
+                study_groups_users: answerAuthorData
+              };
+            })
+          );
+
+          return {
+            ...question,
+            study_groups_users: authorData,
+            study_answers: answersWithUsers
+          };
+        })
+      );
+
+      setQuestions(questionsWithUsers);
     } catch (error) {
       console.error('Error fetching questions:', error);
       toast.error('Failed to load questions');
