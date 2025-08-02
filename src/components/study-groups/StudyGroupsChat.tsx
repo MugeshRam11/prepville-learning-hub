@@ -112,6 +112,36 @@ const StudyGroupsChat = ({ groupId }: StudyGroupsChatProps) => {
     }
   };
 
+  const handleSendQuestion = async () => {
+    if (!newMessage.trim() || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('study_questions')
+        .insert({
+          group_id: groupId,
+          asked_by: user.id,
+          content: newMessage.trim()
+        });
+
+      if (error) throw error;
+
+      setNewMessage('');
+      toast.success('Question posted successfully!');
+      fetchQuestions(); // Refresh questions
+    } catch (error) {
+      console.error('Error posting question:', error);
+      toast.error('Failed to post question');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendQuestion();
+    }
+  };
+
   const getReactionEmoji = (reaction: string) => {
     const reactionMap: { [key: string]: string } = {
       '✅': '✅',
@@ -285,9 +315,11 @@ const StudyGroupsChat = ({ groupId }: StudyGroupsChatProps) => {
             placeholder={`Ask a question in ${groupInfo?.group_name || 'this group'}...`}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
             className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
           />
           <Button 
+            onClick={handleSendQuestion}
             size="icon"
             className="shrink-0 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
           >
