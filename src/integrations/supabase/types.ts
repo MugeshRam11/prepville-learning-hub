@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          is_active: boolean
+          joined_at: string
+          role: Database["public"]["Enums"]["group_member_role"]
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          role?: Database["public"]["Enums"]["group_member_role"]
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          role?: Database["public"]["Enums"]["group_member_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_messages: {
+        Row: {
+          created_at: string
+          edited_at: string | null
+          file_url: string | null
+          group_id: string
+          id: string
+          is_edited: boolean
+          message: string
+          message_type: Database["public"]["Enums"]["message_type"]
+          reply_to: string | null
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          edited_at?: string | null
+          file_url?: string | null
+          group_id: string
+          id?: string
+          is_edited?: boolean
+          message: string
+          message_type?: Database["public"]["Enums"]["message_type"]
+          reply_to?: string | null
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          edited_at?: string | null
+          file_url?: string | null
+          group_id?: string
+          id?: string
+          is_edited?: boolean
+          message?: string
+          message_type?: Database["public"]["Enums"]["message_type"]
+          reply_to?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_questions: {
         Row: {
           answer_key: string | null
@@ -249,6 +338,178 @@ export type Database = {
           },
         ]
       }
+      study_answers: {
+        Row: {
+          answered_by: string
+          content: string
+          created_at: string
+          id: string
+          is_verified: boolean
+          question_id: string
+          updated_at: string
+          upvotes: number
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          answered_by: string
+          content: string
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          question_id: string
+          updated_at?: string
+          upvotes?: number
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          answered_by?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          question_id?: string
+          updated_at?: string
+          upvotes?: number
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "study_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          group_name: string
+          id: string
+          is_active: boolean
+          is_public: boolean
+          member_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_name: string
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          member_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          member_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      study_groups_users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          joined_at: string
+          reputation: number
+          role: Database["public"]["Enums"]["user_role_sg"]
+          streak_days: number
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          reputation?: number
+          role?: Database["public"]["Enums"]["user_role_sg"]
+          streak_days?: number
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          reputation?: number
+          role?: Database["public"]["Enums"]["user_role_sg"]
+          streak_days?: number
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      study_questions: {
+        Row: {
+          answer_count: number
+          asked_by: string
+          content: string
+          created_at: string
+          group_id: string
+          id: string
+          is_resolved: boolean
+          tags: string[] | null
+          updated_at: string
+          upvotes: number
+        }
+        Insert: {
+          answer_count?: number
+          asked_by: string
+          content: string
+          created_at?: string
+          group_id: string
+          id?: string
+          is_resolved?: boolean
+          tags?: string[] | null
+          updated_at?: string
+          upvotes?: number
+        }
+        Update: {
+          answer_count?: number
+          asked_by?: string
+          content?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_resolved?: boolean
+          tags?: string[] | null
+          updated_at?: string
+          upvotes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_questions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_attempts: {
         Row: {
           answers: Json | null
@@ -418,6 +679,30 @@ export type Database = {
           },
         ]
       }
+      user_streaks: {
+        Row: {
+          activity_type: string
+          created_at: string
+          date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          activity_type?: string
+          created_at?: string
+          date: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -427,6 +712,8 @@ export type Database = {
     }
     Enums: {
       difficulty_level: "easy" | "medium" | "hard"
+      group_member_role: "member" | "moderator"
+      message_type: "text" | "image" | "file" | "audio"
       pathway: "standard" | "extended"
       question_difficulty: "easy" | "medium" | "hard"
       test_subject:
@@ -439,6 +726,7 @@ export type Database = {
         | "biology"
       test_type: "quick_test" | "topic_practice" | "mock_test"
       user_role: "admin" | "student" | "moderator"
+      user_role_sg: "student" | "admin" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -567,6 +855,8 @@ export const Constants = {
   public: {
     Enums: {
       difficulty_level: ["easy", "medium", "hard"],
+      group_member_role: ["member", "moderator"],
+      message_type: ["text", "image", "file", "audio"],
       pathway: ["standard", "extended"],
       question_difficulty: ["easy", "medium", "hard"],
       test_subject: [
@@ -580,6 +870,7 @@ export const Constants = {
       ],
       test_type: ["quick_test", "topic_practice", "mock_test"],
       user_role: ["admin", "student", "moderator"],
+      user_role_sg: ["student", "admin", "moderator"],
     },
   },
 } as const
