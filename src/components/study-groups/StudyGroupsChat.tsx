@@ -31,6 +31,8 @@ const StudyGroupsChat = ({ groupId }: StudyGroupsChatProps) => {
   const [groupInfo, setGroupInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
+  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const [answerText, setAnswerText] = useState('');
 
   useEffect(() => {
     if (groupId) {
@@ -142,6 +144,37 @@ const StudyGroupsChat = ({ groupId }: StudyGroupsChatProps) => {
     }
   };
 
+  const handleSendAnswer = async (questionId: string) => {
+    if (!answerText.trim() || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('study_answers')
+        .insert({
+          question_id: questionId,
+          answered_by: user.id,
+          content: answerText.trim()
+        });
+
+      if (error) throw error;
+
+      setAnswerText('');
+      setExpandedQuestion(null);
+      toast.success('Answer posted successfully!');
+      fetchQuestions(); // Refresh questions
+    } catch (error) {
+      console.error('Error posting answer:', error);
+      toast.error('Failed to post answer');
+    }
+  };
+
+  const handleAnswerKeyPress = (e: React.KeyboardEvent, questionId: string) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendAnswer(questionId);
+    }
+  };
+
   const getReactionEmoji = (reaction: string) => {
     const reactionMap: { [key: string]: string } = {
       '✅': '✅',
@@ -236,9 +269,10 @@ const StudyGroupsChat = ({ groupId }: StudyGroupsChatProps) => {
                         variant="ghost" 
                         size="sm" 
                         className="text-slate-400 hover:text-purple-400 transition-colors"
+                        onClick={() => setExpandedQuestion(expandedQuestion === question.id ? null : question.id)}
                       >
                         <MessageCircle className="h-4 w-4 mr-1" />
-                        {question.answer_count}
+                        {expandedQuestion === question.id ? 'Cancel' : 'Answer'}
                       </Button>
                     </div>
                     
@@ -296,6 +330,46 @@ const StudyGroupsChat = ({ groupId }: StudyGroupsChatProps) => {
                           View {question.study_answers.length - 2} more answers
                         </Button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Answer Input (when expanded) */}
+                  {expandedQuestion === question.id && (
+                    <div className="mt-4 space-y-3 border-t border-slate-700 pt-4">
+                      <div className="flex items-start space-x-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm">
+                            {user?.email?.slice(0, 2).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-2">
+                          <Input
+                            placeholder="Write your answer..."
+                            value={answerText}
+                            onChange={(e) => setAnswerText(e.target.value)}
+                            onKeyPress={(e) => handleAnswerKeyPress(e, question.id)}
+                            className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
+                          />
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedQuestion(null)}
+                              className="text-slate-400 hover:text-white"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => handleSendAnswer(question.id)}
+                              size="sm"
+                              className="bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600"
+                            >
+                              <Send className="h-4 w-4 mr-1" />
+                              Send Answer
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
