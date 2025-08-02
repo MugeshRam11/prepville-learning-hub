@@ -46,42 +46,51 @@ const StudyGroups = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      <div className="flex h-screen">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
+      <div className="flex h-full">
         {/* Left Sidebar */}
-        <StudyGroupsSidebar 
-          selectedGroup={selectedGroup}
-          onGroupSelect={setSelectedGroup}
-        />
+        <div className="flex-shrink-0">
+          <StudyGroupsSidebar 
+            selectedGroup={selectedGroup}
+            onGroupSelect={setSelectedGroup}
+          />
+        </div>
         
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header with Sign Out */}
-          <div className="p-4 border-b border-slate-700/50 bg-slate-800/30 backdrop-blur-sm flex justify-between items-center">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="flex-shrink-0 p-4 border-b border-slate-700/50 bg-slate-800/30 backdrop-blur-sm flex justify-between items-center">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent truncate">
               Study Groups Platform
             </h1>
             <Button
               variant="ghost"
               onClick={handleSignOut}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-400 hover:text-white flex-shrink-0"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
           </div>
           
-          {selectedGroup ? (
-            <StudyGroupsChat groupId={selectedGroup} />
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-slate-400">Select a group to start chatting</p>
-            </div>
-          )}
+          {/* Chat Content */}
+          <div className="flex-1 overflow-hidden">
+            {selectedGroup ? (
+              <StudyGroupsChat groupId={selectedGroup} />
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-slate-400">Select a group to start chatting</p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Right Sidebar */}
-        {selectedGroup && <StudyGroupsMembers groupId={selectedGroup} />}
+        {selectedGroup && (
+          <div className="flex-shrink-0">
+            <StudyGroupsMembers groupId={selectedGroup} />
+          </div>
+        )}
         
         {/* Floating Question Button */}
         {selectedGroup && (
