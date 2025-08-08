@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Save, Plus, Check } from 'lucide-react';
+import { Save, Plus, Check, Eye } from 'lucide-react';
 import MathEditor from './MathEditor';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import type { Question } from '@/pages/MockExamStart';
 
 interface MockExamQuestionProps {
@@ -23,6 +25,7 @@ const MockExamQuestion = ({
 }: MockExamQuestionProps) => {
   const [showMathEditor, setShowMathEditor] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState(answer);
+  const [showPreview, setShowPreview] = useState(false);
 
   React.useEffect(() => {
     setCurrentAnswer(answer);
@@ -44,6 +47,32 @@ const MockExamQuestion = ({
 
   const saveDraft = () => {
     console.log('Draft saved');
+  };
+
+  const renderLatexContent = (text: string) => {
+    // Split text by $...$ patterns to find LaTeX equations
+    const parts = text.split(/(\$[^$]+\$)/g);
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('$') && part.endsWith('$')) {
+        // This is a LaTeX equation
+        const equation = part.slice(1, -1); // Remove the $ symbols
+        try {
+          const html = katex.renderToString(equation, {
+            displayMode: false,
+            throwOnError: false,
+            errorColor: '#cc0000',
+            strict: false
+          });
+          return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+        } catch (error) {
+          return <span key={index} className="text-red-500">Error: {equation}</span>;
+        }
+      } else {
+        // Regular text
+        return <span key={index}>{part}</span>;
+      }
+    });
   };
 
   const wordCount = currentAnswer.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -147,6 +176,15 @@ const MockExamQuestion = ({
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setShowPreview(!showPreview)}
+                    className="flex items-center gap-1"
+                  >
+                    <Eye className="w-3 h-3" />
+                    {showPreview ? 'Hide Preview' : 'Show Preview'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowMathEditor(!showMathEditor)}
                     className="flex items-center gap-1"
                   >
@@ -165,6 +203,16 @@ const MockExamQuestion = ({
                 </div>
               </div>
             </div>
+
+            {/* LaTeX Preview */}
+            {showPreview && currentAnswer && (
+              <div className="p-4 bg-gray-50 rounded-lg border">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Formatted Preview:</h4>
+                <div className="text-base leading-relaxed">
+                  {renderLatexContent(currentAnswer)}
+                </div>
+              </div>
+            )}
 
             {/* Auto-save indicator */}
             <div className="text-xs text-green-600 flex items-center gap-1">
