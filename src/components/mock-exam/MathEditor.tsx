@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, X } from 'lucide-react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 interface MathEditorProps {
   onInsert: (equation: string) => void;
@@ -32,6 +34,19 @@ const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
     if (equation.trim()) {
       onInsert(` $${equation}$ `);
       setEquation('');
+    }
+  };
+
+  const renderPreview = (equation: string) => {
+    try {
+      return katex.renderToString(equation, {
+        displayMode: false,
+        throwOnError: false,
+        errorColor: '#cc0000',
+        strict: false
+      });
+    } catch (error) {
+      return `Error: ${error}`;
     }
   };
 
@@ -71,9 +86,10 @@ const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
         {equation && (
           <div className="p-3 bg-white rounded border">
             <p className="text-sm text-gray-600 mb-1">Preview:</p>
-            <code className="text-sm bg-gray-100 px-2 py-1 rounded">
-              ${equation}$
-            </code>
+            <div 
+              className="text-lg p-2 bg-gray-50 rounded border min-h-8 flex items-center"
+              dangerouslySetInnerHTML={{ __html: renderPreview(equation) }}
+            />
           </div>
         )}
 
