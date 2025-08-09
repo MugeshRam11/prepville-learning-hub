@@ -7,11 +7,13 @@ import SubjectsSection from '@/components/SubjectsSection';
 import FeaturesSection from '@/components/FeaturesSection';
 import StatsSection from '@/components/StatsSection';
 import CTASection from '@/components/CTASection';
+import SubscriptionBanner from '@/components/SubscriptionBanner';
 
 const Index = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <SubscriptionBanner />
       <main className="flex-1">
         <HeroSection />
         <SubjectsSection />

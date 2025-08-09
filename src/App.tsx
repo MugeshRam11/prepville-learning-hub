@@ -26,13 +26,15 @@ import StudyGroups from "./pages/StudyGroups";
 import NotFound from "./pages/NotFound";
 
 import { AuthProvider } from '@/hooks/useAuth';
+import { SubscriptionProvider } from '@/hooks/useSubscription';
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
+      <SubscriptionProvider>
+        <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -59,8 +61,9 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </AuthProvider>
+        </TooltipProvider>
+      </SubscriptionProvider>
+    </AuthProvider>
 </QueryClientProvider>
 );
 

@@ -36,11 +36,11 @@ const HeroSection = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8">
-                Start Learning Free
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8" onClick={() => window.location.href = '/auth'}>
+                Start Free Trial
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8">
-                View Demo
+              <Button size="lg" variant="outline" className="text-lg px-8" onClick={() => window.location.href = '/pricing'}>
+                View Pricing
               </Button>
             </div>
 
