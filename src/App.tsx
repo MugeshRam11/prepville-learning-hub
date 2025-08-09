@@ -25,6 +25,7 @@ import AdminMockTestEdit from "./pages/AdminMockTestEdit";
 import AdminMockTestView from "./pages/AdminMockTestView";
 import StudyGroups from "./pages/StudyGroups";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import { AuthProvider } from '@/hooks/useAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
@@ -40,26 +41,97 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<StudentDashboard />} />
-          <Route path="/quiz/:quizId" element={<Quiz />} />
-          <Route path="/quick-practice" element={<QuickPractice />} />
-          <Route path="/practice" element={<Practice />} />
-          <Route path="/mock-exams/select" element={<MockExamSelect />} />
-          <Route path="/mock-exams/start" element={<MockExamStart />} />
-          <Route path="/mock-exams/summary" element={<MockExamSummary />} />
-          <Route path="/subjects" element={<Subjects />} />
-          <Route path="/videos" element={<Videos />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/subscription" element={<Subscription />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/mock-tests" element={<AdminMockTests />} />
-          <Route path="/admin/mock-tests/create" element={<AdminMockTestCreate />} />
-          <Route path="/admin/mock-tests/:id/edit" element={<AdminMockTestEdit />} />
-          <Route path="/admin/mock-tests/:id/view" element={<AdminMockTestView />} />
-          <Route path="/study-groups" element={<StudyGroups />} />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/subscription" element={
+            <ProtectedRoute>
+              <Subscription />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz/:quizId" element={
+            <ProtectedRoute requiresSubscription>
+              <Quiz />
+            </ProtectedRoute>
+          } />
+          <Route path="/quick-practice" element={
+            <ProtectedRoute requiresSubscription>
+              <QuickPractice />
+            </ProtectedRoute>
+          } />
+          <Route path="/practice" element={
+            <ProtectedRoute requiresSubscription>
+              <Practice />
+            </ProtectedRoute>
+          } />
+          <Route path="/mock-exams/select" element={
+            <ProtectedRoute requiresSubscription>
+              <MockExamSelect />
+            </ProtectedRoute>
+          } />
+          <Route path="/mock-exams/start" element={
+            <ProtectedRoute requiresSubscription>
+              <MockExamStart />
+            </ProtectedRoute>
+          } />
+          <Route path="/mock-exams/summary" element={
+            <ProtectedRoute requiresSubscription>
+              <MockExamSummary />
+            </ProtectedRoute>
+          } />
+          <Route path="/subjects" element={
+            <ProtectedRoute requiresSubscription>
+              <Subjects />
+            </ProtectedRoute>
+          } />
+          <Route path="/videos" element={
+            <ProtectedRoute requiresSubscription>
+              <Videos />
+            </ProtectedRoute>
+          } />
+          <Route path="/analytics" element={
+            <ProtectedRoute requiresSubscription>
+              <Analytics />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/mock-tests" element={
+            <ProtectedRoute>
+              <AdminMockTests />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/mock-tests/create" element={
+            <ProtectedRoute>
+              <AdminMockTestCreate />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/mock-tests/:id/edit" element={
+            <ProtectedRoute>
+              <AdminMockTestEdit />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/mock-tests/:id/view" element={
+            <ProtectedRoute>
+              <AdminMockTestView />
+            </ProtectedRoute>
+          } />
+          <Route path="/study-groups" element={
+            <ProtectedRoute>
+              <StudyGroups />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

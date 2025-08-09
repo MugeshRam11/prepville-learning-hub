@@ -1,8 +1,10 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { 
   BookOpen, 
   GraduationCap, 
@@ -13,15 +15,20 @@ import {
   X,
   Home,
   Target,
-  Users,
+  DollarSign,
+  LogOut,
   Settings
 } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
-  const navItems = [
+  // Navigation items when logged in
+  const loggedInNavItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/quick-practice', label: 'Quick Practice', icon: Target },
     { href: '/subjects', label: 'Subjects', icon: BookOpen },
@@ -30,14 +37,38 @@ const Header = () => {
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
+  // Navigation items when not logged in
+  const publicNavItems = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/pricing', label: 'Pricing', icon: DollarSign },
+  ];
+
+  const navItems = user ? loggedInNavItems : publicNavItems;
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error signing out",
+        description: "There was a problem signing you out.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2 group">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
               P
             </div>
@@ -70,13 +101,47 @@ const Header = () => {
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
-            {/* User Profile (Desktop) */}
-            <div className="hidden md:flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                <User className="w-4 h-4" />
-                <span>Profile</span>
-              </Button>
-            </div>
+            {user ? (
+              // Logged in user actions
+              <div className="hidden md:flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center space-x-2"
+                  onClick={() => navigate('/subscription')}
+                >
+                  <User className="w-4 h-4" />
+                  <span>Account</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center space-x-2 text-red-600 hover:text-red-700"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </Button>
+              </div>
+            ) : (
+              // Not logged in actions
+              <div className="hidden md:flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate('/auth')}
+                >
+                  Sign In
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => navigate('/auth')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                >
+                  Sign Up
+                </Button>
+              </div>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
@@ -116,14 +181,56 @@ const Header = () => {
               
               {/* Mobile User Actions */}
               <div className="pt-4 border-t">
-                <Button variant="ghost" className="w-full justify-start">
-                  <User className="w-4 h-4 mr-2" />
-                  Profile
-                </Button>
-                <Button variant="ghost" className="w-full justify-start">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
+                {user ? (
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/subscription');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Account
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-red-600"
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/auth');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Sign In
+                    </Button>
+                    <Button 
+                      className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      onClick={() => {
+                        navigate('/auth');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Sign Up
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>
