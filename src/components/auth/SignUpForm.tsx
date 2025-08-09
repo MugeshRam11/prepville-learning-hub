@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,7 +11,7 @@ const SignUpForm = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('');
+  
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,10 +45,6 @@ const SignUpForm = () => {
       return;
     }
 
-    if (!role) {
-      toast.error('Please select your role');
-      return;
-    }
 
     setLoading(true);
 
@@ -79,7 +74,7 @@ const SignUpForm = () => {
             first_name: firstName,
             last_name: lastName,
             phone: phone,
-            role: role
+            role: 'student'
           }
         }
       });
@@ -101,7 +96,6 @@ const SignUpForm = () => {
         setFullName('');
         setEmail('');
         setPhone('');
-        setRole('');
         setPassword('');
         setConfirmPassword('');
       }
@@ -165,18 +159,6 @@ const SignUpForm = () => {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="role">Select Your Role</Label>
-        <Select value={role} onValueChange={setRole}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choose your role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="student">Student</SelectItem>
-            <SelectItem value="admin">Administrator</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
       
       <div className="space-y-2">
         <Label htmlFor="signup-password">Password</Label>
