@@ -15,6 +15,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import Subjects from "./pages/Subjects";
 import Videos from "./pages/Videos";
 import Pricing from "./pages/Pricing";
+import Subscription from "./pages/Subscription";
 import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/subjects" element={<Subjects />} />
           <Route path="/videos" element={<Videos />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/subscription" element={<Subscription />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/admin" element={<AdminDashboard />} />
