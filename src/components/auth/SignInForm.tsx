@@ -3,13 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Mail, ArrowLeft, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const SignInForm = () => {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
@@ -115,6 +117,40 @@ const SignInForm = () => {
     }
   };
 
+  const handlePasswordSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Clean up any existing auth state
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Global signout failed, continuing...');
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else if (data.user) {
+        toast.success('Successfully signed in!');
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Password sign in error:', error);
+      toast.error('An unexpected error occurred during sign in');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBack = () => {
     setOtpSent(false);
     setOtp('');
@@ -124,8 +160,8 @@ const SignInForm = () => {
     return (
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-blue-600" />
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-primary" />
           </div>
           <h3 className="text-xl font-semibold">Check your email</h3>
           <p className="text-muted-foreground">
@@ -156,7 +192,7 @@ const SignInForm = () => {
           
           <Button 
             type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full"
             disabled={loading || otp.length !== 6}
           >
             {loading ? 'Verifying...' : 'Verify Code'}
@@ -190,35 +226,96 @@ const SignInForm = () => {
   }
 
   return (
-    <form onSubmit={handleSendOtp} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email Address</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="pl-10"
-            required
-            autoComplete="email"
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          We'll send you a 6-digit verification code
-        </p>
-      </div>
-      
-      <Button 
-        type="submit" 
-        className="w-full bg-blue-600 hover:bg-blue-700"
-        disabled={loading}
-      >
-        {loading ? 'Sending...' : 'Send Verification Code'}
-      </Button>
-    </form>
+    <Tabs defaultValue="password" className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsTrigger value="password" className="flex items-center gap-2">
+          <Lock className="w-4 h-4" />
+          Password
+        </TabsTrigger>
+        <TabsTrigger value="otp" className="flex items-center gap-2">
+          <Mail className="w-4 h-4" />
+          OTP
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="password">
+        <form onSubmit={handlePasswordSignIn} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
+                required
+                autoComplete="email"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+          </div>
+          
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </Button>
+        </form>
+      </TabsContent>
+
+      <TabsContent value="otp">
+        <form onSubmit={handleSendOtp} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email-otp">Email Address</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="email-otp"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
+                required
+                autoComplete="email"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              We'll send you a 6-digit verification code
+            </p>
+          </div>
+          
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? 'Sending...' : 'Send Verification Code'}
+          </Button>
+        </form>
+      </TabsContent>
+    </Tabs>
   );
 };
 
