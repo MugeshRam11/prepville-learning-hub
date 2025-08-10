@@ -178,10 +178,7 @@ const StudentDashboard = () => {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Streak Tracker */}
-              <StreakTracker 
-                currentStreak={studentData.currentStreak}
-                longestStreak={studentData.longestStreak}
-              />
+          <StreakTracker />
 
               {/* Recent Achievements */}
               <Card>

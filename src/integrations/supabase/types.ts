@@ -338,6 +338,36 @@ export type Database = {
           },
         ]
       }
+      streak_milestones: {
+        Row: {
+          achieved_at: string
+          created_at: string
+          id: string
+          milestone_days: number
+          reward_message: string | null
+          reward_xp: number | null
+          user_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          created_at?: string
+          id?: string
+          milestone_days: number
+          reward_message?: string | null
+          reward_xp?: number | null
+          user_id: string
+        }
+        Update: {
+          achieved_at?: string
+          created_at?: string
+          id?: string
+          milestone_days?: number
+          reward_message?: string | null
+          reward_xp?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       study_answers: {
         Row: {
           answered_by: string
@@ -718,23 +748,35 @@ export type Database = {
       user_streaks: {
         Row: {
           activity_type: string
+          best_streak: number | null
           created_at: string
+          current_streak: number | null
           date: string
           id: string
+          last_activity_date: string | null
+          streak_start_date: string | null
           user_id: string
         }
         Insert: {
           activity_type?: string
+          best_streak?: number | null
           created_at?: string
+          current_streak?: number | null
           date: string
           id?: string
+          last_activity_date?: string | null
+          streak_start_date?: string | null
           user_id: string
         }
         Update: {
           activity_type?: string
+          best_streak?: number | null
           created_at?: string
+          current_streak?: number | null
           date?: string
           id?: string
+          last_activity_date?: string | null
+          streak_start_date?: string | null
           user_id?: string
         }
         Relationships: []
@@ -797,6 +839,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_streak_milestones: {
+        Args: { user_uuid: string; streak_days: number }
+        Returns: {
+          milestone: number
+          reward_xp: number
+          message: string
+        }[]
+      }
       get_user_subscription_status: {
         Args: { user_uuid: string }
         Returns: {
@@ -805,6 +855,14 @@ export type Database = {
           is_subscription_active: boolean
           days_left: number
           plan_name: string
+        }[]
+      }
+      update_user_streak: {
+        Args: { user_uuid: string }
+        Returns: {
+          current_streak: number
+          best_streak: number
+          is_new_best: boolean
         }[]
       }
     }
