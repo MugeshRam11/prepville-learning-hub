@@ -23,9 +23,11 @@ import AvatarCustomizer from './AvatarCustomizer';
 import StreakTracker from './StreakTracker';
 import TopicProgressCard from './TopicProgressCard';
 import QuickActions from './QuickActions';
+import { useStreakTracker } from '@/hooks/useStreakTracker';
 
 const StudentDashboard = () => {
   const [showAvatarCustomizer, setShowAvatarCustomizer] = useState(false);
+  const { streakData } = useStreakTracker();
   
   // Mock student data - in real app, this would come from user context/API
   const studentData = {
@@ -34,8 +36,6 @@ const StudentDashboard = () => {
     level: 7,
     xp: 2750,
     xpToNextLevel: 3000,
-    currentStreak: 12,
-    longestStreak: 28,
     weeklyGoal: 5,
     weeklyCompleted: 3,
     totalQuestions: 1247,
@@ -112,7 +112,7 @@ const StudentDashboard = () => {
             <Card className="bg-gradient-to-br from-orange-100 to-orange-200 border-orange-300">
               <CardContent className="p-4 text-center">
                 <Flame className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-orange-800">{studentData.currentStreak}</div>
+                <div className="text-2xl font-bold text-orange-800">{streakData.currentStreak}</div>
                 <div className="text-sm text-orange-600">Day Streak</div>
               </CardContent>
             </Card>
