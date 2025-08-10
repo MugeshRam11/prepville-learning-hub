@@ -77,8 +77,14 @@ export const useStreakTracker = () => {
           weeklyActivity
         });
       } else {
-        // Initialize streak for new user
-        await recordActivity();
+        // No streak data found, set default values
+        setStreakData({
+          currentStreak: 0,
+          bestStreak: 0,
+          lastActivityDate: null,
+          streakStartDate: null,
+          weeklyActivity: [false, false, false, false, false, false, false]
+        });
       }
     } catch (error) {
       console.error('Error fetching streak data:', error);
