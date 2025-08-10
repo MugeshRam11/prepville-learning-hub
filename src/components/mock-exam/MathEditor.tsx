@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, X } from 'lucide-react';
+import { Check, X, Undo2, Trash2 } from 'lucide-react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -13,116 +12,129 @@ interface MathEditorProps {
 }
 
 const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
-  const [equation, setEquation] = useState('');
+  const [equationParts, setEquationParts] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('basic');
 
-  const equationCategories = {
+  // Visual equation building components
+  const equationComponents = {
     basic: [
-      { label: 'Fraction', value: '\\frac{a}{b}' },
-      { label: 'Power', value: 'x^{n}' },
-      { label: 'Subscript', value: 'x_{n}' },
-      { label: 'Square Root', value: '\\sqrt{x}' },
-      { label: 'Nth Root', value: '\\sqrt[n]{x}' },
-    ],
-    algebra: [
-      { label: 'Quadratic', value: 'ax^2 + bx + c = 0' },
-      { label: 'Factored Form', value: '(x + a)(x + b)' },
-      { label: 'Absolute Value', value: '|x|' },
-      { label: 'Inequality', value: 'x \\leq y' },
-      { label: 'System of Equations', value: '\\begin{cases} x + y = 1 \\\\ x - y = 0 \\end{cases}' },
+      { label: 'Fraction', latex: '\\frac{[]}{\[\]}', slots: 2 },
+      { label: 'Power', latex: '[]^{[]}', slots: 2 },
+      { label: 'Subscript', latex: '[]_{[]}', slots: 2 },
+      { label: 'Square Root', latex: '\\sqrt{[]}', slots: 1 },
+      { label: 'Nth Root', latex: '\\sqrt\[[]\]{[]}', slots: 2 },
+      { label: 'Parentheses', latex: '\\left([]\\right)', slots: 1 },
+      { label: 'Brackets', latex: '\\left\[[]\\right\]', slots: 1 },
+      { label: 'Absolute Value', latex: '\\left|[]\\right|', slots: 1 },
     ],
     calculus: [
-      { label: 'Derivative', value: "\\frac{d}{dx}f(x)" },
-      { label: 'Partial Derivative', value: '\\frac{\\partial f}{\\partial x}' },
-      { label: 'Integral', value: '\\int f(x) \\, dx' },
-      { label: 'Definite Integral', value: '\\int_{a}^{b} f(x) \\, dx' },
-      { label: 'Double Integral', value: '\\int\\int f(x,y) \\, dx \\, dy' },
-      { label: 'Limit', value: '\\lim_{x \\to a} f(x)' },
-      { label: 'Infinity Limit', value: '\\lim_{x \\to \\infty} f(x)' },
-      { label: 'Series Sum', value: '\\sum_{n=1}^{\\infty} a_n' },
-      { label: 'Product', value: '\\prod_{i=1}^{n} a_i' },
+      { label: 'Integral', latex: '\\int []\\,dx', slots: 1 },
+      { label: 'Definite Integral', latex: '\\int_{[]}^{[]} []\\,dx', slots: 3 },
+      { label: 'Double Integral', latex: '\\iint []\\,dx\\,dy', slots: 1 },
+      { label: 'Triple Integral', latex: '\\iiint []\\,dx\\,dy\\,dz', slots: 1 },
+      { label: 'Derivative', latex: '\\frac{d}{d[]}[]', slots: 2 },
+      { label: 'Partial Derivative', latex: '\\frac{\\partial}{\\partial []}[]', slots: 2 },
+      { label: 'Limit', latex: '\\lim_{[] \\to []} []', slots: 3 },
+      { label: 'Sum', latex: '\\sum_{[]}^{[]} []', slots: 3 },
+      { label: 'Product', latex: '\\prod_{[]}^{[]} []', slots: 3 },
     ],
     trigonometry: [
-      { label: 'Sin', value: '\\sin(x)' },
-      { label: 'Cos', value: '\\cos(x)' },
-      { label: 'Tan', value: '\\tan(x)' },
-      { label: 'Inverse Sin', value: '\\arcsin(x)' },
-      { label: 'Inverse Cos', value: '\\arccos(x)' },
-      { label: 'Inverse Tan', value: '\\arctan(x)' },
-      { label: 'Sec', value: '\\sec(x)' },
-      { label: 'Csc', value: '\\csc(x)' },
-      { label: 'Cot', value: '\\cot(x)' },
+      { label: 'sin', latex: '\\sin([])' },
+      { label: 'cos', latex: '\\cos([])' },
+      { label: 'tan', latex: '\\tan([])' },
+      { label: 'arcsin', latex: '\\arcsin([])' },
+      { label: 'arccos', latex: '\\arccos([])' },
+      { label: 'arctan', latex: '\\arctan([])' },
+      { label: 'sec', latex: '\\sec([])' },
+      { label: 'csc', latex: '\\csc([])' },
+      { label: 'cot', latex: '\\cot([])' },
     ],
     logarithms: [
-      { label: 'Natural Log', value: '\\ln(x)' },
-      { label: 'Log Base 10', value: '\\log(x)' },
-      { label: 'Log Base b', value: '\\log_b(x)' },
-      { label: 'Exponential', value: 'e^x' },
-      { label: 'Power Function', value: 'a^x' },
-    ],
-    statistics: [
-      { label: 'Mean', value: '\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n} x_i' },
-      { label: 'Standard Deviation', value: '\\sigma = \\sqrt{\\frac{1}{n}\\sum_{i=1}^{n}(x_i - \\mu)^2}' },
-      { label: 'Variance', value: '\\sigma^2' },
-      { label: 'Probability', value: 'P(A \\cap B)' },
-      { label: 'Conditional Prob', value: 'P(A|B)' },
-      { label: 'Combination', value: '\\binom{n}{k}' },
-      { label: 'Permutation', value: 'P(n,k)' },
-    ],
-    matrices: [
-      { label: '2x2 Matrix', value: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
-      { label: '3x3 Matrix', value: '\\begin{pmatrix} a & b & c \\\\ d & e & f \\\\ g & h & i \\end{pmatrix}' },
-      { label: 'Determinant', value: '\\det(A)' },
-      { label: 'Transpose', value: 'A^T' },
-      { label: 'Inverse', value: 'A^{-1}' },
-      { label: 'Vector', value: '\\vec{v}' },
-      { label: 'Vector Notation', value: '\\langle x, y, z \\rangle' },
-    ],
-    geometry: [
-      { label: 'Distance Formula', value: 'd = \\sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}' },
-      { label: 'Circle Equation', value: '(x-h)^2 + (y-k)^2 = r^2' },
-      { label: 'Slope', value: 'm = \\frac{y_2-y_1}{x_2-x_1}' },
-      { label: 'Area of Circle', value: 'A = \\pi r^2' },
-      { label: 'Volume of Sphere', value: 'V = \\frac{4}{3}\\pi r^3' },
-    ],
-    greekLetters: [
-      { label: 'Alpha', value: '\\alpha' },
-      { label: 'Beta', value: '\\beta' },
-      { label: 'Gamma', value: '\\gamma' },
-      { label: 'Delta', value: '\\delta' },
-      { label: 'Epsilon', value: '\\epsilon' },
-      { label: 'Theta', value: '\\theta' },
-      { label: 'Lambda', value: '\\lambda' },
-      { label: 'Mu', value: '\\mu' },
-      { label: 'Pi', value: '\\pi' },
-      { label: 'Sigma', value: '\\sigma' },
-      { label: 'Phi', value: '\\phi' },
-      { label: 'Omega', value: '\\omega' },
+      { label: 'ln', latex: '\\ln([])' },
+      { label: 'log', latex: '\\log([])' },
+      { label: 'log base', latex: '\\log_{[]}([])' },
+      { label: 'e^x', latex: 'e^{[]}' },
+      { label: 'Power', latex: '[]^{[]}' },
     ],
     symbols: [
-      { label: 'Infinity', value: '\\infty' },
-      { label: 'Plus/Minus', value: '\\pm' },
-      { label: 'Multiplication', value: '\\times' },
-      { label: 'Division', value: '\\div' },
-      { label: 'Not Equal', value: '\\neq' },
-      { label: 'Less/Equal', value: '\\leq' },
-      { label: 'Greater/Equal', value: '\\geq' },
-      { label: 'Approximately', value: '\\approx' },
-      { label: 'Proportional', value: '\\propto' },
-      { label: 'Therefore', value: '\\therefore' },
-      { label: 'Because', value: '\\because' },
-      { label: 'Subset', value: '\\subset' },
-      { label: 'Union', value: '\\cup' },
-      { label: 'Intersection', value: '\\cap' },
-      { label: 'Empty Set', value: '\\emptyset' },
+      { label: '+', latex: '+' },
+      { label: '-', latex: '-' },
+      { label: '×', latex: '\\times' },
+      { label: '÷', latex: '\\div' },
+      { label: '=', latex: '=' },
+      { label: '≠', latex: '\\neq' },
+      { label: '≤', latex: '\\leq' },
+      { label: '≥', latex: '\\geq' },
+      { label: '±', latex: '\\pm' },
+      { label: '∞', latex: '\\infty' },
+      { label: '∝', latex: '\\propto' },
+      { label: '≈', latex: '\\approx' },
+    ],
+    greekLetters: [
+      { label: 'α', latex: '\\alpha' },
+      { label: 'β', latex: '\\beta' },
+      { label: 'γ', latex: '\\gamma' },
+      { label: 'δ', latex: '\\delta' },
+      { label: 'ε', latex: '\\epsilon' },
+      { label: 'θ', latex: '\\theta' },
+      { label: 'λ', latex: '\\lambda' },
+      { label: 'μ', latex: '\\mu' },
+      { label: 'π', latex: '\\pi' },
+      { label: 'σ', latex: '\\sigma' },
+      { label: 'φ', latex: '\\phi' },
+      { label: 'ω', latex: '\\omega' },
+    ],
+    variables: [
+      { label: 'x', latex: 'x' },
+      { label: 'y', latex: 'y' },
+      { label: 'z', latex: 'z' },
+      { label: 'a', latex: 'a' },
+      { label: 'b', latex: 'b' },
+      { label: 'c', latex: 'c' },
+      { label: 'n', latex: 'n' },
+      { label: 't', latex: 't' },
+      { label: 'dx', latex: 'dx' },
+      { label: 'dy', latex: 'dy' },
+    ],
+    numbers: [
+      { label: '1', latex: '1' },
+      { label: '2', latex: '2' },
+      { label: '3', latex: '3' },
+      { label: '4', latex: '4' },
+      { label: '5', latex: '5' },
+      { label: '6', latex: '6' },
+      { label: '7', latex: '7' },
+      { label: '8', latex: '8' },
+      { label: '9', latex: '9' },
+      { label: '0', latex: '0' },
     ]
   };
 
-  const [selectedCategory, setSelectedCategory] = useState('basic');
+  // Add component to equation
+  const addComponent = (component: any) => {
+    setEquationParts([...equationParts, component.latex]);
+  };
+
+  // Remove last component
+  const undoLast = () => {
+    setEquationParts(equationParts.slice(0, -1));
+  };
+
+  // Clear all
+  const clearAll = () => {
+    setEquationParts([]);
+  };
+
+  // Build final equation from parts
+  const buildEquation = () => {
+    return equationParts.join(' ');
+  };
 
   const handleInsert = () => {
-    if (equation.trim()) {
-      onInsert(` $${equation}$ `);
-      setEquation('');
+    const finalEquation = buildEquation();
+    if (finalEquation.trim()) {
+      onInsert(` $${finalEquation}$ `);
+      setEquationParts([]);
     }
   };
 
@@ -140,27 +152,52 @@ const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
   };
 
   return (
-    <Card className="border-2 border-blue-200 bg-blue-50">
+    <Card className="border-2 border-primary/20 bg-background">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Math Equation Editor</CardTitle>
+        <CardTitle className="text-lg">Visual Equation Builder</CardTitle>
+        <p className="text-sm text-muted-foreground">Click buttons to build your equation visually</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Enter LaTeX equation:</label>
-          <Input
-            value={equation}
-            onChange={(e) => setEquation(e.target.value)}
-            placeholder="e.g., x^2 + y^2 = r^2"
-            className="font-mono"
-          />
+        
+        {/* Current Equation Display */}
+        <div className="p-4 bg-muted rounded-lg border-2 border-dashed min-h-20">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm font-medium">Building Equation:</p>
+            <div className="flex gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={undoLast}
+                disabled={equationParts.length === 0}
+              >
+                <Undo2 className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearAll}
+                disabled={equationParts.length === 0}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          {equationParts.length > 0 ? (
+            <div 
+              className="text-xl p-2 bg-background rounded border min-h-8 flex items-center"
+              dangerouslySetInnerHTML={{ __html: renderPreview(buildEquation()) }}
+            />
+          ) : (
+            <div className="text-muted-foreground text-center py-4">
+              Click components below to build your equation
+            </div>
+          )}
         </div>
 
+        {/* Category Tabs */}
         <div className="space-y-3">
-          <label className="text-sm font-medium">Equation Categories:</label>
-          
-          {/* Category Tabs */}
           <div className="flex flex-wrap gap-1">
-            {Object.keys(equationCategories).map((category) => (
+            {Object.keys(equationComponents).map((category) => (
               <Button
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
@@ -173,41 +210,40 @@ const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
             ))}
           </div>
 
-          {/* Equation Templates */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-            {equationCategories[selectedCategory as keyof typeof equationCategories].map((eq) => (
+          {/* Component Buttons */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 max-h-64 overflow-y-auto p-2 border rounded">
+            {equationComponents[selectedCategory as keyof typeof equationComponents].map((component, index) => (
               <Button
-                key={eq.label}
+                key={index}
                 variant="outline"
                 size="sm"
-                onClick={() => setEquation(eq.value)}
-                className="text-xs h-auto p-2 whitespace-normal"
-                title={eq.value}
+                onClick={() => addComponent(component)}
+                className="text-xs h-auto p-2 whitespace-normal hover:bg-primary/10"
+                title={`Add ${component.label}`}
               >
-                {eq.label}
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-medium">{component.label}</span>
+                  <div 
+                    className="text-[10px] opacity-70"
+                    dangerouslySetInnerHTML={{ 
+                      __html: renderPreview(component.latex.replace(/\[\]/g, 'x')) 
+                    }}
+                  />
+                </div>
               </Button>
             ))}
           </div>
         </div>
 
-        {equation && (
-          <div className="p-3 bg-white rounded border">
-            <p className="text-sm text-gray-600 mb-1">Preview:</p>
-            <div 
-              className="text-lg p-2 bg-gray-50 rounded border min-h-8 flex items-center"
-              dangerouslySetInnerHTML={{ __html: renderPreview(equation) }}
-            />
-          </div>
-        )}
-
-        <div className="flex gap-2 justify-end">
+        {/* Action Buttons */}
+        <div className="flex gap-2 justify-end pt-4 border-t">
           <Button variant="outline" onClick={onCancel} size="sm">
             <X className="w-4 h-4 mr-1" />
             Cancel
           </Button>
           <Button 
             onClick={handleInsert} 
-            disabled={!equation.trim()}
+            disabled={equationParts.length === 0}
             size="sm"
           >
             <Check className="w-4 h-4 mr-1" />
