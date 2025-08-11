@@ -29,6 +29,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import { AuthProvider } from '@/hooks/useAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
+import StreakAutoRecorder from "./components/StreakAutoRecorder";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
         <TooltipProvider>
       <Toaster />
       <Sonner />
+      <StreakAutoRecorder />
       <BrowserRouter>
         <Routes>
           {/* Public routes */}
