@@ -55,14 +55,44 @@ const StudyGroupsMembers = ({ groupId }: StudyGroupsMembersProps) => {
 
   const fetchAllUsers = async () => {
     try {
+      // 1) Find groups the current user belongs to
+      const { data: myGroups, error: groupsError } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user?.id)
+        .eq('is_active', true);
+
+      if (groupsError) throw groupsError;
+      const groupIds = (myGroups || []).map(g => g.group_id);
+      if (groupIds.length === 0) {
+        setAllUsers([]);
+        return;
+      }
+
+      // 2) Get all user_ids from those groups (people you share a group with)
+      const { data: groupUsers, error: membersError } = await supabase
+        .from('group_members')
+        .select('user_id, group_id')
+        .in('group_id', groupIds)
+        .eq('is_active', true);
+
+      if (membersError) throw membersError;
+      const candidateUserIds = Array.from(new Set((groupUsers || []).map(m => m.user_id)));
+      if (candidateUserIds.length === 0) {
+        setAllUsers([]);
+        return;
+      }
+
+      // 3) Load their study group profiles (RLS now restricts visibility appropriately)
       const { data, error } = await supabase
         .from('study_groups_users')
         .select('*')
+        .in('user_id', candidateUserIds)
         .eq('is_active', true);
 
       if (error) throw error;
       
-      // Filter out users who are already members
+      // Filter out users who are already members of this selected group
       const memberUserIds = members.map(m => m.user_id);
       const nonMembers = (data || []).filter(user => !memberUserIds.includes(user.user_id));
       setAllUsers(nonMembers);
