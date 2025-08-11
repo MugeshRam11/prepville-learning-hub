@@ -755,6 +755,7 @@ export type Database = {
           id: string
           last_activity_date: string | null
           streak_start_date: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -766,6 +767,7 @@ export type Database = {
           id?: string
           last_activity_date?: string | null
           streak_start_date?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -777,6 +779,7 @@ export type Database = {
           id?: string
           last_activity_date?: string | null
           streak_start_date?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
