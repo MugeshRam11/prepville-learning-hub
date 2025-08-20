@@ -132,20 +132,35 @@ const SignInForm = () => {
         console.log('Global signout failed, continuing...');
       }
 
+      console.log('Attempting sign in with email:', email.trim());
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
       });
 
       if (error) {
-        toast.error(error.message);
+        console.error('Supabase auth error:', error);
+        // Provide more specific error messages
+        if (error.message.includes('fetch')) {
+          toast.error('Network error: Unable to connect to authentication service. Please check your internet connection and try again.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password. Please check your credentials and try again.');
+        } else {
+          toast.error(error.message);
+        }
       } else if (data.user) {
+        console.log('Sign in successful:', data.user.email);
         toast.success('Successfully signed in!');
         window.location.href = '/';
       }
     } catch (error) {
       console.error('Password sign in error:', error);
-      toast.error('An unexpected error occurred during sign in');
+      // Handle network errors specifically
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        toast.error('Connection failed: Unable to reach authentication service. Please check your internet connection and try again.');
+      } else {
+        toast.error('An unexpected error occurred during sign in');
+      }
     } finally {
       setLoading(false);
     }
