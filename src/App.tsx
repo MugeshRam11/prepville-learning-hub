@@ -25,6 +25,7 @@ import AdminMockTestEdit from "./pages/AdminMockTestEdit";
 import AdminMockTestView from "./pages/AdminMockTestView";
 import StudyGroups from "./pages/StudyGroups";
 import NotFound from "./pages/NotFound";
+import LevelDetails from "./pages/LevelDetails";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import { AuthProvider } from '@/hooks/useAuth';
@@ -132,6 +133,11 @@ const App = () => (
           <Route path="/study-groups" element={
             <ProtectedRoute>
               <StudyGroups />
+            </ProtectedRoute>
+          } />
+          <Route path="/level-details" element={
+            <ProtectedRoute>
+              <LevelDetails />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />

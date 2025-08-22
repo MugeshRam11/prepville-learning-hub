@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,9 @@ import {
   Calendar,
   Clock,
   Award,
-  Zap
+  Zap,
+  Crown,
+  ChevronRight
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -24,10 +27,13 @@ import StreakTracker from './StreakTracker';
 import TopicProgressCard from './TopicProgressCard';
 import QuickActions from './QuickActions';
 import { useStreakTracker } from '@/hooks/useStreakTracker';
+import { useXPSystem } from '@/hooks/useXPSystem';
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
   const [showAvatarCustomizer, setShowAvatarCustomizer] = useState(false);
   const { streakData } = useStreakTracker();
+  const { xpData, loading: xpLoading } = useXPSystem();
   
   // Mock student data - in real app, this would come from user context/API
   const studentData = {
@@ -85,25 +91,39 @@ const StudentDashboard = () => {
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     Welcome back, {studentData.name}! 
                   </h1>
-                  <p className="text-muted-foreground">Ready to level up your math skills today?</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">Level {studentData.level}</div>
-                  <div className="text-sm text-muted-foreground">Math Explorer</div>
-                </div>
-                <div className="w-24">
-                  <Progress 
-                    value={(studentData.xp / studentData.xpToNextLevel) * 100} 
-                    className="h-3"
-                  />
-                  <div className="text-xs text-center mt-1 text-muted-foreground">
-                    {studentData.xp}/{studentData.xpToNextLevel} XP
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+                      onClick={() => navigate('/level-details')}
+                    >
+                      <Crown className="h-4 w-4 mr-1" />
+                      Level {xpData?.current_level || 1} • {xpData?.level_title || 'New Explorer'}
+                      <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
+                    {xpData && (
+                      <Badge variant="secondary" className="text-xs">
+                        {xpData.total_xp} XP
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* XP Progress Display */}
+              {xpData && (
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-white/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Progress to Level {(xpData.current_level || 1) + 1}</span>
+                    <span className="text-sm text-muted-foreground">{xpData.xp_to_next_level || 100} XP needed</span>
+                  </div>
+                  <Progress 
+                    value={xpData.xp_to_next_level ? ((xpData.total_xp - (xpData.total_xp - xpData.xp_to_next_level)) / xpData.xp_to_next_level) * 100 : 0} 
+                    className="h-3" 
+                  />
+                </div>
+              )}
             </div>
           </div>
 

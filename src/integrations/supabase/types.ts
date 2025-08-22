@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -837,34 +837,127 @@ export type Database = {
           },
         ]
       }
+      user_xp: {
+        Row: {
+          created_at: string
+          current_level: number
+          id: string
+          total_xp: number
+          updated_at: string
+          user_id: string
+          xp_to_next_level: number
+        }
+        Insert: {
+          created_at?: string
+          current_level?: number
+          id?: string
+          total_xp?: number
+          updated_at?: string
+          user_id: string
+          xp_to_next_level?: number
+        }
+        Update: {
+          created_at?: string
+          current_level?: number
+          id?: string
+          total_xp?: number
+          updated_at?: string
+          user_id?: string
+          xp_to_next_level?: number
+        }
+        Relationships: []
+      }
+      xp_activities: {
+        Row: {
+          activity_data: Json | null
+          activity_date: string
+          activity_type: string
+          description: string | null
+          id: string
+          user_id: string
+          xp_gained: number
+        }
+        Insert: {
+          activity_data?: Json | null
+          activity_date?: string
+          activity_type: string
+          description?: string | null
+          id?: string
+          user_id: string
+          xp_gained: number
+        }
+        Update: {
+          activity_data?: Json | null
+          activity_date?: string
+          activity_type?: string
+          description?: string | null
+          id?: string
+          user_id?: string
+          xp_gained?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      check_streak_milestones: {
-        Args: { user_uuid: string; streak_days: number }
+      add_user_xp: {
+        Args: {
+          activity_data?: Json
+          activity_description?: string
+          activity_type: string
+          user_uuid: string
+          xp_amount: number
+        }
         Returns: {
+          level_up: boolean
+          new_level: number
+          new_total_xp: number
+          xp_to_next: number
+        }[]
+      }
+      calculate_level_from_xp: {
+        Args: { total_xp: number }
+        Returns: {
+          level: number
+          xp_for_current_level: number
+          xp_for_next_level: number
+        }[]
+      }
+      check_streak_milestones: {
+        Args: { streak_days: number; user_uuid: string }
+        Returns: {
+          message: string
           milestone: number
           reward_xp: number
-          message: string
+        }[]
+      }
+      get_user_level_info: {
+        Args: { user_uuid: string }
+        Returns: {
+          current_level: number
+          level_benefits: string[]
+          level_title: string
+          total_xp: number
+          xp_to_next_level: number
         }[]
       }
       get_user_subscription_status: {
         Args: { user_uuid: string }
         Returns: {
-          status: string
-          is_trial_active: boolean
-          is_subscription_active: boolean
           days_left: number
+          is_subscription_active: boolean
+          is_trial_active: boolean
           plan_name: string
+          status: string
         }[]
       }
       update_user_streak: {
         Args: { user_uuid: string }
         Returns: {
-          current_streak: number
           best_streak: number
+          current_streak: number
           is_new_best: boolean
         }[]
       }

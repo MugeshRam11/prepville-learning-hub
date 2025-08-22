@@ -110,7 +110,21 @@ export const useStreakTracker = () => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        const { current_streak, best_streak, is_new_best } = data[0];
+        const result = data[0];
+        
+        // Award XP for maintaining streak
+        const { data: xpData, error: xpError } = await supabase.rpc('add_user_xp', {
+          user_uuid: user.id,
+          xp_amount: 10,
+          activity_type: 'streak_maintain',
+          activity_description: 'Daily streak maintained'
+        });
+
+        if (xpError) {
+          console.error('XP award error:', xpError);
+        }
+
+        const { current_streak, best_streak, is_new_best } = result;
         
         // Update local state
         setStreakData(prev => ({
