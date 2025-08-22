@@ -151,7 +151,7 @@ const SignInForm = () => {
       } else if (data.user) {
         console.log('Sign in successful:', data.user.email);
         toast.success('Successfully signed in!');
-        window.location.href = '/';
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Password sign in error:', error);
