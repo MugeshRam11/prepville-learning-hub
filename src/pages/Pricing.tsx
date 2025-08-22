@@ -99,7 +99,7 @@ const Pricing = () => {
               Choose Your Perfect Plan
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Start with a 14-day free trial. No credit card required.
+              Try all Premium features free for 14 days when you set up autopay. Cancel anytime.
             </p>
             
             {/* Billing Toggle */}
@@ -165,7 +165,7 @@ const Pricing = () => {
                       variant={plan.is_popular ? "default" : "outline"}
                       onClick={() => handleUpgrade(plan)}
                     >
-                      Choose {plan.name}
+                      Start 14-Day Free Trial
                     </Button>
                   </CardContent>
                 </Card>
@@ -176,12 +176,12 @@ const Pricing = () => {
             <div className="text-center mt-16">
               <Card className="max-w-2xl mx-auto bg-gradient-to-r from-primary/10 to-secondary/10">
                 <CardContent className="p-8">
-                  <h3 className="text-2xl font-bold mb-4">Start Your Free Trial</h3>
+                  <h3 className="text-2xl font-bold mb-4">Try All Premium Features Free</h3>
                   <p className="text-muted-foreground mb-6">
-                    Try all Premium features free for 14 days. No credit card required.
+                    Set up autopay with Google Pay, Apple Pay, or any payment method and enjoy 14 days of premium features completely free. Cancel anytime before the trial ends.
                   </p>
                   <Button size="lg" onClick={handleStartTrial}>
-                    Start Free Trial
+                    Start 14-Day Free Trial
                   </Button>
                 </CardContent>
               </Card>
@@ -201,7 +201,7 @@ const Pricing = () => {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">What happens during the free trial?</h3>
                   <p className="text-muted-foreground">
-                    You get full access to all Premium features for 14 days. No credit card required to start.
+                    You get full access to all Premium features for 14 days when you set up autopay. Your trial starts immediately and you won't be charged until the trial period ends.
                   </p>
                 </CardContent>
               </Card>

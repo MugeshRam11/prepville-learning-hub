@@ -14,12 +14,12 @@ const CTASection = () => {
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
               Join thousands of students who have transformed their academic performance. 
-              Start your free trial today and experience the difference.
+              Try all Premium features free for 14 days with autopay setup.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8">
-                Start Free Trial
+                Start 14-Day Free Trial
               </Button>
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8">
                 Schedule Demo
@@ -32,8 +32,8 @@ const CTASection = () => {
                 <div className="text-blue-100">Free Trial</div>
               </div>
               <div>
-                <div className="text-2xl font-bold mb-1">No Setup</div>
-                <div className="text-blue-100">Required</div>
+                <div className="text-2xl font-bold mb-1">Autopay</div>
+                <div className="text-blue-100">Setup</div>
               </div>
               <div>
                 <div className="text-2xl font-bold mb-1">Cancel</div>
