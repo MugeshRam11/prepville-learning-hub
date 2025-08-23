@@ -917,6 +917,14 @@ export type Database = {
           xp_to_next: number
         }[]
       }
+      backfill_user_streak: {
+        Args: { end_date?: string; start_date: string; user_uuid: string }
+        Returns: {
+          final_best: number
+          final_streak: number
+          processed_days: number
+        }[]
+      }
       calculate_level_from_xp: {
         Args: { total_xp: number }
         Returns: {

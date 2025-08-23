@@ -2,9 +2,11 @@
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Flame, Calendar, Trophy, Zap, Target, Award } from 'lucide-react';
+import { Flame, Calendar, Trophy, Zap, Target, Award, History } from 'lucide-react';
 import { useStreakTracker } from '@/hooks/useStreakTracker';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const StreakTracker = () => {
   const { 
@@ -36,6 +38,37 @@ const StreakTracker = () => {
     }
     
     return days;
+  };
+
+  const handleBackfill = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-streak', {
+        body: { 
+          startDate: '2025-08-18',
+          endDate: new Date().toISOString().split('T')[0]
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Streak Backfilled Successfully!",
+        description: `Added ${data.data.processedDays} days of streak data. Current streak: ${data.data.finalStreak} days!`,
+        duration: 5000
+      });
+
+      // Refresh streak data after successful backfill
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error('Backfill error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to backfill streak data",
+        variant: "destructive"
+      });
+    }
   };
 
   const weekDays = generateWeekCalendar();
@@ -165,6 +198,19 @@ const StreakTracker = () => {
               <Award className="w-3 h-3" />
             </div>
           )}
+        </div>
+
+        {/* Backfill Button (temporary for testing) */}
+        <div className="text-center">
+          <Button 
+            onClick={handleBackfill}
+            size="sm" 
+            variant="secondary"
+            className="border-orange-300 text-orange-700 hover:bg-orange-100"
+          >
+            <History className="w-4 h-4 mr-2" />
+            Backfill Streak (Aug 18 - Today)
+          </Button>
         </div>
 
         {/* Next Milestone */}
