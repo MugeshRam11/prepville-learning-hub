@@ -7,11 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Minus, Upload, X, Type, Calculator } from 'lucide-react';
+import { Plus, Minus, Upload, X, Calculator } from 'lucide-react';
 import MathEditor from '@/components/mock-exam/MathEditor';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
+  const [showMathEditor, setShowMathEditor] = useState(null); // Track which question's math editor is open
   const addQuestion = () => {
     const newQuestion = {
       id: Date.now(),
@@ -124,38 +124,42 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Question Text with Tabs */}
+            {/* Question Text */}
             <div>
               <label className="block text-sm font-medium mb-2">Question Text *</label>
-              <Tabs defaultValue="text" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-3">
-                  <TabsTrigger value="text" className="flex items-center gap-2">
-                    <Type className="w-4 h-4" />
-                    Text Input
-                  </TabsTrigger>
-                  <TabsTrigger value="equation" className="flex items-center gap-2">
-                    <Calculator className="w-4 h-4" />
-                    Equation Builder
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="text">
-                  <Textarea
-                    value={question.question_text}
-                    onChange={(e) => updateQuestion(question.id, 'question_text', e.target.value)}
-                    placeholder="Enter your question here..."
-                    rows={3}
-                  />
-                </TabsContent>
-                <TabsContent value="equation">
+              <div className="relative">
+                <Textarea
+                  value={question.question_text}
+                  onChange={(e) => updateQuestion(question.id, 'question_text', e.target.value)}
+                  placeholder="Enter your question here..."
+                  rows={3}
+                  className="pr-12"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="absolute top-2 right-2 h-8 w-8 p-0"
+                  onClick={() => setShowMathEditor(showMathEditor === question.id ? null : question.id)}
+                  title="Insert equation"
+                >
+                  <Calculator className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Math Editor */}
+              {showMathEditor === question.id && (
+                <div className="mt-3">
                   <MathEditor
                     onInsert={(equation) => {
                       const currentText = question.question_text;
                       updateQuestion(question.id, 'question_text', currentText + equation);
+                      setShowMathEditor(null);
                     }}
-                    onCancel={() => {}}
+                    onCancel={() => setShowMathEditor(null)}
                   />
-                </TabsContent>
-              </Tabs>
+                </div>
+              )}
             </div>
 
             {/* Question Image Upload */}
