@@ -9,10 +9,37 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Upload, X, Calculator } from 'lucide-react';
 import MathEditor from '@/components/mock-exam/MathEditor';
-import KaTeXTest from './KaTeXTest';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
   const [showMathEditor, setShowMathEditor] = useState(null); // Track which question's math editor is open
+  const [showPreview, setShowPreview] = useState({}); // Track which questions show preview
+
+  // Function to render LaTeX in text
+  const renderTextWithLatex = (text) => {
+    if (!text) return '';
+    
+    // Split text by $ delimiters and render LaTeX parts
+    const parts = text.split(/(\$[^$]+\$)/);
+    return parts.map((part, index) => {
+      if (part.startsWith('$') && part.endsWith('$')) {
+        const latex = part.slice(1, -1); // Remove $ signs
+        try {
+          return katex.renderToString(latex, {
+            displayMode: false,
+            throwOnError: false,
+            errorColor: '#cc0000',
+            strict: false,
+            trust: true
+          });
+        } catch (error) {
+          return `<span style="color: #cc0000;">${part}</span>`;
+        }
+      }
+      return part;
+    }).join('');
+  };
   const addQuestion = () => {
     const newQuestion = {
       id: Date.now(),
@@ -96,9 +123,6 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
 
   return (
     <div className="space-y-6">
-      {/* Temporary KaTeX Test */}
-      <KaTeXTest />
-      
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Questions ({questions.length})</h3>
         <Button onClick={addQuestion} className="flex items-center gap-2">
@@ -130,26 +154,48 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
           <CardContent className="space-y-4">
             {/* Question Text */}
             <div>
-              <label className="block text-sm font-medium mb-2">Question Text *</label>
-              <div className="relative">
-                <Textarea
-                  value={question.question_text}
-                  onChange={(e) => updateQuestion(question.id, 'question_text', e.target.value)}
-                  placeholder="Enter your question here..."
-                  rows={3}
-                  className="pr-12"
-                />
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium">Question Text *</label>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="absolute top-2 right-2 h-8 w-8 p-0"
-                  onClick={() => setShowMathEditor(showMathEditor === question.id ? null : question.id)}
-                  title="Insert equation"
+                  onClick={() => setShowPreview(prev => ({ ...prev, [question.id]: !prev[question.id] }))}
+                  className="text-xs"
                 >
-                  <Calculator className="w-4 h-4" />
+                  {showPreview[question.id] ? 'Edit' : 'Preview'}
                 </Button>
               </div>
+              
+              {showPreview[question.id] ? (
+                <div className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <div 
+                    dangerouslySetInnerHTML={{ 
+                      __html: renderTextWithLatex(question.question_text) || '<span class="text-muted-foreground">No content</span>'
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="relative">
+                  <Textarea
+                    value={question.question_text}
+                    onChange={(e) => updateQuestion(question.id, 'question_text', e.target.value)}
+                    placeholder="Enter your question here..."
+                    rows={3}
+                    className="pr-12"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2 h-8 w-8 p-0"
+                    onClick={() => setShowMathEditor(showMathEditor === question.id ? null : question.id)}
+                    title="Insert equation"
+                  >
+                    <Calculator className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
               
               {/* Math Editor */}
               {showMathEditor === question.id && (
