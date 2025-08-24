@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Upload, X, Calculator } from 'lucide-react';
 import MathEditor from '@/components/mock-exam/MathEditor';
+import KaTeXTest from './KaTeXTest';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
   const [showMathEditor, setShowMathEditor] = useState(null); // Track which question's math editor is open
@@ -95,6 +96,9 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
 
   return (
     <div className="space-y-6">
+      {/* Temporary KaTeX Test */}
+      <KaTeXTest />
+      
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Questions ({questions.length})</h3>
         <Button onClick={addQuestion} className="flex items-center gap-2">

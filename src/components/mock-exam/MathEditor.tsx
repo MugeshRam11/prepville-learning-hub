@@ -232,14 +232,19 @@ const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
 
   const renderPreview = (equation: string) => {
     try {
+      if (!equation || equation.trim() === '') {
+        return '';
+      }
       return katex.renderToString(equation, {
         displayMode: false,
         throwOnError: false,
         errorColor: '#cc0000',
-        strict: false
+        strict: false,
+        trust: true
       });
     } catch (error) {
-      return `Error: ${error}`;
+      console.error('KaTeX rendering error:', error);
+      return `<span style="color: #cc0000;">Error: ${equation}</span>`;
     }
   };
 
