@@ -21,6 +21,7 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
       answer_key: '',
       word_limit: '',
       difficulty: 'medium',
+      category: '',
       sub_questions: []
     };
     setQuestions([...questions, newQuestion]);
@@ -149,7 +150,24 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             </div>
 
             {/* Question Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Category</label>
+                <Select
+                  value={question.category || ''}
+                  onValueChange={(value) => updateQuestion(question.id, 'category', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">A - Knowing & Understanding</SelectItem>
+                    <SelectItem value="B">B - Investigating Patterns</SelectItem>
+                    <SelectItem value="C">C - Communicating</SelectItem>
+                    <SelectItem value="D">D - Real-life Applications</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Marks</label>
                 <Input

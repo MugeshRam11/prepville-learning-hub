@@ -106,6 +106,7 @@ export type Database = {
       mock_questions: {
         Row: {
           answer_key: string | null
+          category: string | null
           created_at: string
           difficulty: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions: boolean
@@ -120,6 +121,7 @@ export type Database = {
         }
         Insert: {
           answer_key?: string | null
+          category?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions?: boolean
@@ -134,6 +136,7 @@ export type Database = {
         }
         Update: {
           answer_key?: string | null
+          category?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions?: boolean

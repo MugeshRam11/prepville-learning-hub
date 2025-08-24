@@ -46,6 +46,7 @@ const AdminMockTestCreate = () => {
       answer_key: q.answer_key || '',
       word_limit: q.word_limit?.toString() || '',
       difficulty: q.difficulty,
+      category: q.category || '',
       sub_questions: q.sub_questions?.map((sq: any) => ({
         id: Date.now() + Math.random(),
         sub_question_label: sq.sub_question_label,
@@ -126,7 +127,8 @@ const AdminMockTestCreate = () => {
             marks: question.marks,
             answer_key: question.answer_key || null,
             word_limit: question.word_limit ? parseInt(question.word_limit) : null,
-            difficulty: question.difficulty
+            difficulty: question.difficulty,
+            category: question.category || null
           })
           .select()
           .single();
