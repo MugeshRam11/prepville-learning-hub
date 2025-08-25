@@ -7,39 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Minus, Upload, X, Calculator } from 'lucide-react';
-import MathEditor from '@/components/mock-exam/MathEditor';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { Plus, Minus, Upload, X } from 'lucide-react';
+import MathRichEditor from './MathRichEditor';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
-  const [showMathEditor, setShowMathEditor] = useState(null); // Track which question's math editor is open
-  const [showPreview, setShowPreview] = useState({}); // Track which questions show preview
-
-  // Function to render LaTeX in text
-  const renderTextWithLatex = (text) => {
-    if (!text) return '';
-    
-    // Split text by $ delimiters and render LaTeX parts
-    const parts = text.split(/(\$[^$]+\$)/);
-    return parts.map((part, index) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
-        const latex = part.slice(1, -1); // Remove $ signs
-        try {
-          return katex.renderToString(latex, {
-            displayMode: false,
-            throwOnError: false,
-            errorColor: '#cc0000',
-            strict: false,
-            trust: true
-          });
-        } catch (error) {
-          return `<span style="color: #cc0000;">${part}</span>`;
-        }
-      }
-      return part;
-    }).join('');
-  };
   const addQuestion = () => {
     const newQuestion = {
       id: Date.now(),
@@ -154,62 +125,13 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
           <CardContent className="space-y-4">
             {/* Question Text */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">Question Text *</label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPreview(prev => ({ ...prev, [question.id]: !prev[question.id] }))}
-                  className="text-xs"
-                >
-                  {showPreview[question.id] ? 'Edit' : 'Preview'}
-                </Button>
-              </div>
-              
-              {showPreview[question.id] ? (
-                <div className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: renderTextWithLatex(question.question_text) || '<span class="text-muted-foreground">No content</span>'
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="relative">
-                  <Textarea
-                    value={question.question_text}
-                    onChange={(e) => updateQuestion(question.id, 'question_text', e.target.value)}
-                    placeholder="Enter your question here..."
-                    rows={3}
-                    className="pr-12"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="absolute top-2 right-2 h-8 w-8 p-0"
-                    onClick={() => setShowMathEditor(showMathEditor === question.id ? null : question.id)}
-                    title="Insert equation"
-                  >
-                    <Calculator className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-              
-              {/* Math Editor */}
-              {showMathEditor === question.id && (
-                <div className="mt-3">
-                  <MathEditor
-                    onInsert={(equation) => {
-                      const currentText = question.question_text;
-                      updateQuestion(question.id, 'question_text', currentText + equation);
-                      setShowMathEditor(null);
-                    }}
-                    onCancel={() => setShowMathEditor(null)}
-                  />
-                </div>
-              )}
+              <label className="block text-sm font-medium mb-2">Question Text *</label>
+              <MathRichEditor
+                value={question.question_text}
+                onChange={(value) => updateQuestion(question.id, 'question_text', value)}
+                placeholder="Enter your question here. Use $ for math equations or paste from Microsoft Word..."
+                className="min-h-[120px]"
+              />
             </div>
 
             {/* Question Image Upload */}
@@ -343,11 +265,11 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                     <CardContent className="space-y-3">
                       <div>
                         <label className="block text-xs font-medium mb-1">Sub-question Text *</label>
-                        <Textarea
+                        <MathRichEditor
                           value={subQuestion.sub_question_text}
-                          onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_text', e.target.value)}
-                          placeholder="Enter sub-question..."
-                          rows={2}
+                          onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_text', value)}
+                          placeholder="Enter sub-question. Use $ for math equations or paste from Microsoft Word..."
+                          className="min-h-[80px]"
                         />
                       </div>
 
