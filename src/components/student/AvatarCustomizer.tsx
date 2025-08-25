@@ -20,9 +20,18 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
     { id: 4, src: "/placeholder.svg", name: "Robot Friend", category: "Sci-Fi", unlocked: false, requiredLevel: 10 },
     { id: 5, src: "/placeholder.svg", name: "Dragon Tamer", category: "Fantasy", unlocked: false, requiredLevel: 15 },
     { id: 6, src: "/placeholder.svg", name: "Ocean Explorer", category: "Nature", unlocked: true },
+    // Logo avatars
+    { id: 7, src: "/placeholder.svg", name: "Python Pro", category: "Logos", unlocked: true, emoji: "🐍" },
+    { id: 8, src: "/placeholder.svg", name: "React Master", category: "Logos", unlocked: true, emoji: "⚛️" },
+    { id: 9, src: "/placeholder.svg", name: "Math Symbol", category: "Logos", unlocked: true, emoji: "∑" },
+    { id: 10, src: "/placeholder.svg", name: "Code Warrior", category: "Logos", unlocked: true, emoji: "💻" },
+    { id: 11, src: "/placeholder.svg", name: "Study Hub", category: "Logos", unlocked: false, requiredLevel: 5, emoji: "📚" },
+    { id: 12, src: "/placeholder.svg", name: "Brain Power", category: "Logos", unlocked: true, emoji: "🧠" },
+    { id: 13, src: "/placeholder.svg", name: "Lightning Code", category: "Logos", unlocked: false, requiredLevel: 12, emoji: "⚡" },
+    { id: 14, src: "/placeholder.svg", name: "Gear Head", category: "Logos", unlocked: true, emoji: "⚙️" },
   ];
 
-  const categories = ["All", "Animals", "Sci-Fi", "Fantasy", "Nature"];
+  const categories = ["All", "Animals", "Sci-Fi", "Fantasy", "Nature", "Logos"];
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const filteredAvatars = avatarOptions.filter(avatar => 
@@ -67,7 +76,11 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
               >
                 <Avatar className="w-16 h-16 mx-auto mb-2">
                   <AvatarImage src={avatar.src} />
-                  <AvatarFallback>{avatar.name[0]}</AvatarFallback>
+                  <AvatarFallback className={`${avatar.emoji ? 'text-2xl' : 'text-lg font-bold'} ${
+                    avatar.category === 'Logos' ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white' : ''
+                  }`}>
+                    {avatar.emoji || avatar.name[0]}
+                  </AvatarFallback>
                 </Avatar>
                 
                 <div className="text-center">
