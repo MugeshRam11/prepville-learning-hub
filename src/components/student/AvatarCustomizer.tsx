@@ -11,7 +11,7 @@ interface AvatarCustomizerProps {
 }
 
 const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => {
-  const [selectedAvatar, setSelectedAvatar] = useState(currentAvatar);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<number>(1); // Use ID instead of src
 
   const avatarOptions = [
     { id: 1, src: "/placeholder.svg", name: "Cool Cat", category: "Animals", unlocked: true },
@@ -73,11 +73,11 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
               <div 
                 key={avatar.id}
                 className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedAvatar === avatar.src 
+                  selectedAvatarId === avatar.id 
                     ? 'border-blue-500 bg-blue-50' 
                     : 'border-gray-200 hover:border-gray-300'
                 } ${!avatar.unlocked ? 'opacity-50' : ''}`}
-                onClick={() => avatar.unlocked && setSelectedAvatar(avatar.src)}
+                onClick={() => avatar.unlocked && setSelectedAvatarId(avatar.id)}
               >
                 <Avatar className="w-16 h-16 mx-auto mb-2">
                   {avatar.emoji ? (
@@ -112,7 +112,7 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
                   </div>
                 )}
 
-                {selectedAvatar === avatar.src && (
+                {selectedAvatarId === avatar.id && (
                   <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs">✓</span>
                   </div>
