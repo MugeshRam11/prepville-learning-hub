@@ -134,11 +134,17 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
         
         const mathml = omml2mathml(htmlData);
         const latex = MathMLToLaTeX.convert(mathml);
-        insertMath(latex, false);
+        
+        // Clean up the LaTeX and ensure it's properly formatted
+        const cleanLatex = latex.replace(/\s+/g, ' ').trim();
+        insertMath(cleanLatex, false);
       } catch (error) {
         console.error('OMML conversion error:', error);
-        // Fallback to plain text
-        if (textData) {
+        // Try to extract any existing LaTeX from the text
+        const latexMatch = textData.match(/\$([^$]+)\$/);
+        if (latexMatch) {
+          insertMath(latexMatch[1], false);
+        } else {
           document.execCommand('insertText', false, textData);
         }
       }
@@ -151,7 +157,8 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
       try {
         const { MathMLToLaTeX } = await import('mathml-to-latex');
         const latex = MathMLToLaTeX.convert(htmlData);
-        insertMath(latex, false);
+        const cleanLatex = latex.replace(/\s+/g, ' ').trim();
+        insertMath(cleanLatex, false);
       } catch (error) {
         console.error('MathML conversion error:', error);
         if (textData) {
@@ -267,14 +274,15 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
   }, [value, processContent, renderKatexInto]);
 
   const mathToolbarButtons = [
-    { icon: Divide, latex: '\\frac{□}{□}', label: 'Fraction' },
-    { icon: Superscript, latex: 'x^{□}', label: 'Power' },
-    { icon: Square, latex: '\\sqrt{□}', label: 'Square Root' },
-    { icon: Sigma, latex: '\\sum_{□}^{□} □', label: 'Summation' },
-    { icon: Calculator, latex: '\\binom{□}{□}', label: 'Binomial' },
+    { icon: Divide, latex: '\\frac{a}{b}', label: 'Fraction' },
+    { icon: Superscript, latex: 'x^{2}', label: 'Power' },
+    { icon: Square, latex: '\\sqrt{x}', label: 'Square Root' },
+    { icon: Sigma, latex: '\\sum_{i=1}^{n} x_i', label: 'Summation' },
+    { icon: Calculator, latex: '\\binom{n}{k}', label: 'Binomial' },
     { icon: Pi, latex: '\\pi', label: 'Pi' },
     { icon: Infinity, latex: '\\infty', label: 'Infinity' },
-    { icon: Type, latex: '\\int_{□}^{□} □ \\, dx', label: 'Integral' }
+    { icon: Type, latex: '\\int_{a}^{b} f(x) \\, dx', label: 'Integral' },
+    { icon: Calculator, latex: '(x+a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^k a^{n-k}', label: 'Binomial Theorem' }
   ];
 
   return (
