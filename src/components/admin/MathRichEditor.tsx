@@ -279,9 +279,36 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
 
   return (
     <div className="relative">
-      {/* Math Toolbar */}
+      {/* Main Editor */}
+      <div className="relative">
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          className={`min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${className}`}
+          onInput={handleInput}
+          onPaste={handlePaste}
+          onDoubleClick={handleDoubleClick}
+          onFocus={() => setShowToolbar(true)}
+        />
+        
+        {!showToolbar && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="absolute top-2 right-2 h-8 w-8 p-0"
+            onClick={() => setShowToolbar(true)}
+            title="Show math toolbar"
+          >
+            <Calculator className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Math Toolbar - Positioned absolutely to not affect content layout */}
       {showToolbar && (
-        <div className="absolute top-0 left-0 right-0 bg-background border border-border rounded-t-md p-2 flex flex-wrap gap-1 z-10">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md p-2 flex flex-wrap gap-1 z-50 shadow-lg">
           {mathToolbarButtons.map((button, index) => (
             <Button
               key={index}
@@ -306,34 +333,6 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
           </Button>
         </div>
       )}
-
-      {/* Main Editor */}
-      <div className="relative">
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          className={`min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${showToolbar ? 'rounded-t-none border-t-0' : ''} ${className}`}
-          onInput={handleInput}
-          onPaste={handlePaste}
-          onDoubleClick={handleDoubleClick}
-          onFocus={() => setShowToolbar(true)}
-          style={{ minHeight: showToolbar ? '120px' : '80px' }}
-        />
-        
-        {!showToolbar && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="absolute top-2 right-2 h-8 w-8 p-0"
-            onClick={() => setShowToolbar(true)}
-            title="Show math toolbar"
-          >
-            <Calculator className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
       
       <div className="text-xs text-muted-foreground mt-1">
         Double-click equations to edit • Paste from Word • Use $ for inline math
