@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -28,16 +28,51 @@ import TopicProgressCard from './TopicProgressCard';
 import QuickActions from './QuickActions';
 import { useStreakTracker } from '@/hooks/useStreakTracker';
 import { useXPSystem } from '@/hooks/useXPSystem';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [showAvatarCustomizer, setShowAvatarCustomizer] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { streakData } = useStreakTracker();
   const { xpData, loading: xpLoading } = useXPSystem();
+  const { user } = useAuth();
   
-  // Mock student data - in real app, this would come from user context/API
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        setProfileData(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
+
+  // Fallback student data for display
   const studentData = {
-    name: "Alex",
+    name: profileData?.first_name ? 
+      `${profileData.first_name}${profileData.last_name ? ` ${profileData.last_name}` : ''}` : 
+      profileData?.email?.split('@')[0] || 'Student',
     avatar: "/placeholder.svg",
     level: 7,
     xp: 2750,
@@ -61,6 +96,21 @@ const StudentDashboard = () => {
     { criterion: "C - Communicating", progress: 82, color: "bg-purple-500" },
     { criterion: "D - Real-life Applications", progress: 71, color: "bg-orange-500" }
   ];
+
+  if (loading || xpLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your dashboard...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
