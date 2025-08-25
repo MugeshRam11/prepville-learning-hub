@@ -63,7 +63,12 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
           </div>
 
           {/* Avatar Grid */}
-          <div className="grid grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-3 gap-4 max-h-96 overflow-y-auto p-2">
+            {filteredAvatars.length === 0 && (
+              <div className="col-span-3 text-center py-8 text-gray-500">
+                No avatars found in this category
+              </div>
+            )}
             {filteredAvatars.map(avatar => (
               <div 
                 key={avatar.id}
@@ -76,15 +81,15 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
               >
                 <Avatar className="w-16 h-16 mx-auto mb-2">
                   {avatar.emoji ? (
-                    <div className={`w-full h-full flex items-center justify-center text-3xl ${
-                      avatar.category === 'Logos' ? 'bg-gradient-to-br from-blue-500 to-purple-500 rounded-full' : 'bg-gray-100 rounded-full'
+                    <div className={`w-full h-full flex items-center justify-center text-2xl ${
+                      avatar.category === 'Logos' ? 'bg-gradient-to-br from-blue-500 to-purple-500 rounded-full text-white' : 'bg-gray-100 rounded-full'
                     }`}>
-                      {avatar.emoji}
+                      <span className="drop-shadow-sm">{avatar.emoji}</span>
                     </div>
                   ) : (
                     <>
                       <AvatarImage src={avatar.src} />
-                      <AvatarFallback className="text-lg font-bold">
+                      <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-gray-100 to-gray-200">
                         {avatar.name[0]}
                       </AvatarFallback>
                     </>
