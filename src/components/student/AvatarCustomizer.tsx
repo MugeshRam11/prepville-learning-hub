@@ -75,12 +75,20 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
                 onClick={() => avatar.unlocked && setSelectedAvatar(avatar.src)}
               >
                 <Avatar className="w-16 h-16 mx-auto mb-2">
-                  <AvatarImage src={avatar.src} />
-                  <AvatarFallback className={`${avatar.emoji ? 'text-2xl' : 'text-lg font-bold'} ${
-                    avatar.category === 'Logos' ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white' : ''
-                  }`}>
-                    {avatar.emoji || avatar.name[0]}
-                  </AvatarFallback>
+                  {avatar.emoji ? (
+                    <div className={`w-full h-full flex items-center justify-center text-3xl ${
+                      avatar.category === 'Logos' ? 'bg-gradient-to-br from-blue-500 to-purple-500 rounded-full' : 'bg-gray-100 rounded-full'
+                    }`}>
+                      {avatar.emoji}
+                    </div>
+                  ) : (
+                    <>
+                      <AvatarImage src={avatar.src} />
+                      <AvatarFallback className="text-lg font-bold">
+                        {avatar.name[0]}
+                      </AvatarFallback>
+                    </>
+                  )}
                 </Avatar>
                 
                 <div className="text-center">
