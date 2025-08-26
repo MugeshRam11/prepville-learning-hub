@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface StreakData {
   currentStreak: number;
@@ -88,11 +88,7 @@ export const useStreakTracker = () => {
       }
     } catch (error) {
       console.error('Error fetching streak data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load streak data",
-        variant: "destructive"
-      });
+      toast.error("Failed to load streak data");
     } finally {
       setLoading(false);
     }
@@ -143,9 +139,8 @@ export const useStreakTracker = () => {
         if (!milestoneError && milestones && milestones.length > 0) {
           // Show milestone rewards
           milestones.forEach((milestone: MilestoneReward) => {
-            toast({
-              title: "🎉 Streak Milestone!",
-              description: `${milestone.message} +${milestone.reward_xp} XP!`,
+            toast.success(milestone.message, {
+              description: `+${milestone.reward_xp} XP bonus!`,
               duration: 5000
             });
           });
@@ -153,10 +148,14 @@ export const useStreakTracker = () => {
 
         // Show encouragement for new best
         if (is_new_best) {
-          toast({
-            title: "🔥 New Personal Best!",
+          toast.success(`🔥 New Personal Best!`, {
             description: `${current_streak} days streak - You're unstoppable!`,
             duration: 4000
+          });
+        } else {
+          toast.success(`+10 XP`, {
+            description: `Streak maintained (${current_streak} days)`,
+            duration: 2000
           });
         }
 
@@ -165,11 +164,7 @@ export const useStreakTracker = () => {
       }
     } catch (error) {
       console.error('Error recording activity:', error);
-      toast({
-        title: "Error",
-        description: "Failed to record activity",
-        variant: "destructive"
-      });
+      toast.error("Failed to record activity");
     }
   };
 
