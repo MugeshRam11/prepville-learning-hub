@@ -200,18 +200,6 @@ const StreakTracker = () => {
           )}
         </div>
 
-        {/* Backfill Button (temporary for testing) */}
-        <div className="text-center">
-          <Button 
-            onClick={handleBackfill}
-            size="sm" 
-            variant="secondary"
-            className="border-orange-300 text-orange-700 hover:bg-orange-100"
-          >
-            <History className="w-4 h-4 mr-2" />
-            Backfill Streak (Aug 18 - Today)
-          </Button>
-        </div>
 
         {/* Next Milestone */}
         {streakData.currentStreak > 0 && (
