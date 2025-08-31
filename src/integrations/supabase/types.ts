@@ -944,6 +944,10 @@ export type Database = {
           reward_xp: number
         }[]
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       get_user_level_info: {
         Args: { user_uuid: string }
         Returns: {
