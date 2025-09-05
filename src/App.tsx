@@ -26,6 +26,7 @@ import AdminMockTestView from "./pages/AdminMockTestView";
 import StudyGroups from "./pages/StudyGroups";
 import NotFound from "./pages/NotFound";
 import LevelDetails from "./pages/LevelDetails";
+import SubjectLearning from "./pages/SubjectLearning";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import { AuthProvider } from '@/hooks/useAuth';
@@ -93,6 +94,11 @@ const App = () => (
           <Route path="/subjects" element={
             <ProtectedRoute requiresSubscription>
               <Subjects />
+            </ProtectedRoute>
+          } />
+          <Route path="/subject-learning" element={
+            <ProtectedRoute requiresSubscription>
+              <SubjectLearning />
             </ProtectedRoute>
           } />
           <Route path="/videos" element={

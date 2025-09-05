@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Search, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Subject {
   title: string;
@@ -23,6 +24,7 @@ interface SubjectFilterProps {
 }
 
 const SubjectFilter = ({ subjects }: SubjectFilterProps) => {
+  const navigate = useNavigate();
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedTopic, setSelectedTopic] = useState<string>('all');
@@ -65,6 +67,17 @@ const SubjectFilter = ({ subjects }: SubjectFilterProps) => {
     setSelectedCategory('all');
     setSelectedTopic('all');
     setSearchQuery('');
+  };
+
+  const handleStartLearning = (subject: Subject) => {
+    const params = new URLSearchParams({
+      title: subject.title,
+      level: subject.level,
+      questions: subject.questions.toString(),
+      videos: subject.videos.toString(),
+      topics: subject.topics.join(',')
+    });
+    navigate(`/subject-learning?${params.toString()}`);
   };
 
   return (
@@ -175,7 +188,10 @@ const SubjectFilter = ({ subjects }: SubjectFilterProps) => {
                   <span>{subject.videos} Videos</span>
                 </div>
                 
-                <Button className="w-full mt-4 group-hover:bg-blue-600 transition-colors">
+                <Button 
+                  className="w-full mt-4 group-hover:bg-blue-600 transition-colors"
+                  onClick={() => handleStartLearning(subject)}
+                >
                   Start Learning
                 </Button>
               </div>
