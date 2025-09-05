@@ -20,7 +20,8 @@ import {
   Play, 
   BarChart3,
   Trophy,
-  Target
+  Target,
+  Send
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
@@ -452,26 +453,37 @@ const SubjectLearning = () => {
                                   <p>{question.content}</p>
                                 </div>
                                 
+                                {/* Answer Input Section */}
+                                {!submittedAnswers[question.id] ? (
+                                  <div className="space-y-3">
+                                    <label className="text-sm font-medium">Your Answer:</label>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        placeholder="Type your answer here..."
+                                        value={userAnswers[question.id] || ''}
+                                        onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                                        className="flex-1"
+                                      />
+                                      <Button
+                                        onClick={() => handleAnswerSubmit(question.id)}
+                                        disabled={!userAnswers[question.id]?.trim()}
+                                        className="flex items-center gap-2"
+                                      >
+                                        <Send className="w-4 h-4" />
+                                        Submit
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    <div className="p-3 bg-muted rounded-lg">
+                                      <p className="text-sm font-medium">Your Answer:</p>
+                                      <p className="text-sm">{userAnswers[question.id]}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                
                                 <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => toggleAnswer(question.id)}
-                                    className="flex items-center gap-2"
-                                  >
-                                    {showAnswers[question.id] ? (
-                                      <>
-                                        <EyeOff className="w-4 h-4" />
-                                        Hide Answer
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Eye className="w-4 h-4" />
-                                        Show Answer
-                                      </>
-                                    )}
-                                  </Button>
-                                  
                                   <Button
                                     variant={question.isSolved ? "default" : "outline"}
                                     size="sm"
@@ -483,10 +495,10 @@ const SubjectLearning = () => {
                                   </Button>
                                 </div>
                                 
-                                {showAnswers[question.id] && (
-                                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                                    <h4 className="font-semibold mb-2">Answer:</h4>
-                                    <p className="text-sm">{question.answerKey}</p>
+                                {submittedAnswers[question.id] && showAnswers[question.id] && (
+                                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <h4 className="font-semibold mb-2 text-green-800">Correct Answer:</h4>
+                                    <p className="text-sm text-green-700">{question.answerKey}</p>
                                   </div>
                                 )}
                               </div>
