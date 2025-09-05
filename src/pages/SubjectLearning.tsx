@@ -128,6 +128,8 @@ const SubjectLearning = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
   const [showAnswers, setShowAnswers] = useState<{ [key: string]: boolean }>({});
+  const [userAnswers, setUserAnswers] = useState<{ [key: string]: string }>({});
+  const [submittedAnswers, setSubmittedAnswers] = useState<{ [key: string]: boolean }>({});
 
   // Calculate progress
   const solvedQuestions = questions.filter(q => q.isSolved).length;
@@ -191,10 +193,21 @@ const SubjectLearning = () => {
     ));
   };
 
-  const toggleAnswer = (questionId: string) => {
+  const handleAnswerSubmit = (questionId: string) => {
+    setSubmittedAnswers(prev => ({
+      ...prev,
+      [questionId]: true
+    }));
     setShowAnswers(prev => ({
       ...prev,
-      [questionId]: !prev[questionId]
+      [questionId]: true
+    }));
+  };
+
+  const handleAnswerChange = (questionId: string, value: string) => {
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: value
     }));
   };
 
