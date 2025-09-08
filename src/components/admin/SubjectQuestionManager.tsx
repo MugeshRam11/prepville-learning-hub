@@ -17,7 +17,9 @@ import {
   BookOpen,
   CheckCircle,
   Circle,
-  HelpCircle
+  HelpCircle,
+  Upload,
+  X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -62,6 +64,8 @@ const SubjectQuestionManager = () => {
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterLevel, setFilterLevel] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
+  const [uploading, setUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -120,6 +124,78 @@ const SubjectQuestionManager = () => {
       is_published: false
     });
     setEditingQuestion(null);
+    setUploadedImageUrl('');
+  };
+
+  const uploadImage = async (file: File) => {
+    try {
+      setUploading(true);
+      
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `question-images/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('study-materials')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('study-materials')
+        .getPublicUrl(fileName);
+
+      setUploadedImageUrl(publicUrl);
+      setFormData(prev => ({ ...prev, question_image_url: publicUrl }));
+      
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Image size must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      uploadImage(file);
+    }
+  };
+
+  const removeUploadedImage = () => {
+    setUploadedImageUrl('');
+    setFormData(prev => ({ ...prev, question_image_url: '' }));
   };
 
   const handleSubmit = async () => {
@@ -186,6 +262,7 @@ const SubjectQuestionManager = () => {
       tags: question.tags ? question.tags.join(', ') : '',
       is_published: question.is_published
     });
+    setUploadedImageUrl(question.question_image_url || '');
     setEditingQuestion(question);
     setIsDialogOpen(true);
   };
@@ -314,13 +391,61 @@ const SubjectQuestionManager = () => {
               </div>
 
               <div>
-                <Label htmlFor="question_image_url">Question Image URL (optional)</Label>
-                <Input
-                  id="question_image_url"
-                  value={formData.question_image_url}
-                  onChange={(e) => setFormData({...formData, question_image_url: e.target.value})}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Label>Question Image (optional)</Label>
+                <div className="space-y-3">
+                  {/* Upload Section */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <Label
+                      htmlFor="image-upload"
+                      className="flex items-center gap-2 px-4 py-2 border border-input rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {uploading ? 'Uploading...' : 'Upload Image'}
+                    </Label>
+                    <span className="text-sm text-muted-foreground">
+                      Max 5MB, JPG/PNG/GIF
+                    </span>
+                  </div>
+                  
+                  {/* URL Input as Alternative */}
+                  <div className="relative">
+                    <Input
+                      placeholder="Or paste image URL here..."
+                      value={formData.question_image_url}
+                      onChange={(e) => setFormData({...formData, question_image_url: e.target.value})}
+                    />
+                  </div>
+                  
+                  {/* Preview uploaded image */}
+                  {(uploadedImageUrl || formData.question_image_url) && (
+                    <div className="relative">
+                      <img 
+                        src={uploadedImageUrl || formData.question_image_url} 
+                        alt="Question preview" 
+                        className="max-w-full h-32 object-contain border rounded"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={removeUploadedImage}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
