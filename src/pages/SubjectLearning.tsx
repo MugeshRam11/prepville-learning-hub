@@ -21,7 +21,8 @@ import {
   BarChart3,
   Trophy,
   Target,
-  Send
+  Send,
+  RotateCcw
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
@@ -218,6 +219,21 @@ const SubjectLearning = () => {
         description: "Question marked as solved automatically.",
       });
     }
+  };
+
+  const handleRetryAnswer = (questionId: string) => {
+    setSubmittedAnswers(prev => ({
+      ...prev,
+      [questionId]: false
+    }));
+    setShowAnswers(prev => ({
+      ...prev,
+      [questionId]: false
+    }));
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: ''
+    }));
   };
 
   const handleAnswerChange = (questionId: string, value: string) => {
@@ -495,6 +511,15 @@ const SubjectLearning = () => {
                                       <p className="text-sm font-medium">Your Answer:</p>
                                       <p className="text-sm">{userAnswers[question.id]}</p>
                                     </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleRetryAnswer(question.id)}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <RotateCcw className="w-4 h-4" />
+                                      Try Again
+                                    </Button>
                                   </div>
                                 )}
                                 
