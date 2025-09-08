@@ -195,6 +195,10 @@ const SubjectLearning = () => {
   };
 
   const handleAnswerSubmit = (questionId: string) => {
+    const question = questions.find(q => q.id === questionId);
+    const userAnswer = userAnswers[questionId]?.trim().toLowerCase();
+    const isCorrect = question && userAnswer && question.answerKey.toLowerCase().includes(userAnswer);
+    
     setSubmittedAnswers(prev => ({
       ...prev,
       [questionId]: true
@@ -203,6 +207,17 @@ const SubjectLearning = () => {
       ...prev,
       [questionId]: true
     }));
+    
+    // Automatically mark as solved if answer is correct
+    if (isCorrect) {
+      setQuestions(prev => prev.map(q => 
+        q.id === questionId ? { ...q, isSolved: true } : q
+      ));
+      toast({
+        title: "Correct Answer!",
+        description: "Question marked as solved automatically.",
+      });
+    }
   };
 
   const handleAnswerChange = (questionId: string, value: string) => {
@@ -483,22 +498,22 @@ const SubjectLearning = () => {
                                   </div>
                                 )}
                                 
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant={question.isSolved ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => toggleSolved(question.id)}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <Target className="w-4 h-4" />
-                                    {question.isSolved ? 'Mark as Unsolved' : 'Mark as Solved'}
-                                  </Button>
-                                </div>
-                                
                                 {submittedAnswers[question.id] && showAnswers[question.id] && (
-                                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                                    <h4 className="font-semibold mb-2 text-green-800">Correct Answer:</h4>
-                                    <p className="text-sm text-green-700">{question.answerKey}</p>
+                                  <div className={`mt-4 p-4 border rounded-lg ${
+                                    question.isSolved 
+                                      ? 'bg-green-50 border-green-200' 
+                                      : 'bg-red-50 border-red-200'
+                                  }`}>
+                                    <h4 className={`font-semibold mb-2 ${
+                                      question.isSolved ? 'text-green-800' : 'text-red-800'
+                                    }`}>
+                                      {question.isSolved ? 'Correct!' : 'Incorrect'} - Answer:
+                                    </h4>
+                                    <p className={`text-sm ${
+                                      question.isSolved ? 'text-green-700' : 'text-red-700'
+                                    }`}>
+                                      {question.answerKey}
+                                    </p>
                                   </div>
                                 )}
                               </div>
