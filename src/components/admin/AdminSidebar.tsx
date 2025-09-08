@@ -9,7 +9,9 @@ import {
   HelpCircle,
   BookOpen,
   LogOut,
-  ClipboardList
+  ClipboardList,
+  Upload,
+  FileQuestion
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +46,8 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'tests', label: 'Test Management', icon: FileText },
     { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
+    { id: 'study-materials', label: 'Study Materials', icon: Upload },
+    { id: 'questions', label: 'Subject Questions', icon: FileQuestion },
     { id: 'reports', label: 'Progress Reports', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'help', label: 'Help & Support', icon: HelpCircle },

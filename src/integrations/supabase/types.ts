@@ -496,6 +496,63 @@ export type Database = {
         }
         Relationships: []
       }
+      study_materials: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          is_published: boolean
+          level: string
+          material_type: Database["public"]["Enums"]["material_type"]
+          subject: Database["public"]["Enums"]["subject_name"]
+          tags: string[] | null
+          title: string
+          topic: string | null
+          updated_at: string
+          upload_date: string
+          uploaded_by: string | null
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_published?: boolean
+          level: string
+          material_type: Database["public"]["Enums"]["material_type"]
+          subject: Database["public"]["Enums"]["subject_name"]
+          tags?: string[] | null
+          title: string
+          topic?: string | null
+          updated_at?: string
+          upload_date?: string
+          uploaded_by?: string | null
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_published?: boolean
+          level?: string
+          material_type?: Database["public"]["Enums"]["material_type"]
+          subject?: Database["public"]["Enums"]["subject_name"]
+          tags?: string[] | null
+          title?: string
+          topic?: string | null
+          updated_at?: string
+          upload_date?: string
+          uploaded_by?: string | null
+          view_count?: number
+        }
+        Relationships: []
+      }
       study_questions: {
         Row: {
           answer_count: number
@@ -542,6 +599,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subject_questions: {
+        Row: {
+          answer_key: string
+          created_at: string
+          created_by: string | null
+          difficulty: string
+          explanation: string | null
+          hints: string[] | null
+          id: string
+          is_published: boolean
+          level: string
+          question_image_url: string | null
+          question_text: string
+          subject: Database["public"]["Enums"]["subject_name"]
+          tags: string[] | null
+          title: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          answer_key: string
+          created_at?: string
+          created_by?: string | null
+          difficulty: string
+          explanation?: string | null
+          hints?: string[] | null
+          id?: string
+          is_published?: boolean
+          level: string
+          question_image_url?: string | null
+          question_text: string
+          subject: Database["public"]["Enums"]["subject_name"]
+          tags?: string[] | null
+          title: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          answer_key?: string
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string
+          explanation?: string | null
+          hints?: string[] | null
+          id?: string
+          is_published?: boolean
+          level?: string
+          question_image_url?: string | null
+          question_text?: string
+          subject?: Database["public"]["Enums"]["subject_name"]
+          tags?: string[] | null
+          title?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       subscription_plans: {
         Row: {
@@ -980,9 +1094,19 @@ export type Database = {
     Enums: {
       difficulty_level: "easy" | "medium" | "hard"
       group_member_role: "member" | "moderator"
+      material_type: "pdf" | "video" | "image" | "document" | "note"
       message_type: "text" | "image" | "file" | "audio"
       pathway: "standard" | "extended"
       question_difficulty: "easy" | "medium" | "hard"
+      subject_name:
+        | "mathematics"
+        | "physics"
+        | "chemistry"
+        | "biology"
+        | "english"
+        | "history"
+        | "economics"
+        | "computer_science"
       test_subject:
         | "mathematics"
         | "science"
@@ -1123,9 +1247,20 @@ export const Constants = {
     Enums: {
       difficulty_level: ["easy", "medium", "hard"],
       group_member_role: ["member", "moderator"],
+      material_type: ["pdf", "video", "image", "document", "note"],
       message_type: ["text", "image", "file", "audio"],
       pathway: ["standard", "extended"],
       question_difficulty: ["easy", "medium", "hard"],
+      subject_name: [
+        "mathematics",
+        "physics",
+        "chemistry",
+        "biology",
+        "english",
+        "history",
+        "economics",
+        "computer_science",
+      ],
       test_subject: [
         "mathematics",
         "science",

@@ -6,6 +6,8 @@ import UserManagement from '@/components/admin/UserManagement';
 import TestManagement from '@/components/admin/TestManagement';
 import ProgressReports from '@/components/admin/ProgressReports';
 import AdminSettings from '@/components/admin/AdminSettings';
+import StudyMaterialManager from '@/components/admin/StudyMaterialManager';
+import SubjectQuestionManager from '@/components/admin/SubjectQuestionManager';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -18,6 +20,10 @@ const AdminDashboard = () => {
         return <UserManagement />;
       case 'tests':
         return <TestManagement />;
+      case 'study-materials':
+        return <StudyMaterialManager />;
+      case 'questions':
+        return <SubjectQuestionManager />;
       case 'reports':
         return <ProgressReports />;
       case 'settings':

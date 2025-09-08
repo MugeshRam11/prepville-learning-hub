@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Question {
   id: string;
@@ -46,73 +47,6 @@ interface Video {
   thumbnail: string;
 }
 
-const mockQuestions: Question[] = [
-  {
-    id: '1',
-    title: 'Linear Equations and Graphing',
-    topic: 'Algebra',
-    difficulty: 'Easy',
-    content: 'Solve for x: 2x + 5 = 17',
-    answerKey: 'x = 6. First, subtract 5 from both sides: 2x = 12. Then divide by 2: x = 6.',
-    isSolved: true,
-    isBookmarked: false
-  },
-  {
-    id: '2',
-    title: 'Quadratic Formula Application',
-    topic: 'Algebra',
-    difficulty: 'Medium',
-    content: 'Find the roots of x² - 5x + 6 = 0 using the quadratic formula.',
-    answerKey: 'x = 2 or x = 3. Using the quadratic formula: x = (5 ± √(25-24))/2 = (5 ± 1)/2.',
-    isSolved: false,
-    isBookmarked: true
-  },
-  {
-    id: '3',
-    title: 'Trigonometric Identities',
-    topic: 'Trigonometry',
-    difficulty: 'Hard',
-    content: 'Prove that sin²θ + cos²θ = 1 for any angle θ.',
-    answerKey: 'This is a fundamental trigonometric identity. It can be proven using the Pythagorean theorem on the unit circle.',
-    isSolved: false,
-    isBookmarked: false
-  },
-  {
-    id: '4',
-    title: 'Statistical Mean and Median',
-    topic: 'Statistics',
-    difficulty: 'Easy',
-    content: 'Find the mean and median of the dataset: 4, 7, 9, 10, 15, 12, 8',
-    answerKey: 'Mean = 9.29, Median = 9. Mean = (4+7+8+9+10+12+15)/7. For median, arrange in order and find middle value.',
-    isSolved: true,
-    isBookmarked: false
-  }
-];
-
-const mockVideos: Video[] = [
-  {
-    id: '1',
-    title: 'Introduction to Quadratic Functions',
-    topic: 'Algebra',
-    duration: '12:30',
-    thumbnail: '/placeholder.svg'
-  },
-  {
-    id: '2',
-    title: 'Solving Trigonometric Equations',
-    topic: 'Trigonometry',
-    duration: '18:45',
-    thumbnail: '/placeholder.svg'
-  },
-  {
-    id: '3',
-    title: 'Data Analysis and Interpretation',
-    topic: 'Statistics',
-    duration: '15:20',
-    thumbnail: '/placeholder.svg'
-  }
-];
-
 const SubjectLearning = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -124,7 +58,8 @@ const SubjectLearning = () => {
   const totalQuestions = parseInt(searchParams.get('questions') || '1200');
   
   // State management
-  const [questions, setQuestions] = useState<Question[]>(mockQuestions);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
@@ -133,9 +68,73 @@ const SubjectLearning = () => {
   const [userAnswers, setUserAnswers] = useState<{ [key: string]: string }>({});
   const [submittedAnswers, setSubmittedAnswers] = useState<{ [key: string]: boolean }>({});
 
+  useEffect(() => {
+    fetchQuestionsFromDB();
+  }, [subjectTitle, subjectLevel]);
+
+  const fetchQuestionsFromDB = async () => {
+    try {
+      setLoading(true);
+      
+      // Convert subject title to database format
+      const subjectKey = subjectTitle.toLowerCase().includes('math') ? 'mathematics' : 
+                        subjectTitle.toLowerCase().includes('physics') ? 'physics' :
+                        subjectTitle.toLowerCase().includes('chemistry') ? 'chemistry' :
+                        subjectTitle.toLowerCase().includes('biology') ? 'biology' :
+                        'mathematics';
+      
+      const { data, error } = await supabase
+        .from('subject_questions')
+        .select('*')
+        .eq('subject', subjectKey)
+        .eq('level', subjectLevel)
+        .eq('is_published', true);
+
+      if (error) throw error;
+
+      // Convert database format to component format
+      const formattedQuestions: Question[] = data?.map(q => ({
+        id: q.id,
+        title: q.title,
+        topic: q.topic,
+        difficulty: q.difficulty as 'Easy' | 'Medium' | 'Hard',
+        content: q.question_text,
+        answerKey: q.answer_key,
+        isSolved: false, // This would come from user progress in a real app
+        isBookmarked: false // This would come from user bookmarks in a real app
+      })) || [];
+
+      setQuestions(formattedQuestions);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      // Fall back to mock data if database fetch fails
+      setQuestions([
+        {
+          id: '1',
+          title: 'Linear Equations and Graphing',
+          topic: 'Algebra',
+          difficulty: 'Easy',
+          content: 'Solve for x: 2x + 5 = 17',
+          answerKey: 'x = 6. First, subtract 5 from both sides: 2x = 12. Then divide by 2: x = 6.',
+          isSolved: true,
+          isBookmarked: false
+        },
+        {
+          id: '2',
+          title: 'Quadratic Formula Application',
+          topic: 'Algebra',
+          difficulty: 'Medium',
+          content: 'Find the roots of x² - 5x + 6 = 0 using the quadratic formula.',
+          answerKey: 'x = 2 or x = 3. Using the quadratic formula: x = (5 ± √(25-24))/2 = (5 ± 1)/2.',
+          isSolved: false,
+          isBookmarked: true
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
   // Calculate progress
-  const solvedQuestions = questions.filter(q => q.isSolved).length;
-  const progressPercentage = Math.round((solvedQuestions / totalQuestions) * 100);
 
   // Get unique topics from questions
   const topics = useMemo(() => {
