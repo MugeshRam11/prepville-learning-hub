@@ -135,6 +135,33 @@ const SubjectLearning = () => {
     }
   };
   // Calculate progress
+  const solvedQuestions = questions.filter(q => q.isSolved).length;
+  const progressPercentage = totalQuestions > 0 ? Math.round((solvedQuestions / totalQuestions) * 100) : 0;
+
+  // Mock videos data
+  const mockVideos = [
+    {
+      id: '1',
+      title: 'Linear Equations Basics',
+      topic: 'Algebra',
+      duration: '15:30',
+      thumbnail: '/placeholder.svg'
+    },
+    {
+      id: '2',
+      title: 'Quadratic Functions',
+      topic: 'Algebra',
+      duration: '22:45',
+      thumbnail: '/placeholder.svg'
+    },
+    {
+      id: '3',
+      title: 'Graphing Techniques',
+      topic: 'Algebra',
+      duration: '18:20',
+      thumbnail: '/placeholder.svg'
+    }
+  ];
 
   // Get unique topics from questions
   const topics = useMemo(() => {
