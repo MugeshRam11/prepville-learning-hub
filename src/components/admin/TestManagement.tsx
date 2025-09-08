@@ -17,6 +17,7 @@ const TestManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('tests');
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
@@ -27,7 +28,7 @@ const TestManagement = () => {
 
   useEffect(() => {
     filterTests();
-  }, [tests, searchTerm, typeFilter, difficultyFilter]);
+  }, [tests, searchTerm, typeFilter, difficultyFilter, activeTab]);
 
   const fetchData = async () => {
     try {
@@ -62,6 +63,15 @@ const TestManagement = () => {
 
   const filterTests = () => {
     let filtered = tests;
+
+    // Filter by active tab first
+    if (activeTab === 'quick') {
+      filtered = filtered.filter(test => test.test_type === 'quick_test');
+    } else if (activeTab === 'practice') {
+      filtered = filtered.filter(test => test.test_type === 'topic_practice');
+    } else if (activeTab === 'mock') {
+      filtered = filtered.filter(test => test.test_type === 'mock_test');
+    }
 
     if (searchTerm) {
       filtered = filtered.filter(test =>
@@ -176,7 +186,7 @@ const TestManagement = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="tests" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="tests">All Tests</TabsTrigger>
           <TabsTrigger value="quick">Quick Tests</TabsTrigger>
@@ -184,7 +194,7 @@ const TestManagement = () => {
           <TabsTrigger value="mock">Mock Tests</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tests" className="space-y-6">
+        <TabsContent value={activeTab} className="space-y-6">
           {/* Filters */}
           <Card>
             <CardContent className="pt-6">
@@ -282,8 +292,6 @@ const TestManagement = () => {
             ))}
           </div>
         </TabsContent>
-
-        {/* Other tab contents would be similar filtered views */}
       </Tabs>
     </div>
   );

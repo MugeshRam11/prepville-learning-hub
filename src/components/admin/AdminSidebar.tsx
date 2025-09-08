@@ -45,7 +45,6 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'tests', label: 'Test Management', icon: FileText },
-    { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
     { id: 'study-materials', label: 'Study Materials', icon: Upload },
     { id: 'questions', label: 'Subject Questions', icon: FileQuestion },
     { id: 'reports', label: 'Progress Reports', icon: BarChart3 },
@@ -54,9 +53,6 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   ];
 
   const isActive = (item: any) => {
-    if (item.path) {
-      return location.pathname.startsWith(item.path);
-    }
     return activeTab === item.id;
   };
 
@@ -83,7 +79,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => handleNavigation(item.id, item.path)}
+                  onClick={() => handleNavigation(item.id)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     isActive(item)
                       ? 'bg-blue-50 text-blue-600 border border-blue-200'
