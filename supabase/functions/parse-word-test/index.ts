@@ -55,6 +55,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('Processing file:', file.name, 'Size:', file.size, 'Type:', file.type);
+
     // Validate file type
     if (!file.name.endsWith('.doc') && !file.name.endsWith('.docx')) {
       return new Response(
@@ -68,13 +70,30 @@ serve(async (req) => {
 
     // Convert file to ArrayBuffer for mammoth
     const arrayBuffer = await file.arrayBuffer();
+    console.log('ArrayBuffer created, size:', arrayBuffer.byteLength);
     
     // Parse Word document using mammoth
-    const mammoth = (await import('https://esm.sh/mammoth@1.6.0')).default;
-    const result = await mammoth.extractRawText({ arrayBuffer });
+    let mammoth;
+    try {
+      mammoth = await import('https://esm.sh/mammoth@1.6.0');
+    } catch (importError) {
+      console.error('Failed to import mammoth:', importError);
+      throw new Error('Failed to load document parser');
+    }
+    
+    console.log('Mammoth imported successfully');
+    
+    let result;
+    try {
+      result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+    } catch (parseError) {
+      console.error('Mammoth parsing error:', parseError);
+      throw new Error('Failed to parse Word document. Please ensure the file is not corrupted and follows the correct format.');
+    }
+    
     const text = result.value;
 
-    console.log('Extracted text from Word file:', text);
+    console.log('Extracted text from Word file:', text.substring(0, 500) + '...');
 
     // Parse the extracted text to find test structure
     const parsedTest = parseWordContent(text);
@@ -114,6 +133,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error parsing Word file:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error while parsing the Word file',
