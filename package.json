@@ -52,6 +52,7 @@
     "input-otp": "^1.2.4",
     "katex": "^0.16.22",
     "lucide-react": "^0.462.0",
+    "mammoth": "^1.10.0",
     "mathlive": "^0.107.0",
     "mathml-to-latex": "^1.5.0",
     "next-themes": "^0.3.0",

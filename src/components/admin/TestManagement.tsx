@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Upload } from 'lucide-react';
 import TestEditor from '@/components/admin/TestEditor';
+import WordUploadModal from '@/components/admin/WordUploadModal';
 
 const TestManagement = () => {
   const [tests, setTests] = useState([]);
@@ -21,6 +22,7 @@ const TestManagement = () => {
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
+  const [showWordUpload, setShowWordUpload] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -180,10 +182,20 @@ const TestManagement = () => {
           <h1 className="text-3xl font-bold text-gray-900">Test Management</h1>
           <p className="text-gray-600">Create and manage practice tests</p>
         </div>
-        <Button onClick={handleCreateTest}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Test
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowWordUpload(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Quick Test (Word)
+          </Button>
+          <Button onClick={handleCreateTest}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Test
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -293,6 +305,12 @@ const TestManagement = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <WordUploadModal
+        isOpen={showWordUpload}
+        onClose={() => setShowWordUpload(false)}
+        onSuccess={fetchData}
+      />
     </div>
   );
 };
