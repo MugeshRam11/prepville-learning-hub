@@ -126,7 +126,8 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
           description: `Quick test imported from Word file - ${parsedData.category}`,
           total_questions: parsedData.questions.length,
           time_limit_minutes: 30,
-          is_active: true
+          is_active: true,
+          created_by: (await supabase.auth.getUser()).data.user?.id
         }])
         .select()
         .single();
