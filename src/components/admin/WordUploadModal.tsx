@@ -70,18 +70,32 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const { data, error } = await supabase.functions.invoke('parse-word-test', {
+      // Use direct fetch to send multipart/form-data to Edge Function
+      const FUNCTION_URL = 'https://mvmciqmszakciijfdyos.supabase.co/functions/v1/parse-word-test';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w';
+
+      const response = await fetch(FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
         body: formData,
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
 
       if (data.success) {
         setParsedData(data.data);
         setShowPreview(true);
         toast({
-          title: "File Parsed Successfully",
-          description: data.message || "Word file has been parsed successfully."
+          title: 'File Parsed Successfully',
+          description: data.message || 'Word file has been parsed successfully.'
         });
       } else {
         throw new Error(data.error || 'Failed to parse file');
