@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +38,26 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
   const [parsedData, setParsedData] = useState<ParsedTest | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  
+  // Form fields
+  const [testName, setTestName] = useState('');
+  const [subject, setSubject] = useState('');
+  const [topic, setTopic] = useState('');
+  const [description, setDescription] = useState('');
+  const [timeLimit, setTimeLimit] = useState(30);
+  
   const { toast } = useToast();
+  
+  const subjects = [
+    'mathematics',
+    'physics', 
+    'chemistry',
+    'biology',
+    'english',
+    'history',
+    'geography',
+    'computer_science'
+  ];
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,6 +81,15 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
       toast({
         title: "No File Selected",
         description: "Please select a Word file first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!testName.trim() || !subject || !topic.trim()) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in test name, subject, and topic.",
         variant: "destructive"
       });
       return;
@@ -121,11 +151,11 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
       const { data: testData, error: testError } = await supabase
         .from('tests')
         .insert([{
-          title: parsedData.test_name,
+          title: testName,
           test_type: 'quick_test',
-          description: `Quick test imported from Word file - ${parsedData.category}`,
+          description: description || `Quick test imported from Word file - ${subject}`,
           total_questions: parsedData.questions.length,
-          time_limit_minutes: 30,
+          time_limit_minutes: timeLimit,
           is_active: true,
           created_by: (await supabase.auth.getUser()).data.user?.id
         }])
@@ -155,7 +185,7 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
 
       toast({
         title: "Test Created Successfully",
-        description: `Quick test "${parsedData.test_name}" has been created with ${parsedData.questions.length} questions.`
+        description: `Quick test "${testName}" has been created with ${parsedData.questions.length} questions.`
       });
 
       onSuccess();
@@ -178,6 +208,11 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
     setShowPreview(false);
     setIsUploading(false);
     setIsCreating(false);
+    setTestName('');
+    setSubject('');
+    setTopic('');
+    setDescription('');
+    setTimeLimit(30);
     onClose();
   };
 
@@ -208,9 +243,8 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Please ensure your Word file follows the required template format with:
+                Please fill in the test details below, then upload your Word file with:
                 <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>Test Name and Category/Subject</li>
                   <li>Minimum 5 questions with options (1-5)</li>
                   <li>Correct answers and explanations</li>
                   <li>Incorrect type classification (0-5)</li>
@@ -219,6 +253,71 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
             </Alert>
 
             <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="test-name">Test Name *</Label>
+                  <Input
+                    id="test-name"
+                    value={testName}
+                    onChange={(e) => setTestName(e.target.value)}
+                    placeholder="Enter test name"
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="subject">Subject *</Label>
+                  <Select value={subject} onValueChange={setSubject}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((subj) => (
+                        <SelectItem key={subj} value={subj}>
+                          {subj.charAt(0).toUpperCase() + subj.slice(1).replace('_', ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="topic">Topic *</Label>
+                  <Input
+                    id="topic"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="Enter topic"
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="time-limit">Time Limit (minutes)</Label>
+                  <Input
+                    id="time-limit"
+                    type="number"
+                    value={timeLimit}
+                    onChange={(e) => setTimeLimit(Number(e.target.value))}
+                    min="5"
+                    max="180"
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter test description"
+                  className="mt-2"
+                  rows={3}
+                />
+              </div>
+
               <div>
                 <Label htmlFor="word-file">Select Word File (.doc/.docx)</Label>
                 <Input
@@ -249,7 +348,7 @@ const WordUploadModal: React.FC<WordUploadModalProps> = ({ isOpen, onClose, onSu
               <div className="flex gap-3">
                 <Button
                   onClick={handleUploadAndParse}
-                  disabled={!selectedFile || isUploading}
+                  disabled={!selectedFile || isUploading || !testName.trim() || !subject || !topic.trim()}
                   className="flex items-center gap-2"
                 >
                   {isUploading ? (
