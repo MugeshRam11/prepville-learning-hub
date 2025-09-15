@@ -158,12 +158,10 @@ function parseWordContent(text: string): ParsedTest | null {
     
     let currentQuestion: Partial<ParsedQuestion> = {};
     let currentOptions: string[] = [];
-    let currentOptionFeedback: { [key: number]: { type: string; message: string } } = {};
     let correctAnswer = '';
     
     let i = 0;
     let inTableSection = false;
-    let optionRowData: { number: string, option: string, explanation: string, type: string }[] = [];
     
     // Extract test name and category from initial lines
     while (i < lines.length && !lines[i].toLowerCase().includes('question')) {
@@ -185,177 +183,119 @@ function parseWordContent(text: string): ParsedTest | null {
         if (currentQuestion.question_text && currentOptions.length > 0) {
           const correctIndex = correctAnswer ? parseInt(correctAnswer) - 1 : 0;
           
+          // Create default feedback for all options
+          const optionFeedback: { [key: number]: { type: string; message: string } } = {};
+          currentOptions.forEach((option, index) => {
+            if (index === correctIndex) {
+              optionFeedback[index] = { 
+                type: 'correct', 
+                message: `Correct! The answer is ${option}.` 
+              };
+            } else {
+              optionFeedback[index] = { 
+                type: 'concept-error', 
+                message: `Incorrect. The correct answer is ${currentOptions[correctIndex]}.` 
+              };
+            }
+          });
+          
           questions.push({
             question_text: currentQuestion.question_text!,
             options: [...currentOptions],
             correct_answer: Math.max(0, correctIndex).toString(),
             explanation: '',
             incorrect_type: 0,
-            option_feedback: currentOptionFeedback
+            option_feedback: optionFeedback
           });
         }
         
         // Reset for new question
         currentQuestion = {};
         currentOptions = [];
-        currentOptionFeedback = {};
         correctAnswer = '';
         inTableSection = false;
-        optionRowData = [];
         
-        // Try to extract question text from same line
+        // Extract question text - try same line first
         const questionMatch = line.match(/^Question\s+\d+:?\s*(.*)/i);
-        if (questionMatch && questionMatch[1]) {
+        if (questionMatch && questionMatch[1].trim()) {
           currentQuestion.question_text = questionMatch[1].trim();
         }
       }
       // Question text (line after "Question X:" if not already captured)
       else if (!currentQuestion.question_text && 
                !lower.includes('option') &&
-               !lower.includes('explanation') &&
-               !lower.includes('type') &&
-               !line.match(/^\d+\./) &&
-               !lower.includes('correct answer')) {
+               !lower.includes('correct answer') &&
+               !line.match(/^\d+\.?$/) &&
+               !line.match(/^\d+\s/)) {
         currentQuestion.question_text = line;
       }
-      // Table headers detection - start collecting table data
-      else if (lower.includes('option no') || 
-               (lower.includes('options') && lower.includes('explanation') && lower.includes('type'))) {
+      // Table headers detection
+      else if (lower.includes('option no') && lower.includes('options')) {
         inTableSection = true;
       }
-      // Collect table rows - each option with its data
-      else if (inTableSection && line.match(/^\d+\.?$/)) {
-        // This is an option number line, collect the next few lines as the row data
-        const optionNumber = line.replace('.', '');
-        let option = '';
-        let explanation = '';
-        let type = '';
-        
-        // Get option text (next line)
-        if (i + 1 < lines.length) {
-          option = lines[i + 1];
-          i++; // consume this line
-        }
-        
-        // Get explanation (skip non-explanatory lines)
-        let j = i + 1;
-        while (j < lines.length) {
-          const nextLine = lines[j];
-          if (nextLine && (nextLine.toLowerCase().includes('wrong') || nextLine.toLowerCase().includes('correct'))) {
-            explanation = nextLine;
-            i = j; // consume this line
-            break;
-          }
-          j++;
-        }
-        
-        // Get type (look for pattern like "2 (Calculation Error)")
-        j = i + 1;
-        while (j < lines.length) {
-          const nextLine = lines[j];
-          if (nextLine && nextLine.match(/^\d+\s*\([^)]+\)/)) {
-            type = nextLine;
-            i = j; // consume this line
-            break;
-          }
-          j++;
-        }
-        
-        optionRowData.push({ number: optionNumber, option, explanation, type });
+      // Skip table header row with just "Option No." and "Options"
+      else if (inTableSection && (lower === 'option no.' || lower === 'options')) {
+        // Skip header cells
       }
-      // Process table data when we encounter "Correct Answer" or next question
-      else if ((lower.includes('correct answer') || lower.startsWith('question')) && optionRowData.length > 0) {
-        // Process all collected option data
-        optionRowData.forEach((rowData, index) => {
-          currentOptions.push(rowData.option);
-          
-          // Parse type to get error category
-          let errorType = 'concept-error';
-          if (rowData.type) {
-            const typeMatch = rowData.type.match(/^\d+\s*\(([^)]+)\)/);
-            if (typeMatch) {
-              const typeText = typeMatch[1].toLowerCase();
-              if (typeText.includes('correct')) {
-                errorType = 'correct';
-              } else if (typeText.includes('calculation')) {
-                errorType = 'calculation-error';
-              } else if (typeText.includes('interpretation')) {
-                errorType = 'interpretation-error';
-              } else if (typeText.includes('carelessness')) {
-                errorType = 'carelessness';
-              } else if (typeText.includes('concept')) {
-                errorType = 'concept-error';
-              }
-            }
+      // Option number followed by option text
+      else if (inTableSection && line.match(/^\d+\.?$/)) {
+        // This is just the option number, get the option text from next line
+        if (i + 1 < lines.length) {
+          const optionText = lines[i + 1].trim();
+          // Make sure it's not another number or table element
+          if (optionText && !optionText.match(/^\d+\.?$/) && !optionText.toLowerCase().includes('correct answer')) {
+            currentOptions.push(optionText);
+            i++; // consume the option text line
           }
-          
-          currentOptionFeedback[index] = {
-            type: errorType,
-            message: rowData.explanation || ''
-          };
-        });
-        
-        // Reset table data
-        optionRowData = [];
+        }
+      }
+      // Option pattern: "1. 5" or "1.5" (number followed by option)
+      else if (inTableSection && line.match(/^\d+\.?\s*\S+$/)) {
+        const match = line.match(/^\d+\.?\s*(.+)$/);
+        if (match) {
+          currentOptions.push(match[1].trim());
+        }
+      }
+      // Correct answer detection
+      else if (lower.includes('correct answer')) {
         inTableSection = false;
         
-        // Parse correct answer if this line contains it
-        if (lower.includes('correct answer')) {
-          const answerMatch = line.match(/\d+/);
-          if (answerMatch) {
-            correctAnswer = answerMatch[0];
-          } else if (i + 1 < lines.length) {
-            // Check next line for answer
-            const nextLine = lines[i + 1];
-            const nextMatch = nextLine.match(/^\d+$/);
-            if (nextMatch) {
-              correctAnswer = nextMatch[0];
-              i++; // consume next line
-            }
+        // Try to extract answer from same line
+        const answerMatch = line.match(/correct answer[^0-9]*(\d+)/i);
+        if (answerMatch) {
+          correctAnswer = answerMatch[1];
+        } else if (i + 1 < lines.length) {
+          // Check next line for answer
+          const nextLine = lines[i + 1].trim();
+          if (nextLine.match(/^\d+$/)) {
+            correctAnswer = nextLine;
+            i++; // consume next line
           }
-        }
-        
-        // If this is a new question line, don't increment i as we need to process it
-        if (lower.startsWith('question')) {
-          i--; // Back up to process this question line
         }
       }
       
       i++;
     }
     
-    // Save last question if we have collected option data
-    if (currentQuestion.question_text && optionRowData.length > 0) {
-      // Process remaining option data
-      optionRowData.forEach((rowData, index) => {
-        currentOptions.push(rowData.option);
-        
-        let errorType = 'concept-error';
-        if (rowData.type) {
-          const typeMatch = rowData.type.match(/^\d+\s*\(([^)]+)\)/);
-          if (typeMatch) {
-            const typeText = typeMatch[1].toLowerCase();
-            if (typeText.includes('correct')) {
-              errorType = 'correct';
-            } else if (typeText.includes('calculation')) {
-              errorType = 'calculation-error';
-            } else if (typeText.includes('interpretation')) {
-              errorType = 'interpretation-error';
-            } else if (typeText.includes('carelessness')) {
-              errorType = 'carelessness';
-            } else if (typeText.includes('concept')) {
-              errorType = 'concept-error';
-            }
-          }
+    // Save last question
+    if (currentQuestion.question_text && currentOptions.length > 0) {
+      const correctIndex = correctAnswer ? parseInt(correctAnswer) - 1 : 0;
+      
+      // Create default feedback for all options
+      const optionFeedback: { [key: number]: { type: string; message: string } } = {};
+      currentOptions.forEach((option, index) => {
+        if (index === correctIndex) {
+          optionFeedback[index] = { 
+            type: 'correct', 
+            message: `Correct! The answer is ${option}.` 
+          };
+        } else {
+          optionFeedback[index] = { 
+            type: 'concept-error', 
+            message: `Incorrect. The correct answer is ${currentOptions[correctIndex]}.` 
+          };
         }
-        
-        currentOptionFeedback[index] = {
-          type: errorType,
-          message: rowData.explanation || ''
-        };
       });
-      
-      const correctIndex = correctAnswer ? parseInt(correctAnswer) - 1 : 0;
       
       questions.push({
         question_text: currentQuestion.question_text!,
@@ -363,20 +303,7 @@ function parseWordContent(text: string): ParsedTest | null {
         correct_answer: Math.max(0, correctIndex).toString(),
         explanation: '',
         incorrect_type: 0,
-        option_feedback: currentOptionFeedback
-      });
-    }
-    // Or save if we already have processed options
-    else if (currentQuestion.question_text && currentOptions.length > 0) {
-      const correctIndex = correctAnswer ? parseInt(correctAnswer) - 1 : 0;
-      
-      questions.push({
-        question_text: currentQuestion.question_text!,
-        options: [...currentOptions],
-        correct_answer: Math.max(0, correctIndex).toString(),
-        explanation: '',
-        incorrect_type: 0,
-        option_feedback: currentOptionFeedback
+        option_feedback: optionFeedback
       });
     }
     
