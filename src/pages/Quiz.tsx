@@ -58,15 +58,28 @@ const mockQuizData = {
     questions: [
       {
         id: 1,
-        question: 'What is the value of x in the equation 2x + 5 = 15?',
-        options: ['5', '10', '7.5', '3'],
-        correctAnswer: 0
+        question: 'What is the result of 4 + 5?',
+        options: ['5', '7', '9', '10', '12'],
+        correctAnswer: 2,
+        optionFeedback: {
+          0: { type: 'calculation-error', message: 'You may have made an error in basic addition. 4 + 5 equals 9, not 5.' },
+          1: { type: 'interpretation-error', message: 'Check if you read the problem correctly. The question asks for 4 + 5, not 4 + 3.' },
+          2: { type: 'correct', message: 'Excellent! 4 + 5 = 9. You have correctly performed the addition.' },
+          3: { type: 'carelessness', message: 'Close, but not quite right. Double-check your calculation: 4 + 5 = 9, not 10.' },
+          4: { type: 'concept-error', message: 'This suggests confusion with the addition concept. Remember: 4 + 5 means adding 5 to 4, which equals 9.' }
+        }
       },
       {
         id: 2,
-        question: 'Simplify: 3x + 2x - x',
-        options: ['4x', '5x', '6x', '2x'],
-        correctAnswer: 0
+        question: 'What is the value of x in the equation 2x + 5 = 15?',
+        options: ['5', '10', '7.5', '3'],
+        correctAnswer: 0,
+        optionFeedback: {
+          0: { type: 'correct', message: 'Perfect! Solving 2x + 5 = 15: subtract 5 from both sides to get 2x = 10, then divide by 2 to get x = 5.' },
+          1: { type: 'calculation-error', message: 'You may have forgotten to divide by 2 at the final step. After getting 2x = 10, divide both sides by 2.' },
+          2: { type: 'carelessness', message: 'Check your arithmetic. When 2x = 10, dividing by 2 gives x = 5, not 7.5.' },
+          3: { type: 'concept-error', message: 'Review the steps for solving linear equations. You need to isolate x by undoing the operations.' }
+        }
       }
     ]
   },
