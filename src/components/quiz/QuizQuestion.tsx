@@ -8,6 +8,12 @@ interface Question {
   question: string;
   options: string[];
   correctAnswer: number;
+  optionFeedback?: {
+    [key: number]: {
+      type: 'correct' | 'calculation-error' | 'interpretation-error' | 'carelessness' | 'concept-error';
+      message: string;
+    };
+  };
 }
 
 interface QuizQuestionProps {
@@ -29,27 +35,87 @@ const QuizQuestion = ({
   isFirstQuestion,
   isLastQuestion
 }: QuizQuestionProps) => {
+  const getFeedbackStyle = (type: string) => {
+    switch (type) {
+      case 'correct':
+        return 'bg-green-50 border-green-200 text-green-800';
+      case 'calculation-error':
+        return 'bg-red-50 border-red-200 text-red-800';
+      case 'interpretation-error':
+        return 'bg-orange-50 border-orange-200 text-orange-800';
+      case 'carelessness':
+        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+      case 'concept-error':
+        return 'bg-purple-50 border-purple-200 text-purple-800';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-800';
+    }
+  };
+
+  const getFeedbackIcon = (type: string) => {
+    switch (type) {
+      case 'correct':
+        return '✓';
+      case 'calculation-error':
+        return '🔢';
+      case 'interpretation-error':
+        return '📖';
+      case 'carelessness':
+        return '⚠️';
+      case 'concept-error':
+        return '💡';
+      default:
+        return '❗';
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-xl">{question.question}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {question.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => onAnswerSelect(index)}
-              className={`w-full p-4 text-left rounded-lg border transition-colors ${
-                selectedAnswer === index
-                  ? 'border-blue-600 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <span className="font-medium mr-3">{String.fromCharCode(65 + index)}.</span>
-              {option}
-            </button>
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left side - Options */}
+          <div className="space-y-3">
+            {question.options.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => onAnswerSelect(index)}
+                className={`w-full p-4 text-left rounded-lg border transition-colors ${
+                  selectedAnswer === index
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border hover:border-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                <span className="font-medium mr-3">{String.fromCharCode(65 + index)}.</span>
+                {option}
+              </button>
+            ))}
+          </div>
+
+          {/* Right side - Feedback */}
+          <div className="lg:pl-4">
+            {selectedAnswer !== undefined && question.optionFeedback?.[selectedAnswer] && (
+              <div className={`p-4 rounded-lg border ${getFeedbackStyle(question.optionFeedback[selectedAnswer].type)}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">{getFeedbackIcon(question.optionFeedback[selectedAnswer].type)}</span>
+                  <div>
+                    <h4 className="font-semibold mb-2 capitalize">
+                      {question.optionFeedback[selectedAnswer].type.replace('-', ' ')}
+                    </h4>
+                    <p className="text-sm">{question.optionFeedback[selectedAnswer].message}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {selectedAnswer !== undefined && !question.optionFeedback?.[selectedAnswer] && (
+              <div className="p-4 rounded-lg border border-muted bg-muted/20 text-muted-foreground">
+                <p className="text-sm">You selected option {String.fromCharCode(65 + selectedAnswer)}. Choose Next to continue.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-between mt-6">
