@@ -62,11 +62,11 @@ const mockQuizData = {
         options: ['5', '7', '9', '10', '12'],
         correctAnswer: 2,
         optionFeedback: {
-          0: { type: 'calculation-error', message: 'You may have made an error in basic addition. 4 + 5 equals 9, not 5.' },
-          1: { type: 'interpretation-error', message: 'Check if you read the problem correctly. The question asks for 4 + 5, not 4 + 3.' },
-          2: { type: 'correct', message: 'Excellent! 4 + 5 = 9. You have correctly performed the addition.' },
-          3: { type: 'carelessness', message: 'Close, but not quite right. Double-check your calculation: 4 + 5 = 9, not 10.' },
-          4: { type: 'concept-error', message: 'This suggests confusion with the addition concept. Remember: 4 + 5 means adding 5 to 4, which equals 9.' }
+          0: { type: 'calculation-error', message: 'Wrong – confusion with subtraction' },
+          1: { type: 'interpretation-error', message: 'Wrong – misinterpreted operation' },
+          2: { type: 'correct', message: 'Correct – 4 + 5 = 9' },
+          3: { type: 'carelessness', message: 'Wrong – carelessness in addition' },
+          4: { type: 'concept-error', message: 'Wrong – random guess' }
         }
       },
       {
