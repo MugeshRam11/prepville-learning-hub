@@ -21,6 +21,8 @@ import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTests from "./pages/AdminTests";
+import AdminQuestions from "./pages/AdminQuestions";
+import AdminReports from "./pages/AdminReports";
 import AdminMockTests from "./pages/AdminMockTests";
 import AdminMockTestCreate from "./pages/AdminMockTestCreate";
 import AdminMockTestEdit from "./pages/AdminMockTestEdit";
@@ -126,6 +128,16 @@ const App = () => (
           <Route path="/admin/tests" element={
             <ProtectedRoute>
               <AdminTests />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/questions" element={
+            <ProtectedRoute>
+              <AdminQuestions />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/reports" element={
+            <ProtectedRoute>
+              <AdminReports />
             </ProtectedRoute>
           } />
           <Route path="/admin/mock-tests" element={
