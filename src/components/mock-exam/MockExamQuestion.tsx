@@ -94,14 +94,14 @@ const MockExamQuestion = ({
                   {subQuestionIndex !== null ? (
                     <div>
                       <div className="text-gray-600 text-base font-normal mb-2">
-                        Question {question.id}: {question.text}
+                        Question {question.id}: {renderLatexContent(question.text)}
                       </div>
                       <div>
-                        Part {String.fromCharCode(97 + subQuestionIndex)}: {displayQuestion.text}
+                        Part {String.fromCharCode(97 + subQuestionIndex)}: {renderLatexContent(displayQuestion.text)}
                       </div>
                     </div>
                   ) : (
-                    displayQuestion.text
+                    renderLatexContent(displayQuestion.text)
                   )}
                 </CardTitle>
               </div>
