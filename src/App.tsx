@@ -19,6 +19,7 @@ import Subscription from "./pages/Subscription";
 import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
 import AdminMockTests from "./pages/AdminMockTests";
 import AdminMockTestCreate from "./pages/AdminMockTestCreate";
 import AdminMockTestEdit from "./pages/AdminMockTestEdit";
@@ -114,6 +115,11 @@ const App = () => (
           <Route path="/admin" element={
             <ProtectedRoute>
               <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute>
+              <AdminUsers />
             </ProtectedRoute>
           } />
           <Route path="/admin/mock-tests" element={
