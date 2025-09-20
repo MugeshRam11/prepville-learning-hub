@@ -20,6 +20,7 @@ import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
+import AdminTests from "./pages/AdminTests";
 import AdminMockTests from "./pages/AdminMockTests";
 import AdminMockTestCreate from "./pages/AdminMockTestCreate";
 import AdminMockTestEdit from "./pages/AdminMockTestEdit";
@@ -120,6 +121,11 @@ const App = () => (
           <Route path="/admin/users" element={
             <ProtectedRoute>
               <AdminUsers />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/tests" element={
+            <ProtectedRoute>
+              <AdminTests />
             </ProtectedRoute>
           } />
           <Route path="/admin/mock-tests" element={
