@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Copy, FileText, Download, RotateCcw } from "lucide-react";
+import { Copy, FileText, Download, RotateCcw, Undo, Redo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // MathJax type declarations
@@ -27,6 +27,8 @@ export default function EquationEditor({ value, onChange, placeholder, className
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mathJaxReady, setMathJaxReady] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [history, setHistory] = useState<string[]>([value || ""]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const { toast } = useToast();
 
   // Load MathJax dynamically if not already present
@@ -46,6 +48,32 @@ export default function EquationEditor({ value, onChange, placeholder, className
     };
     document.head.appendChild(script);
   }, []);
+
+  // Initialize history with current value
+  useEffect(() => {
+    if (value !== history[historyIndex]) {
+      setHistory([value || ""]);
+      setHistoryIndex(0);
+    }
+  }, []);
+
+  // Add to history when value changes (debounced)
+  useEffect(() => {
+    if (value === history[historyIndex]) return;
+    
+    const timer = setTimeout(() => {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(value);
+      if (newHistory.length > 50) { // Limit history size
+        newHistory.shift();
+      } else {
+        setHistoryIndex(historyIndex + 1);
+      }
+      setHistory(newHistory);
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timer);
+  }, [value, history, historyIndex]);
 
   // Render to MathJax whenever value or mode changes
   useEffect(() => {
@@ -100,7 +128,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
   function insertAtCursor(snippet: string) {
     const ta = textareaRef.current;
     if (!ta) {
-      onChange(value + snippet);
+      handleValueChange(value + snippet);
       return;
     }
     
@@ -109,13 +137,46 @@ export default function EquationEditor({ value, onChange, placeholder, className
     const before = value.slice(0, start);
     const after = value.slice(end);
     const newValue = before + snippet + after;
-    onChange(newValue);
+    handleValueChange(newValue);
 
     requestAnimationFrame(() => {
       ta.focus();
       const pos = start + snippet.length;
       ta.selectionStart = ta.selectionEnd = pos;
     });
+  }
+
+  function handleValueChange(newValue: string) {
+    onChange(newValue);
+    setMode("tex");
+  }
+
+  function undo() {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      onChange(history[newIndex]);
+    }
+  }
+
+  function redo() {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      onChange(history[newIndex]);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        redo();
+      }
+    }
   }
 
   function handlePaste(e: React.ClipboardEvent) {
@@ -130,7 +191,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
       if (mathMatch) {
         e.preventDefault();
         setMode("mathml");
-        onChange(mathMatch[0]);
+        handleValueChange(mathMatch[0]);
         return;
       }
     }
@@ -138,7 +199,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
     if (text && /\\|\$/.test(text)) {
       e.preventDefault();
       setMode("tex");
-      onChange(text);
+      handleValueChange(text);
       return;
     }
   }
@@ -209,11 +270,9 @@ export default function EquationEditor({ value, onChange, placeholder, className
         <Textarea
           ref={textareaRef}
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setMode("tex");
-          }}
+          onChange={(e) => handleValueChange(e.target.value)}
           onPaste={handlePaste}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder || "Type LaTeX equations (e.g., \\frac{a}{b}) or paste from Word..."}
           className="min-h-[100px] font-mono"
           onFocus={() => setIsExpanded(true)}
@@ -235,6 +294,30 @@ export default function EquationEditor({ value, onChange, placeholder, className
                       <SelectItem value="plain">Plain Text</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {/* Undo/Redo buttons */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={undo}
+                      disabled={historyIndex <= 0}
+                      className="h-7 w-7 p-0"
+                      title="Undo (Ctrl+Z)"
+                    >
+                      <Undo className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={redo}
+                      disabled={historyIndex >= history.length - 1}
+                      className="h-7 w-7 p-0"
+                      title="Redo (Ctrl+Y)"
+                    >
+                      <Redo className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
