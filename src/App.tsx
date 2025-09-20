@@ -155,7 +155,7 @@ const App = () => (
               <AdminMockTestEdit />
             </ProtectedRoute>
           } />
-          <Route path="/admin/mock-tests/:id/view" element={
+          <Route path="/admin/mock-tests/view/:id" element={
             <ProtectedRoute>
               <AdminMockTestView />
             </ProtectedRoute>
