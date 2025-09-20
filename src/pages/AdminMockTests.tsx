@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Plus, Search, Eye, Edit, Trash2, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import AdminSidebar from '@/components/admin/AdminSidebar';
 
 const AdminMockTests = () => {
   const navigate = useNavigate();
@@ -131,7 +132,9 @@ const AdminMockTests = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 flex">
+      <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
+      <div className="flex-1 ml-64 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -303,6 +306,7 @@ const AdminMockTests = () => {
           </CardContent>
         </Card>
       </div>
+    </div>
     </div>
   );
 };
