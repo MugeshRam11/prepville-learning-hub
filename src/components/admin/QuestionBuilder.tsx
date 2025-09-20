@@ -126,10 +126,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Question Text */}
             <div>
               <label className="block text-sm font-medium mb-2">Question Text *</label>
-              <MathRichEditor
+              <Textarea
                 value={question.question_text}
-                onChange={(value) => updateQuestion(question.id, 'question_text', value)}
-                placeholder="Enter your question here. Use $ for math equations or paste from Microsoft Word..."
+                onChange={(e) => updateQuestion(question.id, 'question_text', e.target.value)}
+                placeholder="Enter your question here..."
                 className="min-h-[120px]"
               />
             </div>
@@ -265,10 +265,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                     <CardContent className="space-y-3">
                       <div>
                         <label className="block text-xs font-medium mb-1">Sub-question Text *</label>
-                        <MathRichEditor
+                        <Textarea
                           value={subQuestion.sub_question_text}
-                          onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_text', value)}
-                          placeholder="Enter sub-question. Use $ for math equations or paste from Microsoft Word..."
+                          onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_text', e.target.value)}
+                          placeholder="Enter sub-question..."
                           className="min-h-[80px]"
                         />
                       </div>
