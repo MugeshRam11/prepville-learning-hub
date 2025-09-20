@@ -5,6 +5,8 @@ import MockExamSidebar from '@/components/mock-exam/MockExamSidebar';
 import MockExamHeader from '@/components/mock-exam/MockExamHeader';
 import MockExamQuestion from '@/components/mock-exam/MockExamQuestion';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface Question {
   id: string;
@@ -31,7 +33,7 @@ export interface Answer {
 const MockExamStart = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { subject, topic } = location.state || {};
+  const { testId, subject, topic, title } = location.state || {};
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -41,55 +43,59 @@ const MockExamStart = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load questions based on selected topic
+  // Load questions from database
   useEffect(() => {
     const loadTestData = async () => {
+      if (!testId) {
+        console.error('No test ID provided');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       
       try {
-        let testData = null;
+        console.log('Loading test data for testId:', testId);
         
-        console.log('Loading test data for:', { subject, topic });
-        
-        if (topic === 'Graph Theory and Analysis') {
-          // Use dynamic import for better performance
-          const { mathGraphMockTest } = await import('@/data/mathGraphMockTest');
-          testData = mathGraphMockTest;
-        } else if (topic === 'Graphs and Linear Equations') {
-          const { sampleMathGraphTest } = await import('@/data/sampleMathGraphTest');
-          testData = sampleMathGraphTest;
-        }
-        
-        if (testData) {
-          console.log('Test data found:', testData);
+        // Fetch mock questions for this test
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('mock_questions')
+          .select(`
+            *,
+            mock_sub_questions (*)
+          `)
+          .eq('mock_test_id', testId)
+          .order('question_number');
+
+        if (questionsError) throw questionsError;
+
+        if (questionsData && questionsData.length > 0) {
+          console.log('Questions data found:', questionsData);
           
-          // Process questions in batches to avoid blocking
-          const formattedQuestions: Question[] = await new Promise(resolve => {
-            setTimeout(() => {
-              const questions = testData.questions.map(q => ({
-                id: q.id.toString(),
-                text: q.question_text,
-                marks: q.marks,
-                image: q.question_image_url || undefined,
-                passage: undefined,
-                subQuestions: q.sub_questions?.map(sq => ({
-                  id: sq.id?.toString() || sq.sub_question_label,
-                  text: sq.sub_question_text,
-                  marks: sq.marks
-                }))
-              }));
-              resolve(questions);
-            }, 0);
-          });
+          // Format questions for the UI
+          const formattedQuestions: Question[] = questionsData.map(q => ({
+            id: q.id,
+            text: q.question_text,
+            marks: q.marks,
+            image: q.question_image_url || undefined,
+            passage: undefined,
+            subQuestions: q.mock_sub_questions?.map(sq => ({
+              id: sq.id,
+              text: sq.sub_question_text,
+              marks: sq.marks
+            })) || []
+          }));
           
           console.log('Formatted questions:', formattedQuestions);
           setQuestions(formattedQuestions);
         } else {
-          console.log('No test data found for topic:', topic);
+          console.log('No questions found for test:', testId);
+          toast.error('No questions found for this test');
           setQuestions([]);
         }
       } catch (error) {
         console.error('Error loading test data:', error);
+        toast.error('Failed to load test questions');
         setQuestions([]);
       } finally {
         setIsLoading(false);
@@ -97,7 +103,7 @@ const MockExamStart = () => {
     };
 
     loadTestData();
-  }, [subject, topic]);
+  }, [testId]);
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -153,8 +159,10 @@ const MockExamStart = () => {
     
     navigate('/mock-exams/summary', {
       state: {
+        testId,
         subject,
         topic,
+        title,
         answers,
         questions,
         timeSpent: totalTimeMinutes
@@ -200,7 +208,7 @@ const MockExamStart = () => {
     }
   };
 
-  if (!subject || !topic) {
+  if (!testId || !subject || !topic) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-xl border border-purple-200">
@@ -228,7 +236,7 @@ const MockExamStart = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           </div>
           <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Loading Test...</h2>
-          <p className="text-gray-600 mb-4">Preparing {topic} questions...</p>
+          <p className="text-gray-600 mb-4">Preparing {title || topic} questions...</p>
           <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full animate-pulse" style={{width: '70%'}}></div>
           </div>
@@ -241,7 +249,7 @@ const MockExamStart = () => {
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <MockExamHeader 
         subject={subject}
-        topic={topic}
+        topic={title || topic}
         onSubmit={handleSubmitTest}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}

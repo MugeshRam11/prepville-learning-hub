@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -7,42 +7,104 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BookOpen, Clock, FileText } from 'lucide-react';
-
-const mockSubjects = {
-  'Mathematics': ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Trigonometry', 'Graph Theory and Analysis', 'Graphs and Linear Equations'],
-  'Science': ['Physics', 'Chemistry', 'Biology', 'Environmental Science'],
-  'Language & Literature': ['Grammar', 'Composition', 'Literature Analysis', 'Creative Writing'],
-  'Social Studies': ['History', 'Geography', 'Economics', 'Political Science'],
-  'Computer Science': ['Programming', 'Data Structures', 'Algorithms', 'Database Systems']
-};
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const MockExamSelect = () => {
   const navigate = useNavigate();
-  const [selectedSubject, setSelectedSubject] = useState<string>('');
-  const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [mockTests, setMockTests] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedTopic, setSelectedTopic] = useState('');
+  const [availableTopics, setAvailableTopics] = useState([]);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubjectChange = (subject: string) => {
-    console.log('Subject selected:', subject);
-    setSelectedSubject(subject);
-    setSelectedTopic(''); // Reset topic when subject changes
+  useEffect(() => {
+    fetchMockTests();
+  }, []);
+
+  const fetchMockTests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mock_tests')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setMockTests(data || []);
+      
+      // Extract unique subjects
+      const uniqueSubjects = [...new Set(data?.map(test => test.subject) || [])];
+      setSubjects(uniqueSubjects);
+    } catch (error) {
+      console.error('Error fetching mock tests:', error);
+      toast.error('Failed to load mock tests');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleTopicChange = (topic: string) => {
-    console.log('Topic selected:', topic);
+  const getSubjectLabel = (subject) => {
+    const labels = {
+      'mathematics': 'Mathematics',
+      'science': 'Science', 
+      'language_literature': 'Language & Literature',
+      'social_studies': 'Social Studies',
+      'physics': 'Physics',
+      'chemistry': 'Chemistry',
+      'biology': 'Biology'
+    };
+    return labels[subject] || subject;
+  };
+
+  const handleSubjectChange = (subject) => {
+    setSelectedSubject(subject);
+    setSelectedTopic('');
+    setSelectedTest(null);
+    
+    // Filter tests by subject to get available topics
+    const subjectTests = mockTests.filter(test => test.subject === subject);
+    const topics = [...new Set(subjectTests.map(test => test.topic))];
+    setAvailableTopics(topics);
+  };
+
+  const handleTopicChange = (topic) => {
     setSelectedTopic(topic);
+    
+    // Find the test that matches subject and topic
+    const matchingTest = mockTests.find(test => 
+      test.subject === selectedSubject && test.topic === topic
+    );
+    setSelectedTest(matchingTest);
   };
 
   const handleStartTest = () => {
-    if (selectedSubject && selectedTopic) {
+    if (selectedTest) {
       navigate('/mock-exams/start', { 
-        state: { subject: selectedSubject, topic: selectedTopic } 
+        state: { 
+          testId: selectedTest.id,
+          subject: getSubjectLabel(selectedTest.subject), 
+          topic: selectedTest.topic,
+          title: selectedTest.title
+        } 
       });
     }
   };
 
-  const availableTopics = selectedSubject ? mockSubjects[selectedSubject as keyof typeof mockSubjects] || [] : [];
-  console.log('Available topics:', availableTopics);
-  console.log('Selected subject:', selectedSubject);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 bg-gradient-to-br from-blue-50 to-slate-50 flex items-center justify-center">
+          <div className="text-lg">Loading mock tests...</div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,9 +142,9 @@ const MockExamSelect = () => {
                         <SelectValue placeholder="Choose a subject" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
-                        {Object.keys(mockSubjects).map((subject) => (
+                        {subjects.map((subject) => (
                           <SelectItem key={subject} value={subject}>
-                            {subject}
+                            {getSubjectLabel(subject)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -113,17 +175,17 @@ const MockExamSelect = () => {
                   </div>
 
                   {/* Exam Info */}
-                  {selectedSubject && selectedTopic && (
+                  {selectedTest && (
                     <div className="bg-blue-50 rounded-lg p-4 space-y-2">
                       <div className="flex items-center gap-2 text-blue-700">
                         <BookOpen className="w-4 h-4" />
                         <span className="font-medium">Exam Details</span>
                       </div>
                       <div className="text-sm text-blue-600 space-y-1">
-                        <p>• Subject: {selectedSubject}</p>
-                        <p>• Topic: {selectedTopic}</p>
-                        <p>• 8 comprehensive questions with sub-parts</p>
-                        <p>• Mix of short and long-form answers</p>
+                        <p>• Test: {selectedTest.title}</p>
+                        <p>• Subject: {getSubjectLabel(selectedTest.subject)}</p>
+                        <p>• Topic: {selectedTest.topic}</p>
+                        <p>• Total Questions: {selectedTest.total_questions}</p>
                         <p>• No time limit - work at your own pace</p>
                         <p>• Auto-save every 30 seconds</p>
                       </div>
@@ -133,7 +195,7 @@ const MockExamSelect = () => {
                   {/* Start Button */}
                   <Button 
                     onClick={handleStartTest}
-                    disabled={!selectedSubject || !selectedTopic}
+                    disabled={!selectedTest}
                     className="w-full h-12 text-lg font-medium"
                     size="lg"
                   >
