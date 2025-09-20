@@ -36,21 +36,19 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const handleNavigation = (tab: string, path?: string) => {
     if (path) {
       navigate(path);
-    } else {
-      onTabChange(tab);
     }
   };
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'tests', label: 'Test Management', icon: FileText },
+    { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/admin' },
+    { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
+    { id: 'tests', label: 'Test Management', icon: FileText, path: '/admin/tests' },
     { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
-    { id: 'study-materials', label: 'Study Materials', icon: Upload },
-    { id: 'questions', label: 'Subject Questions', icon: FileQuestion },
-    { id: 'reports', label: 'Progress Reports', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'help', label: 'Help & Support', icon: HelpCircle },
+    { id: 'study-materials', label: 'Study Materials', icon: Upload, path: '/admin/study-materials' },
+    { id: 'questions', label: 'Subject Questions', icon: FileQuestion, path: '/admin/questions' },
+    { id: 'reports', label: 'Progress Reports', icon: BarChart3, path: '/admin/reports' },
+    { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
+    { id: 'help', label: 'Help & Support', icon: HelpCircle, path: '/admin/help' },
   ];
 
   const isActive = (item: any) => {
