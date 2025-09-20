@@ -1,11 +1,10 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Save, Plus, Check, Eye } from 'lucide-react';
-import MathEditor from './MathEditor';
+import { Save, Check, Eye } from 'lucide-react';
+import EquationEditor from '@/components/admin/EquationEditor';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import type { Question } from '@/pages/MockExamStart';
@@ -23,7 +22,6 @@ const MockExamQuestion = ({
   answer,
   onAnswerChange
 }: MockExamQuestionProps) => {
-  const [showMathEditor, setShowMathEditor] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState(answer);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -39,11 +37,6 @@ const MockExamQuestion = ({
     onAnswerChange(question.id, content, subQuestionId);
   };
 
-  const insertMathEquation = (equation: string) => {
-    const newContent = currentAnswer + equation;
-    handleAnswerChange(newContent);
-    setShowMathEditor(false);
-  };
 
   const saveDraft = () => {
     console.log('Draft saved');
@@ -172,21 +165,13 @@ const MockExamQuestion = ({
             <CardTitle className="text-lg">Your Answer</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Math Editor */}
-            {showMathEditor && (
-              <MathEditor
-                onInsert={insertMathEquation}
-                onCancel={() => setShowMathEditor(false)}
-              />
-            )}
-
-            {/* Answer Textarea */}
+            {/* Math-enabled Answer Editor */}
             <div className="space-y-2">
-              <Textarea
+              <EquationEditor
                 value={currentAnswer}
-                onChange={(e) => handleAnswerChange(e.target.value)}
-                placeholder="Type your answer here... You can use the equation editor for mathematical expressions."
-                className="min-h-[300px] resize-none"
+                onChange={handleAnswerChange}
+                placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly."
+                className="min-h-[300px]"
               />
               
               <div className="flex items-center justify-between text-sm text-gray-500">
@@ -200,15 +185,6 @@ const MockExamQuestion = ({
                   >
                     <Eye className="w-3 h-3" />
                     {showPreview ? 'Hide Preview' : 'Show Preview'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMathEditor(!showMathEditor)}
-                    className="flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Insert Equation
                   </Button>
                   <Button
                     variant="outline"
