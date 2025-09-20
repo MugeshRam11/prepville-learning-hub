@@ -150,7 +150,7 @@ const App = () => (
               <AdminMockTestCreate />
             </ProtectedRoute>
           } />
-          <Route path="/admin/mock-tests/:id/edit" element={
+          <Route path="/admin/mock-tests/edit/:id" element={
             <ProtectedRoute>
               <AdminMockTestEdit />
             </ProtectedRoute>
