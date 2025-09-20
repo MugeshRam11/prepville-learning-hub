@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Upload, X } from 'lucide-react';
 import EquationEditor from './EquationEditor';
+import ImageUpload from './ImageUpload';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
   const addQuestion = () => {
@@ -137,17 +138,12 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Question Image Upload */}
             <div>
               <label className="block text-sm font-medium mb-2">Question Image (Optional)</label>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="url"
-                  value={question.question_image_url}
-                  onChange={(e) => updateQuestion(question.id, 'question_image_url', e.target.value)}
-                  placeholder="Enter image URL or upload..."
-                />
-                <Button variant="outline" size="sm">
-                  <Upload className="w-4 h-4" />
-                </Button>
-              </div>
+              <ImageUpload
+                value={question.question_image_url}
+                onChange={(url) => updateQuestion(question.id, 'question_image_url', url)}
+                placeholder="Enter image URL or upload..."
+                folder={`questions/question-${question.question_number}`}
+              />
             </div>
 
             {/* Question Settings */}
@@ -270,6 +266,17 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                           onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_text', value)}
                           placeholder="Enter sub-question with LaTeX support..."
                           className="min-h-[80px]"
+                        />
+                      </div>
+
+                      {/* Sub-question Image Upload */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Sub-question Image (Optional)</label>
+                        <ImageUpload
+                          value={subQuestion.sub_question_image_url}
+                          onChange={(url) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_image_url', url)}
+                          placeholder="Enter image URL or upload..."
+                          folder={`questions/question-${question.question_number}/sub-${subQuestion.sub_question_label}`}
                         />
                       </div>
 
