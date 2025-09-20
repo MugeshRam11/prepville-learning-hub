@@ -50,29 +50,48 @@ const MockExamQuestion = ({
   };
 
   const renderLatexContent = (text: string) => {
-    // Split text by $...$ patterns to find LaTeX equations
-    const parts = text.split(/(\$[^$]+\$)/g);
+    // Check if the text contains LaTeX commands (starts with backslash)
+    const hasLatex = /\\[a-zA-Z]+/.test(text);
     
-    return parts.map((part, index) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
-        // This is a LaTeX equation
-        const equation = part.slice(1, -1); // Remove the $ symbols
-        try {
-          const html = katex.renderToString(equation, {
-            displayMode: false,
-            throwOnError: false,
-            errorColor: '#cc0000',
-            strict: false
-          });
-          return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
-        } catch (error) {
-          return <span key={index} className="text-red-500">Error: {equation}</span>;
-        }
-      } else {
-        // Regular text
-        return <span key={index}>{part}</span>;
+    if (hasLatex) {
+      // If it's mostly LaTeX (no $ delimiters), render the entire text as LaTeX
+      try {
+        const html = katex.renderToString(text, {
+          displayMode: false,
+          throwOnError: false,
+          errorColor: '#cc0000',
+          strict: false
+        });
+        return <span dangerouslySetInnerHTML={{ __html: html }} />;
+      } catch (error) {
+        console.error('LaTeX rendering error:', error);
+        return <span className="text-red-500">LaTeX Error: {text}</span>;
       }
-    });
+    } else {
+      // Split text by $...$ patterns to find LaTeX equations in regular text
+      const parts = text.split(/(\$[^$]+\$)/g);
+      
+      return parts.map((part, index) => {
+        if (part.startsWith('$') && part.endsWith('$')) {
+          // This is a LaTeX equation
+          const equation = part.slice(1, -1); // Remove the $ symbols
+          try {
+            const html = katex.renderToString(equation, {
+              displayMode: false,
+              throwOnError: false,
+              errorColor: '#cc0000',
+              strict: false
+            });
+            return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+          } catch (error) {
+            return <span key={index} className="text-red-500">Error: {equation}</span>;
+          }
+        } else {
+          // Regular text
+          return <span key={index}>{part}</span>;
+        }
+      });
+    }
   };
 
   const wordCount = currentAnswer.trim().split(/\s+/).filter(word => word.length > 0).length;
