@@ -8,11 +8,11 @@ const corsHeaders = {
 
 interface ParsedQuestion {
   question_text: string;
-  options: string[];
-  correct_answer: string;
-  explanation: string;
-  incorrect_type: number;
-  option_feedback?: { [key: number]: { type: string; message: string } };
+  category?: string;
+  marks: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  word_limit?: number;
+  answer_key: string;
 }
 
 interface ParsedTest {
@@ -109,10 +109,10 @@ serve(async (req) => {
       );
     }
 
-    // Validate minimum questions
-    if (parsedTest.questions.length < 5) {
+    // Validate minimum questions (allow 1 or more for testing)
+    if (parsedTest.questions.length < 1) {
       return new Response(
-        JSON.stringify({ error: `Minimum 5 questions required. Found ${parsedTest.questions.length} questions.` }),
+        JSON.stringify({ error: `At least 1 question required. Found ${parsedTest.questions.length} questions.` }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -134,11 +134,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error parsing Word file:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'Unknown error');
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error while parsing the Word file',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
       { 
         status: 500, 
@@ -154,21 +154,24 @@ function parseWordContent(text: string): ParsedTest | null {
     
     let testName = '';
     let category = '';
+    let subject = '';
+    let topic = '';
     const questions: ParsedQuestion[] = [];
     
     let currentQuestion: Partial<ParsedQuestion> = {};
-    let currentOptions: string[] = [];
-    let correctAnswer = '';
-    
     let i = 0;
-    let inTableSection = false;
     
-    // Extract test name and category from initial lines
+    // Extract header information
     while (i < lines.length && !lines[i].toLowerCase().includes('question')) {
-      if (lines[i] && !testName) {
-        testName = lines[i];
-      } else if (lines[i] && !category) {
-        category = lines[i];
+      const line = lines[i].toLowerCase();
+      
+      if (line.includes('mock test title') || line.includes('title')) {
+        testName = extractValue(lines[i]);
+      } else if (line.includes('subject')) {
+        subject = extractValue(lines[i]);
+        category = subject; // Use subject as category
+      } else if (line.includes('topic')) {
+        topic = extractValue(lines[i]);
       }
       i++;
     }
@@ -178,132 +181,69 @@ function parseWordContent(text: string): ParsedTest | null {
       const lower = line.toLowerCase();
       
       // Question detection
-      if (lower.startsWith('question')) {
-        // Save previous question if exists
-        if (currentQuestion.question_text && currentOptions.length > 0) {
-          const correctIndex = correctAnswer ? parseInt(correctAnswer) - 1 : 0;
-          
-          // Create default feedback for all options
-          const optionFeedback: { [key: number]: { type: string; message: string } } = {};
-          currentOptions.forEach((option, index) => {
-            if (index === correctIndex) {
-              optionFeedback[index] = { 
-                type: 'correct', 
-                message: `Correct! The answer is ${option}.` 
-              };
-            } else {
-              optionFeedback[index] = { 
-                type: 'concept-error', 
-                message: `Incorrect. The correct answer is ${currentOptions[correctIndex]}.` 
-              };
-            }
-          });
-          
+      if (lower.includes('question') && /question\s+\d+/i.test(line)) {
+        // Save previous question if complete
+        if (currentQuestion.question_text && currentQuestion.answer_key) {
           questions.push({
-            question_text: currentQuestion.question_text!,
-            options: [...currentOptions],
-            correct_answer: Math.max(0, correctIndex).toString(),
-            explanation: '',
-            incorrect_type: 0,
-            option_feedback: optionFeedback
+            question_text: currentQuestion.question_text,
+            category: currentQuestion.category || 'General',
+            marks: currentQuestion.marks || 1,
+            difficulty: currentQuestion.difficulty || 'medium',
+            word_limit: currentQuestion.word_limit,
+            answer_key: currentQuestion.answer_key
           });
         }
         
         // Reset for new question
-        currentQuestion = {};
-        currentOptions = [];
-        correctAnswer = '';
-        inTableSection = false;
-        
-        // Extract question text - try same line first
-        const questionMatch = line.match(/^Question\s+\d+:?\s*(.*)/i);
-        if (questionMatch && questionMatch[1].trim()) {
-          currentQuestion.question_text = questionMatch[1].trim();
+        currentQuestion = {
+          marks: 1,
+          difficulty: 'medium'
+        };
+      }
+      // Extract question fields
+      else if (lower.includes('question text')) {
+        currentQuestion.question_text = extractValue(lines[i]);
+      }
+      else if (lower.includes('category')) {
+        currentQuestion.category = extractValue(lines[i]);
+      }
+      else if (lower.includes('marks')) {
+        const marksStr = extractValue(lines[i]);
+        currentQuestion.marks = parseInt(marksStr) || 1;
+      }
+      else if (lower.includes('difficulty')) {
+        const difficultyStr = extractValue(lines[i]).toLowerCase();
+        if (difficultyStr.includes('easy')) {
+          currentQuestion.difficulty = 'easy';
+        } else if (difficultyStr.includes('hard')) {
+          currentQuestion.difficulty = 'hard';
+        } else {
+          currentQuestion.difficulty = 'medium';
         }
       }
-      // Question text (line after "Question X:" if not already captured)
-      else if (!currentQuestion.question_text && 
-               !lower.includes('option') &&
-               !lower.includes('correct answer') &&
-               !line.match(/^\d+\.?$/) &&
-               !line.match(/^\d+\s/)) {
-        currentQuestion.question_text = line;
-      }
-      // Table headers detection
-      else if (lower.includes('option no') && lower.includes('options')) {
-        inTableSection = true;
-      }
-      // Skip table header row with just "Option No." and "Options"
-      else if (inTableSection && (lower === 'option no.' || lower === 'options')) {
-        // Skip header cells
-      }
-      // Option number followed by option text
-      else if (inTableSection && line.match(/^\d+\.?$/)) {
-        // This is just the option number, get the option text from next line
-        if (i + 1 < lines.length) {
-          const optionText = lines[i + 1].trim();
-          // Make sure it's not another number or table element
-          if (optionText && !optionText.match(/^\d+\.?$/) && !optionText.toLowerCase().includes('correct answer')) {
-            currentOptions.push(optionText);
-            i++; // consume the option text line
-          }
+      else if (lower.includes('word limit')) {
+        const wordLimitStr = extractValue(lines[i]);
+        const wordLimit = parseInt(wordLimitStr);
+        if (!isNaN(wordLimit)) {
+          currentQuestion.word_limit = wordLimit;
         }
       }
-      // Option pattern: "1. 5" or "1.5" (number followed by option)
-      else if (inTableSection && line.match(/^\d+\.?\s*\S+$/)) {
-        const match = line.match(/^\d+\.?\s*(.+)$/);
-        if (match) {
-          currentOptions.push(match[1].trim());
-        }
-      }
-      // Correct answer detection
-      else if (lower.includes('correct answer')) {
-        inTableSection = false;
-        
-        // Try to extract answer from same line
-        const answerMatch = line.match(/correct answer[^0-9]*(\d+)/i);
-        if (answerMatch) {
-          correctAnswer = answerMatch[1];
-        } else if (i + 1 < lines.length) {
-          // Check next line for answer
-          const nextLine = lines[i + 1].trim();
-          if (nextLine.match(/^\d+$/)) {
-            correctAnswer = nextLine;
-            i++; // consume next line
-          }
-        }
+      else if (lower.includes('answer key')) {
+        currentQuestion.answer_key = extractValue(lines[i]);
       }
       
       i++;
     }
     
     // Save last question
-    if (currentQuestion.question_text && currentOptions.length > 0) {
-      const correctIndex = correctAnswer ? parseInt(correctAnswer) - 1 : 0;
-      
-      // Create default feedback for all options
-      const optionFeedback: { [key: number]: { type: string; message: string } } = {};
-      currentOptions.forEach((option, index) => {
-        if (index === correctIndex) {
-          optionFeedback[index] = { 
-            type: 'correct', 
-            message: `Correct! The answer is ${option}.` 
-          };
-        } else {
-          optionFeedback[index] = { 
-            type: 'concept-error', 
-            message: `Incorrect. The correct answer is ${currentOptions[correctIndex]}.` 
-          };
-        }
-      });
-      
+    if (currentQuestion.question_text && currentQuestion.answer_key) {
       questions.push({
-        question_text: currentQuestion.question_text!,
-        options: [...currentOptions],
-        correct_answer: Math.max(0, correctIndex).toString(),
-        explanation: '',
-        incorrect_type: 0,
-        option_feedback: optionFeedback
+        question_text: currentQuestion.question_text,
+        category: currentQuestion.category || 'General',
+        marks: currentQuestion.marks || 1,
+        difficulty: currentQuestion.difficulty || 'medium',
+        word_limit: currentQuestion.word_limit,
+        answer_key: currentQuestion.answer_key
       });
     }
     
@@ -315,7 +255,7 @@ function parseWordContent(text: string): ParsedTest | null {
     
     return {
       test_name: testName || 'Untitled Test',
-      category: category || 'General',
+      category: category || subject || 'General',
       questions: questions
     };
     
@@ -326,39 +266,32 @@ function parseWordContent(text: string): ParsedTest | null {
 }
 
 function extractValue(line: string): string {
-  // Extract value after colon or other separators
+  // Extract value after colon or brackets
   const colonIndex = line.indexOf(':');
   if (colonIndex !== -1) {
-    return line.substring(colonIndex + 1).trim();
+    let value = line.substring(colonIndex + 1).trim();
+    // Remove brackets if present
+    value = value.replace(/^\[|\]$/g, '');
+    return value;
+  }
+  
+  // Look for bracketed values
+  const bracketMatch = line.match(/\[(.*?)\]/);
+  if (bracketMatch) {
+    return bracketMatch[1].trim();
   }
   
   // Try to extract after common patterns
-  const patterns = ['test name', 'category', 'subject', 'correct answer', 'explanation', 'answer'];
+  const patterns = ['mock test title', 'title', 'subject', 'topic', 'category', 'marks', 'difficulty', 'word limit', 'answer key'];
   for (const pattern of patterns) {
     const index = line.toLowerCase().indexOf(pattern);
     if (index !== -1) {
-      return line.substring(index + pattern.length).replace(/[:=-]/g, '').trim();
+      let value = line.substring(index + pattern.length).replace(/[:=-]/g, '').trim();
+      // Remove brackets if present
+      value = value.replace(/^\[|\]$/g, '');
+      return value;
     }
   }
   
   return line.trim();
-}
-
-function extractIncorrectType(line: string): number {
-  const text = line.toLowerCase();
-  
-  // Look for numeric type first
-  const numMatch = text.match(/(\d+)/);
-  if (numMatch) {
-    return parseInt(numMatch[1]);
-  }
-  
-  // Look for text patterns
-  if (text.includes('concept')) return 1;
-  if (text.includes('calculation')) return 2;
-  if (text.includes('interpretation')) return 3;
-  if (text.includes('carelessness')) return 4;
-  if (text.includes('subjective')) return 5;
-  
-  return 0; // Default to correct
 }
