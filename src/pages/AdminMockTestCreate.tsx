@@ -9,6 +9,7 @@ import { ArrowLeft, Save, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import MockTestWordUpload from '@/components/admin/MockTestWordUpload';
 import type { Database } from '@/integrations/supabase/types';
 
 type TestSubject = Database['public']['Enums']['test_subject'];
@@ -26,6 +27,7 @@ const AdminMockTestCreate = () => {
     topic: ''
   });
   const [questions, setQuestions] = useState([]);
+  const [showWordUpload, setShowWordUpload] = useState(false);
 
   const handleLoadSample = (sampleData: any) => {
     setTestInfo({
@@ -58,6 +60,32 @@ const AdminMockTestCreate = () => {
     
     setQuestions(transformedQuestions);
     toast.success('Test loaded successfully!');
+  };
+
+  const handleWordTestParsed = (testData: any) => {
+    // Update test info
+    setTestInfo({
+      title: testData.title,
+      subject: testData.subject as TestSubject,
+      topic: testData.topic
+    });
+
+    // Transform questions to match the expected format
+    const transformedQuestions = testData.questions.map((q: any, index: number) => ({
+      id: Date.now() + index,
+      question_number: index + 1,
+      question_text: q.question_text,
+      question_image_url: q.question_image_url || '',
+      has_sub_questions: q.has_sub_questions || false,
+      marks: q.marks || 1,
+      answer_key: q.answer_key || '',
+      word_limit: q.word_limit?.toString() || '',
+      difficulty: q.difficulty || 'medium',
+      category: q.category || '',
+      sub_questions: q.sub_questions || []
+    }));
+
+    setQuestions(transformedQuestions);
   };
 
   const handleSave = async (publish = false) => {
@@ -235,7 +263,17 @@ const AdminMockTestCreate = () => {
           {/* Question Builder */}
           <Card>
             <CardHeader>
-              <CardTitle>Question Builder</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Question Builder</CardTitle>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowWordUpload(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import from Word
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <QuestionBuilder questions={questions} setQuestions={setQuestions} />
@@ -262,6 +300,13 @@ const AdminMockTestCreate = () => {
           </div>
         </div>
       </div>
+
+      {/* Word Upload Modal */}
+      <MockTestWordUpload
+        isOpen={showWordUpload}
+        onClose={() => setShowWordUpload(false)}
+        onTestParsed={handleWordTestParsed}
+      />
     </div>
   );
 };
