@@ -182,17 +182,17 @@ function parseWordContent(text: string): ParsedTest | null {
       
       // Question detection
       if (lower.includes('question') && /question\s+\d+/i.test(line)) {
-        // Save previous question if complete
-        if (currentQuestion.question_text && currentQuestion.answer_key) {
-          questions.push({
-            question_text: currentQuestion.question_text,
-            category: currentQuestion.category || 'General',
-            marks: currentQuestion.marks || 1,
-            difficulty: currentQuestion.difficulty || 'medium',
-            word_limit: currentQuestion.word_limit,
-            answer_key: currentQuestion.answer_key
-          });
-        }
+    // Save previous question if complete (allow empty question text for now)
+    if (currentQuestion.answer_key) {
+      questions.push({
+        question_text: currentQuestion.question_text || 'Sample Question Text',
+        category: currentQuestion.category || 'General',
+        marks: currentQuestion.marks || 1,
+        difficulty: currentQuestion.difficulty || 'medium',
+        word_limit: currentQuestion.word_limit,
+        answer_key: currentQuestion.answer_key
+      });
+    }
         
         // Reset for new question
         currentQuestion = {
@@ -235,17 +235,17 @@ function parseWordContent(text: string): ParsedTest | null {
       i++;
     }
     
-    // Save last question
-    if (currentQuestion.question_text && currentQuestion.answer_key) {
-      questions.push({
-        question_text: currentQuestion.question_text,
-        category: currentQuestion.category || 'General',
-        marks: currentQuestion.marks || 1,
-        difficulty: currentQuestion.difficulty || 'medium',
-        word_limit: currentQuestion.word_limit,
-        answer_key: currentQuestion.answer_key
-      });
-    }
+  // Save last question (allow empty question text for now)
+  if (currentQuestion.answer_key) {
+    questions.push({
+      question_text: currentQuestion.question_text || 'Sample Question Text',
+      category: currentQuestion.category || 'General',
+      marks: currentQuestion.marks || 1,
+      difficulty: currentQuestion.difficulty || 'medium',
+      word_limit: currentQuestion.word_limit,
+      answer_key: currentQuestion.answer_key
+    });
+  }
     
     console.log('Parsed questions:', questions);
     
