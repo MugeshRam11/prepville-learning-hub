@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Search, Edit, Trash2, Eye, Upload } from 'lucide-react';
@@ -16,9 +16,7 @@ const TestManagement = () => {
   const [topics, setTopics] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('tests');
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
@@ -30,7 +28,7 @@ const TestManagement = () => {
 
   useEffect(() => {
     filterTests();
-  }, [tests, searchTerm, typeFilter, difficultyFilter, activeTab]);
+  }, [tests, searchTerm, difficultyFilter]);
 
   const fetchData = async () => {
     try {
@@ -64,26 +62,14 @@ const TestManagement = () => {
   };
 
   const filterTests = () => {
-    let filtered = tests;
-
-    // Filter by active tab first
-    if (activeTab === 'quick') {
-      filtered = filtered.filter(test => test.test_type === 'quick_test');
-    } else if (activeTab === 'practice') {
-      filtered = filtered.filter(test => test.test_type === 'topic_practice');
-    } else if (activeTab === 'mock') {
-      filtered = filtered.filter(test => test.test_type === 'mock_test');
-    }
+    // Only show quick tests
+    let filtered = tests.filter(test => test.test_type === 'quick_test');
 
     if (searchTerm) {
       filtered = filtered.filter(test =>
         test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         test.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    }
-
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(test => test.test_type === typeFilter);
     }
 
     if (difficultyFilter !== 'all') {
@@ -179,8 +165,8 @@ const TestManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Test Management</h1>
-          <p className="text-gray-600">Create and manage practice tests</p>
+          <h1 className="text-3xl font-bold text-gray-900">Quick Test Management</h1>
+          <p className="text-gray-600">Create and manage quick tests</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -198,113 +184,91 @@ const TestManagement = () => {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="tests">All Tests</TabsTrigger>
-          <TabsTrigger value="quick">Quick Tests</TabsTrigger>
-          <TabsTrigger value="practice">Topic Practice</TabsTrigger>
-          <TabsTrigger value="mock">Mock Tests</TabsTrigger>
-        </TabsList>
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search quick tests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Difficulties</SelectItem>
+                <SelectItem value="easy">Easy</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="hard">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-        <TabsContent value={activeTab} className="space-y-6">
-          {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex space-x-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Search tests..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+      {/* Tests Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredTests.map((test) => (
+          <Card key={test.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-lg">{test.title}</CardTitle>
+                <div className="flex space-x-1">
+                  <Badge variant={getTestTypeBadge(test.test_type)}>
+                    {test.test_type.replace('_', ' ')}
+                  </Badge>
                 </div>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filter by type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="quick_test">Quick Test</SelectItem>
-                    <SelectItem value="topic_practice">Topic Practice</SelectItem>
-                    <SelectItem value="mock_test">Mock Test</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filter by difficulty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Difficulties</SelectItem>
-                    <SelectItem value="easy">Easy</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
+              </div>
+              <div className="flex space-x-2">
+                <Badge variant={getDifficultyBadge(test.difficulty_level)}>
+                  {test.difficulty_level}
+                </Badge>
+                <Badge variant={test.is_active ? 'default' : 'secondary'}>
+                  {test.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                {test.description || 'No description provided'}
+              </p>
+              <div className="space-y-2 text-sm text-gray-500">
+                <div>Topic: {test.topics?.name || 'No topic'}</div>
+                <div>Questions: {test.total_questions || 0}</div>
+                <div>Time Limit: {test.time_limit_minutes || 0} minutes</div>
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex space-x-2">
+                  <Button variant="ghost" size="sm">
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleEditTest(test)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteTest(test.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleTestStatus(test.id, test.is_active)}
+                >
+                  {test.is_active ? 'Deactivate' : 'Activate'}
+                </Button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Tests Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTests.map((test) => (
-              <Card key={test.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{test.title}</CardTitle>
-                    <div className="flex space-x-1">
-                      <Badge variant={getTestTypeBadge(test.test_type)}>
-                        {test.test_type.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Badge variant={getDifficultyBadge(test.difficulty_level)}>
-                      {test.difficulty_level}
-                    </Badge>
-                    <Badge variant={test.is_active ? 'default' : 'secondary'}>
-                      {test.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                    {test.description || 'No description provided'}
-                  </p>
-                  <div className="space-y-2 text-sm text-gray-500">
-                    <div>Topic: {test.topics?.name || 'No topic'}</div>
-                    <div>Questions: {test.total_questions || 0}</div>
-                    <div>Time Limit: {test.time_limit_minutes || 0} minutes</div>
-                  </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleEditTest(test)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteTest(test.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleTestStatus(test.id, test.is_active)}
-                    >
-                      {test.is_active ? 'Deactivate' : 'Activate'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+        ))}
+      </div>
 
       <WordUploadModal
         isOpen={showWordUpload}
