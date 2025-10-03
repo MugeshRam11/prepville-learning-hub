@@ -180,38 +180,54 @@ function parseWordContent(text: string): ParsedTest | null {
       const line = lines[i];
       const lower = line.toLowerCase();
       
-      // Question detection
+      // Question detection - look for "Question 1", "Question 2", etc.
       if (lower.includes('question') && /question\s+\d+/i.test(line)) {
-    // Save previous question if complete (allow empty question text for now)
-    if (currentQuestion.answer_key) {
-      questions.push({
-        question_text: currentQuestion.question_text || 'Sample Question Text',
-        category: currentQuestion.category || 'General',
-        marks: currentQuestion.marks || 1,
-        difficulty: currentQuestion.difficulty || 'medium',
-        word_limit: currentQuestion.word_limit,
-        answer_key: currentQuestion.answer_key
-      });
-    }
+        // Save previous question if it has content
+        if (currentQuestion.question_text || currentQuestion.answer_key) {
+          questions.push({
+            question_text: currentQuestion.question_text || 'Not Provided',
+            category: currentQuestion.category || 'General',
+            marks: currentQuestion.marks || 1,
+            difficulty: currentQuestion.difficulty || 'medium',
+            word_limit: currentQuestion.word_limit,
+            answer_key: currentQuestion.answer_key || 'Not Provided'
+          });
+        }
         
-        // Reset for new question
+        // Reset for new question with defaults
         currentQuestion = {
           marks: 1,
           difficulty: 'medium'
         };
+        i++;
+        continue;
       }
-      // Extract question fields
-      else if (lower.includes('question text')) {
-        currentQuestion.question_text = extractValue(lines[i]);
+      
+      // Extract question fields with multi-line support for Question Text
+      if (lower.includes('question text:')) {
+        let questionText = extractValue(lines[i]);
+        // Look ahead for continuation lines (mathematical expressions, LaTeX, etc.)
+        let j = i + 1;
+        while (j < lines.length && lines[j].trim() && 
+               !lines[j].toLowerCase().includes('category:') &&
+               !lines[j].toLowerCase().includes('marks:') &&
+               !lines[j].toLowerCase().includes('difficulty:') &&
+               !lines[j].toLowerCase().includes('word limit:') &&
+               !lines[j].toLowerCase().includes('answer key:') &&
+               !lines[j].toLowerCase().match(/question\s+\d+/i)) {
+          questionText += ' ' + lines[j].trim();
+          j++;
+        }
+        currentQuestion.question_text = questionText.trim();
       }
-      else if (lower.includes('category')) {
+      else if (lower.includes('category:')) {
         currentQuestion.category = extractValue(lines[i]);
       }
-      else if (lower.includes('marks')) {
+      else if (lower.includes('marks:')) {
         const marksStr = extractValue(lines[i]);
         currentQuestion.marks = parseInt(marksStr) || 1;
       }
-      else if (lower.includes('difficulty')) {
+      else if (lower.includes('difficulty:')) {
         const difficultyStr = extractValue(lines[i]).toLowerCase();
         if (difficultyStr.includes('easy')) {
           currentQuestion.difficulty = 'easy';
@@ -221,31 +237,31 @@ function parseWordContent(text: string): ParsedTest | null {
           currentQuestion.difficulty = 'medium';
         }
       }
-      else if (lower.includes('word limit')) {
+      else if (lower.includes('word limit:')) {
         const wordLimitStr = extractValue(lines[i]);
         const wordLimit = parseInt(wordLimitStr);
         if (!isNaN(wordLimit)) {
           currentQuestion.word_limit = wordLimit;
         }
       }
-      else if (lower.includes('answer key')) {
+      else if (lower.includes('answer key:')) {
         currentQuestion.answer_key = extractValue(lines[i]);
       }
       
       i++;
     }
     
-  // Save last question (allow empty question text for now)
-  if (currentQuestion.answer_key) {
-    questions.push({
-      question_text: currentQuestion.question_text || 'Sample Question Text',
-      category: currentQuestion.category || 'General',
-      marks: currentQuestion.marks || 1,
-      difficulty: currentQuestion.difficulty || 'medium',
-      word_limit: currentQuestion.word_limit,
-      answer_key: currentQuestion.answer_key
-    });
-  }
+    // Save last question with proper defaults
+    if (currentQuestion.question_text || currentQuestion.answer_key) {
+      questions.push({
+        question_text: currentQuestion.question_text || 'Not Provided',
+        category: currentQuestion.category || 'General',
+        marks: currentQuestion.marks || 1,
+        difficulty: currentQuestion.difficulty || 'medium',
+        word_limit: currentQuestion.word_limit,
+        answer_key: currentQuestion.answer_key || 'Not Provided'
+      });
+    }
     
     console.log('Parsed questions:', questions);
     
@@ -265,32 +281,26 @@ function parseWordContent(text: string): ParsedTest | null {
   }
 }
 
-function extractValue(line: string): string {
-  // Extract value after colon or brackets
+function extractValue(line: string, fieldName?: string): string {
+  // Enhanced extraction to handle brackets properly and preserve mathematical notation
   const colonIndex = line.indexOf(':');
   if (colonIndex !== -1) {
     let value = line.substring(colonIndex + 1).trim();
-    // Remove brackets if present
-    value = value.replace(/^\[|\]$/g, '');
+    
+    // Check if value is wrapped in brackets and extract content
+    const bracketMatch = value.match(/^\[(.*?)\]$/);
+    if (bracketMatch) {
+      return bracketMatch[1].trim(); // Return content inside brackets
+    }
+    
+    // Return value as-is (preserves LaTeX and mathematical expressions)
     return value;
   }
   
-  // Look for bracketed values
+  // Fallback: Look for standalone bracketed values
   const bracketMatch = line.match(/\[(.*?)\]/);
   if (bracketMatch) {
     return bracketMatch[1].trim();
-  }
-  
-  // Try to extract after common patterns
-  const patterns = ['mock test title', 'title', 'subject', 'topic', 'category', 'marks', 'difficulty', 'word limit', 'answer key'];
-  for (const pattern of patterns) {
-    const index = line.toLowerCase().indexOf(pattern);
-    if (index !== -1) {
-      let value = line.substring(index + pattern.length).replace(/[:=-]/g, '').trim();
-      // Remove brackets if present
-      value = value.replace(/^\[|\]$/g, '');
-      return value;
-    }
   }
   
   return line.trim();
