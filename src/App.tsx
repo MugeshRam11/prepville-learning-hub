@@ -22,6 +22,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTests from "./pages/AdminTests";
 import AdminQuestions from "./pages/AdminQuestions";
+import AdminBulkUpload from "./pages/AdminBulkUpload";
 import AdminReports from "./pages/AdminReports";
 import AdminMockTests from "./pages/AdminMockTests";
 import AdminMockTestCreate from "./pages/AdminMockTestCreate";
@@ -141,6 +142,11 @@ const App = () => (
           <Route path="/admin/questions" element={
             <ProtectedRoute>
               <AdminQuestions />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/bulk-upload" element={
+            <ProtectedRoute>
+              <AdminBulkUpload />
             </ProtectedRoute>
           } />
           <Route path="/admin/reports" element={

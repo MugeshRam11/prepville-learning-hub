@@ -611,6 +611,10 @@ export type Database = {
           id: string
           is_published: boolean
           level: string
+          option_a: string | null
+          option_b: string | null
+          option_c: string | null
+          option_d: string | null
           question_image_url: string | null
           question_text: string
           subject: Database["public"]["Enums"]["subject_name"]
@@ -618,6 +622,8 @@ export type Database = {
           title: string
           topic: string
           updated_at: string
+          video_id: string | null
+          xp_reward: number | null
         }
         Insert: {
           answer_key: string
@@ -629,6 +635,10 @@ export type Database = {
           id?: string
           is_published?: boolean
           level: string
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
           question_image_url?: string | null
           question_text: string
           subject: Database["public"]["Enums"]["subject_name"]
@@ -636,6 +646,8 @@ export type Database = {
           title: string
           topic: string
           updated_at?: string
+          video_id?: string | null
+          xp_reward?: number | null
         }
         Update: {
           answer_key?: string
@@ -647,6 +659,10 @@ export type Database = {
           id?: string
           is_published?: boolean
           level?: string
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
           question_image_url?: string | null
           question_text?: string
           subject?: Database["public"]["Enums"]["subject_name"]
@@ -654,6 +670,8 @@ export type Database = {
           title?: string
           topic?: string
           updated_at?: string
+          video_id?: string | null
+          xp_reward?: number | null
         }
         Relationships: []
       }
