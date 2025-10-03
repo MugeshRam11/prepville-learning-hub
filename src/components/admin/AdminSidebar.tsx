@@ -42,7 +42,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/admin' },
     { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
-    { id: 'tests', label: 'Test Management', icon: FileText, path: '/admin/tests' },
+    { id: 'tests', label: 'Quick Test', icon: FileText, path: '/admin/tests' },
     { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
     { id: 'study-materials', label: 'Study Materials', icon: Upload, path: '/admin/study-materials' },
     { id: 'questions', label: 'Subject Questions', icon: FileQuestion, path: '/admin/questions' },
