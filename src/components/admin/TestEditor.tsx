@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Sparkles } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
+import MathRichEditor from '@/components/admin/MathRichEditor';
 
 type TestType = Database['public']['Enums']['test_type'];
 type DifficultyLevel = Database['public']['Enums']['difficulty_level'];
@@ -112,7 +112,41 @@ const TestEditor = ({ test, topics, onClose, onSave }: TestEditorProps) => {
         testId = data.id;
       }
 
-      toast.success(`Test ${test ? 'updated' : 'created'} successfully`);
+      // Save questions - delete old ones and insert new ones
+      if (testId) {
+        // Delete existing questions for this test
+        const { error: deleteError } = await supabase
+          .from('questions')
+          .delete()
+          .eq('test_id', testId);
+
+        if (deleteError) throw deleteError;
+
+        // Insert new questions
+        if (questions.length > 0) {
+          const questionsToInsert = questions.map(q => ({
+            test_id: testId,
+            question_text: q.question_text,
+            question_image_url: q.question_image_url || null,
+            option_a: q.option_a,
+            option_b: q.option_b,
+            option_c: q.option_c,
+            option_d: q.option_d,
+            correct_answer: q.correct_answer,
+            explanation: q.explanation || null,
+            difficulty_level: q.difficulty_level,
+            topic_id: formData.topic_id
+          }));
+
+          const { error: insertError } = await supabase
+            .from('questions')
+            .insert(questionsToInsert);
+
+          if (insertError) throw insertError;
+        }
+      }
+
+      toast.success(`Test ${test ? 'updated' : 'created'} successfully with ${questions.length} questions`);
       onSave();
     } catch (error) {
       console.error('Error saving test:', error);
@@ -283,44 +317,51 @@ const TestEditor = ({ test, topics, onClose, onSave }: TestEditorProps) => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Question Text</label>
-                    <Textarea
-                      value={question.question_text}
-                      onChange={(e) => updateQuestion(index, 'question_text', e.target.value)}
-                      placeholder="Enter your question here..."
+                    <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      Question Text (supports LaTeX & Word paste)
+                    </label>
+                    <MathRichEditor
+                      value={question.question_text || ''}
+                      onChange={(value) => updateQuestion(index, 'question_text', value)}
+                      placeholder="Enter your question here... Use $x^2$ for inline math or paste from Word"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Option A</label>
-                      <Input
-                        value={question.option_a}
-                        onChange={(e) => updateQuestion(index, 'option_a', e.target.value)}
-                        placeholder="Option A"
+                      <MathRichEditor
+                        value={question.option_a || ''}
+                        onChange={(value) => updateQuestion(index, 'option_a', value)}
+                        placeholder="Option A (supports math)"
+                        className="min-h-[60px]"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Option B</label>
-                      <Input
-                        value={question.option_b}
-                        onChange={(e) => updateQuestion(index, 'option_b', e.target.value)}
-                        placeholder="Option B"
+                      <MathRichEditor
+                        value={question.option_b || ''}
+                        onChange={(value) => updateQuestion(index, 'option_b', value)}
+                        placeholder="Option B (supports math)"
+                        className="min-h-[60px]"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Option C</label>
-                      <Input
-                        value={question.option_c}
-                        onChange={(e) => updateQuestion(index, 'option_c', e.target.value)}
-                        placeholder="Option C"
+                      <MathRichEditor
+                        value={question.option_c || ''}
+                        onChange={(value) => updateQuestion(index, 'option_c', value)}
+                        placeholder="Option C (supports math)"
+                        className="min-h-[60px]"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Option D</label>
-                      <Input
-                        value={question.option_d}
-                        onChange={(e) => updateQuestion(index, 'option_d', e.target.value)}
-                        placeholder="Option D"
+                      <MathRichEditor
+                        value={question.option_d || ''}
+                        onChange={(value) => updateQuestion(index, 'option_d', value)}
+                        placeholder="Option D (supports math)"
+                        className="min-h-[60px]"
                       />
                     </div>
                   </div>
@@ -355,11 +396,11 @@ const TestEditor = ({ test, topics, onClose, onSave }: TestEditorProps) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Explanation (Optional)</label>
-                    <Textarea
+                    <MathRichEditor
                       value={question.explanation || ''}
-                      onChange={(e) => updateQuestion(index, 'explanation', e.target.value)}
-                      placeholder="Explain the correct answer..."
-                      rows={2}
+                      onChange={(value) => updateQuestion(index, 'explanation', value)}
+                      placeholder="Explain the correct answer... (supports math)"
+                      className="min-h-[60px]"
                     />
                   </div>
                 </CardContent>
