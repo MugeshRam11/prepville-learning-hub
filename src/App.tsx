@@ -37,6 +37,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from '@/hooks/useAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
 import StreakAutoRecorder from "./components/StreakAutoRecorder";
+import { useSessionTracking } from '@/hooks/useSessionTracking';
+
+const SessionTracker = () => {
+  useSessionTracking();
+  return null;
+};
 
 const queryClient = new QueryClient();
 
@@ -48,6 +54,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <StreakAutoRecorder />
+      <SessionTracker />
       <BrowserRouter>
         <Routes>
           {/* Public routes */}

@@ -1,23 +1,56 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Search, UserPlus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Eye, Flame, TrendingUp } from 'lucide-react';
+import UserDetailDrawer from './UserDetailDrawer';
+import { format } from 'date-fns';
 import { Database } from '@/integrations/supabase/types';
 
 type UserRole = Database['public']['Enums']['user_role'];
 
+interface User {
+  user_id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  total_xp: number;
+  current_level: number;
+  longest_streak: number;
+  last_activity_date: string | null;
+  total_tests_taken: number;
+  avg_score_percentage: number;
+}
+
 const UserManagement = () => {
-  const [users, setUsers] = useState<any[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -30,21 +63,14 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          first_name,
-          last_name,
-          role,
-          is_active,
-          created_at,
-          updated_at
-        `)
+        .from('user_progress_summary')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
       setUsers(data || []);
+      setFilteredUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -79,7 +105,7 @@ const UserManagement = () => {
         .eq('id', userId);
 
       if (error) throw error;
-      
+
       toast.success('User role updated successfully');
       fetchUsers();
     } catch (error) {
@@ -96,7 +122,7 @@ const UserManagement = () => {
         .eq('id', userId);
 
       if (error) throw error;
-      
+
       toast.success(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
       fetchUsers();
     } catch (error) {
@@ -105,13 +131,9 @@ const UserManagement = () => {
     }
   };
 
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'admin': return 'destructive';
-      case 'moderator': return 'default';
-      case 'student': return 'secondary';
-      default: return 'outline';
-    }
+  const handleViewDetails = (userId: string) => {
+    setSelectedUserId(userId);
+    setIsDrawerOpen(true);
   };
 
   if (loading) {
@@ -122,13 +144,9 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600">Manage users and their permissions</p>
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <p className="text-muted-foreground">Manage users, track progress, and monitor engagement</p>
         </div>
-        <Button>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add User
-        </Button>
       </div>
 
       {/* Filters */}
@@ -137,7 +155,7 @@ const UserManagement = () => {
           <div className="flex space-x-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search users by email or name..."
                   value={searchTerm}
@@ -163,84 +181,119 @@ const UserManagement = () => {
 
       {/* Users Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Users ({filteredUsers.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium">User</th>
-                  <th className="text-left py-3 px-4 font-medium">Role</th>
-                  <th className="text-left py-3 px-4 font-medium">Status</th>
-                  <th className="text-left py-3 px-4 font-medium">Joined</th>
-                  <th className="text-left py-3 px-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+        <CardContent className="pt-6">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4" />
+                      XP / Level
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <Flame className="h-4 w-4" />
+                      Streak
+                    </div>
+                  </TableHead>
+                  <TableHead>Tests</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="border-b hover:bg-gray-50">
-                    <td className="py-4 px-4">
-                      <div>
-                        <div className="font-medium">
-                          {user.first_name && user.last_name 
-                            ? `${user.first_name} ${user.last_name}`
-                            : 'No Name'
-                          }
-                        </div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
+                  <TableRow key={user.user_id}>
+                    <TableCell>
+                      {user.first_name || user.last_name
+                        ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
                       <Select
                         value={user.role}
-                        onValueChange={(value: UserRole) => updateUserRole(user.id, value)}
+                        onValueChange={(value) => updateUserRole(user.user_id, value as UserRole)}
                       >
                         <SelectTrigger className="w-32">
-                          <Badge variant={getRoleBadgeVariant(user.role)}>
-                            {user.role}
-                          </Badge>
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="moderator">Moderator</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="moderator">Moderator</SelectItem>
                         </SelectContent>
                       </Select>
-                    </td>
-                    <td className="py-4 px-4">
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{user.total_xp.toLocaleString()}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          L{user.current_level}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Flame className="h-4 w-4 text-orange-500" />
+                        <span className="font-semibold">{user.longest_streak}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">{user.total_tests_taken}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">
+                        {user.last_activity_date 
+                          ? format(new Date(user.last_activity_date), 'MMM d, yyyy')
+                          : 'Never'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={user.is_active ? 'default' : 'secondary'}>
                         {user.is_active ? 'Active' : 'Inactive'}
                       </Badge>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
                           size="sm"
-                          onClick={() => toggleUserStatus(user.id, user.is_active)}
+                          onClick={() => handleViewDetails(user.user_id)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleUserStatus(user.user_id, user.is_active)}
+                        >
+                          {user.is_active ? 'Deactivate' : 'Activate'}
                         </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
+
+      <UserDetailDrawer 
+        userId={selectedUserId}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedUserId(null);
+        }}
+      />
     </div>
   );
 };

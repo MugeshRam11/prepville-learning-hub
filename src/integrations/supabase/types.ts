@@ -862,6 +862,39 @@ export type Database = {
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          login_at: string
+          logout_at: string | null
+          session_duration_minutes: number | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          login_at?: string
+          logout_at?: string | null
+          session_duration_minutes?: number | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          login_at?: string
+          logout_at?: string | null
+          session_duration_minutes?: number | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_streaks: {
         Row: {
           activity_type: string
@@ -1016,7 +1049,25 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_progress_summary: {
+        Row: {
+          avg_score_percentage: number | null
+          created_at: string | null
+          current_level: number | null
+          email: string | null
+          first_name: string | null
+          is_active: boolean | null
+          last_activity_date: string | null
+          last_login: string | null
+          last_name: string | null
+          longest_streak: number | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          total_tests_taken: number | null
+          total_xp: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_user_xp: {
@@ -1062,6 +1113,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_user_activity_timeline: {
+        Args: { limit_count?: number; user_uuid: string }
+        Returns: {
+          activity_date: string
+          activity_description: string
+          activity_id: string
+          activity_type: string
+          activity_value: number
+        }[]
+      }
       get_user_level_info: {
         Args: { user_uuid: string }
         Returns: {
@@ -1070,6 +1131,17 @@ export type Database = {
           level_title: string
           total_xp: number
           xp_to_next_level: number
+        }[]
+      }
+      get_user_performance_by_subject: {
+        Args: { user_uuid: string }
+        Returns: {
+          accuracy_percentage: number
+          avg_score: number
+          correct_answers: number
+          subject: string
+          tests_taken: number
+          total_questions: number
         }[]
       }
       get_user_subscription_status: {
