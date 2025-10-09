@@ -69,12 +69,15 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center group mr-6">
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2 group">
             <img 
               src={logo} 
               alt="The Prep Ville" 
-              className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
             />
+            <Badge variant="secondary" className="text-xs">
+              MYP
+            </Badge>
           </Link>
 
           {/* Desktop Navigation */}
