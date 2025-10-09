@@ -1,5 +1,6 @@
 
 import React from 'react';
+import logo from '@/assets/logo.png';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,13 +71,9 @@ const Header = () => {
           {/* Logo */}
           <Link to={user ? "/dashboard" : "/"} className="flex items-center group mr-6">
             <img 
-              src="/logo.png" 
+              src={logo} 
               alt="The Prep Ville" 
-              className="h-16 w-auto object-contain group-hover:scale-105 transition-transform"
-              onError={(e) => {
-                console.error('Logo failed to load');
-                e.currentTarget.style.display = 'none';
-              }}
+              className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
             />
           </Link>
 
