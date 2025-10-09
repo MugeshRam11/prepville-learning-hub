@@ -69,8 +69,8 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center group">
-            <img src={logo} alt="The Prep Ville" className="h-12 w-auto group-hover:scale-105 transition-transform" />
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center group mr-4">
+            <img src={logo} alt="The Prep Ville" className="h-10 w-auto group-hover:scale-105 transition-transform" />
           </Link>
 
           {/* Desktop Navigation */}
