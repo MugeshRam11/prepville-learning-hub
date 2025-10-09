@@ -68,8 +68,16 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center group mr-4">
-            <img src="/logo.png" alt="The Prep Ville" className="h-10 w-auto group-hover:scale-105 transition-transform" />
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center group mr-6">
+            <img 
+              src="/logo.png" 
+              alt="The Prep Ville" 
+              className="h-16 w-auto object-contain group-hover:scale-105 transition-transform"
+              onError={(e) => {
+                console.error('Logo failed to load');
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </Link>
 
           {/* Desktop Navigation */}
