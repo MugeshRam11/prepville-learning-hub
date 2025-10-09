@@ -1,6 +1,5 @@
 
 import React from 'react';
-import logo from '@/assets/logo.png';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,7 +69,7 @@ const Header = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to={user ? "/dashboard" : "/"} className="flex items-center group mr-4">
-            <img src={logo} alt="The Prep Ville" className="h-10 w-auto group-hover:scale-105 transition-transform" />
+            <img src="/logo.png" alt="The Prep Ville" className="h-10 w-auto group-hover:scale-105 transition-transform" />
           </Link>
 
           {/* Desktop Navigation */}
