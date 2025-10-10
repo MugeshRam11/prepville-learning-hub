@@ -88,6 +88,8 @@ const StudentDashboard = () => {
       `${profileData.first_name}${profileData.last_name ? ` ${profileData.last_name}` : ''}` : 
       profileData?.email?.split('@')[0] || 'Student',
     avatar: "/placeholder.svg",
+    avatarEmoji: profileData?.avatar_emoji,
+    avatarId: profileData?.avatar_id,
     level: 7,
     xp: 2750,
     xpToNextLevel: 3000,
@@ -96,6 +98,39 @@ const StudentDashboard = () => {
     totalQuestions: 1247,
     correctAnswers: 1089,
     favoriteTopics: ["Algebra", "Statistics"]
+  };
+
+  const handleSaveAvatar = async (avatarId: number, avatarEmoji?: string, avatarName?: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_id: avatarId,
+          avatar_emoji: avatarEmoji,
+          avatar_name: avatarName
+        })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error('Error updating avatar:', error);
+        return;
+      }
+      
+      // Refresh profile data
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setProfileData(data);
+      }
+    } catch (error) {
+      console.error('Error saving avatar:', error);
+    }
   };
 
   // Handler functions for real-time updates
@@ -158,10 +193,18 @@ const StudentDashboard = () => {
               <div className="flex items-center gap-4">
                 <div className="relative group">
                   <Avatar className="w-20 h-20 border-4 border-white shadow-xl ring-4 ring-[hsl(var(--adsavvy-blue))]/20 transition-all group-hover:scale-105">
-                    <AvatarImage src={studentData.avatar} />
-                    <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] text-white text-2xl font-bold">
-                      {studentData.name[0]}
-                    </AvatarFallback>
+                    {studentData.avatarEmoji ? (
+                      <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] rounded-full text-white">
+                        <span className="drop-shadow-sm">{studentData.avatarEmoji}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <AvatarImage src={studentData.avatar} />
+                        <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] text-white text-2xl font-bold">
+                          {studentData.name[0]}
+                        </AvatarFallback>
+                      </>
+                    )}
                   </Avatar>
                   <Button 
                     size="sm" 
@@ -318,6 +361,7 @@ const StudentDashboard = () => {
         <AvatarCustomizer 
           onClose={() => setShowAvatarCustomizer(false)}
           currentAvatar={studentData.avatar}
+          onSave={handleSaveAvatar}
         />
       )}
     </div>

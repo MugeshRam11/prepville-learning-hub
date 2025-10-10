@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge';
 interface AvatarCustomizerProps {
   onClose: () => void;
   currentAvatar: string;
+  onSave: (avatarId: number, avatarEmoji?: string, avatarName?: string) => void;
 }
 
-const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => {
+const AvatarCustomizer = ({ onClose, currentAvatar, onSave }: AvatarCustomizerProps) => {
   const [selectedAvatarId, setSelectedAvatarId] = useState<number>(1); // Use ID instead of src
 
   const avatarOptions = [
@@ -37,6 +38,14 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
   const filteredAvatars = avatarOptions.filter(avatar => 
     selectedCategory === "All" || avatar.category === selectedCategory
   );
+
+  const handleSave = () => {
+    const selectedAvatar = avatarOptions.find(a => a.id === selectedAvatarId);
+    if (selectedAvatar) {
+      onSave(selectedAvatar.id, selectedAvatar.emoji, selectedAvatar.name);
+    }
+    onClose();
+  };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -126,7 +135,7 @@ const AvatarCustomizer = ({ onClose, currentAvatar }: AvatarCustomizerProps) => 
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={onClose} className="bg-gradient-to-r from-blue-600 to-purple-600">
+            <Button onClick={handleSave} className="bg-gradient-to-r from-blue-600 to-purple-600">
               Save Avatar
             </Button>
           </div>
