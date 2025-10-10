@@ -99,12 +99,12 @@ const StudentDashboard = () => {
 
   if (loading || xpLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+      <div className="min-h-screen flex flex-col bg-white">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your dashboard...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[hsl(var(--adsavvy-blue))] mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading your dashboard...</p>
           </div>
         </main>
         <Footer />
@@ -113,47 +113,47 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen flex flex-col bg-white">
       <Header />
       
-      <main className="flex-1 py-6">
-        <div className="container">
+      <main className="flex-1 py-8">
+        <div className="container max-w-7xl">
           {/* Welcome Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="mb-8 animate-fade-in">
+            <div className="flex items-center justify-between flex-wrap gap-6">
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Avatar className="w-16 h-16 border-4 border-white shadow-lg">
+                <div className="relative group">
+                  <Avatar className="w-20 h-20 border-4 border-white shadow-xl ring-4 ring-[hsl(var(--adsavvy-blue))]/20 transition-all group-hover:scale-105">
                     <AvatarImage src={studentData.avatar} />
-                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xl font-bold">
+                    <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] text-white text-2xl font-bold">
                       {studentData.name[0]}
                     </AvatarFallback>
                   </Avatar>
                   <Button 
                     size="sm" 
-                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full p-0"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full p-0 bg-[hsl(var(--adsavvy-pink))] hover:bg-[hsl(var(--adsavvy-pink))]/90 shadow-lg transition-all hover:scale-110"
                     onClick={() => setShowAvatarCustomizer(true)}
                   >
                     ✏️
                   </Button>
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] bg-clip-text text-transparent">
                     Welcome back, {studentData.name}! 
                   </h1>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mt-2">
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+                      className="p-0 h-auto font-semibold text-[hsl(var(--adsavvy-blue))] hover:text-[hsl(var(--adsavvy-pink))] transition-colors"
                       onClick={() => navigate('/level-details')}
                     >
-                      <Crown className="h-4 w-4 mr-1" />
+                      <Crown className="h-5 w-5 mr-1" />
                       Level {xpData?.current_level || 1} • {xpData?.level_title || 'New Explorer'}
-                      <ChevronRight className="h-3 w-3 ml-1" />
+                      <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                     {xpData && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className="text-xs bg-[hsl(var(--adsavvy-yellow))] text-gray-800 border-none">
                         {xpData.total_xp} XP
                       </Badge>
                     )}
@@ -163,14 +163,14 @@ const StudentDashboard = () => {
 
               {/* XP Progress Display */}
               {xpData && (
-                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-white/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Progress to Level {(xpData.current_level || 1) + 1}</span>
-                    <span className="text-sm text-muted-foreground">{xpData.xp_to_next_level || 100} XP needed</span>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-lg min-w-[280px] hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-semibold text-gray-700">Progress to Level {(xpData.current_level || 1) + 1}</span>
+                    <span className="text-sm font-bold text-[hsl(var(--adsavvy-blue))]">{xpData.xp_to_next_level || 100} XP</span>
                   </div>
                   <Progress 
                     value={xpData.xp_to_next_level ? ((xpData.total_xp - (xpData.total_xp - xpData.xp_to_next_level)) / xpData.xp_to_next_level) * 100 : 0} 
-                    className="h-3" 
+                    className="h-4 bg-gray-100" 
                   />
                 </div>
               )}
@@ -178,64 +178,64 @@ const StudentDashboard = () => {
           </div>
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-gradient-to-br from-orange-100 to-orange-200 border-orange-300">
-              <CardContent className="p-4 text-center">
-                <Flame className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-orange-800">{streakData.currentStreak}</div>
-                <div className="text-sm text-orange-600">Day Streak</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in">
+            <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-pink))]/10 to-[hsl(var(--adsavvy-pink))]/5 border-[hsl(var(--adsavvy-pink))]/20 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
+              <CardContent className="p-6 text-center">
+                <Flame className="w-10 h-10 text-[hsl(var(--adsavvy-pink))] mx-auto mb-3" />
+                <div className="text-3xl font-bold text-gray-800">{streakData.currentStreak}</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Day Streak</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-100 to-green-200 border-green-300">
-              <CardContent className="p-4 text-center">
-                <Target className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-green-800">{studentData.weeklyCompleted}/{studentData.weeklyGoal}</div>
-                <div className="text-sm text-green-600">Weekly Goal</div>
+            <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-yellow))]/30 to-[hsl(var(--adsavvy-yellow))]/10 border-[hsl(var(--adsavvy-yellow))]/30 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
+              <CardContent className="p-6 text-center">
+                <Target className="w-10 h-10 text-yellow-600 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-gray-800">{studentData.weeklyCompleted}/{studentData.weeklyGoal}</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Weekly Goal</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-blue-100 to-blue-200 border-blue-300">
-              <CardContent className="p-4 text-center">
-                <BookOpen className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-blue-800">{studentData.totalQuestions}</div>
-                <div className="text-sm text-blue-600">Questions Solved</div>
+            <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))]/10 to-[hsl(var(--adsavvy-blue))]/5 border-[hsl(var(--adsavvy-blue))]/20 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
+              <CardContent className="p-6 text-center">
+                <BookOpen className="w-10 h-10 text-[hsl(var(--adsavvy-blue))] mx-auto mb-3" />
+                <div className="text-3xl font-bold text-gray-800">{studentData.totalQuestions}</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Questions Solved</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-100 to-purple-200 border-purple-300">
-              <CardContent className="p-4 text-center">
-                <TrendingUp className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-purple-800">
+            <Card className="bg-gradient-to-br from-purple-100/50 to-purple-50 border-purple-200 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
+              <CardContent className="p-6 text-center">
+                <TrendingUp className="w-10 h-10 text-purple-600 mx-auto mb-3" />
+                <div className="text-3xl font-bold text-gray-800">
                   {Math.round((studentData.correctAnswers / studentData.totalQuestions) * 100)}%
                 </div>
-                <div className="text-sm text-purple-600">Accuracy</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Accuracy</div>
               </CardContent>
             </Card>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
             {/* Main Content Area */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-6 animate-fade-in">
               {/* Quick Actions */}
               <QuickActions />
 
               {/* MYP Criterion Progress */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-yellow-600" />
-                    MYP Assessment Criteria Progress
+              <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all border-gray-100">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Award className="w-6 h-6 text-[hsl(var(--adsavvy-yellow))]/80" />
+                    Performance Criteria Progress
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-5">
                   {criterionProgress.map((item, index) => (
-                    <div key={index}>
+                    <div key={index} className="group">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium">{item.criterion}</span>
-                        <span className="text-sm text-muted-foreground">{item.progress}%</span>
+                        <span className="text-sm font-semibold text-gray-700 group-hover:text-[hsl(var(--adsavvy-blue))] transition-colors">{item.criterion}</span>
+                        <span className="text-sm font-bold text-[hsl(var(--adsavvy-blue))]">{item.progress}%</span>
                       </div>
-                      <Progress value={item.progress} className="h-2" />
+                      <Progress value={item.progress} className="h-3 bg-gray-100 transition-all duration-500" />
                     </div>
                   ))}
                 </CardContent>
@@ -246,25 +246,25 @@ const StudentDashboard = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-6 animate-fade-in">
               {/* Streak Tracker */}
-          <StreakTracker />
+              <StreakTracker />
 
               {/* Recent Achievements */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-600" />
+              <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all border-gray-100">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Trophy className="w-6 h-6 text-[hsl(var(--adsavvy-yellow))]/80" />
                     Recent Achievements
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {recentAchievements.map((achievement) => (
-                    <div key={achievement.id} className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200">
-                      <div className="text-2xl">{achievement.icon}</div>
+                    <div key={achievement.id} className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-[hsl(var(--adsavvy-yellow))]/20 to-[hsl(var(--adsavvy-yellow))]/10 border border-[hsl(var(--adsavvy-yellow))]/30 hover:shadow-md transition-all hover:scale-105">
+                      <div className="text-3xl">{achievement.icon}</div>
                       <div className="flex-1">
-                        <div className="font-medium text-sm">{achievement.title}</div>
-                        <div className="text-xs text-muted-foreground">{achievement.unlockedAt}</div>
+                        <div className="font-semibold text-sm text-gray-800">{achievement.title}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{achievement.unlockedAt}</div>
                       </div>
                     </div>
                   ))}
@@ -272,20 +272,20 @@ const StudentDashboard = () => {
               </Card>
 
               {/* Daily Challenge */}
-              <Card className="bg-gradient-to-br from-pink-100 to-purple-100 border-pink-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-pink-800">
-                    <Zap className="w-5 h-5" />
+              <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all bg-gradient-to-br from-[hsl(var(--adsavvy-pink))]/10 to-[hsl(var(--adsavvy-pink))]/5 border-[hsl(var(--adsavvy-pink))]/20">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-xl text-[hsl(var(--adsavvy-pink))]">
+                    <Zap className="w-6 h-6" />
                     Daily Challenge
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-pink-700 mb-3">
+                  <p className="text-sm font-medium text-gray-700 mb-4">
                     Solve 5 probability questions to earn 50 XP!
                   </p>
-                  <Progress value={60} className="mb-3" />
-                  <p className="text-xs text-pink-600">3/5 completed</p>
-                  <Button size="sm" className="w-full mt-3 bg-pink-600 hover:bg-pink-700">
+                  <Progress value={60} className="mb-3 h-3 bg-white/50" />
+                  <p className="text-sm font-semibold text-[hsl(var(--adsavvy-pink))] mb-4">3/5 completed</p>
+                  <Button size="sm" className="w-full bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] hover:opacity-90 transition-all shadow-md hover:shadow-lg rounded-xl font-semibold">
                     Continue Challenge
                   </Button>
                 </CardContent>
