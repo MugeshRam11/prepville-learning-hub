@@ -33,6 +33,13 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
   const [showToolbar, setShowToolbar] = useState(false);
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Escape HTML to prevent XSS attacks
+  const escapeHtml = useCallback((text: string) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }, []);
+
   const renderKatexInto = useCallback((el: HTMLElement) => {
     if (!el) return;
     
@@ -53,7 +60,7 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
         (node as HTMLElement).classList.add('math-node', 'inline-block', 'mx-1', 'cursor-pointer');
       } catch (error) {
         console.error('KaTeX render error:', error);
-        (node as HTMLElement).innerHTML = `<span style="color: #cc0000;">${latex}</span>`;
+        (node as HTMLElement).innerHTML = `<span style="color: #cc0000;">${escapeHtml(latex)}</span>`;
       }
     });
   }, []);
@@ -96,7 +103,7 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
         strict: false
       });
     } catch (error) {
-      span.innerHTML = `<span style="color: #cc0000;">${latex}</span>`;
+      span.innerHTML = `<span style="color: #cc0000;">${escapeHtml(latex)}</span>`;
     }
 
     // Insert at cursor position
@@ -275,7 +282,7 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
             errorColor: '#cc0000'
           });
         } catch (error) {
-          mathNode.innerHTML = `<span style="color: #cc0000;">${newLatex}</span>`;
+          mathNode.innerHTML = `<span style="color: #cc0000;">${escapeHtml(newLatex)}</span>`;
         }
         
         mathNode.setAttribute('contenteditable', 'false');
@@ -330,7 +337,7 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
     
     const newValue = extractContent(editorRef.current.innerHTML);
     onChange(newValue);
-  }, [processContent, renderKatexInto, extractContent, onChange]);
+  }, [processContent, renderKatexInto, extractContent, onChange, escapeHtml]);
 
   // Initialize content
   useEffect(() => {

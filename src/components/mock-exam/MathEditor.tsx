@@ -31,6 +31,13 @@ const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
   const [editingText, setEditingText] = useState('');
   const [showTextInput, setShowTextInput] = useState(false);
 
+  // Escape HTML to prevent XSS attacks
+  const escapeHtml = (text: string) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
+
   // Available equation templates
   const componentTemplates = {
     basic: [
@@ -244,7 +251,7 @@ const MathEditor = ({ onInsert, onCancel }: MathEditorProps) => {
       });
     } catch (error) {
       console.error('KaTeX rendering error:', error);
-      return `<span style="color: #cc0000;">Error: ${equation}</span>`;
+      return `<span style="color: #cc0000;">Error: ${escapeHtml(equation)}</span>`;
     }
   };
 
