@@ -880,6 +880,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sessions: {
         Row: {
           created_at: string | null
@@ -1172,6 +1193,13 @@ export type Database = {
           status: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       update_user_streak: {
         Args: { user_uuid: string }
         Returns: {
@@ -1182,6 +1210,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "student"
       difficulty_level: "easy" | "medium" | "hard"
       group_member_role: "member" | "moderator"
       material_type: "pdf" | "video" | "image" | "document" | "note"
@@ -1335,6 +1364,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "student"],
       difficulty_level: ["easy", "medium", "hard"],
       group_member_role: ["member", "moderator"],
       material_type: ["pdf", "video", "image", "document", "note"],

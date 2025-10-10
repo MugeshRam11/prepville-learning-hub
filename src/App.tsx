@@ -34,6 +34,7 @@ import NotFound from "./pages/NotFound";
 import LevelDetails from "./pages/LevelDetails";
 import SubjectLearning from "./pages/SubjectLearning";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 import { AuthProvider } from '@/hooks/useAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
@@ -125,59 +126,59 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="/admin" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminDashboard />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/users" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminUsers />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/tests" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminTests />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/questions" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminQuestions />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/bulk-upload" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminBulkUpload />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/reports" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminReports />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/mock-tests" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminMockTests />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/mock-tests/create" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminMockTestCreate />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/mock-tests/edit/:id" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminMockTestEdit />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/mock-tests/view/:id" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminMockTestView />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/admin/study-materials" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminStudyMaterials />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/study-groups" element={
             <ProtectedRoute>
