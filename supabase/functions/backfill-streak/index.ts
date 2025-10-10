@@ -47,8 +47,37 @@ Deno.serve(async (req) => {
       throw new Error('startDate is required (YYYY-MM-DD format)');
     }
 
-    // Use the authenticated user's ID or allow override for admins
-    const targetUserId = body.userId || user.id;
+    // Default to current user
+    let targetUserId = user.id;
+    
+    // Only allow userId override for admins
+    if (body.userId && body.userId !== user.id) {
+      // Check if user is admin
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+      
+      if (roleError || !roleData) {
+        console.warn(`Non-admin user ${user.id} attempted to backfill for user ${body.userId}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Only admins can backfill data for other users'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403 
+          }
+        );
+      }
+      
+      targetUserId = body.userId;
+      console.log(`Admin ${user.id} backfilling for user ${targetUserId}`);
+    }
+    
     const startDate = body.startDate;
     const endDate = body.endDate || new Date().toISOString().split('T')[0];
 
