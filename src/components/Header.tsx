@@ -1,6 +1,6 @@
 
 import React from 'react';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/adsavvy-logo.svg';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,7 +72,7 @@ const Header = () => {
           <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2 group">
             <img 
               src={logo} 
-              alt="The Prep Ville" 
+              alt="Adsavvy" 
               className="h-20 w-64 object-contain group-hover:scale-105 transition-transform"
             />
             <Badge variant="secondary" className="text-xs">
