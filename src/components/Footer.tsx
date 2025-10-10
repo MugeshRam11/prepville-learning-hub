@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, Mail, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import logo from '@/assets/adsavvy-logo.svg';
 const Footer = () => {
   return <footer className="bg-gray-50 border-t">
       <div className="container py-12">
@@ -8,10 +9,11 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-                Study Hub
-              </span>
+              <img 
+                src={logo} 
+                alt="Adsavvy" 
+                className="h-16 w-48 object-contain"
+              />
             </div>
             <p className="text-muted-foreground mb-4 max-w-md">
               Comprehensive EdTech platform designed for MYP and IBDP students. 
