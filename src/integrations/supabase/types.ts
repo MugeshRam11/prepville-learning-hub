@@ -1024,6 +1024,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_question_progress: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          id: string
+          is_bookmarked: boolean | null
+          is_solved: boolean | null
+          last_attempted_at: string | null
+          question_id: string
+          solved_at: string | null
+          updated_at: string | null
+          user_answer: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          id?: string
+          is_bookmarked?: boolean | null
+          is_solved?: boolean | null
+          last_attempted_at?: string | null
+          question_id: string
+          solved_at?: string | null
+          updated_at?: string | null
+          user_answer?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          id?: string
+          is_bookmarked?: boolean | null
+          is_solved?: boolean | null
+          last_attempted_at?: string | null
+          question_id?: string
+          solved_at?: string | null
+          updated_at?: string | null
+          user_answer?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

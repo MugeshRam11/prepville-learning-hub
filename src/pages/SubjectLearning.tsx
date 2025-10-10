@@ -27,6 +27,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Question {
   id: string;
@@ -51,6 +52,7 @@ const SubjectLearning = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Get subject details from URL params
   const subjectTitle = searchParams.get('title') || 'Mathematics';
@@ -69,10 +71,14 @@ const SubjectLearning = () => {
   const [submittedAnswers, setSubmittedAnswers] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
-    fetchQuestionsFromDB();
-  }, [subjectTitle, subjectLevel]);
+    if (user) {
+      fetchQuestionsFromDB();
+    }
+  }, [subjectTitle, subjectLevel, user]);
 
   const fetchQuestionsFromDB = async () => {
+    if (!user) return;
+    
     try {
       setLoading(true);
       
@@ -83,28 +89,53 @@ const SubjectLearning = () => {
                         subjectTitle.toLowerCase().includes('biology') ? 'biology' :
                         'mathematics';
       
-      const { data, error } = await supabase
+      // Fetch questions
+      const { data: questionsData, error: questionsError } = await supabase
         .from('subject_questions')
         .select('*')
         .eq('subject', subjectKey)
         .eq('level', subjectLevel)
         .eq('is_published', true);
 
-      if (error) throw error;
+      if (questionsError) throw questionsError;
 
-      // Convert database format to component format
-      const formattedQuestions: Question[] = data?.map(q => ({
-        id: q.id,
-        title: q.title,
-        topic: q.topic,
-        difficulty: q.difficulty as 'Easy' | 'Medium' | 'Hard',
-        content: q.question_text,
-        answerKey: q.answer_key,
-        isSolved: false, // This would come from user progress in a real app
-        isBookmarked: false // This would come from user bookmarks in a real app
-      })) || [];
+      // Fetch user progress
+      const { data: progressData, error: progressError } = await supabase
+        .from('user_question_progress')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (progressError) throw progressError;
+
+      // Create a map of progress by question_id
+      const progressMap = new Map(progressData?.map(p => [p.question_id, p]) || []);
+
+      // Convert database format to component format with user progress
+      const formattedQuestions: Question[] = questionsData?.map(q => {
+        const progress = progressMap.get(q.id);
+        return {
+          id: q.id,
+          title: q.title,
+          topic: q.topic,
+          difficulty: q.difficulty as 'Easy' | 'Medium' | 'Hard',
+          content: q.question_text,
+          answerKey: q.answer_key,
+          isSolved: progress?.is_solved || false,
+          isBookmarked: progress?.is_bookmarked || false
+        };
+      }) || [];
 
       setQuestions(formattedQuestions);
+      
+      // Load user answers for questions with progress
+      const answersMap: { [key: string]: string } = {};
+      progressData?.forEach(p => {
+        if (p.user_answer) {
+          answersMap[p.question_id] = p.user_answer;
+          setSubmittedAnswers(prev => ({ ...prev, [p.question_id]: true }));
+        }
+      });
+      setUserAnswers(answersMap);
     } catch (error) {
       console.error('Error fetching questions:', error);
       // Fall back to mock data if database fetch fails
@@ -205,26 +236,103 @@ const SubjectLearning = () => {
   }, [questions, activeTab, searchQuery, selectedTopic, selectedDifficulty]);
 
   // Handle question actions
-  const toggleSolved = (questionId: string) => {
-    setQuestions(prev => prev.map(q => 
-      q.id === questionId ? { ...q, isSolved: !q.isSolved } : q
-    ));
-    toast({
-      title: "Question Updated",
-      description: "Question status has been updated successfully.",
-    });
-  };
-
-  const toggleBookmark = (questionId: string) => {
-    setQuestions(prev => prev.map(q => 
-      q.id === questionId ? { ...q, isBookmarked: !q.isBookmarked } : q
-    ));
-  };
-
-  const handleAnswerSubmit = (questionId: string) => {
+  const toggleSolved = async (questionId: string) => {
+    if (!user) return;
+    
     const question = questions.find(q => q.id === questionId);
-    const userAnswer = userAnswers[questionId]?.trim().toLowerCase();
-    const isCorrect = question && userAnswer && question.answerKey.toLowerCase().includes(userAnswer);
+    if (!question) return;
+    
+    const newSolvedState = !question.isSolved;
+    
+    // Optimistically update UI
+    setQuestions(prev => prev.map(q => 
+      q.id === questionId ? { ...q, isSolved: newSolvedState } : q
+    ));
+    
+    try {
+      // Update or insert progress in database
+      const { error } = await supabase
+        .from('user_question_progress')
+        .upsert({
+          user_id: user.id,
+          question_id: questionId,
+          is_solved: newSolvedState,
+          solved_at: newSolvedState ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,question_id'
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Question Updated",
+        description: "Question status has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating question status:', error);
+      // Revert optimistic update on error
+      setQuestions(prev => prev.map(q => 
+        q.id === questionId ? { ...q, isSolved: !newSolvedState } : q
+      ));
+      toast({
+        title: "Error",
+        description: "Failed to update question status.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleBookmark = async (questionId: string) => {
+    if (!user) return;
+    
+    const question = questions.find(q => q.id === questionId);
+    if (!question) return;
+    
+    const newBookmarkedState = !question.isBookmarked;
+    
+    // Optimistically update UI
+    setQuestions(prev => prev.map(q => 
+      q.id === questionId ? { ...q, isBookmarked: newBookmarkedState } : q
+    ));
+    
+    try {
+      // Update or insert progress in database
+      const { error } = await supabase
+        .from('user_question_progress')
+        .upsert({
+          user_id: user.id,
+          question_id: questionId,
+          is_bookmarked: newBookmarkedState,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,question_id'
+        });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating bookmark:', error);
+      // Revert optimistic update on error
+      setQuestions(prev => prev.map(q => 
+        q.id === questionId ? { ...q, isBookmarked: !newBookmarkedState } : q
+      ));
+      toast({
+        title: "Error",
+        description: "Failed to update bookmark.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAnswerSubmit = async (questionId: string) => {
+    if (!user) return;
+    
+    const question = questions.find(q => q.id === questionId);
+    const userAnswer = userAnswers[questionId]?.trim();
+    
+    if (!question || !userAnswer) return;
+    
+    const isCorrect = question.answerKey.toLowerCase().includes(userAnswer.toLowerCase());
     
     setSubmittedAnswers(prev => ({
       ...prev,
@@ -235,14 +343,57 @@ const SubjectLearning = () => {
       [questionId]: true
     }));
     
-    // Automatically mark as solved if answer is correct
-    if (isCorrect) {
-      setQuestions(prev => prev.map(q => 
-        q.id === questionId ? { ...q, isSolved: true } : q
-      ));
+    try {
+      // Get current progress to increment attempts
+      const { data: currentProgress } = await supabase
+        .from('user_question_progress')
+        .select('attempts')
+        .eq('user_id', user.id)
+        .eq('question_id', questionId)
+        .single();
+      
+      const currentAttempts = currentProgress?.attempts || 0;
+      
+      // Save answer and update progress
+      const { error } = await supabase
+        .from('user_question_progress')
+        .upsert({
+          user_id: user.id,
+          question_id: questionId,
+          is_solved: isCorrect,
+          user_answer: userAnswer,
+          attempts: currentAttempts + 1,
+          last_attempted_at: new Date().toISOString(),
+          solved_at: isCorrect ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,question_id'
+        });
+      
+      if (error) throw error;
+      
+      // Automatically mark as solved if answer is correct
+      if (isCorrect) {
+        setQuestions(prev => prev.map(q => 
+          q.id === questionId ? { ...q, isSolved: true } : q
+        ));
+        toast({
+          title: "Correct Answer!",
+          description: "Question marked as solved automatically.",
+        });
+      } else {
+        toast({
+          title: "Incorrect Answer",
+          description: "Review the answer and try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting answer:', error);
       toast({
-        title: "Correct Answer!",
-        description: "Question marked as solved automatically.",
+        title: "Error",
+        description: "Failed to submit answer.",
+        variant: "destructive"
       });
     }
   };
