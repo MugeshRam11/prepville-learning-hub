@@ -13,7 +13,6 @@ const MockExamSelect = () => {
   const [mockTests, setMockTests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
-  const [selectedTopic, setSelectedTopic] = useState('All Topics');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,9 +68,8 @@ const MockExamSelect = () => {
                          test.subject.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSubject = selectedSubject === 'All Subjects' || test.subject === selectedSubject;
-    const matchesTopic = selectedTopic === 'All Topics' || test.topic === selectedTopic;
     
-    return matchesSearch && matchesSubject && matchesTopic;
+    return matchesSearch && matchesSubject;
   });
 
   const handleStartTest = (testId: string) => {
@@ -121,10 +119,8 @@ const MockExamSelect = () => {
         <QuizFilters
           searchTerm={searchTerm}
           selectedSubject={selectedSubject}
-          selectedTopic={selectedTopic}
           onSearchChange={setSearchTerm}
           onSubjectChange={setSelectedSubject}
-          onTopicChange={setSelectedTopic}
         />
 
         <QuizGrid

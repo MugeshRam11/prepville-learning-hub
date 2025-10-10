@@ -76,7 +76,6 @@ const mockTests = [
 const QuickPractice = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
-  const [selectedTopic, setSelectedTopic] = useState('All Topics');
   const navigate = useNavigate();
 
   const filteredTests = mockTests.filter(test => {
@@ -85,9 +84,8 @@ const QuickPractice = () => {
                          test.subject.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSubject = selectedSubject === 'All Subjects' || test.subject === selectedSubject;
-    const matchesToopic = selectedTopic === 'All Topics' || test.topic === selectedTopic;
     
-    return matchesSearch && matchesSubject && matchesToopic;
+    return matchesSearch && matchesSubject;
   });
 
   const handleStartTest = (testId: string) => {
@@ -115,10 +113,8 @@ const QuickPractice = () => {
         <QuizFilters
           searchTerm={searchTerm}
           selectedSubject={selectedSubject}
-          selectedTopic={selectedTopic}
           onSearchChange={setSearchTerm}
           onSubjectChange={setSelectedSubject}
-          onTopicChange={setSelectedTopic}
         />
 
         <QuizGrid

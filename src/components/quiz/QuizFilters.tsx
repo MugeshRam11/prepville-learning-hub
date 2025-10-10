@@ -7,10 +7,8 @@ import { Search } from 'lucide-react';
 interface QuizFiltersProps {
   searchTerm: string;
   selectedSubject: string;
-  selectedTopic: string;
   onSearchChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
-  onTopicChange: (value: string) => void;
 }
 
 const subjects = ['All Subjects', 'Mathematics', 'Physics', 'Chemistry', 'Biology'];
@@ -25,10 +23,8 @@ const topicsBySubject = {
 const QuizFilters = ({
   searchTerm,
   selectedSubject,
-  selectedTopic,
   onSearchChange,
-  onSubjectChange,
-  onTopicChange
+  onSubjectChange
 }: QuizFiltersProps) => {
   return (
     <section className="py-8 bg-white border-b">
@@ -44,38 +40,18 @@ const QuizFilters = ({
             />
           </div>
           
-          <div className="flex gap-4">
-            <Select value={selectedSubject} onValueChange={onSubjectChange}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select Subject" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map(subject => (
-                  <SelectItem key={subject} value={subject}>
-                    {subject}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select 
-              value={selectedTopic} 
-              onValueChange={onTopicChange}
-              disabled={selectedSubject === 'All Subjects'}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select Topic" />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedSubject !== 'All Subjects' && 
-                 topicsBySubject[selectedSubject as keyof typeof topicsBySubject]?.map(topic => (
-                  <SelectItem key={topic} value={topic}>
-                    {topic}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={selectedSubject} onValueChange={onSubjectChange}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select Subject" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              {subjects.map(subject => (
+                <SelectItem key={subject} value={subject}>
+                  {subject}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </section>
