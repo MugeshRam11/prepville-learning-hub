@@ -25,21 +25,8 @@ interface SubjectFilterProps {
 
 const SubjectFilter = ({ subjects }: SubjectFilterProps) => {
   const navigate = useNavigate();
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedTopic, setSelectedTopic] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  // Get unique values for filters
-  const levels = useMemo(() => {
-    const uniqueLevels = [...new Set(subjects.map(subject => subject.level))];
-    return uniqueLevels.sort();
-  }, [subjects]);
-
-  const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(subjects.map(subject => subject.category))];
-    return uniqueCategories.sort();
-  }, [subjects]);
 
   const topics = useMemo(() => {
     const allTopics = subjects.flatMap(subject => subject.topics);
@@ -50,21 +37,17 @@ const SubjectFilter = ({ subjects }: SubjectFilterProps) => {
   // Filter subjects based on selected filters
   const filteredSubjects = useMemo(() => {
     return subjects.filter(subject => {
-      const matchesLevel = selectedLevel === 'all' || subject.level === selectedLevel;
-      const matchesCategory = selectedCategory === 'all' || subject.category === selectedCategory;
       const matchesTopic = selectedTopic === 'all' || subject.topics.includes(selectedTopic);
       const matchesSearch = searchQuery === '' || 
         subject.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         subject.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         subject.topics.some(topic => topic.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      return matchesLevel && matchesCategory && matchesTopic && matchesSearch;
+      return matchesTopic && matchesSearch;
     });
-  }, [subjects, selectedLevel, selectedCategory, selectedTopic, searchQuery]);
+  }, [subjects, selectedTopic, searchQuery]);
 
   const clearFilters = () => {
-    setSelectedLevel('all');
-    setSelectedCategory('all');
     setSelectedTopic('all');
     setSearchQuery('');
   };
@@ -91,9 +74,9 @@ const SubjectFilter = ({ subjects }: SubjectFilterProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search subjects..."
@@ -103,38 +86,12 @@ const SubjectFilter = ({ subjects }: SubjectFilterProps) => {
               />
             </div>
 
-            {/* Level Filter */}
-            <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                {levels.map(level => (
-                  <SelectItem key={level} value={level}>{level}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Category Filter */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             {/* Topic Filter */}
             <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Select Topic" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background z-50">
                 <SelectItem value="all">All Topics</SelectItem>
                 {topics.map(topic => (
                   <SelectItem key={topic} value={topic}>{topic}</SelectItem>
