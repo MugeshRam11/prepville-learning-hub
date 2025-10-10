@@ -28,8 +28,12 @@ import TopicProgressCard from './TopicProgressCard';
 import QuickActions from './QuickActions';
 import { useStreakTracker } from '@/hooks/useStreakTracker';
 import { useXPSystem } from '@/hooks/useXPSystem';
+import { useProgressTracking } from '@/hooks/useProgressTracking';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import PerformanceCriteria from './PerformanceCriteria';
+import DynamicTopicProgress from './DynamicTopicProgress';
+import DynamicDailyChallenge from './DynamicDailyChallenge';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -39,6 +43,16 @@ const StudentDashboard = () => {
   const { streakData } = useStreakTracker();
   const { xpData, loading: xpLoading } = useXPSystem();
   const { user } = useAuth();
+  const { 
+    userProgress, 
+    topicProgress, 
+    dailyChallenge, 
+    achievements: realtimeAchievements,
+    loading: progressLoading,
+    updateTopicProgress,
+    updateDailyChallenge,
+    updatePerformanceCriteria 
+  } = useProgressTracking();
   
   // Fetch user profile data
   useEffect(() => {
@@ -84,20 +98,40 @@ const StudentDashboard = () => {
     favoriteTopics: ["Algebra", "Statistics"]
   };
 
-  const recentAchievements = [
-    { id: 1, title: "Algebra Master", icon: "🧮", unlockedAt: "2 days ago" },
-    { id: 2, title: "Week Warrior", icon: "⚡", unlockedAt: "1 week ago" },
-    { id: 3, title: "Problem Solver", icon: "🎯", unlockedAt: "2 weeks ago" }
-  ];
+  // Handler functions for real-time updates
+  const handleContinueLearning = async (topicName: string) => {
+    await updateTopicProgress(topicName, 1);
+    
+    // Update performance criteria based on topic
+    if (topicName.includes('Algebra')) {
+      await updatePerformanceCriteria('knowledge_understanding', 2);
+    } else if (topicName.includes('Geometry')) {
+      await updatePerformanceCriteria('pattern_recognition', 2);
+    } else if (topicName.includes('Statistics')) {
+      await updatePerformanceCriteria('real_life_applications', 2);
+    } else {
+      await updatePerformanceCriteria('communication', 2);
+    }
+  };
 
-  const criterionProgress = [
-    { criterion: "A - Knowing & Understanding", progress: 78, color: "bg-blue-500" },
-    { criterion: "B - Investigating Patterns", progress: 65, color: "bg-green-500" },
-    { criterion: "C - Communicating", progress: 82, color: "bg-purple-500" },
-    { criterion: "D - Real-life Applications", progress: 71, color: "bg-orange-500" }
-  ];
+  const handleContinueChallenge = async () => {
+    await updateDailyChallenge();
+  };
 
-  if (loading || xpLoading) {
+  // Use realtime achievements or fallback to mock data
+  const displayAchievements = realtimeAchievements.length > 0 
+    ? realtimeAchievements.map(a => ({
+        id: a.id,
+        title: a.achievement_name,
+        icon: a.achievement_icon,
+        unlockedAt: new Date(a.unlocked_at).toLocaleDateString()
+      }))
+    : [
+        { id: '1', title: "Getting Started", icon: "🎯", unlockedAt: "Today" },
+        { id: '2', title: "First Steps", icon: "👣", unlockedAt: "Today" }
+      ];
+
+  if (loading || xpLoading || progressLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-white">
         <Header />
@@ -220,29 +254,18 @@ const StudentDashboard = () => {
               {/* Quick Actions */}
               <QuickActions />
 
-              {/* MYP Criterion Progress */}
-              <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all border-gray-100">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <Award className="w-6 h-6 text-[hsl(var(--adsavvy-yellow))]/80" />
-                    Performance Criteria Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {criterionProgress.map((item, index) => (
-                    <div key={index} className="group">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-semibold text-gray-700 group-hover:text-[hsl(var(--adsavvy-blue))] transition-colors">{item.criterion}</span>
-                        <span className="text-sm font-bold text-[hsl(var(--adsavvy-blue))]">{item.progress}%</span>
-                      </div>
-                      <Progress value={item.progress} className="h-3 bg-gray-100 transition-all duration-500" />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {/* Performance Criteria Progress */}
+              <PerformanceCriteria 
+                userProgress={userProgress} 
+                loading={progressLoading} 
+              />
 
               {/* Topic Progress */}
-              <TopicProgressCard />
+              <DynamicTopicProgress 
+                topics={topicProgress}
+                loading={progressLoading}
+                onContinueLearning={handleContinueLearning}
+              />
             </div>
 
             {/* Sidebar */}
@@ -259,37 +282,30 @@ const StudentDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {recentAchievements.map((achievement) => (
-                    <div key={achievement.id} className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-[hsl(var(--adsavvy-yellow))]/20 to-[hsl(var(--adsavvy-yellow))]/10 border border-[hsl(var(--adsavvy-yellow))]/30 hover:shadow-md transition-all hover:scale-105">
-                      <div className="text-3xl">{achievement.icon}</div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm text-gray-800">{achievement.title}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">{achievement.unlockedAt}</div>
+                  {displayAchievements.length > 0 ? (
+                    displayAchievements.map((achievement) => (
+                      <div key={achievement.id} className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-[hsl(var(--adsavvy-yellow))]/20 to-[hsl(var(--adsavvy-yellow))]/10 border border-[hsl(var(--adsavvy-yellow))]/30 hover:shadow-md transition-all hover:scale-105 animate-fade-in">
+                        <div className="text-3xl">{achievement.icon}</div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm text-gray-800">{achievement.title}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{achievement.unlockedAt}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      Complete activities to unlock achievements!
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
               {/* Daily Challenge */}
-              <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all bg-gradient-to-br from-[hsl(var(--adsavvy-pink))]/10 to-[hsl(var(--adsavvy-pink))]/5 border-[hsl(var(--adsavvy-pink))]/20">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-xl text-[hsl(var(--adsavvy-pink))]">
-                    <Zap className="w-6 h-6" />
-                    Daily Challenge
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm font-medium text-gray-700 mb-4">
-                    Solve 5 probability questions to earn 50 XP!
-                  </p>
-                  <Progress value={60} className="mb-3 h-3 bg-white/50" />
-                  <p className="text-sm font-semibold text-[hsl(var(--adsavvy-pink))] mb-4">3/5 completed</p>
-                  <Button size="sm" className="w-full bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] hover:opacity-90 transition-all shadow-md hover:shadow-lg rounded-xl font-semibold">
-                    Continue Challenge
-                  </Button>
-                </CardContent>
-              </Card>
+              <DynamicDailyChallenge 
+                challenge={dailyChallenge}
+                loading={progressLoading}
+                onContinueChallenge={handleContinueChallenge}
+              />
             </div>
           </div>
         </div>
