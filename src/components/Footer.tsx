@@ -8,11 +8,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Section */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center mb-4">
               <img 
                 src={logo} 
                 alt="Adsavvy" 
-                className="h-16 w-48 object-contain"
+                className="h-12 w-auto object-contain"
               />
             </div>
             <p className="text-muted-foreground mb-4 max-w-md">
