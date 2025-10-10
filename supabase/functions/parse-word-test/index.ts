@@ -30,55 +30,8 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
-
-    // Get user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - No authentication token provided' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - Invalid authentication token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Check if user has admin role
-    const { data: userRole, error: roleError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single();
-
-    if (roleError || !userRole) {
-      console.error('Authorization error - User is not admin:', user.id);
-      return new Response(
-        JSON.stringify({ error: 'Forbidden - Admin access required' }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    console.log('Admin user authenticated:', user.id);
 
     if (req.method !== 'POST') {
       return new Response(
@@ -103,19 +56,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Admin', user.id, 'uploading file:', file.name, 'Size:', file.size);
-
-    // Validate file size (10MB limit)
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_FILE_SIZE) {
-      return new Response(
-        JSON.stringify({ error: 'File too large. Maximum 10MB allowed.' }),
-        { 
-          status: 413, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    console.log('Processing file:', file.name, 'Size:', file.size, 'Type:', file.type);
 
     // Validate file type
     if (!file.name.endsWith('.doc') && !file.name.endsWith('.docx')) {
