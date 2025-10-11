@@ -72,7 +72,7 @@ const Header = () => {
           <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2 group">
             <img 
               src={logo} 
-              alt="Adsavvy" 
+              alt="The Prep Ville" 
               className="h-20 w-64 object-contain group-hover:scale-105 transition-transform"
             />
             <Badge variant="secondary" className="text-xs">
