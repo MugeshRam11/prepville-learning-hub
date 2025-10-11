@@ -34,6 +34,7 @@ import { useAuth } from '@/hooks/useAuth';
 import PerformanceCriteria from './PerformanceCriteria';
 import DynamicTopicProgress from './DynamicTopicProgress';
 import DynamicDailyChallenge from './DynamicDailyChallenge';
+import { toast } from 'sonner';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -147,10 +148,13 @@ const StudentDashboard = () => {
     } else {
       await updatePerformanceCriteria('communication', 2);
     }
+    
+    toast.success(`+2% Progress in ${topicName}!`);
   };
 
   const handleContinueChallenge = async () => {
     await updateDailyChallenge();
+    toast.success("Challenge progress updated!");
   };
 
   // Use realtime achievements or fallback to mock data
