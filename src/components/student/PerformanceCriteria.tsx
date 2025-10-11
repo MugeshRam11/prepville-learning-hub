@@ -1,8 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Award, TrendingUp } from 'lucide-react';
+import { Award, TrendingUp, BarChart3 } from 'lucide-react';
 import { UserProgress } from '@/hooks/useProgressTracking';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface PerformanceCriteriaProps {
   userProgress: UserProgress | null;
@@ -10,18 +12,20 @@ interface PerformanceCriteriaProps {
 }
 
 const PerformanceCriteria: React.FC<PerformanceCriteriaProps> = ({ userProgress, loading }) => {
+  const navigate = useNavigate();
+  
   const criteriaData = [
     {
       key: 'knowledge_understanding',
       label: 'A - Knowledge & Understanding',
       description: 'Comprehension of mathematical concepts',
-      color: 'from-[hsl(var(--adsavvy-blue))] to-blue-400'
+      color: 'from-blue-500 to-blue-400'
     },
     {
       key: 'pattern_recognition',
       label: 'B - Pattern Recognition',
       description: 'Identifying and analyzing patterns',
-      color: 'from-[hsl(var(--adsavvy-pink))] to-pink-400'
+      color: 'from-pink-500 to-pink-400'
     },
     {
       key: 'communication',
@@ -33,7 +37,7 @@ const PerformanceCriteria: React.FC<PerformanceCriteriaProps> = ({ userProgress,
       key: 'real_life_applications',
       label: 'D - Real-life Applications',
       description: 'Applying concepts to real-world scenarios',
-      color: 'from-[hsl(var(--adsavvy-yellow))]/80 to-yellow-400'
+      color: 'from-yellow-500 to-yellow-400'
     }
   ];
 
@@ -56,12 +60,23 @@ const PerformanceCriteria: React.FC<PerformanceCriteriaProps> = ({ userProgress,
   }
 
   return (
-    <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all border-gray-100">
+    <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all border-border">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Award className="w-6 h-6 text-[hsl(var(--adsavvy-yellow))]/80" />
-          Performance Criteria Progress
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Award className="w-6 h-6 text-yellow-500" />
+            Performance Criteria Progress
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/analytics')}
+            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            View Analytics
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {criteriaData.map((criterion, index) => {
@@ -72,14 +87,14 @@ const PerformanceCriteria: React.FC<PerformanceCriteriaProps> = ({ userProgress,
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-gray-800 group-hover:text-[hsl(var(--adsavvy-blue))] transition-colors">
+                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                       {criterion.label}
                     </span>
                     {value > 0 && (
                       <TrendingUp className="w-4 h-4 text-green-500 animate-fade-in" />
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">{criterion.description}</p>
+                  <p className="text-xs text-muted-foreground">{criterion.description}</p>
                 </div>
                 <span className={`text-lg font-bold bg-gradient-to-r ${criterion.color} bg-clip-text text-transparent`}>
                   {value}%
@@ -88,11 +103,11 @@ const PerformanceCriteria: React.FC<PerformanceCriteriaProps> = ({ userProgress,
               <div className="relative">
                 <Progress 
                   value={value} 
-                  className="h-3 bg-gray-100 transition-all duration-700" 
+                  className="h-3 bg-secondary/30 transition-all duration-700" 
                 />
                 {value === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs text-gray-400 font-medium">Start learning to progress</span>
+                    <span className="text-xs text-muted-foreground font-medium">Start learning to progress</span>
                   </div>
                 )}
               </div>
