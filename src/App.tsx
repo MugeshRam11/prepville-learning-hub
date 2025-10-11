@@ -30,6 +30,10 @@ import AdminMockTestEdit from "./pages/AdminMockTestEdit";
 import AdminMockTestView from "./pages/AdminMockTestView";
 import AdminStudyMaterials from "./pages/AdminStudyMaterials";
 import StudyGroups from "./pages/StudyGroups";
+import GraphingTool from "./pages/GraphingTool";
+import FormulaHelper from "./pages/FormulaHelper";
+import TimedChallenge from "./pages/TimedChallenge";
+import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 import LevelDetails from "./pages/LevelDetails";
 import SubjectLearning from "./pages/SubjectLearning";
@@ -182,6 +186,26 @@ const App = () => (
           <Route path="/study-groups" element={
             <ProtectedRoute>
               <StudyGroups />
+            </ProtectedRoute>
+          } />
+          <Route path="/graphing-tool" element={
+            <ProtectedRoute requiresSubscription>
+              <GraphingTool />
+            </ProtectedRoute>
+          } />
+          <Route path="/formula-helper" element={
+            <ProtectedRoute requiresSubscription>
+              <FormulaHelper />
+            </ProtectedRoute>
+          } />
+          <Route path="/timed-challenge" element={
+            <ProtectedRoute requiresSubscription>
+              <TimedChallenge />
+            </ProtectedRoute>
+          } />
+          <Route path="/leaderboard" element={
+            <ProtectedRoute>
+              <Leaderboard />
             </ProtectedRoute>
           } />
           <Route path="/level-details" element={

@@ -53,17 +53,20 @@ const QuickActions = () => {
   const handleGraphingTool = async () => {
     await updatePerformanceCriteria('knowledge_understanding', 3);
     toast.success("+3% Knowledge earned!");
+    navigate('/graphing-tool');
   };
 
   const handleFormulaHelper = async () => {
     await updatePerformanceCriteria('knowledge_understanding', 3);
     toast.success("+3% Knowledge earned!");
+    navigate('/formula-helper');
   };
 
   const handleTimedChallenge = async () => {
     await updatePerformanceCriteria('real_life_applications', 7);
     await addXP('timed_challenge', 15, 'Completed Timed Challenge');
     toast.success("+7% Application & +15 XP earned!");
+    navigate('/timed-challenge');
   };
 
   const actions = [
@@ -121,7 +124,7 @@ const QuickActions = () => {
       description: "See your ranking",
       icon: Trophy,
       color: "bg-gradient-to-r from-yellow-400 to-yellow-600",
-      action: () => {}
+      action: () => navigate('/leaderboard')
     }
   ];
 
