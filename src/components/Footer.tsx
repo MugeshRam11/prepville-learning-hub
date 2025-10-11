@@ -11,8 +11,8 @@ const Footer = () => {
             <div className="flex items-center mb-4">
               <img 
                 src={logo} 
-                alt="Adsavvy" 
-                className="h-12 w-auto object-contain"
+                alt="The Prep Ville" 
+                className="h-28 w-auto object-contain"
               />
             </div>
             <p className="text-muted-foreground mb-4 max-w-md">
