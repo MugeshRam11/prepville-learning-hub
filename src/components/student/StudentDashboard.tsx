@@ -70,6 +70,10 @@ const StudentDashboard = () => {
     subjectTestSolved, 
     quickTestSolved, 
     totalSolved,
+    mockTestUnsolved,
+    subjectTestUnsolved,
+    quickTestUnsolved,
+    totalUnsolved,
     loading: solvedQuestionsLoading 
   } = useSolvedQuestions();
   const { 
@@ -313,6 +317,10 @@ const StudentDashboard = () => {
             subjectTestSolved={subjectTestSolved}
             quickTestSolved={quickTestSolved}
             totalSolved={totalSolved}
+            mockTestUnsolved={mockTestUnsolved}
+            subjectTestUnsolved={subjectTestUnsolved}
+            quickTestUnsolved={quickTestUnsolved}
+            totalUnsolved={totalUnsolved}
           />
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
