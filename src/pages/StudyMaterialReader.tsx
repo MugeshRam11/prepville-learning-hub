@@ -59,6 +59,8 @@ const StudyMaterialReader = () => {
   const [tocOpen, setTocOpen] = useState(false);
   const [pageWidth, setPageWidth] = useState<number>(800);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [flipDirection, setFlipDirection] = useState<'forward' | 'backward'>('forward');
 
   // Memoize PDF options to prevent unnecessary reloads warning
   const pdfOptions = useMemo(() => ({
@@ -89,7 +91,8 @@ const StudyMaterialReader = () => {
   const updatePageWidth = () => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.offsetWidth;
-      setPageWidth(Math.min(containerWidth - 40, 900));
+      // For book view, each page should be roughly half the container width
+      setPageWidth(Math.min((containerWidth - 80) / 2, 500));
     }
   };
 
@@ -139,13 +142,23 @@ const StudyMaterialReader = () => {
 
   const handlePrevious = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
+      setIsFlipping(true);
+      setFlipDirection('backward');
+      setTimeout(() => {
+        setCurrentPage(prev => Math.max(1, prev - 2)); // Go back 2 pages for book view
+        setIsFlipping(false);
+      }, 600);
     }
   };
 
   const handleNext = () => {
     if (currentPage < numPages) {
-      setCurrentPage(prev => prev + 1);
+      setIsFlipping(true);
+      setFlipDirection('forward');
+      setTimeout(() => {
+        setCurrentPage(prev => Math.min(numPages - 1, prev + 2)); // Go forward 2 pages for book view
+        setIsFlipping(false);
+      }, 600);
     }
   };
 
@@ -176,7 +189,7 @@ const StudyMaterialReader = () => {
   };
 
   const handleTouchEnd = () => {
-    const swipeThreshold = 50;
+    const swipeThreshold = 75;
     const diff = touchStartX.current - touchEndX.current;
 
     if (Math.abs(diff) > swipeThreshold) {
@@ -203,7 +216,9 @@ const StudyMaterialReader = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentPage, numPages]);
 
-  const progress = numPages > 0 ? (currentPage / numPages) * 100 : 0;
+  const progress = numPages > 0 ? ((currentPage + 1) / numPages) * 100 : 0;
+  const leftPage = currentPage;
+  const rightPage = currentPage + 1;
 
   if (loading) {
     return (
@@ -290,7 +305,7 @@ const StudyMaterialReader = () => {
                   {material.title}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Page {currentPage} of {numPages}
+                  Pages {leftPage}-{rightPage <= numPages ? rightPage : numPages} of {numPages}
                 </p>
               </div>
             </div>
@@ -349,54 +364,99 @@ const StudyMaterialReader = () => {
         </div>
       </header>
 
-      {/* PDF Reader */}
+      {/* PDF Reader - Book View */}
       <main 
-        className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[calc(100vh-12rem)]"
+        className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[calc(100vh-12rem)] perspective-[2000px]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative w-full flex items-center justify-center">
-          <div className="flex items-center justify-center transition-all duration-300 ease-in-out">
-            <Document
-              file={material.file_url}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              options={pdfOptions}
-              loading={
-                <div className="flex flex-col items-center justify-center py-20">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                  <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Loading PDF...</p>
+        <div className="relative flex items-center justify-center gap-1">
+          <Document
+            file={material.file_url}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            options={pdfOptions}
+            loading={
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Loading PDF...</p>
+              </div>
+            }
+            error={
+              <div className="flex flex-col items-center justify-center py-20">
+                <BookOpen className="w-16 h-16 mb-4 text-destructive" />
+                <p className="text-destructive font-semibold">Failed to load PDF</p>
+                <p className="text-sm text-muted-foreground mt-2 max-w-md text-center">
+                  {pdfError || 'The PDF file could not be loaded. Please check your connection or try again later.'}
+                </p>
+                <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
+                  Retry
+                </Button>
+              </div>
+            }
+          >
+            {numPages > 0 && (
+              <div className="flex gap-1 relative">
+                {/* Left Page */}
+                <div 
+                  className={`relative transition-all duration-600 ease-in-out shadow-2xl rounded-l-lg overflow-hidden cursor-pointer hover:shadow-[0_0_40px_rgba(0,0,0,0.3)] ${
+                    darkMode ? 'brightness-90 contrast-125' : ''
+                  } ${
+                    isFlipping && flipDirection === 'backward' 
+                      ? 'animate-[page-flip-left_0.6s_ease-in-out]' 
+                      : ''
+                  }`}
+                  onClick={handlePrevious}
+                  style={{
+                    transformOrigin: 'right center',
+                  }}
+                >
+                  <Page
+                    pageNumber={leftPage}
+                    width={pageWidth}
+                    scale={scale}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
+                  />
                 </div>
-              }
-              error={
-                <div className="flex flex-col items-center justify-center py-20">
-                  <BookOpen className="w-16 h-16 mb-4 text-destructive" />
-                  <p className="text-destructive font-semibold">Failed to load PDF</p>
-                  <p className="text-sm text-muted-foreground mt-2 max-w-md text-center">
-                    {pdfError || 'The PDF file could not be loaded. Please check your connection or try again later.'}
-                  </p>
-                  <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
-                    Retry
-                  </Button>
-                </div>
-              }
-              className={`shadow-2xl rounded-lg overflow-hidden transition-all duration-300 ${
-                darkMode ? 'brightness-90 contrast-125' : ''
-              }`}
-            >
-              {numPages > 0 && (
-                <Page
-                  pageNumber={currentPage}
-                  width={pageWidth}
-                  scale={scale}
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                  className="mx-auto"
+
+                {/* Book Spine Shadow */}
+                <div 
+                  className={`w-1 self-stretch ${
+                    darkMode 
+                      ? 'bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900' 
+                      : 'bg-gradient-to-r from-gray-400 via-gray-300 to-gray-400'
+                  } shadow-[0_0_20px_rgba(0,0,0,0.5)]`}
                 />
-              )}
-            </Document>
-          </div>
+
+                {/* Right Page */}
+                {rightPage <= numPages && (
+                  <div 
+                    className={`relative transition-all duration-600 ease-in-out shadow-2xl rounded-r-lg overflow-hidden cursor-pointer hover:shadow-[0_0_40px_rgba(0,0,0,0.3)] ${
+                      darkMode ? 'brightness-90 contrast-125' : ''
+                    } ${
+                      isFlipping && flipDirection === 'forward' 
+                        ? 'animate-[page-flip-right_0.6s_ease-in-out]' 
+                        : ''
+                    }`}
+                    onClick={handleNext}
+                    style={{
+                      transformOrigin: 'left center',
+                    }}
+                  >
+                    <Page
+                      pageNumber={rightPage}
+                      width={pageWidth}
+                      scale={scale}
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </Document>
         </div>
       </main>
 
@@ -418,7 +478,7 @@ const StudyMaterialReader = () => {
 
             <div className="flex flex-col items-center">
               <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Page {currentPage} of {numPages}
+                Pages {leftPage}-{rightPage <= numPages ? rightPage : numPages} of {numPages}
               </span>
               <span className="text-xs text-muted-foreground">
                 {Math.round(progress)}% complete
