@@ -20,8 +20,9 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Search, Eye, Flame, TrendingUp } from 'lucide-react';
+import { Search, Eye, Flame, TrendingUp, Plus } from 'lucide-react';
 import UserDetailDrawer from './UserDetailDrawer';
+import CreateUserModal from './CreateUserModal';
 import { format } from 'date-fns';
 import { Database } from '@/integrations/supabase/types';
 
@@ -51,6 +52,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -147,6 +149,10 @@ const UserManagement = () => {
           <h1 className="text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground">Manage users, track progress, and monitor engagement</p>
         </div>
+        <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create User
+        </Button>
       </div>
 
       {/* Filters */}
@@ -293,6 +299,12 @@ const UserManagement = () => {
           setIsDrawerOpen(false);
           setSelectedUserId(null);
         }}
+      />
+
+      <CreateUserModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onUserCreated={fetchUsers}
       />
     </div>
   );
