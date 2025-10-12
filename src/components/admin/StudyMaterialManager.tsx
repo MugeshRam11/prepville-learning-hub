@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,8 @@ import {
   Eye,
   Plus,
   Search,
-  Filter
+  Filter,
+  BookOpenCheck
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +58,7 @@ const LEVELS = ['MYP', 'IBDP', 'IGCSE', 'A-Level'];
 const MATERIAL_TYPES = ['pdf', 'video', 'image', 'document', 'note'];
 
 const StudyMaterialManager = () => {
+  const navigate = useNavigate();
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -490,7 +493,17 @@ const StudyMaterialManager = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => navigate(`/study-materials/read/${material.id}`)}
+                      title="Read in Kindle-style viewer"
+                    >
+                      <BookOpenCheck className="w-4 h-4 mr-1" />
+                      Read
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => window.open(material.file_url, '_blank')}
+                      title="Download file"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
