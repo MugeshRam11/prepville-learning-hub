@@ -135,21 +135,9 @@ const StudentDashboard = () => {
   };
 
   // Handler functions for real-time updates
-  const handleContinueLearning = async (topicName: string) => {
-    await updateTopicProgress(topicName, 1);
-    
-    // Update performance criteria based on topic
-    if (topicName.includes('Algebra')) {
-      await updatePerformanceCriteria('knowledge_understanding', 2);
-    } else if (topicName.includes('Geometry')) {
-      await updatePerformanceCriteria('pattern_recognition', 2);
-    } else if (topicName.includes('Statistics')) {
-      await updatePerformanceCriteria('real_life_applications', 2);
-    } else {
-      await updatePerformanceCriteria('communication', 2);
-    }
-    
-    toast.success(`+2% Progress in ${topicName}!`);
+  const handleContinueLearning = (topicName: string) => {
+    // Redirect to Quick Practice page - progress updates on quiz completion
+    navigate('/quick-practice', { state: { selectedTopic: topicName } });
   };
 
   const handleContinueChallenge = async () => {

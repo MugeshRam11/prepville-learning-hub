@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -9,6 +8,8 @@ import QuizQuestion from '@/components/quiz/QuizQuestion';
 import QuizResults from '@/components/quiz/QuizResults';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useProgressTracking } from '@/hooks/useProgressTracking';
+import { useXPSystem } from '@/hooks/useXPSystem';
 
 // Mock quiz data
 const mockQuizData = {
@@ -102,11 +103,14 @@ const mockQuizData = {
 const Quiz = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
+  const { updateTopicProgress, updatePerformanceCriteria, updateDailyChallenge } = useProgressTracking();
+  const { addXP } = useXPSystem();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [progressUpdated, setProgressUpdated] = useState(false);
 
   const quizData = quizId ? mockQuizData[quizId as keyof typeof mockQuizData] : null;
 
@@ -190,6 +194,54 @@ const Quiz = () => {
   const handleSubmitQuiz = () => {
     console.log('Quiz submitted with answers:', selectedAnswers);
     setIsCompleted(true);
+    
+    // Update progress after quiz completion
+    if (!progressUpdated && quizData) {
+      const score = calculateScoreValue();
+      const topicName = getTopicFromQuiz(quizData.topic);
+      
+      // Award XP based on performance
+      const xpReward = Math.round(score * 0.2); // 20 XP max for 100%
+      addXP('quiz_completed', xpReward, `Completed ${quizData.title}`);
+      
+      // Update topic progress (1 task completed)
+      updateTopicProgress(topicName, 1);
+      
+      // Update performance criteria based on quiz performance
+      const criteriaIncrease = Math.round(score * 0.05); // Up to 5% increase
+      if (topicName.toLowerCase().includes('algebra')) {
+        updatePerformanceCriteria('knowledge_understanding', criteriaIncrease);
+      } else if (topicName.toLowerCase().includes('geometry')) {
+        updatePerformanceCriteria('pattern_recognition', criteriaIncrease);
+      } else if (topicName.toLowerCase().includes('statistics') || topicName.toLowerCase().includes('probability')) {
+        updatePerformanceCriteria('real_life_applications', criteriaIncrease);
+      } else {
+        updatePerformanceCriteria('communication', criteriaIncrease);
+      }
+      
+      // Update daily challenge
+      updateDailyChallenge();
+      
+      setProgressUpdated(true);
+    }
+  };
+  
+  const getTopicFromQuiz = (quizTopic: string): string => {
+    if (quizTopic.toLowerCase().includes('algebra')) return 'Algebra';
+    if (quizTopic.toLowerCase().includes('geometry')) return 'Geometry';
+    if (quizTopic.toLowerCase().includes('stat') || quizTopic.toLowerCase().includes('prob')) return 'Statistics & Probability';
+    if (quizTopic.toLowerCase().includes('number')) return 'Number Systems';
+    return 'Algebra'; // default
+  };
+  
+  const calculateScoreValue = () => {
+    let correct = 0;
+    selectedAnswers.forEach((answer, index) => {
+      if (quizData && answer === quizData.questions[index]?.correctAnswer) {
+        correct++;
+      }
+    });
+    return quizData ? Math.round((correct / quizData.questions.length) * 100) : 0;
   };
 
   const calculateScore = () => {
