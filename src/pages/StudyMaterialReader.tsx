@@ -20,8 +20,17 @@ import {
 } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// Configure PDF.js worker using Cloudflare CDN
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Configure PDF.js worker with fallback
+// Try CDN first (protocol-relative URL works in both http/https)
+try {
+  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+} catch (error) {
+  console.warn('CDN worker failed, using local fallback:', error);
+  // Fallback to bundled worker
+  import('pdfjs-dist/build/pdf.worker.min.js?url').then((worker) => {
+    pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+  });
+}
 
 interface StudyMaterial {
   id: string;
