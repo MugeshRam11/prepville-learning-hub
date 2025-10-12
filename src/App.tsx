@@ -15,6 +15,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import Subjects from "./pages/Subjects";
 import Videos from "./pages/Videos";
 import StudyMaterials from "./pages/StudyMaterials";
+import StudyMaterialReader from "./pages/StudyMaterialReader";
 import Pricing from "./pages/Pricing";
 import Subscription from "./pages/Subscription";
 import Auth from "./pages/Auth";
@@ -127,6 +128,11 @@ const App = () => (
           <Route path="/study-materials" element={
             <ProtectedRoute requiresSubscription>
               <StudyMaterials />
+            </ProtectedRoute>
+          } />
+          <Route path="/study-materials/read/:id" element={
+            <ProtectedRoute requiresSubscription>
+              <StudyMaterialReader />
             </ProtectedRoute>
           } />
           <Route path="/analytics" element={

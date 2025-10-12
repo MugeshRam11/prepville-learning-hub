@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,7 @@ interface StudyMaterial {
 }
 
 const StudyMaterials = () => {
+  const navigate = useNavigate();
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,15 +101,14 @@ const StudyMaterials = () => {
   };
 
   const handleView = async (material: StudyMaterial) => {
-    if (material.file_url) {
-      // Increment view count
-      await supabase
-        .from('study_materials')
-        .update({ view_count: material.view_count + 1 })
-        .eq('id', material.id);
+    // Increment view count
+    await supabase
+      .from('study_materials')
+      .update({ view_count: material.view_count + 1 })
+      .eq('id', material.id);
 
-      window.open(material.file_url, '_blank');
-    }
+    // Navigate to reader view
+    navigate(`/study-materials/read/${material.id}`);
   };
 
   const subjects = Array.from(new Set(materials.map((m) => m.subject)));
@@ -238,8 +239,8 @@ const StudyMaterials = () => {
                           size="sm"
                           className="bg-gradient-to-r from-primary to-purple-600"
                         >
-                          <Download className="w-4 h-4 mr-2" />
-                          View
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          Read
                         </Button>
                       </div>
                     </div>
