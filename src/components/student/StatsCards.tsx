@@ -18,13 +18,11 @@ const StatsCards = ({
   totalQuestions,
   correctAnswers
 }: StatsCardsProps) => {
-  const animatedStreak = useAnimatedCounter({ end: currentStreak, duration: 1200 });
-  const animatedWeeklyCompleted = useAnimatedCounter({ end: weeklyCompleted, duration: 1200 });
-  const animatedTotalQuestions = useAnimatedCounter({ end: totalQuestions, duration: 1500 });
-  const animatedAccuracy = useAnimatedCounter({ 
-    end: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0, 
-    duration: 1500 
-  });
+  const animatedStreak = useAnimatedCounter({ end: currentStreak || 0, duration: 1200 });
+  const animatedWeeklyCompleted = useAnimatedCounter({ end: weeklyCompleted || 0, duration: 1200 });
+  const animatedTotalQuestions = useAnimatedCounter({ end: totalQuestions || 0, duration: 1500 });
+  const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+  const animatedAccuracy = useAnimatedCounter({ end: accuracy, duration: 1500 });
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in">
