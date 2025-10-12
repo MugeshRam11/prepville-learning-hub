@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Upload, CheckCircle2, Download, Search, ChevronDown, ChevronRight, AlertCircle, Sparkles } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -375,18 +375,6 @@ const BulkUploadForm = () => {
 
   return (
     <div className="space-y-6">
-      {/* Upload Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Upload CSV File
-          </CardTitle>
-          <CardDescription>
-            Required columns: <code className="text-xs bg-muted px-2 py-1 rounded">subject | topic | question | answer | a | b | c | d</code>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -432,45 +420,38 @@ const BulkUploadForm = () => {
               <p className="text-sm text-muted-foreground mt-2 text-center">Parsing CSV...</p>
             </div>
           )}
-        </CardContent>
-      </Card>
 
       {/* Questions Display */}
       {parsedQuestions.length > 0 && (
-        <>
-          {/* Search and Filters */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Questions ({filteredQuestions.length} of {parsedQuestions.length})</CardTitle>
-                <div className="flex gap-2">
-                  <Button onClick={exportCSV} variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Filtered
-                  </Button>
-                  {!uploadStats.completed && (
-                    <Button 
-                      onClick={syncToDatabase}
-                      disabled={uploadStats.syncing}
-                      size="sm"
-                    >
-                      {uploadStats.syncing ? (
-                        <>
-                          <div className="h-4 w-4 border-2 border-background border-t-transparent rounded-full animate-spin mr-2" />
-                          Syncing {uploadStats.syncedQuestions}/{uploadStats.totalQuestions}
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Sync to Database
-                        </>
-                      )}
-                    </Button>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Questions ({filteredQuestions.length} of {parsedQuestions.length})</h2>
+            <div className="flex gap-2">
+              <Button onClick={exportCSV} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export Filtered
+              </Button>
+              {!uploadStats.completed && (
+                <Button 
+                  onClick={syncToDatabase}
+                  disabled={uploadStats.syncing}
+                  size="sm"
+                >
+                  {uploadStats.syncing ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-background border-t-transparent rounded-full animate-spin mr-2" />
+                      Syncing {uploadStats.syncedQuestions}/{uploadStats.totalQuestions}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Sync to Database
+                    </>
                   )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+                </Button>
+              )}
+            </div>
+          </div>
               <div className="flex gap-3 mb-6">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -601,9 +582,7 @@ const BulkUploadForm = () => {
                   ))
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </>
+        </div>
       )}
     </div>
   );
