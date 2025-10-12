@@ -241,6 +241,27 @@ const MockTestBulkUploadForm = () => {
     let synced = 0;
 
     try {
+      // First, save questions to the persistent question bank
+      const bankQuestions = parsedQuestions.map(q => ({
+        question_number: q.question_number,
+        question_text: q.question_text,
+        has_sub_questions: false,
+        marks: 1,
+        answer_key: q.correct_answer,
+        difficulty: (q.difficulty || 'medium') as any,
+        category: q.section,
+        subject: q.subject as any,
+        topic: q.section || 'General',
+        is_active: true
+      }));
+
+      // Save to question bank
+      const { error: bankError } = await supabase
+        .from('mock_test_question_bank')
+        .insert(bankQuestions);
+
+      if (bankError) console.error('Question bank save error:', bankError);
+
       // Group questions by test to create/update mock tests
       const testGroups: Record<string, ParsedMockQuestion[]> = {};
       parsedQuestions.forEach(q => {

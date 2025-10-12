@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Upload } from 'lucide-react';
+import { ArrowLeft, Save, Upload, Database as DatabaseIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import MockTestWordUpload from '@/components/admin/MockTestWordUpload';
+import QuestionBankSelector from '@/components/admin/QuestionBankSelector';
 import type { Database } from '@/integrations/supabase/types';
 
 type TestSubject = Database['public']['Enums']['test_subject'];
@@ -28,6 +29,7 @@ const AdminMockTestCreate = () => {
   });
   const [questions, setQuestions] = useState([]);
   const [showWordUpload, setShowWordUpload] = useState(false);
+  const [showQuestionBank, setShowQuestionBank] = useState(false);
 
   const handleLoadSample = (sampleData: any) => {
     setTestInfo({
@@ -265,14 +267,24 @@ const AdminMockTestCreate = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Question Builder</CardTitle>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowWordUpload(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Import from Word
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowWordUpload(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import from Word
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowQuestionBank(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <DatabaseIcon className="w-4 h-4" />
+                    Load from Bank
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -306,6 +318,17 @@ const AdminMockTestCreate = () => {
         isOpen={showWordUpload}
         onClose={() => setShowWordUpload(false)}
         onTestParsed={handleWordTestParsed}
+      />
+
+      {/* Question Bank Selector */}
+      <QuestionBankSelector
+        open={showQuestionBank}
+        onClose={() => setShowQuestionBank(false)}
+        onSelectQuestions={(selectedQuestions) => {
+          setQuestions([...questions, ...selectedQuestions]);
+        }}
+        currentSubject={testInfo.subject as string}
+        currentTopic={testInfo.topic}
       />
     </div>
   );

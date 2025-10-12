@@ -242,6 +242,107 @@ export type Database = {
           },
         ]
       }
+      mock_test_question_bank: {
+        Row: {
+          answer_key: string | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          difficulty: Database["public"]["Enums"]["question_difficulty"] | null
+          has_sub_questions: boolean | null
+          id: string
+          is_active: boolean | null
+          marks: number
+          question_image_url: string | null
+          question_number: number
+          question_text: string
+          subject: Database["public"]["Enums"]["test_subject"]
+          topic: string
+          updated_at: string | null
+          word_limit: number | null
+        }
+        Insert: {
+          answer_key?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
+          has_sub_questions?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          marks?: number
+          question_image_url?: string | null
+          question_number: number
+          question_text: string
+          subject: Database["public"]["Enums"]["test_subject"]
+          topic: string
+          updated_at?: string | null
+          word_limit?: number | null
+        }
+        Update: {
+          answer_key?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
+          has_sub_questions?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          marks?: number
+          question_image_url?: string | null
+          question_number?: number
+          question_text?: string
+          subject?: Database["public"]["Enums"]["test_subject"]
+          topic?: string
+          updated_at?: string | null
+          word_limit?: number | null
+        }
+        Relationships: []
+      }
+      mock_test_sub_question_bank: {
+        Row: {
+          answer_key: string | null
+          created_at: string | null
+          id: string
+          marks: number
+          question_bank_id: string
+          sub_question_image_url: string | null
+          sub_question_label: string
+          sub_question_text: string
+          word_limit: number | null
+        }
+        Insert: {
+          answer_key?: string | null
+          created_at?: string | null
+          id?: string
+          marks?: number
+          question_bank_id: string
+          sub_question_image_url?: string | null
+          sub_question_label: string
+          sub_question_text: string
+          word_limit?: number | null
+        }
+        Update: {
+          answer_key?: string | null
+          created_at?: string | null
+          id?: string
+          marks?: number
+          question_bank_id?: string
+          sub_question_image_url?: string | null
+          sub_question_label?: string
+          sub_question_text?: string
+          word_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_test_sub_question_bank_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "mock_test_question_bank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_tests: {
         Row: {
           created_at: string
