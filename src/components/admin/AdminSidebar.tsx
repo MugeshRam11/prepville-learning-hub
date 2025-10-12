@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import prepVilleLogo from '@/assets/prep-ville-icon.png';
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -64,8 +65,8 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-2">
-          <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg">
-            <BookOpen className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg overflow-hidden">
+            <img src={prepVilleLogo} alt="The Prep Ville" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">The Prep Ville</h1>
