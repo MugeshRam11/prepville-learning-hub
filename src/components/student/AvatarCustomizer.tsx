@@ -1,9 +1,16 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+
+// Import avatar images
+import coolCat from '@/assets/avatars/cool-cat.png';
+import spaceExplorer from '@/assets/avatars/space-explorer.png';
+import mathWizard from '@/assets/avatars/math-wizard.png';
+import robotFriend from '@/assets/avatars/robot-friend.png';
+import dragonTamer from '@/assets/avatars/dragon-tamer.png';
+import oceanExplorer from '@/assets/avatars/ocean-explorer.png';
 
 interface AvatarCustomizerProps {
   onClose: () => void;
@@ -15,21 +22,21 @@ const AvatarCustomizer = ({ onClose, currentAvatar, onSave }: AvatarCustomizerPr
   const [selectedAvatarId, setSelectedAvatarId] = useState<number>(1); // Use ID instead of src
 
   const avatarOptions = [
-    { id: 1, src: "/placeholder.svg", name: "Cool Cat", category: "Animals", unlocked: true },
-    { id: 2, src: "/placeholder.svg", name: "Space Explorer", category: "Sci-Fi", unlocked: true },
-    { id: 3, src: "/placeholder.svg", name: "Math Wizard", category: "Fantasy", unlocked: true },
-    { id: 4, src: "/placeholder.svg", name: "Robot Friend", category: "Sci-Fi", unlocked: false, requiredLevel: 10 },
-    { id: 5, src: "/placeholder.svg", name: "Dragon Tamer", category: "Fantasy", unlocked: false, requiredLevel: 15 },
-    { id: 6, src: "/placeholder.svg", name: "Ocean Explorer", category: "Nature", unlocked: true },
+    { id: 1, src: coolCat, name: "Cool Cat", category: "Animals", unlocked: true },
+    { id: 2, src: spaceExplorer, name: "Space Explorer", category: "Sci-Fi", unlocked: true },
+    { id: 3, src: mathWizard, name: "Math Wizard", category: "Fantasy", unlocked: true },
+    { id: 4, src: robotFriend, name: "Robot Friend", category: "Sci-Fi", unlocked: false, requiredLevel: 10 },
+    { id: 5, src: dragonTamer, name: "Dragon Tamer", category: "Fantasy", unlocked: false, requiredLevel: 15 },
+    { id: 6, src: oceanExplorer, name: "Ocean Explorer", category: "Nature", unlocked: true },
     // Logo avatars
-    { id: 7, src: "/placeholder.svg", name: "Python Pro", category: "Logos", unlocked: true, emoji: "🐍" },
-    { id: 8, src: "/placeholder.svg", name: "React Master", category: "Logos", unlocked: true, emoji: "⚛️" },
-    { id: 9, src: "/placeholder.svg", name: "Math Symbol", category: "Logos", unlocked: true, emoji: "∑" },
-    { id: 10, src: "/placeholder.svg", name: "Code Warrior", category: "Logos", unlocked: true, emoji: "💻" },
-    { id: 11, src: "/placeholder.svg", name: "Study Hub", category: "Logos", unlocked: false, requiredLevel: 5, emoji: "📚" },
-    { id: 12, src: "/placeholder.svg", name: "Brain Power", category: "Logos", unlocked: true, emoji: "🧠" },
-    { id: 13, src: "/placeholder.svg", name: "Lightning Code", category: "Logos", unlocked: false, requiredLevel: 12, emoji: "⚡" },
-    { id: 14, src: "/placeholder.svg", name: "Gear Head", category: "Logos", unlocked: true, emoji: "⚙️" },
+    { id: 7, src: "", name: "Python Pro", category: "Logos", unlocked: true, emoji: "🐍" },
+    { id: 8, src: "", name: "React Master", category: "Logos", unlocked: true, emoji: "⚛️" },
+    { id: 9, src: "", name: "Math Symbol", category: "Logos", unlocked: true, emoji: "∑" },
+    { id: 10, src: "", name: "Code Warrior", category: "Logos", unlocked: true, emoji: "💻" },
+    { id: 11, src: "", name: "Study Hub", category: "Logos", unlocked: false, requiredLevel: 5, emoji: "📚" },
+    { id: 12, src: "", name: "Brain Power", category: "Logos", unlocked: true, emoji: "🧠" },
+    { id: 13, src: "", name: "Lightning Code", category: "Logos", unlocked: false, requiredLevel: 12, emoji: "⚡" },
+    { id: 14, src: "", name: "Gear Head", category: "Logos", unlocked: true, emoji: "⚙️" },
   ];
 
   const categories = ["All", "Animals", "Sci-Fi", "Fantasy", "Nature", "Logos"];
