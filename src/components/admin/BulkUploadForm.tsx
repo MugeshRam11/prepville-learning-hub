@@ -240,7 +240,10 @@ const BulkUploadForm = () => {
           .from('subject_questions')
           .insert([questionData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Database insert error:', error);
+          throw new Error(error.message || 'Unknown database error');
+        }
 
         setUploadStats(prev => ({ 
           ...prev, 
@@ -260,9 +263,10 @@ const BulkUploadForm = () => {
       });
     } catch (error) {
       console.error('Sync error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Sync Failed",
-        description: "Failed to sync questions to database",
+        description: errorMessage,
         variant: "destructive"
       });
       setUploadStats(prev => ({ ...prev, syncing: false }));
