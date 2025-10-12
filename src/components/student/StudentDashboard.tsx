@@ -35,6 +35,7 @@ import PerformanceCriteria from './PerformanceCriteria';
 import DynamicTopicProgress from './DynamicTopicProgress';
 import DynamicDailyChallenge from './DynamicDailyChallenge';
 import { toast } from 'sonner';
+import StatsCards from './StatsCards';
 
 // Import avatar images
 import coolCat from '@/assets/avatars/cool-cat.png';
@@ -282,41 +283,13 @@ const StudentDashboard = () => {
           </div>
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in">
-            <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-pink))]/10 to-[hsl(var(--adsavvy-pink))]/5 border-[hsl(var(--adsavvy-pink))]/20 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-              <CardContent className="p-6 text-center">
-                <Flame className="w-10 h-10 text-[hsl(var(--adsavvy-pink))] mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-800">{streakData.currentStreak}</div>
-                <div className="text-sm font-medium text-gray-600 mt-1">Day Streak</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-yellow))]/30 to-[hsl(var(--adsavvy-yellow))]/10 border-[hsl(var(--adsavvy-yellow))]/30 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-              <CardContent className="p-6 text-center">
-                <Target className="w-10 h-10 text-yellow-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-800">{studentData.weeklyCompleted}/{studentData.weeklyGoal}</div>
-                <div className="text-sm font-medium text-gray-600 mt-1">Weekly Goal</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))]/10 to-[hsl(var(--adsavvy-blue))]/5 border-[hsl(var(--adsavvy-blue))]/20 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-              <CardContent className="p-6 text-center">
-                <BookOpen className="w-10 h-10 text-[hsl(var(--adsavvy-blue))] mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-800">{studentData.totalQuestions}</div>
-                <div className="text-sm font-medium text-gray-600 mt-1">Questions Solved</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-purple-100/50 to-purple-50 border-purple-200 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-              <CardContent className="p-6 text-center">
-                <TrendingUp className="w-10 h-10 text-purple-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-800">
-                  {Math.round((studentData.correctAnswers / studentData.totalQuestions) * 100)}%
-                </div>
-                <div className="text-sm font-medium text-gray-600 mt-1">Accuracy</div>
-              </CardContent>
-            </Card>
-          </div>
+          <StatsCards 
+            currentStreak={streakData.currentStreak}
+            weeklyCompleted={studentData.weeklyCompleted}
+            weeklyGoal={studentData.weeklyGoal}
+            totalQuestions={studentData.totalQuestions}
+            correctAnswers={studentData.correctAnswers}
+          />
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
             {/* Main Content Area */}
