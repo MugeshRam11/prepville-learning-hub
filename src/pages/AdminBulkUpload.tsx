@@ -60,7 +60,7 @@ const AdminBulkUpload = () => {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                SUBJECT QUESTION MANAGEMENT
+                Subject Q/A Bulk Upload
               </h1>
               <p className="text-muted-foreground mt-3 text-lg">
                 Upload CSV files in bulk - automatically sync to The Prep Ville portal
