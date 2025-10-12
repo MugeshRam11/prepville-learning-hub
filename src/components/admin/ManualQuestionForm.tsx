@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { PlusCircle, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 const ManualQuestionForm = () => {
   const { toast } = useToast();
@@ -102,18 +101,8 @@ const ManualQuestionForm = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PlusCircle className="h-5 w-5" />
-          Create Question Manually
-        </CardTitle>
-        <CardDescription>
-          Add a single question to the database with all details
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
           {/* Subject & Topic Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -279,8 +268,7 @@ const ManualQuestionForm = () => {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 
