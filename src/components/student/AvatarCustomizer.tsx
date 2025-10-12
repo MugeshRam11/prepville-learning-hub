@@ -49,7 +49,9 @@ const AvatarCustomizer = ({ onClose, currentAvatar, onSave }: AvatarCustomizerPr
   const handleSave = () => {
     const selectedAvatar = avatarOptions.find(a => a.id === selectedAvatarId);
     if (selectedAvatar) {
-      onSave(selectedAvatar.id, selectedAvatar.emoji, selectedAvatar.name);
+      // Only pass emoji if it's an emoji avatar, otherwise pass undefined
+      const emoji = selectedAvatar.category === 'Logos' ? selectedAvatar.emoji : undefined;
+      onSave(selectedAvatar.id, emoji, selectedAvatar.name);
     }
     onClose();
   };

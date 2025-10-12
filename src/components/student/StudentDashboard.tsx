@@ -36,6 +36,24 @@ import DynamicTopicProgress from './DynamicTopicProgress';
 import DynamicDailyChallenge from './DynamicDailyChallenge';
 import { toast } from 'sonner';
 
+// Import avatar images
+import coolCat from '@/assets/avatars/cool-cat.png';
+import spaceExplorer from '@/assets/avatars/space-explorer.png';
+import mathWizard from '@/assets/avatars/math-wizard.png';
+import robotFriend from '@/assets/avatars/robot-friend.png';
+import dragonTamer from '@/assets/avatars/dragon-tamer.png';
+import oceanExplorer from '@/assets/avatars/ocean-explorer.png';
+
+// Avatar mapping
+const avatarMap: { [key: number]: string } = {
+  1: coolCat,
+  2: spaceExplorer,
+  3: mathWizard,
+  4: robotFriend,
+  5: dragonTamer,
+  6: oceanExplorer,
+};
+
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [showAvatarCustomizer, setShowAvatarCustomizer] = useState(false);
@@ -83,12 +101,20 @@ const StudentDashboard = () => {
     fetchProfile();
   }, [user]);
 
+  // Get avatar source based on avatar_id or emoji
+  const getAvatarSource = () => {
+    if (profileData?.avatar_id && avatarMap[profileData.avatar_id]) {
+      return avatarMap[profileData.avatar_id];
+    }
+    return "/placeholder.svg";
+  };
+
   // Fallback student data for display
   const studentData = {
     name: profileData?.first_name ? 
       `${profileData.first_name}${profileData.last_name ? ` ${profileData.last_name}` : ''}` : 
       profileData?.email?.split('@')[0] || 'Student',
-    avatar: "/placeholder.svg",
+    avatar: getAvatarSource(),
     avatarEmoji: profileData?.avatar_emoji,
     avatarId: profileData?.avatar_id,
     level: 7,
@@ -189,13 +215,12 @@ const StudentDashboard = () => {
                       <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] rounded-full text-white">
                         <span className="drop-shadow-sm">{studentData.avatarEmoji}</span>
                       </div>
+                    ) : studentData.avatar !== "/placeholder.svg" ? (
+                      <AvatarImage src={studentData.avatar} className="object-cover" />
                     ) : (
-                      <>
-                        <AvatarImage src={studentData.avatar} />
-                        <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] text-white text-2xl font-bold">
-                          {studentData.name[0]}
-                        </AvatarFallback>
-                      </>
+                      <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] text-white text-2xl font-bold">
+                        {studentData.name[0]}
+                      </AvatarFallback>
                     )}
                   </Avatar>
                   <Button 
