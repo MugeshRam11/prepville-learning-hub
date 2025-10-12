@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { MathEditor } from '@/components/learning/MathEditor';
 
 interface Question {
   id: string;
@@ -665,22 +666,19 @@ const SubjectLearning = () => {
                                 {!submittedAnswers[question.id] ? (
                                   <div className="space-y-3">
                                     <label className="text-sm font-medium">Your Answer:</label>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        placeholder="Type your answer here..."
-                                        value={userAnswers[question.id] || ''}
-                                        onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                                        className="flex-1"
-                                      />
-                                      <Button
-                                        onClick={() => handleAnswerSubmit(question.id)}
-                                        disabled={!userAnswers[question.id]?.trim()}
-                                        className="flex items-center gap-2"
-                                      >
-                                        <Send className="w-4 h-4" />
-                                        Submit
-                                      </Button>
-                                    </div>
+                                    <MathEditor
+                                      value={userAnswers[question.id] || ''}
+                                      onChange={(value) => handleAnswerChange(question.id, value)}
+                                      placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly."
+                                    />
+                                    <Button
+                                      onClick={() => handleAnswerSubmit(question.id)}
+                                      disabled={!userAnswers[question.id]?.trim()}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <Send className="w-4 h-4" />
+                                      Submit Answer
+                                    </Button>
                                   </div>
                                 ) : (
                                   <div className="space-y-3">
