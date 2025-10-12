@@ -123,7 +123,7 @@ const AdminMockTests = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-6">
         <div className="flex justify-center items-center h-64">
           <div className="text-lg">Loading mock tests...</div>
         </div>
@@ -132,15 +132,15 @@ const AdminMockTests = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
       <div className="flex-1 ml-64 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Mock Tests Management</h1>
-            <p className="text-gray-600">Create and manage mock examination content</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Mock Tests Management</h1>
+            <p className="text-muted-foreground">Create and manage mock examination content</p>
           </div>
           <Button onClick={() => navigate('/admin/mock-tests/create')} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />

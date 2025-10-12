@@ -35,7 +35,7 @@ const AdminMockTestView = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
         <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
         <div className="flex-1 ml-64 p-6">
           <div className="animate-pulse">Loading...</div>
@@ -46,7 +46,7 @@ const AdminMockTestView = () => {
 
   if (!mockTest) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
         <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
         <div className="flex-1 ml-64 p-6">
           <div className="text-center">Mock test not found</div>
@@ -56,7 +56,7 @@ const AdminMockTestView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
       <div className="flex-1 ml-64 p-6">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -68,8 +68,8 @@ const AdminMockTestView = () => {
                 Back to Mock Tests
               </Button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{mockTest.title}</h1>
-                <p className="text-gray-600">View mock test details and questions</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{mockTest.title}</h1>
+                <p className="text-muted-foreground">View mock test details and questions</p>
               </div>
             </div>
             <div className="flex space-x-2">
@@ -92,19 +92,19 @@ const AdminMockTestView = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Subject</label>
+                  <label className="block text-sm font-medium text-muted-foreground">Subject</label>
                   <p className="mt-1 text-lg font-semibold capitalize">{mockTest.subject}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Topic</label>
+                  <label className="block text-sm font-medium text-muted-foreground">Topic</label>
                   <p className="mt-1 text-lg font-semibold">{mockTest.topic}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Total Questions</label>
+                  <label className="block text-sm font-medium text-muted-foreground">Total Questions</label>
                   <p className="mt-1 text-lg font-semibold">{mockTest.total_questions}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Status</label>
+                  <label className="block text-sm font-medium text-muted-foreground">Status</label>
                   <div className="mt-1">
                     <Badge variant={mockTest.is_published ? "default" : "secondary"}>
                       {mockTest.is_published ? "Published" : "Draft"}
@@ -131,35 +131,35 @@ const AdminMockTestView = () => {
                         <Badge variant="outline">{question.marks} marks</Badge>
                       </div>
                     </div>
-                    <p className="text-gray-700 mb-2">{question.question_text}</p>
+                    <p className="text-foreground mb-2">{question.question_text}</p>
                     {question.question_image_url && (
                       <div className="mb-2">
                         <img src={question.question_image_url} alt="Question image" className="max-w-md rounded" />
                       </div>
                     )}
                     {question.answer_key && (
-                      <div className="bg-green-50 p-2 rounded">
+                      <div className="bg-primary/10 p-2 rounded">
                         <strong>Answer:</strong> {question.answer_key}
                       </div>
                     )}
                     {question.mock_sub_questions && question.mock_sub_questions.length > 0 && (
                       <div className="mt-3 ml-4 space-y-2">
                         {question.mock_sub_questions.map((subQ) => (
-                          <div key={subQ.id} className="border-l-2 border-gray-200 pl-3">
+                          <div key={subQ.id} className="border-l-2 border-border pl-3">
                             <div className="flex justify-between items-start mb-1">
                               <h4 className="font-medium">
                                 {question.question_number}{subQ.sub_question_label}
                               </h4>
                               <Badge variant="outline">{subQ.marks} marks</Badge>
                             </div>
-                            <p className="text-gray-600 text-sm">{subQ.sub_question_text}</p>
+                            <p className="text-muted-foreground text-sm">{subQ.sub_question_text}</p>
                             {subQ.sub_question_image_url && (
                               <div className="my-2">
                                 <img src={subQ.sub_question_image_url} alt="Sub-question image" className="max-w-sm rounded" />
                               </div>
                             )}
                             {subQ.answer_key && (
-                              <div className="bg-green-50 p-1 rounded text-sm mt-1">
+                              <div className="bg-primary/10 p-1 rounded text-sm mt-1">
                                 <strong>Answer:</strong> {subQ.answer_key}
                               </div>
                             )}

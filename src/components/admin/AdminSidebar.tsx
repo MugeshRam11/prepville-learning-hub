@@ -63,16 +63,16 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   };
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div className="fixed left-0 top-0 h-full w-64 bg-background border-r border-border flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-2">
           <div className="flex items-center justify-center w-10 h-10 rounded-lg overflow-hidden">
             <img src={prepVilleLogo} alt="The Prep Ville" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">The Prep Ville</h1>
-            <p className="text-sm text-gray-500">Admin Dashboard</p>
+            <h1 className="text-xl font-bold text-foreground">The Prep Ville</h1>
+            <p className="text-sm text-muted-foreground">Admin Dashboard</p>
           </div>
         </div>
       </div>
@@ -84,19 +84,19 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => handleNavigation(item.id, item.path)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                      isActive(item)
-                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                </li>
+              <li key={item.id}>
+                <button
+                  onClick={() => handleNavigation(item.id, item.path)}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                    isActive(item)
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              </li>
               );
             })}
           </ul>
@@ -104,11 +104,11 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-border">
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50"
+          className="w-full flex items-center space-x-3 px-4 py-3 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <LogOut className="w-5 h-5" />
           <span>Logout</span>
