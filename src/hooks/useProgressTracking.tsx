@@ -402,53 +402,6 @@ export const useProgressTracking = () => {
     }
   }, [user, initializeUserProgress, initializeTopics, initializeDailyChallenge, fetchProgressData]);
 
-  const resetAllProgress = async () => {
-    if (!user) return;
-
-    try {
-      // Reset user progress
-      const { error: progressError } = await supabase
-        .from('user_progress')
-        .update({
-          knowledge_understanding: 0,
-          pattern_recognition: 0,
-          communication: 0,
-          real_life_applications: 0
-        })
-        .eq('user_id', user.id);
-
-      if (progressError) throw progressError;
-
-      // Reset topic progress
-      const { error: topicError } = await supabase
-        .from('topic_progress')
-        .update({ completed_tasks: 0 })
-        .eq('user_id', user.id);
-
-      if (topicError) throw topicError;
-
-      // Reset XP
-      const { error: xpError } = await supabase
-        .from('user_xp')
-        .update({ total_xp: 0, current_level: 1, xp_to_next_level: 100 })
-        .eq('user_id', user.id);
-
-      if (xpError) throw xpError;
-
-      // Reset streaks
-      await supabase
-        .from('user_streaks')
-        .delete()
-        .eq('user_id', user.id);
-
-      toast.success('All progress reset to 0!');
-      await fetchProgressData();
-    } catch (error) {
-      console.error('Error resetting progress:', error);
-      toast.error('Failed to reset progress');
-    }
-  };
-
   return {
     userProgress,
     topicProgress,
@@ -459,7 +412,6 @@ export const useProgressTracking = () => {
     updateTopicProgress,
     updateDailyChallenge,
     unlockAchievement,
-    resetAllProgress,
     refreshData: fetchProgressData
   };
 };
