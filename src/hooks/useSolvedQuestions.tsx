@@ -7,10 +7,6 @@ interface SolvedQuestionStats {
   subjectTestSolved: number;
   quickTestSolved: number;
   totalSolved: number;
-  mockTestUnsolved: number;
-  subjectTestUnsolved: number;
-  quickTestUnsolved: number;
-  totalUnsolved: number;
   loading: boolean;
 }
 
@@ -21,10 +17,6 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
     subjectTestSolved: 0,
     quickTestSolved: 0,
     totalSolved: 0,
-    mockTestUnsolved: 0,
-    subjectTestUnsolved: 0,
-    quickTestUnsolved: 0,
-    totalUnsolved: 0,
     loading: true,
   });
 
@@ -35,10 +27,6 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
         subjectTestSolved: 0,
         quickTestSolved: 0,
         totalSolved: 0,
-        mockTestUnsolved: 0,
-        subjectTestUnsolved: 0,
-        quickTestUnsolved: 0,
-        totalUnsolved: 0,
         loading: false,
       });
       return;
@@ -62,35 +50,24 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
         return;
       }
 
-      // Calculate solved and unsolved questions by category
+      // Calculate solved questions by category
       let mockTestSolved = 0;
       let subjectTestSolved = 0;
       let quickTestSolved = 0;
       let totalSolved = 0;
-      
-      let mockTestUnsolved = 0;
-      let subjectTestUnsolved = 0;
-      let quickTestUnsolved = 0;
-      let totalUnsolved = 0;
 
       attempts?.forEach((attempt: any) => {
         const solvedCount = attempt.score || 0;
-        const totalQuestions = attempt.total_questions || 0;
-        const unsolvedCount = Math.max(0, totalQuestions - solvedCount);
         const testType = attempt.tests?.test_type;
 
         totalSolved += solvedCount;
-        totalUnsolved += unsolvedCount;
 
         if (testType === 'mock_test') {
           mockTestSolved += solvedCount;
-          mockTestUnsolved += unsolvedCount;
         } else if (testType === 'topic_practice' || testType === 'subject_test') {
           subjectTestSolved += solvedCount;
-          subjectTestUnsolved += unsolvedCount;
         } else if (testType === 'quick_test') {
           quickTestSolved += solvedCount;
-          quickTestUnsolved += unsolvedCount;
         }
       });
 
@@ -99,10 +76,6 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
         subjectTestSolved,
         quickTestSolved,
         totalSolved,
-        mockTestUnsolved,
-        subjectTestUnsolved,
-        quickTestUnsolved,
-        totalUnsolved,
         loading: false,
       });
     } catch (error) {
