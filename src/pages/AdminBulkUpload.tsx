@@ -22,7 +22,7 @@ const AdminBulkUpload = () => {
           </div>
 
           <Tabs defaultValue="manual" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-6 p-1">
               <TabsTrigger value="manual">Manual Creation</TabsTrigger>
               <TabsTrigger value="bulk">CSV Bulk Upload</TabsTrigger>
             </TabsList>
