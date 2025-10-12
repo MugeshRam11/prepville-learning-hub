@@ -216,36 +216,54 @@ const BulkUploadForm = () => {
       {/* LEFT PANEL: Upload & Preview */}
       <div className="space-y-6">
         {/* CSV Format Info */}
-        <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5">
+        <Card className="border border-primary/20 bg-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="h-5 w-5 text-primary" />
               CSV Format
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 text-sm">
-              <p className="font-medium">Required columns: <code className="bg-muted px-2 py-1 rounded">subj,topic,qn,answer,a,b,c,d</code></p>
-              <div className="bg-muted/50 p-3 rounded-lg font-mono text-xs overflow-x-auto">
-                <div>Physics,Kinematics,"A car accelerates...",A,"6 m/s","3 m/s","2 m/s","9 m/s"</div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium mb-2">Required columns:</p>
+                <code className="bg-primary/10 text-primary px-3 py-1.5 rounded text-sm font-mono">
+                  subj,topic,qn,answer,a,b,c,d
+                </code>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>answer: A, B, C, or D</li>
-                <li>Optional: level, difficulty</li>
-                <li>UTF-8 encoding required</li>
+              
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <code className="text-xs font-mono text-muted-foreground break-all">
+                  Physics,Kinematics,"A car accelerates...",A,"6 m/s","3 m/s","2 m/s","9 m/s"
+                </code>
+              </div>
+              
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>answer: A, B, C, or D</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Optional: level, difficulty</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>UTF-8 encoding required</span>
+                </li>
               </ul>
             </div>
           </CardContent>
         </Card>
 
         {/* Upload Zone */}
-        <Card>
+        <Card className="border border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Upload className="h-5 w-5" />
               Upload CSV File
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               Drop CSV file or click to browse
             </CardDescription>
           </CardHeader>
@@ -255,9 +273,9 @@ const BulkUploadForm = () => {
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleDrop}
               className={`
-                border-2 border-dashed rounded-xl p-8 text-center transition-all
-                ${isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                ${uploadedFile ? 'bg-primary/5' : ''}
+                border-2 border-dashed rounded-lg p-12 text-center transition-all cursor-pointer
+                ${isDragging ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
+                ${uploadedFile ? 'bg-primary/5 border-primary' : ''}
               `}
             >
               <input
@@ -268,21 +286,21 @@ const BulkUploadForm = () => {
                 id="csv-upload"
               />
               <label htmlFor="csv-upload" className="cursor-pointer">
-                <div className="flex flex-col items-center space-y-3">
+                <div className="flex flex-col items-center space-y-4">
                   {uploadedFile ? (
                     <>
-                      <CheckCircle2 className="h-12 w-12 text-primary" />
+                      <CheckCircle2 className="h-16 w-16 text-primary" />
                       <div>
-                        <p className="font-semibold">{uploadedFile.name}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-semibold text-base">{uploadedFile.name}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
                           {(uploadedFile.size / 1024).toFixed(2)} KB
                         </p>
                       </div>
                     </>
                   ) : (
                     <>
-                      <FileText className="h-12 w-12 text-muted-foreground" />
-                      <p className="font-semibold">Drop CSV or click to upload</p>
+                      <FileText className="h-16 w-16 text-muted-foreground" />
+                      <p className="font-medium text-muted-foreground">Drop CSV or click to upload</p>
                     </>
                   )}
                 </div>
