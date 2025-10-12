@@ -25,6 +25,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminTests from "./pages/AdminTests";
 import AdminQuestions from "./pages/AdminQuestions";
 import AdminBulkUpload from "./pages/AdminBulkUpload";
+import AdminMockTestBulkUpload from "./pages/AdminMockTestBulkUpload";
 import AdminReports from "./pages/AdminReports";
 import AdminMockTests from "./pages/AdminMockTests";
 import AdminMockTestCreate from "./pages/AdminMockTestCreate";
@@ -163,6 +164,11 @@ const App = () => (
           <Route path="/admin/bulk-upload" element={
             <ProtectedRoute>
               <AdminBulkUpload />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/mock-test-bulk-upload" element={
+            <ProtectedRoute>
+              <AdminMockTestBulkUpload />
             </ProtectedRoute>
           } />
           <Route path="/admin/reports" element={
