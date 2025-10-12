@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle2, Sparkles, BookOpen, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Sparkles, BookOpen, ChevronLeft, ChevronRight, Download, File } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Papa from 'papaparse';
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface ParsedQuestion {
   subj: string;
@@ -56,15 +57,20 @@ const BulkUploadForm = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === 'text/csv') {
-      setUploadedFile(file);
-      parseCSV(file);
-    } else {
-      toast({
-        title: "Invalid File",
-        description: "Please upload a CSV file",
-        variant: "destructive"
-      });
+    if (file) {
+      if (file.type === 'text/csv') {
+        setUploadedFile(file);
+        parseCSV(file);
+      } else if (file.type === 'application/pdf') {
+        setUploadedFile(file);
+        parsePDF(file);
+      } else {
+        toast({
+          title: "Invalid File",
+          description: "Please upload a CSV or PDF file",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -72,9 +78,77 @@ const BulkUploadForm = () => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type === 'text/csv') {
-      setUploadedFile(file);
-      parseCSV(file);
+    if (file) {
+      if (file.type === 'text/csv') {
+        setUploadedFile(file);
+        parseCSV(file);
+      } else if (file.type === 'application/pdf') {
+        setUploadedFile(file);
+        parsePDF(file);
+      }
+    }
+  };
+
+  const parsePDF = async (file: File) => {
+    setUploadStats(prev => ({ ...prev, parsing: true }));
+
+    try {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        fullText += pageText + '\n';
+      }
+
+      // Parse CSV-like content from PDF text
+      const lines = fullText.split('\n').filter(line => line.trim());
+      const questions: ParsedQuestion[] = [];
+      
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+        if (parts.length >= 8 && parts[0] && parts[1] && parts[2]) {
+          questions.push({
+            subj: parts[0],
+            topic: parts[1],
+            qn: parts[2],
+            answer: parts[3],
+            a: parts[4],
+            b: parts[5],
+            c: parts[6],
+            d: parts[7],
+            level: parts[8],
+            difficulty: parts[9]
+          });
+        }
+      }
+
+      setParsedQuestions(questions);
+      setFilteredQuestions(questions);
+      setShowPreview(true);
+      setUploadStats(prev => ({ 
+        ...prev, 
+        parsing: false, 
+        totalQuestions: questions.length 
+      }));
+      
+      toast({
+        title: "PDF Parsed",
+        description: `${questions.length} questions extracted successfully`,
+      });
+    } catch (error) {
+      console.error('PDF parsing error:', error);
+      toast({
+        title: "Parse Error",
+        description: "Failed to parse PDF file",
+        variant: "destructive"
+      });
+      setUploadStats(prev => ({ ...prev, parsing: false }));
     }
   };
 
@@ -215,21 +289,34 @@ const BulkUploadForm = () => {
     <div className="grid lg:grid-cols-2 gap-8">
       {/* LEFT PANEL: Upload & Preview */}
       <div className="space-y-6">
-        {/* CSV Format Info */}
+        {/* Format Info */}
         <Card className="border border-primary/20 bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="h-5 w-5 text-primary" />
-              CSV Format
+              Supported Formats
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium mb-2">Required columns:</p>
+                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  CSV Format - Required columns:
+                </p>
                 <code className="bg-primary/10 text-primary px-3 py-1.5 rounded text-sm font-mono">
                   subj,topic,qn,answer,a,b,c,d
                 </code>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <File className="h-4 w-4 text-destructive" />
+                  PDF Format - Same structure:
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  PDF should contain CSV-formatted text with the same column structure
+                </p>
               </div>
               
               <div className="bg-muted/50 p-3 rounded-lg">
@@ -261,10 +348,10 @@ const BulkUploadForm = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Upload className="h-5 w-5" />
-              Upload CSV File
+              Upload File
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Drop CSV file or click to browse
+              Drop CSV or PDF file, or click to browse
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -280,7 +367,7 @@ const BulkUploadForm = () => {
             >
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.pdf"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="csv-upload"
@@ -299,8 +386,12 @@ const BulkUploadForm = () => {
                     </>
                   ) : (
                     <>
-                      <FileText className="h-16 w-16 text-muted-foreground" />
-                      <p className="font-medium text-muted-foreground">Drop CSV or click to upload</p>
+                      <div className="flex gap-4 items-center justify-center mb-2">
+                        <FileText className="h-12 w-12 text-primary" />
+                        <span className="text-muted-foreground">or</span>
+                        <File className="h-12 w-12 text-destructive" />
+                      </div>
+                      <p className="font-medium text-muted-foreground">Drop CSV or PDF, or click to upload</p>
                     </>
                   )}
                 </div>
