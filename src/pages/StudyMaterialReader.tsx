@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// Configure PDF.js worker using CDN (protocol-relative URL works in both http/https)
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Configure PDF.js worker using unpkg CDN (recommended by react-pdf docs)
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface StudyMaterial {
   id: string;
