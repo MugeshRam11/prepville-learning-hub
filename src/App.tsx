@@ -14,6 +14,7 @@ import MockExamSummary from "./pages/MockExamSummary";
 import StudentDashboard from "./pages/StudentDashboard";
 import Subjects from "./pages/Subjects";
 import Videos from "./pages/Videos";
+import StudyMaterials from "./pages/StudyMaterials";
 import Pricing from "./pages/Pricing";
 import Subscription from "./pages/Subscription";
 import Auth from "./pages/Auth";
@@ -121,6 +122,11 @@ const App = () => (
           <Route path="/videos" element={
             <ProtectedRoute requiresSubscription>
               <Videos />
+            </ProtectedRoute>
+          } />
+          <Route path="/study-materials" element={
+            <ProtectedRoute requiresSubscription>
+              <StudyMaterials />
             </ProtectedRoute>
           } />
           <Route path="/analytics" element={
