@@ -1,3 +1,5 @@
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -141,22 +143,22 @@ const StudyMaterialReader = () => {
   };
 
   const handlePrevious = () => {
-    if (currentPage > 1) {
+    if (currentPage > 2) {
       setIsFlipping(true);
       setFlipDirection('backward');
       setTimeout(() => {
-        setCurrentPage(prev => Math.max(1, prev - 2)); // Go back 2 pages for book view
+        setCurrentPage(prev => Math.max(1, prev - 2));
         setIsFlipping(false);
       }, 600);
     }
   };
 
   const handleNext = () => {
-    if (currentPage < numPages) {
+    if (currentPage < numPages - 1) {
       setIsFlipping(true);
       setFlipDirection('forward');
       setTimeout(() => {
-        setCurrentPage(prev => Math.min(numPages - 1, prev + 2)); // Go forward 2 pages for book view
+        setCurrentPage(prev => prev + 2);
         setIsFlipping(false);
       }, 600);
     }
@@ -400,14 +402,13 @@ const StudyMaterialReader = () => {
               <div className="flex gap-1 relative">
                 {/* Left Page */}
                 <div 
-                  className={`relative transition-all duration-600 ease-in-out shadow-2xl rounded-l-lg overflow-hidden cursor-pointer hover:shadow-[0_0_40px_rgba(0,0,0,0.3)] ${
+                  className={`relative transition-all duration-600 ease-in-out shadow-2xl rounded-l-lg overflow-hidden ${
                     darkMode ? 'brightness-90 contrast-125' : ''
                   } ${
                     isFlipping && flipDirection === 'backward' 
                       ? 'animate-[page-flip-left_0.6s_ease-in-out]' 
                       : ''
                   }`}
-                  onClick={handlePrevious}
                   style={{
                     transformOrigin: 'right center',
                   }}
@@ -433,14 +434,13 @@ const StudyMaterialReader = () => {
                 {/* Right Page */}
                 {rightPage <= numPages && (
                   <div 
-                    className={`relative transition-all duration-600 ease-in-out shadow-2xl rounded-r-lg overflow-hidden cursor-pointer hover:shadow-[0_0_40px_rgba(0,0,0,0.3)] ${
+                    className={`relative transition-all duration-600 ease-in-out shadow-2xl rounded-r-lg overflow-hidden ${
                       darkMode ? 'brightness-90 contrast-125' : ''
                     } ${
                       isFlipping && flipDirection === 'forward' 
                         ? 'animate-[page-flip-right_0.6s_ease-in-out]' 
                         : ''
                     }`}
-                    onClick={handleNext}
                     style={{
                       transformOrigin: 'left center',
                     }}
@@ -469,7 +469,7 @@ const StudyMaterialReader = () => {
             <Button
               variant="outline"
               onClick={handlePrevious}
-              disabled={currentPage === 1}
+              disabled={currentPage <= 1}
               className="min-w-[100px]"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
@@ -488,7 +488,7 @@ const StudyMaterialReader = () => {
             <Button
               variant="outline"
               onClick={handleNext}
-              disabled={currentPage === numPages}
+              disabled={currentPage >= numPages - 1}
               className="min-w-[100px]"
             >
               Next
