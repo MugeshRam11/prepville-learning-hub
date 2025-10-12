@@ -91,7 +91,7 @@ const Header = () => {
                   className={`flex items-center space-x-2 ${
                     isActive(item.href) 
                       ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" 
-                      : "hover:bg-muted"
+                      : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-700"
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
@@ -172,7 +172,7 @@ const Header = () => {
                     className={`w-full justify-start ${
                       isActive(item.href) 
                         ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" 
-                        : ""
+                        : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-700"
                     }`}
                   >
                     <item.icon className="w-4 h-4 mr-2" />
