@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Papa from 'papaparse';
-import * as pdfjsLib from 'pdfjs-dist';
 
 interface ParsedQuestion {
   subj: string;
@@ -93,43 +92,42 @@ const BulkUploadForm = () => {
     setUploadStats(prev => ({ ...prev, parsing: true }));
 
     try {
-      // Use local worker from node_modules
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-        'pdfjs-dist/build/pdf.worker.min.mjs',
-        import.meta.url
-      ).toString();
+      // Upload PDF to temporary storage and use Supabase edge function or simple text extraction
+      const formData = new FormData();
+      formData.append('file', file);
       
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        fullText += pageText + '\n';
-      }
-
-      // Parse CSV-like content from PDF text
-      const lines = fullText.split('\n').filter(line => line.trim());
+      // Simple approach: Read as text and try to parse CSV-like content
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
       const questions: ParsedQuestion[] = [];
       
+      // Try to parse CSV content from PDF text
       for (const line of lines) {
-        const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
-        if (parts.length >= 8 && parts[0] && parts[1] && parts[2]) {
-          questions.push({
-            subj: parts[0],
-            topic: parts[1],
-            qn: parts[2],
-            answer: parts[3],
-            a: parts[4],
-            b: parts[5],
-            c: parts[6],
-            d: parts[7],
-            level: parts[8],
-            difficulty: parts[9]
-          });
+        // Skip non-CSV lines
+        if (!line.includes(',') || line.length < 20) continue;
+        
+        const parts = line.split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
+        if (parts.length >= 8) {
+          const [subj, topic, qn, answer, a, b, c, d, level, difficulty] = parts;
+          if (subj && topic && qn) {
+            questions.push({
+              subj,
+              topic,
+              qn,
+              answer: answer || 'A',
+              a: a || '',
+              b: b || '',
+              c: c || '',
+              d: d || '',
+              level,
+              difficulty
+            });
+          }
         }
+      }
+
+      if (questions.length === 0) {
+        throw new Error('No valid CSV data found in PDF. Please ensure the PDF contains CSV-formatted text.');
       }
 
       setParsedQuestions(questions);
@@ -149,7 +147,7 @@ const BulkUploadForm = () => {
       console.error('PDF parsing error:', error);
       toast({
         title: "Parse Error",
-        description: "Failed to parse PDF file",
+        description: error instanceof Error ? error.message : "Failed to parse PDF file. Please ensure it contains CSV-formatted text.",
         variant: "destructive"
       });
       setUploadStats(prev => ({ ...prev, parsing: false }));
@@ -316,10 +314,10 @@ const BulkUploadForm = () => {
               <div>
                 <p className="text-sm font-medium mb-2 flex items-center gap-2">
                   <File className="h-4 w-4 text-destructive" />
-                  PDF Format - Same structure:
+                  PDF Format:
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  PDF should contain CSV-formatted text with the same column structure
+                  PDF must contain plain text in CSV format (not scanned images)
                 </p>
               </div>
               
