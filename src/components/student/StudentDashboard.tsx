@@ -131,17 +131,25 @@ const StudentDashboard = () => {
     if (!user) return;
     
     try {
+      // If it's not an emoji avatar, explicitly set avatar_emoji to null
+      const updateData: {
+        avatar_id: number;
+        avatar_emoji: string | null;
+        avatar_name: string | undefined;
+      } = {
+        avatar_id: avatarId,
+        avatar_emoji: avatarEmoji || null, // Set to null if no emoji
+        avatar_name: avatarName
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({ 
-          avatar_id: avatarId,
-          avatar_emoji: avatarEmoji,
-          avatar_name: avatarName
-        })
+        .update(updateData)
         .eq('id', user.id);
       
       if (error) {
         console.error('Error updating avatar:', error);
+        toast.error('Failed to save avatar');
         return;
       }
       
@@ -154,9 +162,11 @@ const StudentDashboard = () => {
       
       if (data) {
         setProfileData(data);
+        toast.success('Avatar updated successfully!');
       }
     } catch (error) {
       console.error('Error saving avatar:', error);
+      toast.error('Failed to save avatar');
     }
   };
 
