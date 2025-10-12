@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,11 +11,19 @@ import {
   Menu,
   Sun,
   Moon,
-  Type,
+  ZoomIn,
+  ZoomOut,
   ArrowLeft,
   BookOpen,
-  Clock,
+  Maximize2,
+  Download,
 } from 'lucide-react';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface StudyMaterial {
   id: string;
@@ -33,33 +40,32 @@ const StudyMaterialReader = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
   
   const [material, setMaterial] = useState<StudyMaterial | null>(null);
   const [loading, setLoading] = useState(true);
+  const [numPages, setNumPages] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const saved = localStorage.getItem(`reader-page-${id}`);
+    return saved ? parseInt(saved) : 1;
+  });
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('reader-dark-mode') === 'true';
   });
-  const [fontSize, setFontSize] = useState(() => {
-    return parseInt(localStorage.getItem('reader-font-size') || '18');
+  const [scale, setScale] = useState(() => {
+    return parseFloat(localStorage.getItem('reader-zoom') || '1.2');
   });
-  const [fontFamily, setFontFamily] = useState(() => {
-    return localStorage.getItem('reader-font-family') || 'serif';
-  });
-  const [progress, setProgress] = useState(0);
-  const [currentChapter, setCurrentChapter] = useState(0);
   const [tocOpen, setTocOpen] = useState(false);
-
-  // Sample chapters - in production, parse from file_url content
-  const [chapters, setChapters] = useState([
-    { title: 'Introduction', content: '' },
-    { title: 'Main Concepts', content: '' },
-    { title: 'Examples', content: '' },
-    { title: 'Practice Problems', content: '' },
-    { title: 'Summary', content: '' },
-  ]);
+  const [pageWidth, setPageWidth] = useState<number>(800);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     fetchMaterial();
+    updatePageWidth();
+    window.addEventListener('resize', updatePageWidth);
+    return () => window.removeEventListener('resize', updatePageWidth);
   }, [id]);
 
   useEffect(() => {
@@ -67,25 +73,19 @@ const StudyMaterialReader = () => {
   }, [darkMode]);
 
   useEffect(() => {
-    localStorage.setItem('reader-font-size', fontSize.toString());
-  }, [fontSize]);
+    localStorage.setItem('reader-zoom', scale.toString());
+  }, [scale]);
 
   useEffect(() => {
-    localStorage.setItem('reader-font-family', fontFamily);
-  }, [fontFamily]);
+    localStorage.setItem(`reader-page-${id}`, currentPage.toString());
+  }, [currentPage, id]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY;
-      const scrollPercent = (scrollTop / (documentHeight - windowHeight)) * 100;
-      setProgress(Math.min(scrollPercent, 100));
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const updatePageWidth = () => {
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.offsetWidth;
+      setPageWidth(Math.min(containerWidth - 40, 900));
+    }
+  };
 
   const fetchMaterial = async () => {
     try {
@@ -101,8 +101,6 @@ const StudyMaterialReader = () => {
       
       if (data) {
         setMaterial(data);
-        // Generate sample content based on material
-        generateChapterContent(data);
       }
     } catch (error) {
       console.error('Error fetching material:', error);
@@ -117,73 +115,113 @@ const StudyMaterialReader = () => {
     }
   };
 
-  const generateChapterContent = (data: StudyMaterial) => {
-    // In production, parse actual content from PDF/file
-    const sampleContent = `
-      <h2>Chapter Content for ${data.title}</h2>
-      <p>Subject: ${data.subject} | Level: ${data.level}</p>
-      
-      <h3>Learning Objectives</h3>
-      <p>${data.description || 'Comprehensive study material covering key concepts and applications.'}</p>
-      
-      <h3>Key Concepts</h3>
-      <p>This section covers fundamental principles and theories that form the foundation of understanding this topic. Students should pay close attention to the relationships between different concepts and how they apply in real-world scenarios.</p>
-      
-      <h3>Detailed Explanation</h3>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-      
-      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-      
-      <h3>Important Formulas</h3>
-      <p>Key formulas and equations that are essential for problem-solving and understanding the theoretical framework.</p>
-      
-      <h3>Practice Questions</h3>
-      <p>Apply your knowledge with these carefully designed practice questions that test your understanding of the concepts covered.</p>
-    `;
-
-    setChapters(prev => prev.map((chapter, idx) => ({
-      ...chapter,
-      content: sampleContent + `\n\n<p><strong>Chapter ${idx + 1} of ${prev.length}</strong></p>`
-    })));
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
   };
 
   const handlePrevious = () => {
-    if (currentChapter > 0) {
-      setCurrentChapter(prev => prev - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
     }
   };
 
   const handleNext = () => {
-    if (currentChapter < chapters.length - 1) {
-      setCurrentChapter(prev => prev + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (currentPage < numPages) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
-  const estimatedReadTime = Math.ceil(chapters[currentChapter]?.content.length / 1000) || 5;
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + 0.2, 3));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - 0.2, 0.5));
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const swipeThreshold = 50;
+    const diff = touchStartX.current - touchEndX.current;
+
+    if (Math.abs(diff) > swipeThreshold) {
+      if (diff > 0) {
+        // Swiped left - next page
+        handleNext();
+      } else {
+        // Swiped right - previous page
+        handlePrevious();
+      }
+    }
+  };
+
+  const handleKeyPress = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      handleNext();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      handlePrevious();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentPage, numPages]);
+
+  const progress = numPages > 0 ? (currentPage / numPages) * 100 : 0;
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading study material...</p>
+        </div>
       </div>
     );
   }
 
-  if (!material) {
-    return null;
+  if (!material || !material.file_url) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <BookOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">No PDF available for this material</p>
+          <Button onClick={() => navigate('/study-materials')} className="mt-4">
+            Back to Materials
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div 
+      ref={containerRef}
       className={`min-h-screen transition-colors duration-300 ${
-        darkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
       }`}
     >
       {/* Header */}
-      <header className={`sticky top-0 z-50 border-b transition-colors ${
-        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      <header className={`sticky top-0 z-50 border-b backdrop-blur-sm transition-colors ${
+        darkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'
       }`}>
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -201,28 +239,27 @@ const StudyMaterialReader = () => {
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Menu className="w-4 h-4 mr-2" />
-                    Contents
+                    Pages
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className={darkMode ? 'bg-gray-800' : ''}>
                   <div className="py-6">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                       <BookOpen className="w-5 h-5" />
-                      Table of Contents
+                      Jump to Page
                     </h2>
-                    <div className="space-y-2">
-                      {chapters.map((chapter, idx) => (
+                    <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+                      {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
                         <Button
-                          key={idx}
-                          variant={currentChapter === idx ? 'default' : 'ghost'}
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'ghost'}
                           className="w-full justify-start"
                           onClick={() => {
-                            setCurrentChapter(idx);
+                            setCurrentPage(pageNum);
                             setTocOpen(false);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
                         >
-                          {idx + 1}. {chapter.title}
+                          Page {pageNum}
                         </Button>
                       ))}
                     </div>
@@ -231,34 +268,55 @@ const StudyMaterialReader = () => {
               </Sheet>
 
               <div className="hidden md:block">
-                <h1 className="font-semibold">{material.title}</h1>
+                <h1 className={`font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                  {material.title}
+                </h1>
                 <p className="text-sm text-muted-foreground">
-                  Chapter {currentChapter + 1} of {chapters.length}
+                  Page {currentPage} of {numPages}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Font Size Control */}
-              <div className="hidden md:flex items-center gap-2 px-3">
-                <Type className="w-4 h-4" />
-                <Slider
-                  value={[fontSize]}
-                  onValueChange={(value) => setFontSize(value[0])}
-                  min={14}
-                  max={24}
-                  step={2}
-                  className="w-24"
-                />
+              {/* Zoom Controls */}
+              <div className="hidden md:flex items-center gap-2 px-3 border-r border-border">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleZoomOut}
+                  disabled={scale <= 0.5}
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                <span className="text-sm min-w-[3rem] text-center">{Math.round(scale * 100)}%</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleZoomIn}
+                  disabled={scale >= 3}
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
               </div>
 
-              {/* Font Family Toggle */}
+              {/* Fullscreen Toggle */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setFontFamily(fontFamily === 'serif' ? 'sans' : 'serif')}
+                onClick={toggleFullscreen}
+                title="Fullscreen"
               >
-                <Type className="w-4 h-4" />
+                <Maximize2 className="w-4 h-4" />
+              </Button>
+
+              {/* Download */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(material.file_url!, '_blank')}
+                title="Download PDF"
+              >
+                <Download className="w-4 h-4" />
               </Button>
 
               {/* Dark Mode Toggle */}
@@ -266,6 +324,7 @@ const StudyMaterialReader = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setDarkMode(!darkMode)}
+                title={darkMode ? 'Light mode' : 'Dark mode'}
               >
                 {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
@@ -274,70 +333,86 @@ const StudyMaterialReader = () => {
         </div>
 
         {/* Progress Bar */}
-        <div className="h-1 bg-gray-200 dark:bg-gray-700">
+        <div className={`h-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
           <div
-            className="h-full bg-primary transition-all duration-300"
+            className="h-full bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
       </header>
 
-      {/* Reader Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Chapter Info */}
-          <div className="mb-8">
-            <h2 className={`text-3xl font-bold mb-4 ${
-              fontFamily === 'serif' ? 'font-serif' : 'font-sans'
-            }`}>
-              {chapters[currentChapter]?.title}
-            </h2>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {estimatedReadTime} min read
-              </span>
-              <span>Progress: {Math.round(progress)}%</span>
-            </div>
+      {/* PDF Reader */}
+      <main 
+        className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[calc(100vh-12rem)]"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="relative w-full flex items-center justify-center">
+          <div className="flex items-center justify-center transition-all duration-300 ease-in-out">
+            <Document
+              file={material.file_url}
+              onLoadSuccess={onDocumentLoadSuccess}
+              loading={
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                  <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Loading PDF...</p>
+                </div>
+              }
+              error={
+                <div className="flex flex-col items-center justify-center py-20">
+                  <BookOpen className="w-16 h-16 mb-4 text-destructive" />
+                  <p className="text-destructive">Failed to load PDF</p>
+                  <p className="text-sm text-muted-foreground mt-2">Please try again later</p>
+                </div>
+              }
+              className={`shadow-2xl rounded-lg overflow-hidden transition-all duration-300 ${
+                darkMode ? 'brightness-90 contrast-125' : ''
+              }`}
+            >
+              <Page
+                pageNumber={currentPage}
+                width={pageWidth}
+                scale={scale}
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+                className="mx-auto"
+              />
+            </Document>
           </div>
-
-          {/* Content */}
-          <div
-            className={`prose max-w-none transition-all duration-200 ${
-              darkMode ? 'prose-invert' : ''
-            } ${fontFamily === 'serif' ? 'font-serif' : 'font-sans'}`}
-            style={{
-              fontSize: `${fontSize}px`,
-              lineHeight: '1.8',
-            }}
-            dangerouslySetInnerHTML={{ __html: chapters[currentChapter]?.content }}
-          />
         </div>
       </main>
 
       {/* Footer Navigation */}
-      <footer className={`sticky bottom-0 border-t py-4 ${
-        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      <footer className={`sticky bottom-0 border-t py-4 backdrop-blur-sm ${
+        darkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'
       }`}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between max-w-3xl mx-auto">
             <Button
               variant="outline"
               onClick={handlePrevious}
-              disabled={currentChapter === 0}
+              disabled={currentPage === 1}
+              className="min-w-[100px]"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
 
-            <span className="text-sm text-muted-foreground">
-              {currentChapter + 1} / {chapters.length}
-            </span>
+            <div className="flex flex-col items-center">
+              <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Page {currentPage} of {numPages}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {Math.round(progress)}% complete
+              </span>
+            </div>
 
             <Button
               variant="outline"
               onClick={handleNext}
-              disabled={currentChapter === chapters.length - 1}
+              disabled={currentPage === numPages}
+              className="min-w-[100px]"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-2" />
