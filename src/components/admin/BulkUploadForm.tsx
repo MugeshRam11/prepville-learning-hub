@@ -197,6 +197,11 @@ const BulkUploadForm = () => {
           const invalidDifficulties: string[] = [];
           const validDifficulties = ['easy', 'medium', 'hard'];
           
+          // Capitalize difficulty for database (Easy, Medium, Hard)
+          const capitalizeDifficulty = (diff: string): string => {
+            return diff.charAt(0).toUpperCase() + diff.slice(1).toLowerCase();
+          };
+          
           const questions: ParsedQuestion[] = rawData
             .map(row => {
               const originalSubject = String(row.subject || '').trim();
@@ -221,7 +226,7 @@ const BulkUploadForm = () => {
                 c: String(row.c || '').trim(),
                 d: String(row.d || '').trim(),
                 level: row.level?.trim() || 'MYP',
-                difficulty: validDifficulties.includes(difficulty) ? difficulty : 'medium'
+                difficulty: capitalizeDifficulty(validDifficulties.includes(difficulty) ? difficulty : 'medium')
               };
             })
             .filter(q => q.subject && q.topic && q.question && q.answer);
