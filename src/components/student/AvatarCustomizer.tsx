@@ -33,7 +33,7 @@ const AvatarCustomizer = ({ onClose, currentAvatar, onSave }: AvatarCustomizerPr
     { id: 8, src: "", name: "React Master", category: "Logos", unlocked: true, emoji: "⚛️" },
     { id: 9, src: "", name: "Math Symbol", category: "Logos", unlocked: true, emoji: "∑" },
     { id: 10, src: "", name: "Code Warrior", category: "Logos", unlocked: true, emoji: "💻" },
-    { id: 11, src: "", name: "Study Hub", category: "Logos", unlocked: false, requiredLevel: 5, emoji: "📚" },
+    { id: 11, src: "", name: "The Prep Ville", category: "Logos", unlocked: false, requiredLevel: 5, emoji: "📚" },
     { id: 12, src: "", name: "Brain Power", category: "Logos", unlocked: true, emoji: "🧠" },
     { id: 13, src: "", name: "Lightning Code", category: "Logos", unlocked: false, requiredLevel: 12, emoji: "⚡" },
     { id: 14, src: "", name: "Gear Head", category: "Logos", unlocked: true, emoji: "⚙️" },

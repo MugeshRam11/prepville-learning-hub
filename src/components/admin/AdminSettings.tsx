@@ -11,7 +11,7 @@ import { Save, Shield, Globe, Bell, Database } from 'lucide-react';
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
-    siteName: 'Study Hub',
+    siteName: 'The Prep Ville',
     siteDescription: 'Comprehensive EdTech platform for MYP and IBDP students',
     allowRegistration: true,
     requireEmailVerification: true,

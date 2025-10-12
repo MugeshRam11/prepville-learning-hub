@@ -68,7 +68,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
             <BookOpen className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Study Hub</h1>
+            <h1 className="text-xl font-bold text-gray-900">The Prep Ville</h1>
             <p className="text-sm text-gray-500">Admin Dashboard</p>
           </div>
         </div>

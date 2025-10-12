@@ -26,7 +26,7 @@ const MockExamHeader = ({
             <span className="text-blue-600 font-bold text-lg">SH</span>
           </div>
           <div>
-            <span className="font-bold text-white text-lg">Study Hub</span>
+            <span className="font-bold text-white text-lg">The Prep Ville</span>
             <div className="flex items-center gap-2 text-blue-100 text-sm">
               <Trophy className="w-4 h-4" />
               <span className="font-medium">{subject}</span>

@@ -34,7 +34,7 @@ const StatsSection = () => {
             Trusted by Students Worldwide
           </h2>
           <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-            Join thousands of students who have improved their academic performance with Study Hub
+            Join thousands of students who have improved their academic performance with The Prep Ville
           </p>
         </div>
 
