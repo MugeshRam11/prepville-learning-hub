@@ -29,6 +29,7 @@ import QuickActions from './QuickActions';
 import { useStreakTracker } from '@/hooks/useStreakTracker';
 import { useXPSystem } from '@/hooks/useXPSystem';
 import { useProgressTracking } from '@/hooks/useProgressTracking';
+import { useSolvedQuestions } from '@/hooks/useSolvedQuestions';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import PerformanceCriteria from './PerformanceCriteria';
@@ -63,6 +64,13 @@ const StudentDashboard = () => {
   const { streakData } = useStreakTracker();
   const { xpData, loading: xpLoading } = useXPSystem();
   const { user } = useAuth();
+  const { 
+    mockTestSolved, 
+    subjectTestSolved, 
+    quickTestSolved, 
+    totalSolved,
+    loading: solvedQuestionsLoading 
+  } = useSolvedQuestions();
   const { 
     userProgress, 
     topicProgress, 
@@ -289,6 +297,10 @@ const StudentDashboard = () => {
             weeklyGoal={studentData.weeklyGoal}
             totalQuestions={studentData.totalQuestions}
             correctAnswers={studentData.correctAnswers}
+            mockTestSolved={mockTestSolved}
+            subjectTestSolved={subjectTestSolved}
+            quickTestSolved={quickTestSolved}
+            totalSolved={totalSolved}
           />
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
