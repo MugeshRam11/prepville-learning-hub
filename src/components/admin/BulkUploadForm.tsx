@@ -194,6 +194,9 @@ const BulkUploadForm = () => {
 
           // Parse and clean questions
           const invalidSubjects: string[] = [];
+          const invalidDifficulties: string[] = [];
+          const validDifficulties = ['easy', 'medium', 'hard'];
+          
           const questions: ParsedQuestion[] = rawData
             .map(row => {
               const originalSubject = String(row.subject || '').trim();
@@ -201,6 +204,11 @@ const BulkUploadForm = () => {
               
               if (!mappedSubject && originalSubject) {
                 invalidSubjects.push(originalSubject);
+              }
+              
+              const difficulty = (row.difficulty?.trim() || 'medium').toLowerCase();
+              if (!validDifficulties.includes(difficulty)) {
+                invalidDifficulties.push(row.difficulty?.trim() || '');
               }
               
               return {
@@ -213,7 +221,7 @@ const BulkUploadForm = () => {
                 c: String(row.c || '').trim(),
                 d: String(row.d || '').trim(),
                 level: row.level?.trim() || 'MYP',
-                difficulty: row.difficulty?.trim() || 'medium'
+                difficulty: validDifficulties.includes(difficulty) ? difficulty : 'medium'
               };
             })
             .filter(q => q.subject && q.topic && q.question && q.answer);
