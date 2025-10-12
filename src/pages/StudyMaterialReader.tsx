@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// Configure PDF.js worker - using jsdelivr CDN for better CORS support
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Configure PDF.js worker from local node_modules
+pdfjs.GlobalWorkerOptions.workerSrc = `/node_modules/pdfjs-dist/build/pdf.worker.min.js`;
 
 interface StudyMaterial {
   id: string;
@@ -320,16 +320,6 @@ const StudyMaterialReader = () => {
                 <Maximize2 className="w-4 h-4" />
               </Button>
 
-              {/* Download */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.open(material.file_url!, '_blank')}
-                title="Download PDF"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
-
               {/* Dark Mode Toggle */}
               <Button
                 variant="ghost"
@@ -383,14 +373,9 @@ const StudyMaterialReader = () => {
                   <p className="text-sm text-muted-foreground mt-2 max-w-md text-center">
                     {pdfError || 'The PDF file could not be loaded. Please check your connection or try again later.'}
                   </p>
-                  <div className="flex gap-2 mt-4">
-                    <Button onClick={() => window.location.reload()} variant="outline">
-                      Retry
-                    </Button>
-                    <Button onClick={() => window.open(material.file_url!, '_blank')} variant="default">
-                      Download PDF
-                    </Button>
-                  </div>
+                  <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
+                    Retry
+                  </Button>
                 </div>
               }
               className={`shadow-2xl rounded-lg overflow-hidden transition-all duration-300 ${
