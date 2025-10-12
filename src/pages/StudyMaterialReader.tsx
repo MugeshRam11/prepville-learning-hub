@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// Configure PDF.js worker using unpkg CDN (more reliable)
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Configure PDF.js worker - using jsdelivr CDN for better CORS support
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface StudyMaterial {
   id: string;
@@ -43,6 +43,7 @@ const StudyMaterialReader = () => {
   const touchEndX = useRef<number>(0);
   
   const [material, setMaterial] = useState<StudyMaterial | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(() => {
@@ -115,6 +116,18 @@ const StudyMaterialReader = () => {
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setPdfError(null);
+    console.log('PDF loaded successfully with', numPages, 'pages');
+  };
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error('PDF load error:', error);
+    setPdfError(error.message);
+    toast({
+      title: 'PDF Loading Error',
+      description: 'Failed to load the PDF. Please try again or contact support.',
+      variant: 'destructive',
+    });
   };
 
   const handlePrevious = () => {
@@ -351,6 +364,12 @@ const StudyMaterialReader = () => {
             <Document
               file={material.file_url}
               onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              options={{
+                cMapUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/cmaps/`,
+                cMapPacked: true,
+                standardFontDataUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+              }}
               loading={
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -360,22 +379,34 @@ const StudyMaterialReader = () => {
               error={
                 <div className="flex flex-col items-center justify-center py-20">
                   <BookOpen className="w-16 h-16 mb-4 text-destructive" />
-                  <p className="text-destructive">Failed to load PDF</p>
-                  <p className="text-sm text-muted-foreground mt-2">Please try again later</p>
+                  <p className="text-destructive font-semibold">Failed to load PDF</p>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-md text-center">
+                    {pdfError || 'The PDF file could not be loaded. Please check your connection or try again later.'}
+                  </p>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={() => window.location.reload()} variant="outline">
+                      Retry
+                    </Button>
+                    <Button onClick={() => window.open(material.file_url!, '_blank')} variant="default">
+                      Download PDF
+                    </Button>
+                  </div>
                 </div>
               }
               className={`shadow-2xl rounded-lg overflow-hidden transition-all duration-300 ${
                 darkMode ? 'brightness-90 contrast-125' : ''
               }`}
             >
-              <Page
-                pageNumber={currentPage}
-                width={pageWidth}
-                scale={scale}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-                className="mx-auto"
-              />
+              {numPages > 0 && (
+                <Page
+                  pageNumber={currentPage}
+                  width={pageWidth}
+                  scale={scale}
+                  renderTextLayer={true}
+                  renderAnnotationLayer={true}
+                  className="mx-auto"
+                />
+              )}
             </Document>
           </div>
         </div>
