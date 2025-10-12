@@ -3,21 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Search, Eye, Flame, TrendingUp, Plus } from 'lucide-react';
@@ -25,9 +12,7 @@ import UserDetailDrawer from './UserDetailDrawer';
 import CreateUserModal from './CreateUserModal';
 import { format } from 'date-fns';
 import { Database } from '@/integrations/supabase/types';
-
 type UserRole = Database['public']['Enums']['user_role'];
-
 interface User {
   user_id: string;
   email: string;
@@ -43,7 +28,6 @@ interface User {
   total_tests_taken: number;
   avg_score_percentage: number;
 }
-
 const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -53,24 +37,21 @@ const UserManagement = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
   useEffect(() => {
     fetchUsers();
   }, []);
-
   useEffect(() => {
     filterUsers();
   }, [users, searchTerm, roleFilter]);
-
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_progress_summary')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('user_progress_summary').select('*').order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
-      
       setUsers(data || []);
       setFilteredUsers(data || []);
     } catch (error) {
@@ -80,34 +61,24 @@ const UserManagement = () => {
       setLoading(false);
     }
   };
-
   const filterUsers = () => {
     let filtered = users;
-
     if (searchTerm) {
-      filtered = filtered.filter(user => 
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.first_name && user.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (user.last_name && user.last_name.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      filtered = filtered.filter(user => user.email.toLowerCase().includes(searchTerm.toLowerCase()) || user.first_name && user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || user.last_name && user.last_name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
-
     if (roleFilter !== 'all') {
       filtered = filtered.filter(user => user.role === roleFilter);
     }
-
     setFilteredUsers(filtered);
   };
-
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
-
+      const {
+        error
+      } = await supabase.from('profiles').update({
+        role: newRole
+      }).eq('id', userId);
       if (error) throw error;
-
       toast.success('User role updated successfully');
       fetchUsers();
     } catch (error) {
@@ -115,16 +86,14 @@ const UserManagement = () => {
       toast.error('Failed to update user role');
     }
   };
-
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: !currentStatus })
-        .eq('id', userId);
-
+      const {
+        error
+      } = await supabase.from('profiles').update({
+        is_active: !currentStatus
+      }).eq('id', userId);
       if (error) throw error;
-
       toast.success(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
       fetchUsers();
     } catch (error) {
@@ -132,22 +101,18 @@ const UserManagement = () => {
       toast.error('Failed to update user status');
     }
   };
-
   const handleViewDetails = (userId: string) => {
     setSelectedUserId(userId);
     setIsDrawerOpen(true);
   };
-
   if (loading) {
     return <div className="flex justify-center p-8">Loading users...</div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">Manage users, track progress, and monitor engagement</p>
+          
+          
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -162,12 +127,7 @@ const UserManagement = () => {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search users by email or name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Search users by email or name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -214,19 +174,13 @@ const UserManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.user_id}>
+                {filteredUsers.map(user => <TableRow key={user.user_id}>
                     <TableCell>
-                      {user.first_name || user.last_name
-                        ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                        : 'N/A'}
+                      {user.first_name || user.last_name ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'N/A'}
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Select
-                        value={user.role}
-                        onValueChange={(value) => updateUserRole(user.user_id, value as UserRole)}
-                      >
+                      <Select value={user.role} onValueChange={value => updateUserRole(user.user_id, value as UserRole)}>
                         <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
@@ -256,9 +210,7 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">
-                        {user.last_activity_date 
-                          ? format(new Date(user.last_activity_date), 'MMM d, yyyy')
-                          : 'Never'}
+                        {user.last_activity_date ? format(new Date(user.last_activity_date), 'MMM d, yyyy') : 'Never'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -268,46 +220,27 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(user.user_id)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(user.user_id)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleUserStatus(user.user_id, user.is_active)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => toggleUserStatus(user.user_id, user.is_active)}>
                           {user.is_active ? 'Deactivate' : 'Activate'}
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
-                ))}
+                  </TableRow>)}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      <UserDetailDrawer 
-        userId={selectedUserId}
-        isOpen={isDrawerOpen}
-        onClose={() => {
-          setIsDrawerOpen(false);
-          setSelectedUserId(null);
-        }}
-      />
+      <UserDetailDrawer userId={selectedUserId} isOpen={isDrawerOpen} onClose={() => {
+      setIsDrawerOpen(false);
+      setSelectedUserId(null);
+    }} />
 
-      <CreateUserModal
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        onUserCreated={fetchUsers}
-      />
-    </div>
-  );
+      <CreateUserModal open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} onUserCreated={fetchUsers} />
+    </div>;
 };
-
 export default UserManagement;
