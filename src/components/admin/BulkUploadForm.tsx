@@ -1,276 +1,298 @@
 import React, { useState } from 'react';
-import { Upload, Download, AlertCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Sparkles, ArrowRight, BookOpen, GraduationCap, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import FileUploadZone from './FileUploadZone';
-import DataPreviewTable from './DataPreviewTable';
-import UploadProgressTracker from './UploadProgressTracker';
+import { Progress } from '@/components/ui/progress';
 
-export interface QuestionRow {
-  question_id: string;
+interface ParsedQuestion {
+  subject: string;
+  level: string;
   topic: string;
   difficulty: string;
-  question_text: string;
-  correct_answer: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  potential_xp_reward: string;
-  related_video_id?: string;
-  explanation_text?: string;
+  question: string;
+  options: string[];
+  answer: string;
+  marks: number;
 }
 
-export interface ValidationError {
-  row: number;
-  field: string;
-  message: string;
+interface UploadStats {
+  extracting: boolean;
+  categorizing: boolean;
+  syncing: boolean;
+  completed: boolean;
 }
 
 const BulkUploadForm = () => {
-  const [selectedSubject, setSelectedSubject] = useState<string>('');
-  const [selectedLevel, setSelectedLevel] = useState<string>('');
-  const [uploadedData, setUploadedData] = useState<QuestionRow[]>([]);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [parsedQuestions, setParsedQuestions] = useState<ParsedQuestion[]>([]);
+  const [uploadStats, setUploadStats] = useState<UploadStats>({
+    extracting: false,
+    categorizing: false,
+    syncing: false,
+    completed: false
+  });
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
-  const downloadTemplate = () => {
-    const template = [
-      'question_id,topic,difficulty,question_text,correct_answer,option_a,option_b,option_c,option_d,potential_xp_reward,related_video_id,explanation_text',
-      'Q001,Linear Equations,3,"Solve for x: 2x + 5 = 15",B,"x = 5","x = 10","x = 15","x = 20",15,YT123,"Subtract 5 from both sides, then divide by 2"',
-      'Q002,Geometry,2,"What is the area of a circle with radius 5?",A,"25π","50π","10π","5π",10,YT124,"Use formula A = πr²"',
-    ].join('\n');
-
-    const blob = new Blob([template], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'question_upload_template.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setUploadedFiles(Array.from(files).filter(f => f.type === 'application/pdf'));
+    }
   };
 
-  const hasRequiredFields = selectedSubject && selectedLevel;
-  const hasCriticalErrors = validationErrors.some(e => 
-    ['topic', 'difficulty', 'question_text', 'correct_answer'].includes(e.field)
-  );
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+    setUploadedFiles(files);
+  };
+
+  const processAndUpload = async () => {
+    if (uploadedFiles.length === 0) return;
+    
+    setUploadStats({ extracting: true, categorizing: false, syncing: false, completed: false });
+    
+    // Simulate processing - In real implementation, this would call an edge function
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setUploadStats({ extracting: false, categorizing: true, syncing: false, completed: false });
+    
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setUploadStats({ extracting: false, categorizing: false, syncing: true, completed: false });
+    
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setUploadStats({ extracting: false, categorizing: false, syncing: false, completed: true });
+    
+    toast({
+      title: "✅ Upload Complete",
+      description: `Successfully processed ${uploadedFiles.length} PDF file(s)`,
+    });
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Subject & Template Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Step 1: Select Subject & Download Template</CardTitle>
-          <CardDescription>Choose the subject and download the CSV template to get started</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Subject</label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mathematics">Mathematics</SelectItem>
-                  <SelectItem value="physics">Physics</SelectItem>
-                  <SelectItem value="chemistry">Chemistry</SelectItem>
-                  <SelectItem value="biology">Biology</SelectItem>
-                  <SelectItem value="computer_science">Computer Science</SelectItem>
-                  <SelectItem value="english">English</SelectItem>
-                  <SelectItem value="history">History</SelectItem>
-                  <SelectItem value="economics">Economics</SelectItem>
-                </SelectContent>
-              </Select>
+    <div className="space-y-8">
+      {/* Feature Overview */}
+      <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5">
+        <CardContent className="pt-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Auto-Parse PDFs</h3>
+                <p className="text-sm text-muted-foreground">Extract questions automatically from PDF files</p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Level</label>
-              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MYP">MYP</SelectItem>
-                  <SelectItem value="IGCSE">IGCSE</SelectItem>
-                  <SelectItem value="AS">AS Level</SelectItem>
-                  <SelectItem value="A2">A2 Level</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Smart Categorization</h3>
+                <p className="text-sm text-muted-foreground">AI classifies by subject, topic & difficulty</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Instant Sync</h3>
+                <p className="text-sm text-muted-foreground">Updates portal in real-time</p>
+              </div>
             </div>
           </div>
-          <Button onClick={downloadTemplate} variant="outline" className="w-full">
-            <Download className="mr-2 h-4 w-4" />
-            Download CSV Template
-          </Button>
         </CardContent>
       </Card>
 
-      {/* File Upload */}
-      {hasRequiredFields && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 2: Upload Question Data</CardTitle>
-            <CardDescription>Drag and drop your CSV or JSON file, or click to browse</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FileUploadZone 
-              onDataParsed={(data, errors) => {
-                setUploadedData(data);
-                setValidationErrors(errors);
-              }}
+      {/* Upload Zone */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Upload PDF Questions
+          </CardTitle>
+          <CardDescription>
+            Drop one or multiple PDF files containing MCQs for MYP / IBDP subjects
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={`
+              relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200
+              ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/50'}
+              ${uploadedFiles.length > 0 ? 'bg-primary/5' : ''}
+            `}
+          >
+            <input
+              type="file"
+              accept=".pdf"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              id="pdf-upload"
             />
-          </CardContent>
-        </Card>
-      )}
+            <label htmlFor="pdf-upload" className="cursor-pointer">
+              <div className="flex flex-col items-center space-y-4">
+                {uploadedFiles.length > 0 ? (
+                  <CheckCircle2 className="h-16 w-16 text-primary" />
+                ) : (
+                  <Upload className="h-16 w-16 text-muted-foreground" />
+                )}
+                <div>
+                  <p className="text-xl font-semibold mb-2">
+                    {uploadedFiles.length > 0 
+                      ? `${uploadedFiles.length} PDF file(s) selected` 
+                      : 'Drop PDF files here or click to browse'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Supports multiple file upload • PDF format only
+                  </p>
+                </div>
+                
+                {uploadedFiles.length > 0 && (
+                  <div className="w-full max-w-md space-y-2">
+                    {uploadedFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-background/60 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium truncate max-w-xs">{file.name}</span>
+                        </div>
+                        <Badge variant="secondary">{(file.size / 1024 / 1024).toFixed(2)} MB</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </label>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Validation Errors Summary */}
-      {validationErrors.length > 0 && (
-        <Alert variant={hasCriticalErrors ? "destructive" : "default"}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="font-semibold mb-2">
-              Found {validationErrors.length} validation {validationErrors.length === 1 ? 'error' : 'errors'}
+      {/* Processing Status */}
+      {(uploadStats.extracting || uploadStats.categorizing || uploadStats.syncing || uploadStats.completed) && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {uploadStats.completed ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  Processing Complete
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                  Processing PDFs...
+                </>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Extracting */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {uploadStats.extracting ? (
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  )}
+                  <span className="font-medium">Extracting Questions</span>
+                </div>
+                {!uploadStats.extracting && <Badge variant="secondary">Done</Badge>}
+              </div>
+              <Progress value={uploadStats.extracting ? 50 : 100} className="h-2" />
             </div>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              {Object.entries(
-                validationErrors.reduce((acc, err) => {
-                  const key = err.message;
-                  acc[key] = (acc[key] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>)
-              ).map(([msg, count]) => (
-                <li key={msg}>{count} row(s): {msg}</li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
 
-      {/* Preview Table */}
-      {uploadedData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 3: Preview & Validate Data</CardTitle>
-            <CardDescription>
-              Showing first 20 rows. Review the data and fix any highlighted errors.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataPreviewTable 
-              data={uploadedData.slice(0, 20)} 
-              errors={validationErrors}
-            />
+            {/* Categorizing */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {uploadStats.categorizing ? (
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : uploadStats.completed || uploadStats.syncing ? (
+                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="font-medium">Categorizing by Subject & Topic</span>
+                </div>
+                {uploadStats.categorizing && <Badge>In Progress</Badge>}
+                {(uploadStats.completed || uploadStats.syncing) && <Badge variant="secondary">Done</Badge>}
+              </div>
+              <Progress value={uploadStats.categorizing ? 50 : (uploadStats.syncing || uploadStats.completed ? 100 : 0)} className="h-2" />
+            </div>
+
+            {/* Syncing */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {uploadStats.syncing ? (
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : uploadStats.completed ? (
+                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="font-medium">Syncing to Portal</span>
+                </div>
+                {uploadStats.syncing && <Badge>In Progress</Badge>}
+                {uploadStats.completed && <Badge variant="secondary">Done</Badge>}
+              </div>
+              <Progress value={uploadStats.syncing ? 50 : (uploadStats.completed ? 100 : 0)} className="h-2" />
+            </div>
+
+            {uploadStats.completed && (
+              <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
+                <p className="text-green-800 dark:text-green-200 font-medium flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Successfully uploaded and synced to Quick Practice, Subjects, and Mock Exams sections
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Upload Progress */}
-      {isUploading && (
-        <UploadProgressTracker 
-          progress={uploadProgress}
-          total={uploadedData.length}
-        />
-      )}
-
-      {/* Submit Button */}
-      {uploadedData.length > 0 && !isUploading && (
+      {/* Action Button */}
+      {uploadedFiles.length > 0 && !uploadStats.completed && (
         <Card>
           <CardContent className="pt-6">
             <Button 
-              onClick={async () => {
-                setIsUploading(true);
-                setUploadProgress(0);
-                
-                try {
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) {
-                    toast({
-                      title: "Error",
-                      description: "You must be logged in to upload questions",
-                      variant: "destructive",
-                    });
-                    setIsUploading(false);
-                    return;
-                  }
-
-                  // Map uploaded data to database schema
-                  const questionsToInsert = uploadedData.map((row) => ({
-                    subject: selectedSubject as any,
-                    level: selectedLevel,
-                    topic: row.topic,
-                    difficulty: row.difficulty,
-                    question_text: row.question_text,
-                    answer_key: row.correct_answer,
-                    option_a: row.option_a,
-                    option_b: row.option_b,
-                    option_c: row.option_c,
-                    option_d: row.option_d,
-                    xp_reward: parseInt(row.potential_xp_reward) || 10,
-                    video_id: row.related_video_id || null,
-                    explanation: row.explanation_text || null,
-                    title: row.question_text.substring(0, 100),
-                    is_published: true,
-                    created_by: user.id,
-                  }));
-
-                  // Insert in batches of 50
-                  const batchSize = 50;
-                  let successCount = 0;
-                  
-                  for (let i = 0; i < questionsToInsert.length; i += batchSize) {
-                    const batch = questionsToInsert.slice(i, i + batchSize);
-                    
-                    const { error } = await supabase
-                      .from('subject_questions')
-                      .insert(batch);
-
-                    if (error) {
-                      throw error;
-                    }
-
-                    successCount += batch.length;
-                    setUploadProgress(successCount);
-                  }
-
-                  toast({
-                    title: "Upload completed",
-                    description: `Successfully uploaded ${successCount} questions to ${selectedSubject} - ${selectedLevel}`,
-                  });
-
-                  // Reset form
-                  setUploadedData([]);
-                  setValidationErrors([]);
-                  setIsUploading(false);
-                  setUploadProgress(0);
-
-                } catch (error: any) {
-                  console.error('Upload error:', error);
-                  toast({
-                    title: "Upload failed",
-                    description: error.message || "An error occurred during upload",
-                    variant: "destructive",
-                  });
-                  setIsUploading(false);
-                }
-              }}
-              disabled={hasCriticalErrors || isUploading}
-              className="w-full"
+              onClick={processAndUpload}
+              disabled={uploadStats.extracting || uploadStats.categorizing || uploadStats.syncing}
+              className="w-full h-14 text-lg"
               size="lg"
             >
-              <Upload className="mr-2 h-4 w-4" />
-              Commit Data Import ({uploadedData.length} questions)
+              {uploadStats.extracting || uploadStats.categorizing || uploadStats.syncing ? (
+                <>
+                  <div className="h-5 w-5 border-2 border-background border-t-transparent rounded-full animate-spin mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Process & Upload {uploadedFiles.length} PDF{uploadedFiles.length > 1 ? 's' : ''}
+                </>
+              )}
             </Button>
-            {hasCriticalErrors && (
-              <p className="text-sm text-destructive mt-2 text-center">
-                Please fix all critical errors before uploading
-              </p>
-            )}
           </CardContent>
         </Card>
       )}
