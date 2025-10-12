@@ -52,7 +52,8 @@ const StudentDashboard = () => {
     loading: progressLoading,
     updateTopicProgress,
     updateDailyChallenge,
-    updatePerformanceCriteria 
+    updatePerformanceCriteria,
+    resetAllProgress 
   } = useProgressTracking();
   
   // Fetch user profile data
@@ -191,6 +192,18 @@ const StudentDashboard = () => {
       
       <main className="flex-1 py-8">
         <div className="container max-w-7xl">
+          {/* Reset Button */}
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetAllProgress}
+              className="text-destructive hover:bg-destructive/10 border-destructive/20"
+            >
+              Reset All Progress
+            </Button>
+          </div>
+
           {/* Welcome Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between flex-wrap gap-6">
