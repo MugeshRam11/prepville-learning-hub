@@ -1,116 +1,176 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SubjectFilter from '@/components/SubjectFilter';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const Subjects = () => {
-  const subjects = [
-    {
-      title: 'MYP Math Standard',
-      description: 'Foundation mathematics for MYP students',
-      questions: 1200,
-      videos: 45,
-      topics: ['Number', 'Algebra', 'Geometry', 'Statistics'],
-      level: 'MYP',
-      color: 'bg-blue-500',
-      category: 'Mathematics'
-    },
-    {
-      title: 'MYP Math Extended',
-      description: 'Advanced mathematics for high achievers',
-      questions: 1500,
-      videos: 60,
-      topics: ['Advanced Algebra', 'Trigonometry', 'Calculus Intro', 'Complex Numbers'],
-      level: 'MYP',
-      color: 'bg-green-500',
-      category: 'Mathematics'
-    },
-    {
-      title: 'Math Analysis & Approaches HL',
-      description: 'Advanced mathematical analysis',
-      questions: 2000,
-      videos: 80,
-      topics: ['Calculus', 'Algebra', 'Functions', 'Statistics'],
-      level: 'IBDP',
-      color: 'bg-purple-500',
-      category: 'Mathematics'
-    },
-    {
-      title: 'Math Applications & Interpretation SL',
-      description: 'Real-world mathematical applications',
-      questions: 1800,
-      videos: 65,
-      topics: ['Statistics', 'Probability', 'Modeling', 'Technology'],
-      level: 'IBDP',
-      color: 'bg-orange-500',
-      category: 'Mathematics'
-    },
-    {
-      title: 'Physics HL/SL',
-      description: 'Comprehensive physics curriculum',
-      questions: 1600,
-      videos: 70,
-      topics: ['Mechanics', 'Thermal Physics', 'Waves', 'Electricity'],
-      level: 'IBDP',
-      color: 'bg-red-500',
-      category: 'Science'
-    },
-    {
-      title: 'Chemistry HL/SL',
-      description: 'Complete chemistry coverage',
-      questions: 1400,
-      videos: 55,
-      topics: ['Atomic Structure', 'Bonding', 'Energetics', 'Kinetics'],
-      level: 'IBDP',
-      color: 'bg-teal-500',
-      category: 'Science'
-    },
-    {
-      title: 'Biology HL/SL',
-      description: 'Comprehensive biology curriculum',
-      questions: 1300,
-      videos: 50,
-      topics: ['Cell Biology', 'Molecular Biology', 'Genetics', 'Ecology'],
-      level: 'IBDP',
-      color: 'bg-emerald-500',
-      category: 'Science'
-    },
-    {
-      title: 'MYP Sciences',
-      description: 'Integrated science for MYP students',
-      questions: 1000,
-      videos: 40,
-      topics: ['Physics', 'Chemistry', 'Biology', 'Environmental Science'],
-      level: 'MYP',
-      color: 'bg-cyan-500',
-      category: 'Science'
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSubjectsFromDB();
+  }, []);
+
+  const fetchSubjectsFromDB = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch all published questions
+      const { data: questionsData, error } = await supabase
+        .from('subject_questions')
+        .select('subject, topic, level, difficulty')
+        .eq('is_published', true);
+
+      if (error) throw error;
+
+      // Group and aggregate data
+      const subjectMap = new Map<string, any>();
+      
+      questionsData?.forEach((q) => {
+        const subjectKey = q.subject;
+        const subjectTitle = formatSubjectTitle(q.subject, q.level);
+        
+        if (!subjectMap.has(subjectKey)) {
+          subjectMap.set(subjectKey, {
+            title: subjectTitle,
+            description: getSubjectDescription(q.subject, q.level),
+            questions: 0,
+            videos: 0, // Will be populated when videos are added
+            topics: new Set<string>(),
+            level: q.level,
+            color: getSubjectColor(q.subject),
+            category: getSubjectCategory(q.subject)
+          });
+        }
+        
+        const subject = subjectMap.get(subjectKey)!;
+        subject.questions++;
+        subject.topics.add(q.topic);
+      });
+
+      // Convert to array and format
+      const formattedSubjects = Array.from(subjectMap.values()).map(s => ({
+        ...s,
+        topics: Array.from(s.topics)
+      }));
+
+      setSubjects(formattedSubjects);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const formatSubjectTitle = (subject: string, level: string): string => {
+    const subjectNames: Record<string, string> = {
+      'mathematics': 'Math',
+      'physics': 'Physics',
+      'chemistry': 'Chemistry',
+      'biology': 'Biology',
+      'english': 'English',
+      'history': 'History',
+      'economics': 'Economics',
+      'computer_science': 'Computer Science'
+    };
+    return `${level} ${subjectNames[subject] || subject}`;
+  };
+
+  const getSubjectDescription = (subject: string, level: string): string => {
+    const descriptions: Record<string, string> = {
+      'mathematics': 'Comprehensive mathematics curriculum',
+      'physics': 'Physics principles and applications',
+      'chemistry': 'Chemical reactions and properties',
+      'biology': 'Life sciences and biological systems',
+      'english': 'Language arts and literature',
+      'history': 'Historical events and analysis',
+      'economics': 'Economic theory and practice',
+      'computer_science': 'Programming and computational thinking'
+    };
+    return descriptions[subject] || `${subject} for ${level} students`;
+  };
+
+  const getSubjectColor = (subject: string): string => {
+    const colors: Record<string, string> = {
+      'mathematics': 'bg-blue-500',
+      'physics': 'bg-red-500',
+      'chemistry': 'bg-teal-500',
+      'biology': 'bg-emerald-500',
+      'english': 'bg-purple-500',
+      'history': 'bg-amber-500',
+      'economics': 'bg-indigo-500',
+      'computer_science': 'bg-cyan-500'
+    };
+    return colors[subject] || 'bg-gray-500';
+  };
+
+  const getSubjectCategory = (subject: string): string => {
+    const categories: Record<string, string> = {
+      'mathematics': 'Mathematics',
+      'physics': 'Science',
+      'chemistry': 'Science',
+      'biology': 'Science',
+      'english': 'Languages',
+      'history': 'Humanities',
+      'economics': 'Social Sciences',
+      'computer_science': 'Technology'
+    };
+    return categories[subject] || 'Other';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading subjects...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-16 bg-gradient-to-br from-blue-50 to-green-50">
+        <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
           <div className="container">
             <div className="text-center max-w-3xl mx-auto">
-              <h1 className="text-4xl lg:text-5xl font-bold mb-6">
+              <h1 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 All Subjects at Your Fingertips
               </h1>
               <p className="text-xl text-muted-foreground">
                 Comprehensive curriculum coverage for MYP and IBDP students. 
                 Choose your subject and start mastering it today.
               </p>
+              {subjects.length > 0 && (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  {subjects.length} subjects available with {subjects.reduce((sum, s) => sum + s.questions, 0)} practice questions
+                </p>
+              )}
             </div>
           </div>
         </section>
 
         {/* Subjects with Filters */}
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-background">
           <div className="container">
-            <SubjectFilter subjects={subjects} />
+            {subjects.length > 0 ? (
+              <SubjectFilter subjects={subjects} />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-4">
+                  No subjects available yet. Upload questions via the admin panel to get started.
+                </p>
+              </div>
+            )}
           </div>
         </section>
       </main>
