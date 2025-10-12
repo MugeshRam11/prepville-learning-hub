@@ -61,6 +61,7 @@ const StudentDashboard = () => {
   const [showAvatarCustomizer, setShowAvatarCustomizer] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [testStats, setTestStats] = useState({ totalQuestions: 0, correctAnswers: 0 });
   const { streakData } = useStreakTracker();
   const { xpData, loading: xpLoading } = useXPSystem();
   const { user } = useAuth();
@@ -82,32 +83,46 @@ const StudentDashboard = () => {
     updatePerformanceCriteria
   } = useProgressTracking();
   
-  // Fetch user profile data
+  // Fetch user profile data and test statistics
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndStats = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        // Fetch profile
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
         
-        if (error) {
-          console.error('Error fetching profile:', error);
-          return;
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+        } else {
+          setProfileData(profileData);
         }
+
+        // Fetch test attempts to calculate real statistics
+        const { data: attempts, error: attemptsError } = await supabase
+          .from('test_attempts')
+          .select('score, total_questions')
+          .eq('user_id', user.id);
         
-        setProfileData(data);
+        if (attemptsError) {
+          console.error('Error fetching test attempts:', attemptsError);
+        } else if (attempts) {
+          const totalQuestions = attempts.reduce((sum, attempt) => sum + (attempt.total_questions || 0), 0);
+          const correctAnswers = attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
+          setTestStats({ totalQuestions, correctAnswers });
+        }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchProfileAndStats();
   }, [user]);
 
   // Get avatar source based on avatar_id or emoji
@@ -118,7 +133,7 @@ const StudentDashboard = () => {
     return "/placeholder.svg";
   };
 
-  // Fallback student data for display
+  // Student display data
   const studentData = {
     name: profileData?.first_name ? 
       `${profileData.first_name}${profileData.last_name ? ` ${profileData.last_name}` : ''}` : 
@@ -126,13 +141,10 @@ const StudentDashboard = () => {
     avatar: getAvatarSource(),
     avatarEmoji: profileData?.avatar_emoji,
     avatarId: profileData?.avatar_id,
-    level: 7,
-    xp: 2750,
-    xpToNextLevel: 3000,
     weeklyGoal: 5,
     weeklyCompleted: 3,
-    totalQuestions: 1247,
-    correctAnswers: 1089,
+    totalQuestions: testStats.totalQuestions,
+    correctAnswers: testStats.correctAnswers,
     favoriteTopics: ["Algebra", "Statistics"]
   };
 
