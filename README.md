@@ -124,7 +124,7 @@ Feel free to use and modify it for learning or development purposes.
 
 ## 💡 Developed By
 
-**Arun Pandian** & **Mugesh Ram**
+ **Mugesh Ram**
 
 > *Empowering learning through AI and automation*
 > 🌐 [Prepville Learning Hub](#)
