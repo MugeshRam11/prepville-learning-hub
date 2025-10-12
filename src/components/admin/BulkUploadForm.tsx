@@ -134,6 +134,37 @@ const BulkUploadForm = () => {
     }
   };
 
+  // Map common subject names to valid database enum values
+  const mapSubjectToEnum = (subject: string): string | null => {
+    const subjectMap: Record<string, string> = {
+      'algebra': 'mathematics',
+      'geometry': 'mathematics',
+      'calculus': 'mathematics',
+      'trigonometry': 'mathematics',
+      'statistics': 'mathematics',
+      'math': 'mathematics',
+      'maths': 'mathematics',
+      'bio': 'biology',
+      'chem': 'chemistry',
+      'phys': 'physics',
+      'cs': 'computer_science',
+      'computing': 'computer_science',
+      'it': 'computer_science',
+      'econ': 'economics'
+    };
+
+    const normalized = subject.toLowerCase().trim();
+    
+    // Check if it's already a valid subject
+    const validSubjects = ['mathematics', 'physics', 'chemistry', 'biology', 'english', 'history', 'economics', 'computer_science'];
+    if (validSubjects.includes(normalized)) {
+      return normalized;
+    }
+    
+    // Try to map to valid subject
+    return subjectMap[normalized] || null;
+  };
+
   const parseCSV = async (file: File) => {
     setUploadStats(prev => ({ ...prev, parsing: true }));
 
@@ -162,20 +193,37 @@ const BulkUploadForm = () => {
           }
 
           // Parse and clean questions
+          const invalidSubjects: string[] = [];
           const questions: ParsedQuestion[] = rawData
-            .map(row => ({
-              subject: String(row.subject || '').trim(),
-              topic: String(row.topic || '').trim(),
-              question: String(row.question || '').trim(),
-              answer: String(row.answer || '').trim().toUpperCase(),
-              a: String(row.a || '').trim(),
-              b: String(row.b || '').trim(),
-              c: String(row.c || '').trim(),
-              d: String(row.d || '').trim(),
-              level: row.level?.trim() || 'MYP',
-              difficulty: row.difficulty?.trim() || 'medium'
-            }))
+            .map(row => {
+              const originalSubject = String(row.subject || '').trim();
+              const mappedSubject = mapSubjectToEnum(originalSubject);
+              
+              if (!mappedSubject && originalSubject) {
+                invalidSubjects.push(originalSubject);
+              }
+              
+              return {
+                subject: mappedSubject || originalSubject,
+                topic: String(row.topic || '').trim(),
+                question: String(row.question || '').trim(),
+                answer: String(row.answer || '').trim().toUpperCase(),
+                a: String(row.a || '').trim(),
+                b: String(row.b || '').trim(),
+                c: String(row.c || '').trim(),
+                d: String(row.d || '').trim(),
+                level: row.level?.trim() || 'MYP',
+                difficulty: row.difficulty?.trim() || 'medium'
+              };
+            })
             .filter(q => q.subject && q.topic && q.question && q.answer);
+
+          if (invalidSubjects.length > 0) {
+            const uniqueInvalid = Array.from(new Set(invalidSubjects));
+            throw new Error(
+              `⚠️ Invalid subjects found: ${uniqueInvalid.join(', ')}\n\nValid subjects: mathematics, physics, chemistry, biology, english, history, economics, computer_science\n\nNote: Common variations like "algebra", "geometry" are auto-mapped to "mathematics"`
+            );
+          }
 
           // Remove duplicates
           const uniqueQuestions = Array.from(
