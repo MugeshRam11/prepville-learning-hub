@@ -605,7 +605,7 @@ const SubjectLearning = () => {
                 <TabsTrigger value="all">All Questions</TabsTrigger>
                 <TabsTrigger value="solved">Solved ({questions.filter(q => q.isSolved).length})</TabsTrigger>
                 <TabsTrigger value="unsolved">Unsolved ({questions.filter(q => !q.isSolved).length})</TabsTrigger>
-                <TabsTrigger value="bookmarked">Bookmarked ({questions.filter(q => q.isBookmarked).length})</TabsTrigger>
+                <TabsTrigger value="bookmarked">Incorrect ({questions.filter(q => q.isBookmarked).length})</TabsTrigger>
               </TabsList>
 
               <TabsContent value={activeTab} className="mt-6">
