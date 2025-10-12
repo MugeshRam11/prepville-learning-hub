@@ -40,6 +40,7 @@ import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 import LevelDetails from "./pages/LevelDetails";
 import SubjectLearning from "./pages/SubjectLearning";
+import QuestionBuilder from "./pages/QuestionBuilder";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import { AuthProvider } from '@/hooks/useAuth';
@@ -199,6 +200,11 @@ const App = () => (
           <Route path="/admin/study-materials" element={
             <ProtectedRoute>
               <AdminStudyMaterials />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/question-builder" element={
+            <ProtectedRoute>
+              <QuestionBuilder />
             </ProtectedRoute>
           } />
           <Route path="/study-groups" element={
