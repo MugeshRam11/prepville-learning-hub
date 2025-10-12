@@ -129,6 +129,3 @@ Feel free to use and modify it for learning or development purposes.
 > *Empowering learning through AI and automation*
 > 🌐 [Prepville Learning Hub](#)
 
----
-
-Would you like me to add **badges** (like React, Node.js, License, Version) and a **screenshot/demo section** next for your GitHub page?
