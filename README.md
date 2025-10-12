@@ -1,73 +1,134 @@
-# Welcome to your Lovable project
+ 🧠 Prepville Learning Hub
 
-## Project info
+**Prepville Learning Hub** is an AI-powered e-learning platform that helps students learn smarter through interactive quizzes, topic-based lessons, and real-time performance tracking.
+It provides a gamified experience using XP points, streaks, and analytics to boost engagement and continuous learning.
 
-**URL**: https://lovable.dev/projects/a88e58be-16f0-49c0-9dc3-3b9b547b4f33
+---
 
-## How can I edit this code?
+🚀 Features
 
-There are several ways of editing your application.
+* 🎯 **Interactive Learning Modules** – Topic-based quiz and test sessions
+* ⚡ **Real-Time Progress Tracking** – XP, streak, and performance auto-sync with backend
+* 📊 **Performance Analytics** – Visual insights into accuracy, progress, and improvement areas
+* 🔁 **Background Sync** – Auto updates whenever a student completes a task (no manual reset)
+* 💾 **Persistent Storage** – Keeps user data secure and synced across sessions
+* 🎨 **Modern UI** – Clean, minimal React interface optimized for responsiveness
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/a88e58be-16f0-49c0-9dc3-3b9b547b4f33) and start prompting.
+## 🏗️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+| Layer           | Technology                                                                   |
+| --------------- | ---------------------------------------------------------------------------- |
+| Frontend        | **React.js**, **Tailwind CSS**                                               |
+| Backend         | **Node.js**, **Express.js**                                                  |
+| Database        | **MongoDB** *(or specify Firebase if applicable)*                            |
+| Real-Time Sync  | **WebSocket / n8n Automation / Firebase Realtime DB** *(depending on setup)* |
+| Version Control | **GitHub**                                                                   |
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## ⚙️ Installation & Setup
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Clone the repository:
 
-Follow these steps:
+```bash
+git clone https://github.com/MugeshRam11/prepville-learning-hub.git
+cd prepville-learning-hub
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Install dependencies:
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+```bash
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+Start the development server:
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm start
+```
+
+Backend setup (if separate):
+
+```bash
+cd server
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Access the app at **[http://localhost:3000](http://localhost:3000)**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 🧩 Folder Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+prepville-learning-hub/
+│
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/          # Page views
+│   │   ├── hooks/          # Custom hooks (progress, sync)
+│   │   ├── context/        # User & progress context
+│   │   └── utils/          # Helper functions
+│
+├── server/                 # Node.js backend
+│   ├── models/             # MongoDB schemas
+│   ├── routes/             # API routes
+│   ├── controllers/        # Business logic
+│   └── sockets/            # Real-time sync handlers
+│
+└── README.md
+```
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## 🧮 Progress Tracking Logic
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+* Initialize all metrics at **0** on first login:
 
-## How can I deploy this project?
+  ```js
+  {
+    streak: 0,
+    performanceCriteria: 0,
+    topicProgress: 0,
+    xp: 0,
+    accuracy: 0
+  }
+  ```
+* Auto-update values in real-time as students complete activities.
+* Use backend events or WebSocket messages to update UI instantly.
 
-Simply open [Lovable](https://lovable.dev/projects/a88e58be-16f0-49c0-9dc3-3b9b547b4f33) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🤝 Contributing
 
-Yes, you can!
+Contributions are welcome!
+To contribute:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Fork this repository
+2. Create a new branch (`feature/your-feature-name`)
+3. Commit your changes
+4. Submit a pull request 🚀
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**.
+Feel free to use and modify it for learning or development purposes.
+
+---
+
+## 💡 Developed By
+
+**Arun Pandian** & **Mugesh Ram**
+
+> *Empowering learning through AI and automation*
+> 🌐 [Prepville Learning Hub](#)
+
+---
+
+Would you like me to add **badges** (like React, Node.js, License, Version) and a **screenshot/demo section** next for your GitHub page?
