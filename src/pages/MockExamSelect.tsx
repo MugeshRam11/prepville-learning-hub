@@ -8,36 +8,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
-import MockTestCard from '@/components/mock-exam/MockTestCard';
+import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
 
 const MockExamSelect = () => {
   const navigate = useNavigate();
-  const [mockTests, setMockTests] = useState([]);
+  const [subjectStats, setSubjectStats] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMockTests();
+    fetchSubjectStats();
   }, []);
 
-  const fetchMockTests = async () => {
+  const fetchSubjectStats = async () => {
     try {
-      const { data, error } = await supabase
+      // Get aggregated stats per subject
+      const { data: tests, error } = await supabase
         .from('mock_tests')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
+        .select('subject, total_questions')
+        .eq('is_published', true);
 
       if (error) throw error;
-      
-      console.log('Fetched mock tests:', data);
-      console.log('Total published tests:', data?.length || 0);
-      
-      setMockTests(data || []);
+
+      // Aggregate by subject
+      const statsMap = tests.reduce((acc, test) => {
+        if (!acc[test.subject]) {
+          acc[test.subject] = {
+            subject: test.subject,
+            totalQuestions: 0,
+            totalTests: 0
+          };
+        }
+        acc[test.subject].totalQuestions += test.total_questions || 0;
+        acc[test.subject].totalTests += 1;
+        return acc;
+      }, {} as Record<string, any>);
+
+      setSubjectStats(Object.values(statsMap));
     } catch (error) {
-      console.error('Error fetching mock tests:', error);
-      toast.error('Failed to load mock tests');
+      console.error('Error fetching subject stats:', error);
+      toast.error('Failed to load subjects');
     } finally {
       setLoading(false);
     }
@@ -56,16 +67,9 @@ const MockExamSelect = () => {
     return labels[subject] || subject;
   };
 
-  // Group tests by subject
-  const testsBySubject = useMemo(() => {
-    let filtered = mockTests;
-
-    if (searchTerm) {
-      filtered = filtered.filter(test =>
-        test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.topic.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  // Filter subjects
+  const filteredSubjects = useMemo(() => {
+    let filtered = subjectStats;
 
     if (selectedSubject !== 'All Subjects') {
       const subjectValue = {
@@ -79,44 +83,28 @@ const MockExamSelect = () => {
       }[selectedSubject];
       
       if (subjectValue) {
-        filtered = filtered.filter(test => test.subject === subjectValue);
+        filtered = filtered.filter(stat => stat.subject === subjectValue);
       }
     }
 
-    // Group by subject
-    const grouped = filtered.reduce((acc, test) => {
-      const subject = getSubjectLabel(test.subject);
-      if (!acc[subject]) {
-        acc[subject] = [];
-      }
-      acc[subject].push(test);
-      return acc;
-    }, {} as Record<string, any[]>);
+    if (searchTerm) {
+      const query = searchTerm.toLowerCase();
+      filtered = filtered.filter(stat =>
+        getSubjectLabel(stat.subject).toLowerCase().includes(query)
+      );
+    }
 
     // Sort subjects in specific order
-    const subjectOrder = ['Mathematics', 'Science', 'Language & Literature', 'Social Studies', 'Physics', 'Chemistry', 'Biology'];
-    const sortedGrouped: Record<string, any[]> = {};
-    subjectOrder.forEach(subject => {
-      if (grouped[subject] && grouped[subject].length > 0) {
-        sortedGrouped[subject] = grouped[subject];
-      }
+    const subjectOrder = ['mathematics', 'science', 'language_literature', 'social_studies', 'physics', 'chemistry', 'biology'];
+    return filtered.sort((a, b) => {
+      const indexA = subjectOrder.indexOf(a.subject);
+      const indexB = subjectOrder.indexOf(b.subject);
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
     });
+  }, [subjectStats, searchTerm, selectedSubject]);
 
-    return sortedGrouped;
-  }, [mockTests, searchTerm, selectedSubject]);
-
-  const handleStartTest = (testId: string) => {
-    const test = mockTests.find(t => t.id === testId);
-    if (test) {
-      navigate('/mock-exams/start', { 
-        state: { 
-          testId: test.id,
-          subject: getSubjectLabel(test.subject), 
-          topic: test.topic,
-          title: test.title
-        } 
-      });
-    }
+  const handleStartSubject = (subjectKey: string) => {
+    navigate(`/mock-exams/subject/${subjectKey}`);
   };
 
   if (loading) {
@@ -156,7 +144,7 @@ const MockExamSelect = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search by title or topic..."
+                  placeholder="Search subjects..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -181,43 +169,26 @@ const MockExamSelect = () => {
           </div>
         </section>
 
-        {/* Tests by Subject */}
+        {/* Subject Cards */}
         <section className="py-8">
           <div className="container">
-            {Object.keys(testsBySubject).length === 0 ? (
+            {filteredSubjects.length === 0 ? (
               <div className="text-center py-12 space-y-4">
-                <p className="text-muted-foreground text-lg">No published mock tests available.</p>
+                <p className="text-muted-foreground text-lg">No subjects available.</p>
                 <p className="text-sm text-muted-foreground">Tests must be published by an administrator to appear here.</p>
               </div>
             ) : (
-              <div className="space-y-12">
-                {Object.entries(testsBySubject).map(([subject, tests]) => {
-                  const subjectTests = tests as any[];
-                  return (
-                    <div key={subject} className="space-y-6">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
-                        <h2 className="text-2xl font-bold text-foreground">{subject}</h2>
-                        <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
-                        <span className="text-sm text-muted-foreground">{subjectTests.length} test{subjectTests.length !== 1 ? 's' : ''}</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {subjectTests.map((test) => (
-                          <MockTestCard
-                            key={test.id}
-                            test={{
-                              ...test,
-                              subject: getSubjectLabel(test.subject)
-                            }}
-                            onStart={handleStartTest}
-                            isAdmin={false}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredSubjects.map((stat) => (
+                  <SubjectTestCard
+                    key={stat.subject}
+                    subject={getSubjectLabel(stat.subject)}
+                    subjectKey={stat.subject}
+                    totalQuestions={stat.totalQuestions}
+                    totalTests={stat.totalTests}
+                    onStart={handleStartSubject}
+                  />
+                ))}
               </div>
             )}
           </div>
