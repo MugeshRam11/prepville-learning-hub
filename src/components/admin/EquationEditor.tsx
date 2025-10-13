@@ -206,47 +206,47 @@ export default function EquationEditor({ value, onChange, placeholder, className
           )}
         </div>
         
-        {isExpanded && (
-          <Card className="border-dashed">
-            <CardContent className="p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">Word-like Math Editor</Badge>
-                  
-                  {/* Undo/Redo buttons */}
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={undo}
-                      disabled={historyIndex <= 0}
-                      className="h-7 w-7 p-0"
-                      title="Undo (Ctrl+Z)"
-                    >
-                      <Undo className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={redo}
-                      disabled={historyIndex >= history.length - 1}
-                      className="h-7 w-7 p-0"
-                      title="Redo (Ctrl+Y)"
-                    >
-                      <Redo className="h-3 w-3" />
-                    </Button>
-                  </div>
+        <Card className="border-dashed">
+          <CardContent className="p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">Word-like Math Editor</Badge>
+                
+                {/* Undo/Redo buttons */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={undo}
+                    disabled={historyIndex <= 0}
+                    className="h-7 w-7 p-0"
+                    title="Undo (Ctrl+Z)"
+                  >
+                    <Undo className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={redo}
+                    disabled={historyIndex >= history.length - 1}
+                    className="h-7 w-7 p-0"
+                    title="Redo (Ctrl+Y)"
+                  >
+                    <Redo className="h-3 w-3" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsExpanded(false)}
-                  className="h-7 w-7 p-0"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                </Button>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="h-7 w-7 p-0"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </Button>
+            </div>
 
+            {isExpanded && (
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Math Templates</label>
@@ -284,45 +284,45 @@ export default function EquationEditor({ value, onChange, placeholder, className
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="flex items-center gap-2 pt-2 border-t">
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(value)}
-                    className="h-7 px-2 text-xs"
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    Copy
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={exportAsLaTeX}
-                    className="h-7 px-2 text-xs"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    LaTeX
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={exportAsUnicode}
-                    className="h-7 px-2 text-xs"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Unicode
-                  </Button>
-                </div>
-                
-                <div className="text-xs text-muted-foreground flex-1">
-                  ✨ Copy equations from Word or type directly. Fractions, powers, roots work visually.
-                </div>
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(value)}
+                  className="h-7 px-2 text-xs"
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportAsLaTeX}
+                  className="h-7 px-2 text-xs"
+                >
+                  <FileText className="h-3 w-3 mr-1" />
+                  LaTeX
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportAsUnicode}
+                  className="h-7 px-2 text-xs"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Unicode
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              
+              <div className="text-xs text-muted-foreground flex-1">
+                ✨ Copy equations from Word or type directly. Fractions, powers, roots work visually.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
