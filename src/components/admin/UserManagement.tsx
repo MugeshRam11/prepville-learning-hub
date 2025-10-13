@@ -7,9 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Search, Eye, Flame, TrendingUp, Plus } from 'lucide-react';
+import { Search, Eye, Flame, TrendingUp, Plus, Trash2, Edit } from 'lucide-react';
 import UserDetailDrawer from './UserDetailDrawer';
 import CreateUserModal from './CreateUserModal';
+import EditUserModal from './EditUserModal';
 import { format } from 'date-fns';
 import { Database } from '@/integrations/supabase/types';
 type UserRole = Database['public']['Enums']['user_role'];
@@ -37,6 +38,8 @@ const UserManagement = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -104,6 +107,51 @@ const UserManagement = () => {
   const handleViewDetails = (userId: string) => {
     setSelectedUserId(userId);
     setIsDrawerOpen(true);
+  };
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = async (userId: string, userEmail: string) => {
+    if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (error) throw error;
+      
+      toast.success('User deleted successfully');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user');
+    }
+  };
+
+  const handleUpdateUser = async (userId: string, firstName: string, lastName: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: firstName,
+          last_name: lastName
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success('User updated successfully');
+      setIsEditModalOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update user');
+    }
   };
   if (loading) {
     return <div className="flex justify-center p-8">Loading users...</div>;
@@ -219,10 +267,17 @@ const UserManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => handleViewDetails(user.user_id)}>
-                        <Eye className="h-4 w-4" />
-                        View Details
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(user.user_id)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(user.user_id, user.email)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>)}
               </TableBody>
@@ -237,6 +292,16 @@ const UserManagement = () => {
     }} />
 
       <CreateUserModal open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} onUserCreated={fetchUsers} />
+      
+      {/* Edit User Modal */}
+      {editingUser && (
+        <EditUserModal 
+          open={isEditModalOpen} 
+          onOpenChange={setIsEditModalOpen}
+          user={editingUser}
+          onUserUpdated={handleUpdateUser}
+        />
+      )}
     </div>;
 };
 export default UserManagement;
