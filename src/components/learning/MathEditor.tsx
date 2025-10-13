@@ -134,6 +134,89 @@ export function MathEditor({ value, onChange, onImageUpload, placeholder }: Math
     toast.success("Copied to clipboard");
   };
 
+  const convertToUnicode = () => {
+    let converted = value;
+    
+    // Convert LaTeX fractions to Unicode fractions
+    const fractionMap: { [key: string]: string } = {
+      '\\frac{1}{2}': '½',
+      '\\frac{1}{3}': '⅓',
+      '\\frac{2}{3}': '⅔',
+      '\\frac{1}{4}': '¼',
+      '\\frac{3}{4}': '¾',
+      '\\frac{1}{5}': '⅕',
+      '\\frac{2}{5}': '⅖',
+      '\\frac{3}{5}': '⅗',
+      '\\frac{4}{5}': '⅘',
+      '\\frac{1}{6}': '⅙',
+      '\\frac{5}{6}': '⅚',
+      '\\frac{1}{8}': '⅛',
+      '\\frac{3}{8}': '⅜',
+      '\\frac{5}{8}': '⅝',
+      '\\frac{7}{8}': '⅞',
+    };
+
+    // Convert common LaTeX symbols to Unicode
+    const symbolMap: { [key: string]: string } = {
+      '\\pi': 'π',
+      '\\alpha': 'α',
+      '\\beta': 'β',
+      '\\gamma': 'γ',
+      '\\delta': 'δ',
+      '\\epsilon': 'ε',
+      '\\theta': 'θ',
+      '\\lambda': 'λ',
+      '\\mu': 'μ',
+      '\\sigma': 'σ',
+      '\\infty': '∞',
+      '\\pm': '±',
+      '\\times': '×',
+      '\\div': '÷',
+      '\\leq': '≤',
+      '\\geq': '≥',
+      '\\neq': '≠',
+      '\\approx': '≈',
+      '\\equiv': '≡',
+      '\\sum': '∑',
+      '\\prod': '∏',
+      '\\int': '∫',
+      '\\partial': '∂',
+      '\\nabla': '∇',
+      '\\sqrt': '√',
+    };
+
+    // Apply fraction conversions
+    Object.entries(fractionMap).forEach(([latex, unicode]) => {
+      converted = converted.replace(new RegExp(latex.replace(/[{}]/g, '\\$&'), 'g'), unicode);
+    });
+
+    // Apply symbol conversions
+    Object.entries(symbolMap).forEach(([latex, unicode]) => {
+      converted = converted.replace(new RegExp(latex.replace(/\\/g, '\\\\'), 'g'), unicode);
+    });
+
+    // Convert power notation: x^{2} to x²
+    converted = converted.replace(/\^{?(\d)}?/g, (match, digit) => {
+      const superscripts: { [key: string]: string } = {
+        '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+        '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+      };
+      return superscripts[digit] || match;
+    });
+
+    // Convert subscript notation: x_{2} to x₂
+    converted = converted.replace(/_{?(\d)}?/g, (match, digit) => {
+      const subscripts: { [key: string]: string } = {
+        '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+        '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
+      };
+      return subscripts[digit] || match;
+    });
+
+    onChange(converted);
+    toast.success("Converted to Unicode symbols");
+  };
+
   const renderMathPreview = (text: string) => {
     try {
       // Split text by LaTeX delimiters and render accordingly
@@ -239,6 +322,7 @@ export function MathEditor({ value, onChange, onImageUpload, placeholder }: Math
           <Button
             variant="ghost"
             size="sm"
+            onClick={convertToUnicode}
             className="flex items-center gap-1"
           >
             <Type className="h-3 w-3" />
