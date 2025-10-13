@@ -133,10 +133,10 @@ export const useProgressTracking = () => {
           .from('daily_challenges')
           .insert({
             user_id: user.id,
-            challenge_type: 'Solve probability questions',
-            target_count: 5,
+            challenge_type: 'Solve 10 questions daily',
+            target_count: 10,
             current_count: 0,
-            xp_reward: 50,
+            xp_reward: 100,
             challenge_date: today
           });
       }
