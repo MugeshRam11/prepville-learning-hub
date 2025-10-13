@@ -56,8 +56,8 @@ const MockExamSelect = () => {
     return labels[subject] || subject;
   };
 
-  // Group tests by category (topic)
-  const testsByCategory = useMemo(() => {
+  // Group tests by subject
+  const testsBySubject = useMemo(() => {
     let filtered = mockTests;
 
     if (searchTerm) {
@@ -68,40 +68,41 @@ const MockExamSelect = () => {
     }
 
     if (selectedSubject !== 'All Subjects') {
-      const subjectKey = Object.keys({
+      const subjectValue = {
         'Mathematics': 'mathematics',
         'Science': 'science',
         'Physics': 'physics',
         'Chemistry': 'chemistry',
-        'Biology': 'biology'
-      }).find(key => key === selectedSubject);
+        'Biology': 'biology',
+        'Language & Literature': 'language_literature',
+        'Social Studies': 'social_studies'
+      }[selectedSubject];
       
-      if (subjectKey) {
-        const subjectValue = {
-          'Mathematics': 'mathematics',
-          'Science': 'science',
-          'Physics': 'physics',
-          'Chemistry': 'chemistry',
-          'Biology': 'biology'
-        }[subjectKey];
+      if (subjectValue) {
         filtered = filtered.filter(test => test.subject === subjectValue);
       }
     }
 
-    // Group by topic
+    // Group by subject
     const grouped = filtered.reduce((acc, test) => {
-      const category = test.topic || 'General';
-      if (!acc[category]) {
-        acc[category] = [];
+      const subject = getSubjectLabel(test.subject);
+      if (!acc[subject]) {
+        acc[subject] = [];
       }
-      acc[category].push({
-        ...test,
-        subject: getSubjectLabel(test.subject)
-      });
+      acc[subject].push(test);
       return acc;
     }, {} as Record<string, any[]>);
 
-    return grouped;
+    // Sort subjects in specific order
+    const subjectOrder = ['Mathematics', 'Science', 'Language & Literature', 'Social Studies', 'Physics', 'Chemistry', 'Biology'];
+    const sortedGrouped: Record<string, any[]> = {};
+    subjectOrder.forEach(subject => {
+      if (grouped[subject] && grouped[subject].length > 0) {
+        sortedGrouped[subject] = grouped[subject];
+      }
+    });
+
+    return sortedGrouped;
   }, [mockTests, searchTerm, selectedSubject]);
 
   const handleStartTest = (testId: string) => {
@@ -168,42 +169,47 @@ const MockExamSelect = () => {
                 <SelectContent>
                   <SelectItem value="All Subjects">All Subjects</SelectItem>
                   <SelectItem value="Mathematics">Mathematics</SelectItem>
+                  <SelectItem value="Science">Science</SelectItem>
+                  <SelectItem value="Language & Literature">Language & Literature</SelectItem>
+                  <SelectItem value="Social Studies">Social Studies</SelectItem>
                   <SelectItem value="Physics">Physics</SelectItem>
                   <SelectItem value="Chemistry">Chemistry</SelectItem>
                   <SelectItem value="Biology">Biology</SelectItem>
-                  <SelectItem value="Science">Science</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         </section>
 
-        {/* Tests by Category */}
+        {/* Tests by Subject */}
         <section className="py-8">
           <div className="container">
-            {Object.keys(testsByCategory).length === 0 ? (
+            {Object.keys(testsBySubject).length === 0 ? (
               <div className="text-center py-12 space-y-4">
                 <p className="text-muted-foreground text-lg">No published mock tests available.</p>
                 <p className="text-sm text-muted-foreground">Tests must be published by an administrator to appear here.</p>
               </div>
             ) : (
               <div className="space-y-12">
-                {Object.entries(testsByCategory).map(([category, tests]) => {
-                  const categoryTests = tests as any[];
+                {Object.entries(testsBySubject).map(([subject, tests]) => {
+                  const subjectTests = tests as any[];
                   return (
-                    <div key={category} className="space-y-6">
+                    <div key={subject} className="space-y-6">
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
-                        <h2 className="text-2xl font-bold text-foreground">{category}</h2>
+                        <h2 className="text-2xl font-bold text-foreground">{subject}</h2>
                         <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
-                        <span className="text-sm text-muted-foreground">{categoryTests.length} test{categoryTests.length !== 1 ? 's' : ''}</span>
+                        <span className="text-sm text-muted-foreground">{subjectTests.length} test{subjectTests.length !== 1 ? 's' : ''}</span>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {categoryTests.map((test) => (
+                        {subjectTests.map((test) => (
                           <MockTestCard
                             key={test.id}
-                            test={test}
+                            test={{
+                              ...test,
+                              subject: getSubjectLabel(test.subject)
+                            }}
                             onStart={handleStartTest}
                             isAdmin={false}
                           />
