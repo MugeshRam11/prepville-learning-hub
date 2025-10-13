@@ -72,6 +72,7 @@ const SubjectLearning = () => {
   const [showAnswers, setShowAnswers] = useState<{ [key: string]: boolean }>({});
   const [userAnswers, setUserAnswers] = useState<{ [key: string]: string }>({});
   const [submittedAnswers, setSubmittedAnswers] = useState<{ [key: string]: boolean }>({});
+  const [incorrectAnswers, setIncorrectAnswers] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -341,10 +342,6 @@ const SubjectLearning = () => {
       ...prev,
       [questionId]: true
     }));
-    setShowAnswers(prev => ({
-      ...prev,
-      [questionId]: true
-    }));
     
     try {
       // Get current progress to increment attempts
@@ -385,10 +382,16 @@ const SubjectLearning = () => {
           description: "Question marked as solved automatically.",
         });
       } else {
+        // Add to incorrect answers for review
+        setIncorrectAnswers(prev => {
+          if (!prev.includes(questionId)) {
+            return [...prev, questionId];
+          }
+          return prev;
+        });
         toast({
-          title: "Incorrect Answer",
-          description: "Review the answer and try again.",
-          variant: "destructive"
+          title: "Answer Submitted",
+          description: "Check the Review tab to see the correct answer.",
         });
       }
     } catch (error) {
@@ -649,14 +652,15 @@ const SubjectLearning = () => {
 
             {/* Questions Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="all">All Questions</TabsTrigger>
                 <TabsTrigger value="solved">Solved ({questions.filter(q => q.isSolved).length})</TabsTrigger>
                 <TabsTrigger value="unsolved">Unsolved ({questions.filter(q => !q.isSolved).length})</TabsTrigger>
-                <TabsTrigger value="bookmarked">Incorrect ({questions.filter(q => q.isBookmarked).length})</TabsTrigger>
+                <TabsTrigger value="bookmarked">Bookmarked ({questions.filter(q => q.isBookmarked).length})</TabsTrigger>
+                <TabsTrigger value="review">Review ({incorrectAnswers.length})</TabsTrigger>
               </TabsList>
 
-              <TabsContent value={activeTab} className="mt-6">
+              <TabsContent value="all" className="mt-6">
                 <div className="space-y-4">
                   {filteredQuestions.length === 0 ? (
                     <Card>
@@ -742,32 +746,136 @@ const SubjectLearning = () => {
                                     >
                                       <RotateCcw className="w-4 h-4" />
                                       Try Again
-                                    </Button>
+                                     </Button>
                                   </div>
-                                )}
-                                
-                                {submittedAnswers[question.id] && showAnswers[question.id] && (
-                                  <div className={`mt-4 p-4 border rounded-lg ${
-                                    question.isSolved 
-                                      ? 'bg-green-50 border-green-200' 
-                                      : 'bg-red-50 border-red-200'
-                                  }`}>
-                                    <h4 className={`font-semibold mb-2 ${
-                                      question.isSolved ? 'text-green-800' : 'text-red-800'
-                                    }`}>
-                                      {question.isSolved ? 'Correct!' : 'Incorrect'} - Answer:
-                                    </h4>
-                                    <div className={`text-base ${
-                                      question.isSolved ? 'text-green-700' : 'text-red-700'
-                                    }`}>
-                                      {renderMathText(question.answerKey)}
-                                    </div>
-                                  </div>
-                                )}
+                                 )}
                               </div>
                             </CardContent>
                           </CollapsibleContent>
                         </Collapsible>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="solved" className="mt-6">
+                <div className="space-y-4">
+                  {filteredQuestions.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">No solved questions found.</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    filteredQuestions.map(question => (
+                      <Card key={question.id}>
+                        <CardHeader>
+                          <CardTitle className="text-lg">{question.title}</CardTitle>
+                        </CardHeader>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="unsolved" className="mt-6">
+                <div className="space-y-4">
+                  {filteredQuestions.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">No unsolved questions found.</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    filteredQuestions.map(question => (
+                      <Card key={question.id}>
+                        <CardHeader>
+                          <CardTitle className="text-lg">{question.title}</CardTitle>
+                        </CardHeader>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="bookmarked" className="mt-6">
+                <div className="space-y-4">
+                  {filteredQuestions.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">No bookmarked questions found.</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    filteredQuestions.map(question => (
+                      <Card key={question.id}>
+                        <CardHeader>
+                          <CardTitle className="text-lg">{question.title}</CardTitle>
+                        </CardHeader>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="review" className="mt-6">
+                <div className="space-y-4">
+                  {incorrectAnswers.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <Target className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">No incorrect answers to review yet.</p>
+                        <p className="text-sm text-muted-foreground mt-2">Submit answers to questions to see them here.</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    questions.filter(q => incorrectAnswers.includes(q.id)).map(question => (
+                      <Card key={question.id} className="border-red-200">
+                        <CardHeader className="bg-red-50">
+                          <CardTitle className="text-lg text-red-800">
+                            {question.title}
+                          </CardTitle>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline">{question.topic}</Badge>
+                            <Badge className={getDifficultyColor(question.difficulty)}>
+                              {question.difficulty}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-6">
+                          <div>
+                            <p className="font-medium mb-2">Question:</p>
+                            <p className="text-muted-foreground">{question.content}</p>
+                          </div>
+                          
+                          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                            <p className="text-sm font-medium text-red-800 mb-2">Incorrect - Your Answer:</p>
+                            <div className="text-base text-red-700">{renderMathText(userAnswers[question.id] || '')}</div>
+                          </div>
+                          
+                          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <p className="font-semibold text-green-800 mb-2">Correct Answer:</p>
+                            <div className="text-base text-green-700">{renderMathText(question.answerKey)}</div>
+                          </div>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              handleRetryAnswer(question.id);
+                              setIncorrectAnswers(prev => prev.filter(id => id !== question.id));
+                              setActiveTab('all');
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            Try Again
+                          </Button>
+                        </CardContent>
                       </Card>
                     ))
                   )}
