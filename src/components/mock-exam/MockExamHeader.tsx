@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Maximize, Minimize, LogOut, Clock, Trophy } from 'lucide-react';
+import { Maximize, Minimize, LogOut, Clock, Trophy, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface MockExamHeaderProps {
   subject: string;
@@ -18,9 +19,20 @@ const MockExamHeader = ({
   onToggleFullscreen, 
   isFullscreen 
 }: MockExamHeaderProps) => {
+  const navigate = useNavigate();
   return (
     <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 shadow-lg px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white/30"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+        
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
             <span className="text-blue-600 font-bold text-lg">SH</span>
