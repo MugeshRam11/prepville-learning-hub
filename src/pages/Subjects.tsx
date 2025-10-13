@@ -140,18 +140,17 @@ const Subjects = () => {
       <Header />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-          <div className="container">
-            <div className="text-center max-w-3xl mx-auto">
-              <h1 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <section className="py-20 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+          <div className="container max-w-5xl mx-auto px-4">
+            <div className="text-center space-y-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 All Subjects at Your Fingertips
               </h1>
-              <p className="text-xl text-muted-foreground">
-                Comprehensive curriculum coverage for MYP and IBDP students. 
-                Choose your subject and start mastering it today.
+              <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                Comprehensive curriculum coverage for MYP and IBDP students. Choose your subject and start mastering it today.
               </p>
               {subjects.length > 0 && (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="text-sm md:text-base text-muted-foreground/80 pt-2">
                   {subjects.length} subjects available with {subjects.reduce((sum, s) => sum + s.questions, 0)} practice questions
                 </p>
               )}
