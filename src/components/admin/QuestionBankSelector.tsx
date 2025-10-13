@@ -234,7 +234,7 @@ const QuestionBankSelector = ({
           </div>
 
           {/* Selection Controls */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg">
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
@@ -247,9 +247,18 @@ const QuestionBankSelector = ({
                 {selectedIds.size} of {filteredQuestions.length} selected
               </span>
             </div>
-            <Badge variant="secondary">
-              {questions.length} total questions in bank
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary">
+                {questions.length} total questions in bank
+              </Badge>
+              <Button 
+                onClick={handleConfirm}
+                disabled={selectedIds.size === 0}
+                size="sm"
+              >
+                Load Selected Questions ({selectedIds.size})
+              </Button>
+            </div>
           </div>
 
           {/* Questions List */}
