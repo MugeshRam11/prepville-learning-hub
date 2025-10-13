@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -9,46 +8,40 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, CheckCircle, XCircle, FileText, RotateCcw, Eye, Home } from 'lucide-react';
 import type { Question, Answer } from './MockExamStart';
-
 const MockExamSummary = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { subject, topic, answers, questions, timeSpent } = location.state || {};
-
+  const {
+    subject,
+    topic,
+    answers,
+    questions,
+    timeSpent
+  } = location.state || {};
   if (!subject || !answers || !questions) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">No Results Found</h2>
           <Button onClick={() => navigate('/mock-exams/select')}>
             Take New Exam
           </Button>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   const totalQuestions = questions.reduce((total: number, q: Question) => {
     return total + (q.subQuestions ? q.subQuestions.length : 1);
   }, 0);
-
   const attemptedCount = answers.length;
   const unattemptedCount = totalQuestions - attemptedCount;
-
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
-
   const getQuestionAnswer = (questionId: string, subQuestionId?: string) => {
-    return answers.find((a: Answer) => 
-      a.questionId === questionId && a.subQuestionId === subQuestionId
-    );
+    return answers.find((a: Answer) => a.questionId === questionId && a.subQuestionId === subQuestionId);
   };
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 bg-gradient-to-br from-green-50 to-blue-50 py-8">
         <div className="container max-w-6xl">
@@ -105,75 +98,55 @@ const MockExamSummary = () => {
 
                 <TabsContent value="overview" className="mt-6">
                   <div className="space-y-4">
-                    {questions.map((question: Question, index: number) => (
-                      <div key={question.id} className="border rounded-lg p-4">
+                    {questions.map((question: Question, index: number) => <div key={question.id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium">Q{index + 1}: {question.text.slice(0, 60)}...</h4>
                           <Badge variant="secondary">{question.marks} marks</Badge>
                         </div>
                         
-                        {question.subQuestions ? (
-                          <div className="ml-4 space-y-2">
+                        {question.subQuestions ? <div className="ml-4 space-y-2">
                             {question.subQuestions.map((subQ, subIndex) => {
-                              const answer = getQuestionAnswer(question.id, subQ.id);
-                              return (
-                                <div key={subQ.id} className="flex items-center justify-between">
+                        const answer = getQuestionAnswer(question.id, subQ.id);
+                        return <div key={subQ.id} className="flex items-center justify-between">
                                   <span className="text-sm">Q{index + 1}{String.fromCharCode(97 + subIndex)}: {subQ.text.slice(0, 40)}...</span>
                                   <div className="flex items-center gap-2">
                                     <Badge variant={answer ? "default" : "destructive"}>
                                       {answer ? "Answered" : "Not Answered"}
                                     </Badge>
-                                    {answer && (
-                                      <span className="text-xs text-gray-500">{answer.wordCount} words</span>
-                                    )}
+                                    {answer && <span className="text-xs text-gray-500">{answer.wordCount} words</span>}
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
+                                </div>;
+                      })}
+                          </div> : <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Main question</span>
                             <div className="flex items-center gap-2">
                               {(() => {
-                                const answer = getQuestionAnswer(question.id);
-                                return (
-                                  <>
+                          const answer = getQuestionAnswer(question.id);
+                          return <>
                                     <Badge variant={answer ? "default" : "destructive"}>
                                       {answer ? "Answered" : "Not Answered"}
                                     </Badge>
-                                    {answer && (
-                                      <span className="text-xs text-gray-500">{answer.wordCount} words</span>
-                                    )}
-                                  </>
-                                );
-                              })()}
+                                    {answer && <span className="text-xs text-gray-500">{answer.wordCount} words</span>}
+                                  </>;
+                        })()}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          </div>}
+                      </div>)}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="detailed" className="mt-6">
                   <div className="space-y-6">
                     {answers.map((answer: Answer, index: number) => {
-                      const question = questions.find((q: Question) => q.id === answer.questionId);
-                      const subQuestion = answer.subQuestionId 
-                        ? question?.subQuestions?.find(sq => sq.id === answer.subQuestionId)
-                        : null;
-                      
-                      return (
-                        <div key={index} className="border rounded-lg p-4">
+                    const question = questions.find((q: Question) => q.id === answer.questionId);
+                    const subQuestion = answer.subQuestionId ? question?.subQuestions?.find(sq => sq.id === answer.subQuestionId) : null;
+                    return <div key={index} className="border rounded-lg p-4">
                           <div className="mb-3">
                             <h4 className="font-medium text-gray-800">
                               {question?.text}
-                              {subQuestion && (
-                                <span className="block text-sm text-gray-600 mt-1">
+                              {subQuestion && <span className="block text-sm text-gray-600 mt-1">
                                   → {subQuestion.text}
-                                </span>
-                              )}
+                                </span>}
                             </h4>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge variant="outline">{answer.wordCount} words</Badge>
@@ -185,9 +158,8 @@ const MockExamSummary = () => {
                           <div className="bg-gray-50 rounded p-3">
                             <p className="text-sm whitespace-pre-wrap">{answer.content}</p>
                           </div>
-                        </div>
-                      );
-                    })}
+                        </div>;
+                  })}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -196,26 +168,12 @@ const MockExamSummary = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 justify-center mt-8">
-            <Button 
-              onClick={() => navigate('/mock-exams/select')}
-              className="flex items-center gap-2"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Retake Test
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/mock-exams/select')}
-              className="flex items-center gap-2"
-            >
+            
+            <Button variant="outline" onClick={() => navigate('/mock-exams/select')} className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
               Take Different Test
             </Button>
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2"
-            >
+            <Button variant="outline" onClick={() => navigate('/')} className="flex items-center gap-2">
               <Home className="w-4 h-4" />
               Return to Dashboard
             </Button>
@@ -223,8 +181,6 @@ const MockExamSummary = () => {
         </div>
       </main>
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default MockExamSummary;
