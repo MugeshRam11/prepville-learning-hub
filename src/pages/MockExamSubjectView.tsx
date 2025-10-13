@@ -88,6 +88,8 @@ const MockExamSubjectView = () => {
       state: {
         subject: getSubjectLabel(subject || ''),
         subjectKey: subject,
+        title: getSubjectLabel(subject || ''),
+        topic: getSubjectLabel(subject || ''),
         questions: questions
       }
     });
