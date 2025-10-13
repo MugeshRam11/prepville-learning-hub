@@ -1487,6 +1487,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      reset_user_progress_data: {
+        Args: { user_uuid: string }
+        Returns: Json
+      }
       update_user_streak: {
         Args: { user_uuid: string }
         Returns: {
