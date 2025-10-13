@@ -284,15 +284,14 @@ const MockTestBulkUploadForm = () => {
         is_active: true
       }));
 
-      // Save to question bank (ignore duplicates)
-      const {
-        error: bankError
-      } = await supabase.from('mock_test_question_bank').upsert(bankQuestions, {
-        onConflict: 'question_text',
-        ignoreDuplicates: true
-      });
-      if (bankError && bankError.code !== '23505') {
+      // Save to question bank (use simple insert)
+      const { error: bankError } = await supabase
+        .from('mock_test_question_bank')
+        .insert(bankQuestions);
+      
+      if (bankError) {
         console.error('Question bank save error:', bankError);
+        // Don't fail the whole operation if bank save fails
       }
 
       // Group questions by test to create/update mock tests
