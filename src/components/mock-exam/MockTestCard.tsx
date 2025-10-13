@@ -53,33 +53,31 @@ const MockTestCard: React.FC<MockTestCardProps> = ({
       {/* Gradient Header */}
       <div className={`h-2 bg-gradient-to-r ${getSubjectColor(test.subject)}`} />
       
-      <CardHeader className="space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 space-y-1">
-            <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-              {test.title}
-            </CardTitle>
-            <CardDescription className="text-sm">{test.topic}</CardDescription>
-          </div>
-          {isAdmin && test.is_published !== undefined && (
-            <Badge variant={test.is_published ? "default" : "secondary"} className="shrink-0">
-              {test.is_published ? 'Published' : 'Draft'}
-            </Badge>
-          )}
-        </div>
+      <CardHeader className="space-y-3">
+        <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">
+          {test.topic || test.title}
+        </CardTitle>
+        <CardDescription className="text-sm text-muted-foreground">
+          {test.topic || test.title}
+        </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Test Info */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <FileText className="w-4 h-4 text-primary" />
             <span className="font-medium">{test.total_questions || 0} Questions</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Award className="w-4 h-4 text-primary" />
-            <span className="font-medium capitalize">{test.subject}</span>
+            <span className="font-medium capitalize">{typeof test.subject === 'string' ? test.subject : 'Subject'}</span>
           </div>
+          {isAdmin && test.is_published !== undefined && (
+            <Badge variant={test.is_published ? "default" : "secondary"} className="ml-auto">
+              {test.is_published ? 'Published' : 'Draft'}
+            </Badge>
+          )}
         </div>
 
         {isAdmin && test.created_at && (
