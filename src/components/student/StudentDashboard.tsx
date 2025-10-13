@@ -61,6 +61,11 @@ const StudentDashboard = () => {
   const [showAvatarCustomizer, setShowAvatarCustomizer] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [weeklyGoal, setWeeklyGoal] = useState(5);
+  const [weeklyCompleted, setWeeklyCompleted] = useState(0);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  
   const { streakData } = useStreakTracker();
   const { xpData, loading: xpLoading } = useXPSystem();
   const { user } = useAuth();
@@ -82,32 +87,94 @@ const StudentDashboard = () => {
     updatePerformanceCriteria
   } = useProgressTracking();
   
-  // Fetch user profile data
+  // Fetch user profile data and real stats
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndStats = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        // Fetch profile
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
         
-        if (error) {
-          console.error('Error fetching profile:', error);
-          return;
-        }
+        if (profileError) throw profileError;
+        setProfileData(profile);
+
+        // Fetch test attempts to calculate real stats
+        const { data: attempts } = await supabase
+          .from('test_attempts')
+          .select('score, total_questions, completed_at')
+          .eq('user_id', user.id);
+
+        // Calculate total questions and correct answers
+        const total = attempts?.reduce((sum: number, a: any) => sum + (a.total_questions || 0), 0) || 0;
+        const correct = attempts?.reduce((sum: number, a: any) => sum + (a.score || 0), 0) || 0;
         
-        setProfileData(data);
+        setTotalQuestions(total);
+        setCorrectAnswers(correct);
+
+        // Calculate weekly completed from daily challenges
+        const startOfWeek = new Date();
+        const dayOfWeek = startOfWeek.getDay();
+        startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const weekStart = startOfWeek.toISOString().split('T')[0];
+
+        const { count: weeklyCount } = await supabase
+          .from('daily_challenges')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('challenge_date', weekStart)
+          .eq('is_completed', true);
+        
+        setWeeklyCompleted(weeklyCount || 0);
+
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Error fetching profile and stats:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchProfileAndStats();
+
+    // Set up real-time subscriptions for stats updates
+    const testChannel = supabase
+      .channel('test-attempts-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'test_attempts',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => fetchProfileAndStats()
+      )
+      .subscribe();
+
+    const challengeChannel = supabase
+      .channel('challenges-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'daily_challenges',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => fetchProfileAndStats()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(testChannel);
+      supabase.removeChannel(challengeChannel);
+    };
   }, [user]);
 
   // Get avatar source based on avatar_id or emoji
@@ -118,7 +185,7 @@ const StudentDashboard = () => {
     return "/placeholder.svg";
   };
 
-  // Fallback student data for display
+  // Student data for display with real values
   const studentData = {
     name: profileData?.first_name ? 
       `${profileData.first_name}${profileData.last_name ? ` ${profileData.last_name}` : ''}` : 
@@ -126,13 +193,10 @@ const StudentDashboard = () => {
     avatar: getAvatarSource(),
     avatarEmoji: profileData?.avatar_emoji,
     avatarId: profileData?.avatar_id,
-    level: 7,
-    xp: 2750,
-    xpToNextLevel: 3000,
-    weeklyGoal: 5,
-    weeklyCompleted: 3,
-    totalQuestions: 1247,
-    correctAnswers: 1089,
+    weeklyGoal: weeklyGoal,
+    weeklyCompleted: weeklyCompleted,
+    totalQuestions: totalQuestions,
+    correctAnswers: correctAnswers,
     favoriteTopics: ["Algebra", "Statistics"]
   };
 
