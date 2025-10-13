@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    // Get authorization header
+    // Get authorization header from the request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
@@ -21,16 +21,22 @@ serve(async (req) => {
       });
     }
 
+    // Create Supabase client with the auth header
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
     );
 
-    // Verify the requesting user is an admin
+    // Verify the requesting user
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
+    } = await supabaseClient.auth.getUser();
 
     if (userError || !user) {
       console.error('Auth error:', userError);

@@ -120,18 +120,8 @@ const UserManagement = () => {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error('You must be logged in to delete users');
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke('delete-user', {
-        body: { userId },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        body: { userId }
       });
 
       if (error) throw error;
