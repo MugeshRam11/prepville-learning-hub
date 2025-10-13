@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Circle, AlertCircle } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MockExamSidebarProps {
   questions: any[];
@@ -19,6 +20,19 @@ const MockExamSidebar = ({
   answeredQuestions,
   onQuestionSelect
 }: MockExamSidebarProps) => {
+  const activeQuestionRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to active question with smooth animation
+  useEffect(() => {
+    if (activeQuestionRef.current) {
+      activeQuestionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'start'
+      });
+    }
+  }, [currentQuestionIndex, currentSubQuestionIndex]);
+
   const getQuestionStatus = (questionIndex: number, subQuestionIndex?: number) => {
     const question = questions[questionIndex];
     if (!question) return 'unanswered';
@@ -53,32 +67,37 @@ const MockExamSidebar = ({
   };
 
   return (
-    <div className="w-80 bg-gradient-to-b from-white to-blue-50/50 border-r border-blue-200 p-4 overflow-y-auto">
-      <div className="mb-6">
-        <h2 className="text-lg font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <aside className="w-full lg:w-80 xl:w-96 bg-gradient-to-b from-background to-primary/5 border-r border-border flex flex-col h-full">
+      <div className="p-4 border-b border-border">
+        <h2 className="text-lg font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Question Navigation
         </h2>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-3 flex-wrap text-sm">
           <div className="flex items-center gap-1">
             <CheckCircle className="w-4 h-4 text-green-500" />
             <span className="text-green-700">Answered</span>
           </div>
           <div className="flex items-center gap-1">
             <Circle className="w-4 h-4 text-gray-400" />
-            <span className="text-gray-600">Not Answered</span>
+            <span className="text-muted-foreground">Not Answered</span>
           </div>
         </div>
       </div>
 
-      <div className="space-y-3">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-3 py-4">
         {questions.map((question, questionIndex) => {
           const mainQuestionStatus = getQuestionStatus(questionIndex);
           const isMainActive = currentQuestionIndex === questionIndex && currentSubQuestionIndex === null;
 
           return (
-            <div key={question.id} className="space-y-2">
+            <div 
+              key={question.id} 
+              className="space-y-2"
+              ref={isMainActive && currentSubQuestionIndex === null ? activeQuestionRef : null}
+            >
               <Card
-                className={`p-3 cursor-pointer transition-all duration-200 ${getStatusColor(mainQuestionStatus, isMainActive)}`}
+                className={`p-3 cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-[1.02] ${getStatusColor(mainQuestionStatus, isMainActive)}`}
                 onClick={() => onQuestionSelect(questionIndex)}
               >
                 <div className="flex items-center justify-between">
@@ -102,19 +121,20 @@ const MockExamSidebar = ({
                 return (
                   <Card
                     key={subQuestion.id}
-                    className={`ml-6 p-2 cursor-pointer transition-all duration-200 ${getStatusColor(subQuestionStatus, isSubActive)}`}
+                    ref={isSubActive ? activeQuestionRef : null}
+                    className={`ml-4 lg:ml-6 p-2 cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-[1.02] ${getStatusColor(subQuestionStatus, isSubActive)}`}
                     onClick={() => onQuestionSelect(questionIndex, subIndex)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         {getStatusIcon(subQuestionStatus, isSubActive)}
-                        <span className="text-sm font-medium">
-                          {String.fromCharCode(97 + subIndex)}) {subQuestion.id}
+                        <span className="text-sm font-medium truncate">
+                          {String.fromCharCode(97 + subIndex)}) {subQuestion.id.slice(0, 20)}...
                         </span>
                       </div>
                       <Badge 
                         variant={isSubActive ? "secondary" : "outline"}
-                        className={`text-xs ${isSubActive ? "bg-white/20 text-white" : ""}`}
+                        className={`text-xs flex-shrink-0 ${isSubActive ? "bg-white/20 text-white" : ""}`}
                       >
                         {subQuestion.marks}m
                       </Badge>
@@ -125,24 +145,25 @@ const MockExamSidebar = ({
             </div>
           );
         })}
-      </div>
+        </div>
+      </ScrollArea>
 
-      <div className="mt-6 pt-4 border-t border-blue-200">
-        <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-3">
-          <h3 className="font-medium text-blue-800 mb-2">Progress Overview</h3>
+      <div className="p-4 border-t border-border">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-3">
+          <h3 className="font-medium text-foreground mb-2">Progress Overview</h3>
           <div className="space-y-1 text-sm">
-            <div className="flex justify-between text-blue-700">
+            <div className="flex justify-between text-foreground">
               <span>Answered:</span>
-              <span className="font-medium">{answeredQuestions.size}</span>
+              <span className="font-semibold text-green-600">{answeredQuestions.size}</span>
             </div>
-            <div className="flex justify-between text-blue-700">
+            <div className="flex justify-between text-foreground">
               <span>Remaining:</span>
-              <span className="font-medium">{questions.length - answeredQuestions.size}</span>
+              <span className="font-semibold text-orange-600">{questions.length - answeredQuestions.size}</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };
 
