@@ -284,14 +284,25 @@ const MockTestBulkUploadForm = () => {
         is_active: true
       }));
 
-      // Save to question bank (use simple insert)
-      const { error: bankError } = await supabase
-        .from('mock_test_question_bank')
-        .insert(bankQuestions);
-      
-      if (bankError) {
-        console.error('Question bank save error:', bankError);
-        // Don't fail the whole operation if bank save fails
+      // Save to question bank - check for duplicates manually
+      for (const question of bankQuestions) {
+        const { data: existing } = await supabase
+          .from('mock_test_question_bank')
+          .select('id')
+          .eq('question_text', question.question_text)
+          .eq('subject', question.subject)
+          .eq('topic', question.topic)
+          .single();
+        
+        if (!existing) {
+          const { error: insertError } = await supabase
+            .from('mock_test_question_bank')
+            .insert(question);
+          
+          if (insertError) {
+            console.error('Question bank insert error:', insertError);
+          }
+        }
       }
 
       // Group questions by test to create/update mock tests
