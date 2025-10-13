@@ -42,7 +42,49 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   useEffect(() => {
     fetchUsers();
+
+    // Set up real-time subscriptions for user data updates
+    const channel = supabase
+      .channel('user-management-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_streaks' },
+        () => {
+          console.log('Streak data changed, refetching users');
+          fetchUsers();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_xp' },
+        () => {
+          console.log('XP/Level data changed, refetching users');
+          fetchUsers();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'test_attempts' },
+        () => {
+          console.log('Test attempts changed, refetching users');
+          fetchUsers();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          console.log('Profile data changed, refetching users');
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
   useEffect(() => {
     filterUsers();
   }, [users, searchTerm, roleFilter]);
