@@ -143,7 +143,7 @@ const Subjects = () => {
         <section className="py-20 bg-primary/10">
           <div className="container max-w-5xl mx-auto px-4">
             <div className="text-center space-y-6">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
                 All Subjects at Your Fingertips
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
