@@ -15,28 +15,27 @@ serve(async (req) => {
     // Get authorization header from the request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('No authorization header provided');
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
 
-    // Create Supabase client with the auth header
+    // Extract JWT token
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Verify the requesting user
+    // Verify the JWT token and get user
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       console.error('Auth error:', userError);
@@ -46,29 +45,47 @@ serve(async (req) => {
       });
     }
 
+    console.log('Authenticated user:', user.id, user.email);
+
     // Check if user is admin
-    const { data: profile } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
+    console.log('Profile check:', { profile, profileError, userId: user.id });
+
+    if (profileError) {
+      console.error('Profile fetch error:', profileError);
+      return new Response(JSON.stringify({ error: 'Failed to fetch profile', details: profileError.message }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
     if (!profile || profile.role !== 'admin') {
+      console.log('Access denied - not admin:', profile?.role);
       return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
       });
     }
 
+    console.log('Admin access confirmed');
+
     // Get the user ID to delete from request body
     const { userId } = await req.json();
 
     if (!userId) {
+      console.error('No userId provided in request body');
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
     }
+
+    console.log('Attempting to delete user:', userId);
 
     // Create admin client with service role
     const supabaseAdmin = createClient(
@@ -86,8 +103,11 @@ serve(async (req) => {
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {
+      console.error('Delete error:', deleteError);
       throw deleteError;
     }
+
+    console.log('User deleted successfully:', userId);
 
     return new Response(
       JSON.stringify({ message: 'User deleted successfully' }),
@@ -97,6 +117,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error('Edge function error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
