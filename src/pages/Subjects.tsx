@@ -140,7 +140,7 @@ const Subjects = () => {
       <Header />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <section className="py-20 bg-primary/10">
           <div className="container max-w-5xl mx-auto px-4">
             <div className="text-center space-y-6">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
