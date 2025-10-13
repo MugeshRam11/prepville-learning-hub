@@ -16,6 +16,8 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { InlineMath, BlockMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 
 interface MathEditorProps {
   value: string;
@@ -130,6 +132,35 @@ export function MathEditor({ value, onChange, onImageUpload, placeholder }: Math
   const copyToClipboard = () => {
     navigator.clipboard.writeText(value);
     toast.success("Copied to clipboard");
+  };
+
+  const renderMathPreview = (text: string) => {
+    try {
+      // Split text by LaTeX delimiters and render accordingly
+      const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$|\\[a-zA-Z]+\{[^}]*\}|\\frac\{[^}]*\}\{[^}]*\}|\\sqrt(?:\[[^\]]*\])?\{[^}]*\})/g);
+      
+      return parts.map((part, idx) => {
+        // Block math with $$
+        if (part.startsWith('$$') && part.endsWith('$$')) {
+          const math = part.slice(2, -2);
+          return <BlockMath key={idx} math={math} />;
+        }
+        // Inline math with $
+        if (part.startsWith('$') && part.endsWith('$')) {
+          const math = part.slice(1, -1);
+          return <InlineMath key={idx} math={math} />;
+        }
+        // LaTeX commands like \frac, \sqrt, etc.
+        if (part.match(/^\\[a-zA-Z]+/)) {
+          return <InlineMath key={idx} math={part} />;
+        }
+        // Regular text
+        return <span key={idx}>{part}</span>;
+      });
+    } catch (error) {
+      console.error('Math rendering error:', error);
+      return <span>{text}</span>;
+    }
   };
 
   const wordCount = value.trim().split(/\s+/).filter(Boolean).length;
@@ -298,7 +329,9 @@ export function MathEditor({ value, onChange, onImageUpload, placeholder }: Math
         <div className="mt-3 p-3 bg-muted rounded border">
           <p className="text-xs font-medium mb-2">Preview:</p>
           <div className="prose prose-sm max-w-none">
-            <p className="whitespace-pre-wrap">{value}</p>
+            <div className="whitespace-pre-wrap text-base">
+              {renderMathPreview(value)}
+            </div>
           </div>
         </div>
       )}

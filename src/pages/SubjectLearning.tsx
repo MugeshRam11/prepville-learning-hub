@@ -29,6 +29,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MathEditor } from '@/components/learning/MathEditor';
+import { InlineMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 
 interface Question {
   id: string;
@@ -421,6 +423,22 @@ const SubjectLearning = () => {
     }));
   };
 
+  const renderMathText = (text: string) => {
+    try {
+      const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$|\\[a-zA-Z]+\{[^}]*\}|\\frac\{[^}]*\}\{[^}]*\}|\\sqrt(?:\[[^\]]*\])?\{[^}]*\})/g);
+      
+      return parts.map((part, idx) => {
+        if (part.startsWith('$') || part.match(/^\\[a-zA-Z]+/)) {
+          const math = part.replace(/^\$\$?|\$\$?$/g, '');
+          return <InlineMath key={idx} math={math} />;
+        }
+        return <span key={idx}>{part}</span>;
+      });
+    } catch (error) {
+      return <span>{text}</span>;
+    }
+  };
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Easy': return 'text-green-600 bg-green-50 border-green-200';
@@ -680,12 +698,12 @@ const SubjectLearning = () => {
                                       Submit Answer
                                     </Button>
                                   </div>
-                                ) : (
-                                  <div className="space-y-3">
-                                    <div className="p-3 bg-muted rounded-lg">
-                                      <p className="text-sm font-medium">Your Answer:</p>
-                                      <p className="text-sm">{userAnswers[question.id]}</p>
-                                    </div>
+                                 ) : (
+                                   <div className="space-y-3">
+                                     <div className="p-3 bg-muted rounded-lg">
+                                       <p className="text-sm font-medium mb-2">Your Answer:</p>
+                                       <div className="text-base">{renderMathText(userAnswers[question.id])}</div>
+                                     </div>
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -709,11 +727,11 @@ const SubjectLearning = () => {
                                     }`}>
                                       {question.isSolved ? 'Correct!' : 'Incorrect'} - Answer:
                                     </h4>
-                                    <p className={`text-sm ${
+                                    <div className={`text-base ${
                                       question.isSolved ? 'text-green-700' : 'text-red-700'
                                     }`}>
-                                      {question.answerKey}
-                                    </p>
+                                      {renderMathText(question.answerKey)}
+                                    </div>
                                   </div>
                                 )}
                               </div>
