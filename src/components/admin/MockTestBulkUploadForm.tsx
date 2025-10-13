@@ -339,18 +339,16 @@ const MockTestBulkUploadForm = () => {
           testId = newTest.id;
         }
 
-        // Insert questions
+        // Insert questions - note: mock_questions table uses answer_key not correct_answer
         const questionsToInsert = questions.map(q => ({
           mock_test_id: testId,
-          subject: q.subject,
-          section: q.section,
           question_number: q.question_number,
           question_text: q.question_text,
-          correct_answer: q.correct_answer,
-          option_a: q.option_a,
-          option_b: q.option_b,
-          option_c: q.option_c,
-          option_d: q.option_d
+          answer_key: q.correct_answer,
+          category: q.section,
+          difficulty: (q.difficulty || 'medium') as any,
+          has_sub_questions: false,
+          marks: 1
         }));
 
         const { error: questionsError } = await supabase
