@@ -44,6 +44,7 @@ import LevelDetails from "./pages/LevelDetails";
 import SubjectLearning from "./pages/SubjectLearning";
 import QuestionBuilder from "./pages/QuestionBuilder";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CopyPasteProtection from "./components/CopyPasteProtection";
 
 import { AuthProvider } from '@/hooks/useAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
@@ -62,12 +63,13 @@ const App = () => (
     <AuthProvider>
       <SubscriptionProvider>
         <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <StreakAutoRecorder />
-      <SessionTracker />
-      <BrowserRouter>
-        <Routes>
+          <CopyPasteProtection>
+            <Toaster />
+            <Sonner />
+            <StreakAutoRecorder />
+            <SessionTracker />
+            <BrowserRouter>
+              <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
           <Route path="/pricing" element={<Pricing />} />
@@ -250,12 +252,13 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-        </TooltipProvider>
-      </SubscriptionProvider>
-    </AuthProvider>
-</QueryClientProvider>
-);
+                </Routes>
+              </BrowserRouter>
+            </CopyPasteProtection>
+          </TooltipProvider>
+        </SubscriptionProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 
 export default App;
