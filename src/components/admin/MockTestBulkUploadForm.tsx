@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Upload, CheckCircle2, Download, Search, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Upload, CheckCircle2, Download, Search, ChevronDown, ChevronRight, AlertCircle, Database, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Papa from 'papaparse';
 
 interface ParsedMockQuestion {
@@ -49,7 +51,22 @@ const MockTestBulkUploadForm = () => {
   const [selectedTest, setSelectedTest] = useState<string>('all');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  
+  // Question Bank states
+  const [bankQuestions, setBankQuestions] = useState<any[]>([]);
+  const [bankSearchQuery, setBankSearchQuery] = useState('');
+  const [bankSubjectFilter, setBankSubjectFilter] = useState<string>('all');
+  const [bankTopicFilter, setBankTopicFilter] = useState<string>('all');
+  const [bankCategoryFilter, setBankCategoryFilter] = useState<string>('all');
+  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(new Set());
+  const [loadingBank, setLoadingBank] = useState(false);
+  
   const { toast } = useToast();
+
+  // Load question bank on mount
+  useEffect(() => {
+    fetchQuestionBank();
+  }, []);
 
   // Get unique test names and subjects
   const testNames = useMemo(() => 
@@ -399,10 +416,109 @@ const MockTestBulkUploadForm = () => {
     });
   };
 
+  // Question Bank functions
+  const fetchQuestionBank = async () => {
+    setLoadingBank(true);
+    try {
+      const { data, error } = await supabase
+        .from('mock_test_question_bank')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBankQuestions(data || []);
+    } catch (error) {
+      console.error('Error fetching question bank:', error);
+      toast({
+        title: "Failed to load question bank",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingBank(false);
+    }
+  };
+
+  const filteredBankQuestions = useMemo(() => {
+    let filtered = bankQuestions;
+
+    if (bankSubjectFilter !== 'all') {
+      filtered = filtered.filter(q => q.subject === bankSubjectFilter);
+    }
+
+    if (bankTopicFilter !== 'all') {
+      filtered = filtered.filter(q => q.topic === bankTopicFilter);
+    }
+
+    if (bankCategoryFilter !== 'all') {
+      filtered = filtered.filter(q => q.category === bankCategoryFilter);
+    }
+
+    if (bankSearchQuery.trim()) {
+      const query = bankSearchQuery.toLowerCase();
+      filtered = filtered.filter(q => 
+        q.question_text.toLowerCase().includes(query) ||
+        q.topic?.toLowerCase().includes(query) ||
+        q.subject?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [bankQuestions, bankSearchQuery, bankSubjectFilter, bankTopicFilter, bankCategoryFilter]);
+
+  const bankTopics = useMemo(() => 
+    Array.from(new Set(bankQuestions.map(q => q.topic).filter(Boolean))).sort(),
+    [bankQuestions]
+  );
+
+  const bankCategories = useMemo(() => 
+    Array.from(new Set(bankQuestions.map(q => q.category).filter(Boolean))).sort(),
+    [bankQuestions]
+  );
+
+  const toggleBankSelection = (id: string) => {
+    const newSelected = new Set(selectedBankIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedBankIds(newSelected);
+  };
+
+  const loadSelectedFromBank = () => {
+    const selected = bankQuestions.filter(q => selectedBankIds.has(q.id));
+    
+    // Convert bank questions to parsed format
+    const converted: ParsedMockQuestion[] = selected.map((q, index) => ({
+      test_name: q.topic || 'Imported Test',
+      subject: q.subject,
+      section: q.category || 'General',
+      question_number: parsedQuestions.length + index + 1,
+      question_text: q.question_text,
+      correct_answer: q.answer_key || 'A',
+      option_a: '',
+      option_b: '',
+      option_c: '',
+      option_d: '',
+      difficulty: q.difficulty || 'medium',
+      time_limit: 60
+    }));
+
+    setParsedQuestions(prev => [...prev, ...converted]);
+    setSelectedBankIds(new Set());
+    
+    toast({
+      title: "Questions loaded",
+      description: `Added ${selected.length} question(s) from bank`
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Upload Section */}
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -471,6 +587,167 @@ const MockTestBulkUploadForm = () => {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Question Bank Loader Section */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            📚 Load from Question Bank
+          </CardTitle>
+          <CardDescription>
+            Use existing saved questions from the persistent mock test bank
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search by subject, topic, or keyword..."
+                  value={bankSearchQuery}
+                  onChange={(e) => setBankSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              <Select value={bankSubjectFilter} onValueChange={setBankSubjectFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Subjects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  <SelectItem value="mathematics">Mathematics</SelectItem>
+                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="physics">Physics</SelectItem>
+                  <SelectItem value="chemistry">Chemistry</SelectItem>
+                  <SelectItem value="biology">Biology</SelectItem>
+                  <SelectItem value="language_literature">Language & Literature</SelectItem>
+                  <SelectItem value="social_studies">Social Studies</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={bankTopicFilter} onValueChange={setBankTopicFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Topics" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Topics</SelectItem>
+                  {bankTopics.map(topic => (
+                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={bankCategoryFilter} onValueChange={setBankCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {bankCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Selection info and action button */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {selectedBankIds.size} of {filteredBankQuestions.length} selected
+                {bankQuestions.length > 0 && (
+                  <span className="ml-2">• {bankQuestions.length} total in bank</span>
+                )}
+              </div>
+              <Button 
+                onClick={loadSelectedFromBank}
+                disabled={selectedBankIds.size === 0}
+                size="sm"
+              >
+                Load Selected Questions ({selectedBankIds.size})
+              </Button>
+            </div>
+
+            {/* Scrollable Question List */}
+            <ScrollArea className="h-[400px] border rounded-lg bg-card">
+              {loadingBank ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">Loading questions...</p>
+                </div>
+              ) : filteredBankQuestions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No questions found</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {bankQuestions.length === 0 
+                      ? 'Upload CSV files to populate your question bank' 
+                      : 'Try adjusting your filters'}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 space-y-2">
+                  {filteredBankQuestions.map((question) => (
+                    <div
+                      key={question.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-sm ${
+                        selectedBankIds.has(question.id)
+                          ? 'border-primary bg-primary/5'
+                          : 'hover:border-primary/30'
+                      }`}
+                      onClick={() => toggleBankSelection(question.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={selectedBankIds.has(question.id)}
+                          onCheckedChange={() => toggleBankSelection(question.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium line-clamp-2 mb-2">
+                            {question.question_text}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 text-xs">
+                            <Badge variant="outline" className="text-xs">
+                              {question.subject}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {question.topic}
+                            </Badge>
+                            {question.category && (
+                              <Badge className="text-xs">{question.category}</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleBankSelection(question.id);
+                            if (!selectedBankIds.has(question.id)) {
+                              const newSet = new Set(selectedBankIds);
+                              newSet.add(question.id);
+                              setSelectedBankIds(newSet);
+                              setTimeout(() => loadSelectedFromBank(), 100);
+                            }
+                          }}
+                          className="flex-shrink-0"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
