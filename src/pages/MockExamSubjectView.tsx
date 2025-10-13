@@ -42,12 +42,16 @@ const MockExamSubjectView = () => {
 
       const { data, error } = await supabase
         .from('mock_questions')
-        .select('*')
+        .select(`
+          *,
+          mock_sub_questions (*)
+        `)
         .in('mock_test_id', testIds)
         .order('question_number');
 
       if (error) throw error;
       
+      console.log('Fetched questions for subject:', subject, data);
       setQuestions(data || []);
     } catch (error) {
       console.error('Error fetching questions:', error);

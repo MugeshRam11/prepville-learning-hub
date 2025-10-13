@@ -33,7 +33,7 @@ export interface Answer {
 const MockExamStart = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { testId, subject, topic, title } = location.state || {};
+  const { testId, subject, topic, title, subjectKey, questions: passedQuestions } = location.state || {};
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -43,11 +43,33 @@ const MockExamStart = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load questions from database
+  // Load questions from database or use passed questions
   useEffect(() => {
     const loadTestData = async () => {
+      // If questions are passed directly (from subject view), use them
+      if (passedQuestions && passedQuestions.length > 0) {
+        console.log('Using passed questions:', passedQuestions);
+        
+        const formattedQuestions: Question[] = passedQuestions.map(q => ({
+          id: q.id,
+          text: q.question_text,
+          marks: q.marks,
+          image: q.question_image_url || undefined,
+          passage: undefined,
+          subQuestions: q.mock_sub_questions?.map(sq => ({
+            id: sq.id,
+            text: sq.sub_question_text,
+            marks: sq.marks
+          })) || []
+        }));
+        
+        setQuestions(formattedQuestions);
+        setIsLoading(false);
+        return;
+      }
+
       if (!testId) {
-        console.error('No test ID provided');
+        console.error('No test ID or questions provided');
         setIsLoading(false);
         return;
       }
@@ -103,7 +125,7 @@ const MockExamStart = () => {
     };
 
     loadTestData();
-  }, [testId]);
+  }, [testId, passedQuestions]);
 
   // Auto-save every 30 seconds
   useEffect(() => {
