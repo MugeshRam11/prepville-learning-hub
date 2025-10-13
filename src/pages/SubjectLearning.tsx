@@ -28,8 +28,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { MathEditor } from '@/components/learning/MathEditor';
-import { InlineMath } from 'react-katex';
+import EquationEditor from '@/components/admin/EquationEditor';
+import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
 interface Question {
@@ -424,18 +424,47 @@ const SubjectLearning = () => {
   };
 
   const renderMathText = (text: string) => {
-    try {
-      const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$|\\[a-zA-Z]+\{[^}]*\}|\\frac\{[^}]*\}\{[^}]*\}|\\sqrt(?:\[[^\]]*\])?\{[^}]*\})/g);
+    // Check if the text contains LaTeX commands (starts with backslash)
+    const hasLatex = /\\[a-zA-Z]+/.test(text);
+    
+    if (hasLatex) {
+      // If it's mostly LaTeX (no $ delimiters), render the entire text as LaTeX
+      try {
+        const html = katex.renderToString(text, {
+          displayMode: false,
+          throwOnError: false,
+          errorColor: '#cc0000',
+          strict: false
+        });
+        return <span dangerouslySetInnerHTML={{ __html: html }} />;
+      } catch (error) {
+        console.error('LaTeX rendering error:', error);
+        return <span className="text-red-500">LaTeX Error: {text}</span>;
+      }
+    } else {
+      // Split text by $...$ patterns to find LaTeX equations in regular text
+      const parts = text.split(/(\$[^$]+\$)/g);
       
-      return parts.map((part, idx) => {
-        if (part.startsWith('$') || part.match(/^\\[a-zA-Z]+/)) {
-          const math = part.replace(/^\$\$?|\$\$?$/g, '');
-          return <InlineMath key={idx} math={math} />;
+      return parts.map((part, index) => {
+        if (part.startsWith('$') && part.endsWith('$')) {
+          // This is a LaTeX equation
+          const equation = part.slice(1, -1); // Remove the $ symbols
+          try {
+            const html = katex.renderToString(equation, {
+              displayMode: false,
+              throwOnError: false,
+              errorColor: '#cc0000',
+              strict: false
+            });
+            return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+          } catch (error) {
+            return <span key={index} className="text-red-500">Error: {equation}</span>;
+          }
+        } else {
+          // Regular text
+          return <span key={index}>{part}</span>;
         }
-        return <span key={idx}>{part}</span>;
       });
-    } catch (error) {
-      return <span>{text}</span>;
     }
   };
 
@@ -684,10 +713,11 @@ const SubjectLearning = () => {
                                 {!submittedAnswers[question.id] ? (
                                   <div className="space-y-3">
                                     <label className="text-sm font-medium">Your Answer:</label>
-                                    <MathEditor
+                                    <EquationEditor
                                       value={userAnswers[question.id] || ''}
                                       onChange={(value) => handleAnswerChange(question.id, value)}
                                       placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly."
+                                      className="min-h-[120px]"
                                     />
                                     <Button
                                       onClick={() => handleAnswerSubmit(question.id)}
