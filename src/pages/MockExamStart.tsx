@@ -230,7 +230,10 @@ const MockExamStart = () => {
     }
   };
 
-  if (!testId || !subject || !topic) {
+  // Check if we have either testId+subject+topic OR subjectKey+subject
+  const hasValidSession = (testId && subject && topic) || (subjectKey && subject) || (passedQuestions && passedQuestions.length > 0);
+
+  if (!hasValidSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-xl border border-purple-200">
@@ -270,8 +273,8 @@ const MockExamStart = () => {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <MockExamHeader 
-        subject={subject}
-        topic={title || topic}
+        subject={subject || 'Subject'}
+        topic={title || topic || 'Test'}
         onSubmit={handleSubmitTest}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
