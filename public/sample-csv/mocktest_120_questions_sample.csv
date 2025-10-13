@@ -1,0 +1,121 @@
+Subject,Category,Question,Type,Marks,Image
+Mathematics,Algebra,Which of the following statements about algebra is correct?,MCQ,10,algebra_graph.png
+Mathematics,Geometry,Calculate the result related to geometry using the given values or formula.,Numerical,2,
+Mathematics,Trigonometry,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from trigonometry.,Descriptive,12,
+Mathematics,Calculus,Calculate the result related to calculus using the given values or formula.,Numerical,2,
+Mathematics,Statistics,Calculate the result related to statistics using the given values or formula.,Numerical,4,
+Mathematics,Probability,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from probability.,Descriptive,4,
+Mathematics,Linear Equations,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from linear equations.,Descriptive,2,linear_equations_graph.png
+Mathematics,Quadratic Functions,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from quadratic functions.,Descriptive,2,quadratic_functions_graph.png
+Mathematics,Coordinate Geometry,Which of the following statements about coordinate geometry is correct?,MCQ,4,
+Mathematics,Mensuration,Calculate the result related to mensuration using the given values or formula.,Numerical,2,mensuration_graph.png
+Mathematics,Number Theory,Which of the following statements about number theory is correct?,MCQ,2,
+Mathematics,Vectors,Which of the following statements about vectors is correct?,MCQ,10,
+Physics,Motion,Which of the following statements about motion is correct?,MCQ,4,
+Physics,Forces,Calculate the result related to forces using the given values or formula.,Numerical,8,
+Physics,Energy,Calculate the result related to energy using the given values or formula.,Numerical,6,
+Physics,Waves,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from waves.,Descriptive,4,
+Physics,Electricity,Calculate the result related to electricity using the given values or formula.,Numerical,8,
+Physics,Magnetism,Which of the following statements about magnetism is correct?,MCQ,8,
+Physics,Optics,Which of the following statements about optics is correct?,MCQ,2,
+Physics,Modern Physics,Which of the following statements about modern physics is correct?,MCQ,2,modern_physics_graph.png
+Physics,Thermodynamics,Which of the following statements about thermodynamics is correct?,MCQ,8,thermodynamics_graph.png
+Physics,Nuclear Physics,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from nuclear physics.,Descriptive,2,
+Physics,Circular Motion,Which of the following statements about circular motion is correct?,MCQ,10,
+Physics,Gravitation,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from gravitation.,Descriptive,6,
+Chemistry,Elements,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from elements.,Descriptive,2,
+Chemistry,Compounds,Which of the following statements about compounds is correct?,MCQ,10,
+Chemistry,Reactions,Which of the following statements about reactions is correct?,MCQ,8,reactions_graph.png
+Chemistry,Organic Chemistry,Which of the following statements about organic chemistry is correct?,MCQ,4,
+Chemistry,Inorganic Chemistry,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from inorganic chemistry.,Descriptive,6,inorganic_chemistry_graph.png
+Chemistry,Periodic Table,Which of the following statements about periodic table is correct?,MCQ,2,
+Chemistry,Acids and Bases,Calculate the result related to acids and bases using the given values or formula.,Numerical,10,acids_and_bases_graph.png
+Chemistry,Metals,Calculate the result related to metals using the given values or formula.,Numerical,4,
+Chemistry,Non-metals,Which of the following statements about non-metals is correct?,MCQ,4,
+Chemistry,Chemical Bonding,Calculate the result related to chemical bonding using the given values or formula.,Numerical,8,
+Chemistry,Moles,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from moles.,Descriptive,2,
+Chemistry,Equilibrium,Which of the following statements about equilibrium is correct?,MCQ,4,equilibrium_graph.png
+Biology,Cells,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from cells.,Descriptive,8,
+Biology,Genetics,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from genetics.,Descriptive,10,
+Biology,Evolution,Calculate the result related to evolution using the given values or formula.,Numerical,4,
+Biology,Ecology,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from ecology.,Descriptive,4,
+Biology,Human Anatomy,Calculate the result related to human anatomy using the given values or formula.,Numerical,6,human_anatomy_graph.png
+Biology,Reproduction,Which of the following statements about reproduction is correct?,MCQ,6,reproduction_graph.png
+Biology,Botany,Calculate the result related to botany using the given values or formula.,Numerical,6,
+Biology,Zoology,Calculate the result related to zoology using the given values or formula.,Numerical,4,
+Biology,Microorganisms,Which of the following statements about microorganisms is correct?,MCQ,2,microorganisms_graph.png
+Biology,Physiology,Calculate the result related to physiology using the given values or formula.,Numerical,10,
+Biology,Classification,Which of the following statements about classification is correct?,MCQ,10,
+Biology,Adaptation,Calculate the result related to adaptation using the given values or formula.,Numerical,8,adaptation_graph.png
+Geography,Landforms,Which of the following statements about landforms is correct?,MCQ,2,
+Geography,Climate,Calculate the result related to climate using the given values or formula.,Numerical,6,
+Geography,Rivers,Calculate the result related to rivers using the given values or formula.,Numerical,4,
+Geography,Oceans,Calculate the result related to oceans using the given values or formula.,Numerical,8,
+Geography,Forests,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from forests.,Descriptive,2,
+Geography,Natural Resources,Calculate the result related to natural resources using the given values or formula.,Numerical,2,
+Geography,Population,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from population.,Descriptive,4,
+Geography,Agriculture,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from agriculture.,Descriptive,6,
+Geography,Urbanization,Calculate the result related to urbanization using the given values or formula.,Numerical,8,
+Geography,Transport,Calculate the result related to transport using the given values or formula.,Numerical,2,
+Geography,Environment,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from environment.,Descriptive,2,
+Geography,Disasters,Calculate the result related to disasters using the given values or formula.,Numerical,6,
+History,Ancient Civilizations,Which of the following statements about ancient civilizations is correct?,MCQ,8,
+History,Medieval Period,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from medieval period.,Descriptive,2,medieval_period_graph.png
+History,Modern History,Calculate the result related to modern history using the given values or formula.,Numerical,8,modern_history_graph.png
+History,World Wars,Which of the following statements about world wars is correct?,MCQ,6,
+History,Revolutions,Calculate the result related to revolutions using the given values or formula.,Numerical,12,revolutions_graph.png
+History,Independence Movements,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from independence movements.,Descriptive,6,
+History,Industrialization,Which of the following statements about industrialization is correct?,MCQ,12,
+History,Exploration,Calculate the result related to exploration using the given values or formula.,Numerical,6,
+History,Empires,Calculate the result related to empires using the given values or formula.,Numerical,12,
+History,Cultural Heritage,Which of the following statements about cultural heritage is correct?,MCQ,10,
+History,Colonialism,Which of the following statements about colonialism is correct?,MCQ,8,
+History,Historical Figures,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from historical figures.,Descriptive,4,
+English,Grammar,Calculate the result related to grammar using the given values or formula.,Numerical,4,
+English,Comprehension,Calculate the result related to comprehension using the given values or formula.,Numerical,4,
+English,Poetry,Which of the following statements about poetry is correct?,MCQ,4,poetry_graph.png
+English,Drama,Calculate the result related to drama using the given values or formula.,Numerical,8,
+English,Prose,Which of the following statements about prose is correct?,MCQ,6,
+English,Essay Writing,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from essay writing.,Descriptive,12,essay_writing_graph.png
+English,Vocabulary,Calculate the result related to vocabulary using the given values or formula.,Numerical,4,
+English,Literature,Calculate the result related to literature using the given values or formula.,Numerical,10,
+English,Speech,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from speech.,Descriptive,10,
+English,Punctuation,Which of the following statements about punctuation is correct?,MCQ,4,
+English,Idioms,Which of the following statements about idioms is correct?,MCQ,10,
+English,Synonyms,Calculate the result related to synonyms using the given values or formula.,Numerical,12,
+Economics,Supply and Demand,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from supply and demand.,Descriptive,8,
+Economics,Inflation,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from inflation.,Descriptive,10,
+Economics,Market Structures,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from market structures.,Descriptive,2,
+Economics,Fiscal Policy,Calculate the result related to fiscal policy using the given values or formula.,Numerical,2,
+Economics,Monetary Policy,Calculate the result related to monetary policy using the given values or formula.,Numerical,2,
+Economics,Trade,Calculate the result related to trade using the given values or formula.,Numerical,4,
+Economics,GDP,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from gdp.,Descriptive,2,gdp_graph.png
+Economics,Unemployment,Calculate the result related to unemployment using the given values or formula.,Numerical,8,
+Economics,Investment,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from investment.,Descriptive,10,
+Economics,Taxation,Which of the following statements about taxation is correct?,MCQ,4,
+Economics,Microeconomics,Calculate the result related to microeconomics using the given values or formula.,Numerical,8,
+Economics,Macroeconomics,Calculate the result related to macroeconomics using the given values or formula.,Numerical,4,
+Computer Science,Algorithms,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from algorithms.,Descriptive,8,
+Computer Science,Data Structures,Calculate the result related to data structures using the given values or formula.,Numerical,12,
+Computer Science,Programming,Which of the following statements about programming is correct?,MCQ,4,programming_graph.png
+Computer Science,Networks,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from networks.,Descriptive,12,
+Computer Science,Databases,Which of the following statements about databases is correct?,MCQ,4,databases_graph.png
+Computer Science,AI Basics,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from ai basics.,Descriptive,4,
+Computer Science,Cybersecurity,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from cybersecurity.,Descriptive,12,
+Computer Science,Operating Systems,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from operating systems.,Descriptive,10,
+Computer Science,Web Development,Calculate the result related to web development using the given values or formula.,Numerical,8,
+Computer Science,Software Engineering,Which of the following statements about software engineering is correct?,MCQ,6,software_engineering_graph.png
+Computer Science,Machine Learning,Which of the following statements about machine learning is correct?,MCQ,4,
+Computer Science,Cloud Computing,Calculate the result related to cloud computing using the given values or formula.,Numerical,6,
+General Knowledge,Current Affairs,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from current affairs.,Descriptive,12,
+General Knowledge,Sports,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from sports.,Descriptive,12,sports_graph.png
+General Knowledge,Science,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from science.,Descriptive,12,
+General Knowledge,Technology,Which of the following statements about technology is correct?,MCQ,4,technology_graph.png
+General Knowledge,Politics,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from politics.,Descriptive,8,
+General Knowledge,Art and Culture,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from art and culture.,Descriptive,12,
+General Knowledge,Environment,Calculate the result related to environment using the given values or formula.,Numerical,6,
+General Knowledge,Awards,Which of the following statements about awards is correct?,MCQ,4,awards_graph.png
+General Knowledge,Geography,Which of the following statements about geography is correct?,MCQ,12,geography_graph.png
+General Knowledge,History,Compare and contrast the advantages and disadvantages of representing data in graphical versus tabular form using examples from history.,Descriptive,2,history_graph.png
+General Knowledge,Economy,Which of the following statements about economy is correct?,MCQ,2,economy_graph.png
+General Knowledge,Health,Which of the following statements about health is correct?,MCQ,12,

@@ -13,18 +13,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Papa from 'papaparse';
 interface ParsedMockQuestion {
-  test_name: string;
   subject: string;
-  section: string;
-  question_number: number;
+  category: string;
   question_text: string;
-  correct_answer: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  difficulty?: string;
-  time_limit?: number;
+  type: string;
+  marks: number;
+  question_image_url?: string;
 }
 interface UploadStats {
   parsing: boolean;
@@ -45,7 +39,6 @@ const MockTestBulkUploadForm = () => {
   });
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTest, setSelectedTest] = useState<string>('all');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -66,42 +59,43 @@ const MockTestBulkUploadForm = () => {
     fetchQuestionBank();
   }, []);
 
-  // Get unique test names and subjects
-  const testNames = useMemo(() => Array.from(new Set(parsedQuestions.map(q => q.test_name))).sort(), [parsedQuestions]);
-  const subjects = useMemo(() => {
-    if (selectedTest === 'all') {
-      return Array.from(new Set(parsedQuestions.map(q => q.subject))).sort();
+  // Get unique subjects and categories
+  const subjects = useMemo(() => Array.from(new Set(parsedQuestions.map(q => q.subject))).sort(), [parsedQuestions]);
+  const categories = useMemo(() => {
+    if (selectedSubject === 'all') {
+      return Array.from(new Set(parsedQuestions.map(q => q.category))).sort();
     }
-    return Array.from(new Set(parsedQuestions.filter(q => q.test_name === selectedTest).map(q => q.subject))).sort();
-  }, [parsedQuestions, selectedTest]);
+    return Array.from(new Set(parsedQuestions.filter(q => q.subject === selectedSubject).map(q => q.category))).sort();
+  }, [parsedQuestions, selectedSubject]);
 
   // Filter questions
   const filteredQuestions = useMemo(() => {
     let filtered = parsedQuestions;
-    if (selectedTest !== 'all') {
-      filtered = filtered.filter(q => q.test_name === selectedTest);
-    }
     if (selectedSubject !== 'all') {
       filtered = filtered.filter(q => q.subject === selectedSubject);
     }
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(q => q.question_text.toLowerCase().includes(query) || q.test_name.toLowerCase().includes(query) || q.subject.toLowerCase().includes(query));
+      filtered = filtered.filter(q => 
+        q.question_text.toLowerCase().includes(query) || 
+        q.category.toLowerCase().includes(query) || 
+        q.subject.toLowerCase().includes(query)
+      );
     }
     return filtered;
-  }, [parsedQuestions, searchQuery, selectedTest, selectedSubject]);
+  }, [parsedQuestions, searchQuery, selectedSubject]);
 
-  // Group questions by test and subject
+  // Group questions by subject and category
   const groupedQuestions = useMemo(() => {
     const groups: Record<string, Record<string, ParsedMockQuestion[]>> = {};
     filteredQuestions.forEach(q => {
-      if (!groups[q.test_name]) {
-        groups[q.test_name] = {};
+      if (!groups[q.subject]) {
+        groups[q.subject] = {};
       }
-      if (!groups[q.test_name][q.subject]) {
-        groups[q.test_name][q.subject] = [];
+      if (!groups[q.subject][q.category]) {
+        groups[q.subject][q.category] = [];
       }
-      groups[q.test_name][q.subject].push(q);
+      groups[q.subject][q.category].push(q);
     });
     return groups;
   }, [filteredQuestions]);
@@ -174,7 +168,7 @@ const MockTestBulkUploadForm = () => {
             }));
             return;
           }
-          const requiredColumns = ['test_name', 'subject', 'question_text', 'correct_answer', 'option_a', 'option_b', 'option_c', 'option_d'];
+          const requiredColumns = ['Subject', 'Category', 'Question', 'Type', 'Marks'];
           const headers = Object.keys(results.data[0] || {});
           console.log('CSV Headers:', headers);
           const missingColumns = requiredColumns.filter(col => !headers.includes(col));
@@ -191,31 +185,32 @@ const MockTestBulkUploadForm = () => {
             return;
           }
           const questions = results.data.map((row: any, index: number) => {
-            const question = {
-              test_name: row.test_name?.trim() || 'Unnamed Test',
-              subject: subjectMapping[row.subject?.trim()?.toLowerCase() || 'science'] || 'science',
-              section: row.section?.trim() || 'General',
-              question_number: row.question_number ? parseInt(row.question_number) : index + 1,
-              question_text: row.question_text?.trim() || '',
-              correct_answer: row.correct_answer?.trim()?.toUpperCase() || 'A',
-              option_a: row.option_a?.trim() || '',
-              option_b: row.option_b?.trim() || '',
-              option_c: row.option_c?.trim() || '',
-              option_d: row.option_d?.trim() || '',
-              difficulty: row.difficulty?.trim()?.toLowerCase() || 'medium',
-              time_limit: row.time_limit ? parseInt(row.time_limit) : 60
+            const rawSubject = row.Subject?.trim() || 'Science';
+            const question: ParsedMockQuestion = {
+              subject: subjectMapping[rawSubject.toLowerCase()] || 'science',
+              category: row.Category?.trim() || 'General',
+              question_text: row.Question?.trim() || '',
+              type: row.Type?.trim() || 'MCQ',
+              marks: row.Marks ? parseInt(row.Marks) : 1,
+              question_image_url: row.Image?.trim() || undefined
             };
             return question;
           }).filter(q => q.question_text && q.question_text.length > 0);
           console.log('Parsed questions before dedup:', questions.length);
 
-          // Remove duplicates based on test name and question text
-          const uniqueQuestions = questions.filter((q, index, self) => index === self.findIndex(t => t.test_name === q.test_name && t.question_text === q.question_text));
+          // Remove duplicates based on subject, category and question text
+          const uniqueQuestions = questions.filter((q, index, self) => 
+            index === self.findIndex(t => 
+              t.subject === q.subject && 
+              t.category === q.category && 
+              t.question_text === q.question_text
+            )
+          );
           console.log('Unique questions:', uniqueQuestions.length);
           if (uniqueQuestions.length === 0) {
             toast({
               title: "No valid questions found",
-              description: "Please check your CSV format and ensure question_text column has values",
+              description: "Please check your CSV format and ensure Question column has values",
               variant: "destructive"
             });
             setUploadStats(prev => ({
@@ -271,16 +266,17 @@ const MockTestBulkUploadForm = () => {
     let synced = 0;
     try {
       // First, save questions to the persistent question bank
-      const bankQuestions = parsedQuestions.map(q => ({
-        question_number: q.question_number,
+      const bankQuestions = parsedQuestions.map((q, index) => ({
+        question_number: index + 1,
         question_text: q.question_text,
         has_sub_questions: false,
-        marks: 1,
-        answer_key: q.correct_answer,
-        difficulty: (q.difficulty || 'medium') as any,
-        category: q.section,
+        marks: q.marks,
+        answer_key: null,
+        difficulty: 'medium' as any,
+        category: q.category,
         subject: q.subject as any,
-        topic: q.test_name,
+        topic: q.category,
+        question_image_url: q.question_image_url,
         is_active: true
       }));
 
@@ -305,53 +301,62 @@ const MockTestBulkUploadForm = () => {
         }
       }
 
-      // Group questions by test to create/update mock tests
+      // Group questions by subject and category to create/update mock tests
       const testGroups: Record<string, ParsedMockQuestion[]> = {};
       parsedQuestions.forEach(q => {
-        if (!testGroups[q.test_name]) {
-          testGroups[q.test_name] = [];
+        const testKey = `${q.subject}-${q.category}`;
+        if (!testGroups[testKey]) {
+          testGroups[testKey] = [];
         }
-        testGroups[q.test_name].push(q);
+        testGroups[testKey].push(q);
       });
-      for (const [testName, questions] of Object.entries(testGroups)) {
+
+      for (const [testKey, questions] of Object.entries(testGroups)) {
+        const firstQuestion = questions[0];
+        const testTitle = firstQuestion.category;
+        
         // Check if test exists
         const {
           data: existingTest
-        } = await supabase.from('mock_tests').select('id').eq('title', testName).single();
+        } = await supabase.from('mock_tests').select('id').eq('title', testTitle).eq('subject', firstQuestion.subject as any).single();
+        
         let testId: string;
         if (existingTest) {
           testId = existingTest.id;
         } else {
-          // Create new mock test - use first question's subject and section as defaults
-          const firstQuestion = questions[0];
+          // Create new mock test
           const {
             data: newTest,
             error: testError
           } = await supabase.from('mock_tests').insert({
-            title: testName,
+            title: testTitle,
             subject: firstQuestion.subject as any,
-            topic: firstQuestion.section || 'General',
+            topic: firstQuestion.category,
             is_published: false
           }).select().single();
           if (testError) throw testError;
           testId = newTest.id;
         }
 
-        // Insert questions - note: mock_questions table uses answer_key not correct_answer
-        const questionsToInsert = questions.map(q => ({
+        // Insert questions
+        const questionsToInsert = questions.map((q, idx) => ({
           mock_test_id: testId,
-          question_number: q.question_number,
+          question_number: idx + 1,
           question_text: q.question_text,
-          answer_key: q.correct_answer,
-          category: q.section,
-          difficulty: (q.difficulty || 'medium') as any,
+          answer_key: null,
+          category: q.type,
+          difficulty: 'medium' as any,
           has_sub_questions: false,
-          marks: 1
+          marks: q.marks,
+          question_image_url: q.question_image_url,
+          word_limit: q.type === 'Descriptive' ? 200 : undefined
         }));
+        
         const {
           error: questionsError
         } = await supabase.from('mock_questions').insert(questionsToInsert);
         if (questionsError) throw questionsError;
+        
         synced += questions.length;
         setUploadStats(prev => ({
           ...prev,
@@ -458,19 +463,13 @@ const MockTestBulkUploadForm = () => {
     const selected = bankQuestions.filter(q => selectedBankIds.has(q.id));
 
     // Convert bank questions to parsed format
-    const converted: ParsedMockQuestion[] = selected.map((q, index) => ({
-      test_name: q.topic || 'Imported Test',
+    const converted: ParsedMockQuestion[] = selected.map(q => ({
       subject: q.subject,
-      section: q.category || 'General',
-      question_number: parsedQuestions.length + index + 1,
+      category: q.category || 'General',
       question_text: q.question_text,
-      correct_answer: q.answer_key || 'A',
-      option_a: '',
-      option_b: '',
-      option_c: '',
-      option_d: '',
-      difficulty: q.difficulty || 'medium',
-      time_limit: 60
+      type: 'MCQ',
+      marks: q.marks || 1,
+      question_image_url: q.question_image_url
     }));
     setParsedQuestions(prev => [...prev, ...converted]);
     setSelectedBankIds(new Set());
@@ -666,21 +665,11 @@ const MockTestBulkUploadForm = () => {
           </CardHeader>
           <CardContent>
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search questions..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
               </div>
-              
-              <Select value={selectedTest} onValueChange={setSelectedTest}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by test" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tests</SelectItem>
-                  {testNames.map(test => <SelectItem key={test} value={test}>{test}</SelectItem>)}
-                </SelectContent>
-              </Select>
 
               <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                 <SelectTrigger>
@@ -695,22 +684,22 @@ const MockTestBulkUploadForm = () => {
 
             {/* Questions List */}
             <div className="space-y-4">
-              {Object.entries(groupedQuestions).map(([testName, subjects]) => <div key={testName} className="border rounded-lg">
+              {Object.entries(groupedQuestions).map(([subject, categories]) => <div key={subject} className="border rounded-lg">
                   <div className="bg-muted/50 p-4 font-medium flex items-center justify-between">
-                    <span>{testName}</span>
+                    <span className="capitalize">{subject}</span>
                     <Badge variant="secondary">
-                      {Object.values(subjects).flat().length} questions
+                      {Object.values(categories).flat().length} questions
                     </Badge>
                   </div>
                   
-                  {Object.entries(subjects).map(([subject, questions]) => {
-              const groupKey = `${testName}-${subject}`;
+                  {Object.entries(categories).map(([category, questions]) => {
+              const groupKey = `${subject}-${category}`;
               const isExpanded = expandedGroups.has(groupKey);
               return <Collapsible key={groupKey} open={isExpanded} onOpenChange={() => toggleGroup(groupKey)}>
                         <CollapsibleTrigger className="w-full p-4 hover:bg-muted/30 flex items-center justify-between border-t">
                           <div className="flex items-center gap-2">
                             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            <span className="font-medium">{subject}</span>
+                            <span className="font-medium">{category}</span>
                           </div>
                           <Badge>{questions.length} questions</Badge>
                         </CollapsibleTrigger>
@@ -718,24 +707,18 @@ const MockTestBulkUploadForm = () => {
                         <CollapsibleContent>
                           <div className="space-y-2 p-4 bg-background">
                             {questions.map((q, idx) => <div key={idx} className="border rounded p-3 space-y-2">
-                                <div className="flex items-start justify-between">
-                                  <p className="font-medium">Q{q.question_number}: {q.question_text}</p>
-                                  <Badge variant="outline">{q.difficulty}</Badge>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 text-sm">
-                                  <div className={q.correct_answer === 'A' ? 'text-success font-medium' : ''}>
-                                    A) {q.option_a}
-                                  </div>
-                                  <div className={q.correct_answer === 'B' ? 'text-success font-medium' : ''}>
-                                    B) {q.option_b}
-                                  </div>
-                                  <div className={q.correct_answer === 'C' ? 'text-success font-medium' : ''}>
-                                    C) {q.option_c}
-                                  </div>
-                                  <div className={q.correct_answer === 'D' ? 'text-success font-medium' : ''}>
-                                    D) {q.option_d}
+                                <div className="flex items-start justify-between gap-3">
+                                  <p className="font-medium flex-1">{q.question_text}</p>
+                                  <div className="flex gap-2 items-center flex-shrink-0">
+                                    <Badge variant="outline">{q.type}</Badge>
+                                    <Badge variant="secondary">{q.marks} marks</Badge>
                                   </div>
                                 </div>
+                                {q.question_image_url && (
+                                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                    <span className="text-xs">📎</span> {q.question_image_url}
+                                  </div>
+                                )}
                               </div>)}
                           </div>
                         </CollapsibleContent>
