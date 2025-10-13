@@ -37,6 +37,7 @@ import DynamicTopicProgress from './DynamicTopicProgress';
 import DynamicDailyChallenge from './DynamicDailyChallenge';
 import { toast } from 'sonner';
 import StatsCards from './StatsCards';
+import { useTestProgressSync } from '@/hooks/useTestProgressSync';
 
 // Import avatar images
 import coolCat from '@/assets/avatars/cool-cat.png';
@@ -86,6 +87,9 @@ const StudentDashboard = () => {
     updateDailyChallenge,
     updatePerformanceCriteria
   } = useProgressTracking();
+  
+  // Enable automatic progress syncing
+  useTestProgressSync();
   
   // Fetch user profile data and real stats
   useEffect(() => {
