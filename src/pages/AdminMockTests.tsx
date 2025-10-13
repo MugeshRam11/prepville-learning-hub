@@ -5,16 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, Eye, Edit, Trash2, FileText, Database, Upload, Download, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Search, FileText, Database, Upload, Download, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import MockTestCard from '@/components/mock-exam/MockTestCard';
 
 const AdminMockTests = () => {
   const navigate = useNavigate();
@@ -619,98 +618,57 @@ const AdminMockTests = () => {
           </CardContent>
         </Card>
 
-        {/* Mock Tests Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Mock Tests ({filteredTests.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Test Title</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Topic</TableHead>
-                  <TableHead>Questions</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentTests.map((test) => (
-                  <TableRow key={test.id}>
-                    <TableCell className="font-medium">{test.title}</TableCell>
-                    <TableCell>{getSubjectLabel(test.subject)}</TableCell>
-                    <TableCell>{test.topic}</TableCell>
-                    <TableCell>{test.total_questions}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={test.is_published ? "default" : "secondary"}
-                        className="cursor-pointer"
-                        onClick={() => togglePublished(test.id, test.is_published)}
-                      >
-                        {test.is_published ? 'Published' : 'Draft'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{format(new Date(test.created_at), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/admin/mock-tests/view/${test.id}`)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/admin/mock-tests/edit/${test.id}`)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(test.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center space-x-2 mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Mock Tests by Category */}
+        <div className="space-y-8">
+          {Object.keys(filteredTests.reduce((acc: Record<string, any[]>, test: any) => {
+            const category = test.topic || 'General';
+            if (!acc[category]) acc[category] = [];
+            acc[category].push(test);
+            return acc;
+          }, {})).length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">No mock tests found</p>
+              </CardContent>
+            </Card>
+          ) : (
+            Object.entries(filteredTests.reduce((acc: Record<string, any[]>, test: any) => {
+              const category = test.topic || 'General';
+              if (!acc[category]) acc[category] = [];
+              acc[category].push(test);
+              return acc;
+            }, {})).map(([category, tests]) => {
+              const categoryTests = tests as any[];
+              return (
+              <Card key={category} className="border-primary/20">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
+                      <CardTitle className="text-xl">{category}</CardTitle>
+                      <Badge variant="secondary">{categoryTests.length} test{categoryTests.length !== 1 ? 's' : ''}</Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {categoryTests.map((test) => (
+                      <MockTestCard
+                        key={test.id}
+                        test={test}
+                        onEdit={(id) => navigate(`/admin/mock-tests/edit/${id}`)}
+                        onView={(id) => navigate(`/admin/mock-tests/view/${id}`)}
+                        onDelete={handleDelete}
+                        onTogglePublish={togglePublished}
+                        isAdmin={true}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )})
+          )}
+        </div>
       </div>
     </div>
     </div>
