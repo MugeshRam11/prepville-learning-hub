@@ -12,7 +12,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Papa from 'papaparse';
-
 interface ParsedMockQuestion {
   test_name: string;
   subject: string;
@@ -27,7 +26,6 @@ interface ParsedMockQuestion {
   difficulty?: string;
   time_limit?: number;
 }
-
 interface UploadStats {
   parsing: boolean;
   syncing: boolean;
@@ -35,7 +33,6 @@ interface UploadStats {
   totalQuestions: number;
   syncedQuestions: number;
 }
-
 const MockTestBulkUploadForm = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [parsedQuestions, setParsedQuestions] = useState<ParsedMockQuestion[]>([]);
@@ -51,7 +48,7 @@ const MockTestBulkUploadForm = () => {
   const [selectedTest, setSelectedTest] = useState<string>('all');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  
+
   // Question Bank states
   const [bankQuestions, setBankQuestions] = useState<any[]>([]);
   const [bankSearchQuery, setBankSearchQuery] = useState('');
@@ -60,8 +57,9 @@ const MockTestBulkUploadForm = () => {
   const [bankCategoryFilter, setBankCategoryFilter] = useState<string>('all');
   const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(new Set());
   const [loadingBank, setLoadingBank] = useState(false);
-  
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
 
   // Load question bank on mount
   useEffect(() => {
@@ -69,48 +67,33 @@ const MockTestBulkUploadForm = () => {
   }, []);
 
   // Get unique test names and subjects
-  const testNames = useMemo(() => 
-    Array.from(new Set(parsedQuestions.map(q => q.test_name))).sort(),
-    [parsedQuestions]
-  );
-
+  const testNames = useMemo(() => Array.from(new Set(parsedQuestions.map(q => q.test_name))).sort(), [parsedQuestions]);
   const subjects = useMemo(() => {
     if (selectedTest === 'all') {
       return Array.from(new Set(parsedQuestions.map(q => q.subject))).sort();
     }
-    return Array.from(new Set(
-      parsedQuestions.filter(q => q.test_name === selectedTest).map(q => q.subject)
-    )).sort();
+    return Array.from(new Set(parsedQuestions.filter(q => q.test_name === selectedTest).map(q => q.subject))).sort();
   }, [parsedQuestions, selectedTest]);
 
   // Filter questions
   const filteredQuestions = useMemo(() => {
     let filtered = parsedQuestions;
-
     if (selectedTest !== 'all') {
       filtered = filtered.filter(q => q.test_name === selectedTest);
     }
-
     if (selectedSubject !== 'all') {
       filtered = filtered.filter(q => q.subject === selectedSubject);
     }
-
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(q => 
-        q.question_text.toLowerCase().includes(query) ||
-        q.test_name.toLowerCase().includes(query) ||
-        q.subject.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(q => q.question_text.toLowerCase().includes(query) || q.test_name.toLowerCase().includes(query) || q.subject.toLowerCase().includes(query));
     }
-
     return filtered;
   }, [parsedQuestions, searchQuery, selectedTest, selectedSubject]);
 
   // Group questions by test and subject
   const groupedQuestions = useMemo(() => {
     const groups: Record<string, Record<string, ParsedMockQuestion[]>> = {};
-    
     filteredQuestions.forEach(q => {
       if (!groups[q.test_name]) {
         groups[q.test_name] = {};
@@ -120,19 +103,15 @@ const MockTestBulkUploadForm = () => {
       }
       groups[q.test_name][q.subject].push(q);
     });
-
     return groups;
   }, [filteredQuestions]);
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
   const handleDragLeave = () => {
     setIsDragging(false);
   };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -148,7 +127,6 @@ const MockTestBulkUploadForm = () => {
       });
     }
   };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -156,9 +134,12 @@ const MockTestBulkUploadForm = () => {
       parseCSV(file);
     }
   };
-
   const parseCSV = async (file: File) => {
-    setUploadStats(prev => ({ ...prev, parsing: true, completed: false }));
+    setUploadStats(prev => ({
+      ...prev,
+      parsing: true,
+      completed: false
+    }));
 
     // Subject mapping to database enum values
     const subjectMapping: Record<string, string> = {
@@ -175,82 +156,74 @@ const MockTestBulkUploadForm = () => {
       'language & literature': 'language_literature',
       'english': 'language_literature'
     };
-
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
+      complete: results => {
         try {
           console.log('CSV Parse Results:', results);
-          
           if (!results.data || results.data.length === 0) {
             toast({
               title: "Empty CSV file",
               description: "No data found in the CSV file",
               variant: "destructive"
             });
-            setUploadStats(prev => ({ ...prev, parsing: false }));
+            setUploadStats(prev => ({
+              ...prev,
+              parsing: false
+            }));
             return;
           }
-
           const requiredColumns = ['test_name', 'subject', 'question_text', 'correct_answer', 'option_a', 'option_b', 'option_c', 'option_d'];
           const headers = Object.keys(results.data[0] || {});
           console.log('CSV Headers:', headers);
-          
           const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-
           if (missingColumns.length > 0) {
             toast({
               title: "Missing required columns",
               description: `Please include: ${missingColumns.join(', ')}`,
               variant: "destructive"
             });
-            setUploadStats(prev => ({ ...prev, parsing: false }));
+            setUploadStats(prev => ({
+              ...prev,
+              parsing: false
+            }));
             return;
           }
-
-          const questions = results.data
-            .map((row: any, index: number) => {
-              const question = {
-                test_name: row.test_name?.trim() || 'Unnamed Test',
-                subject: subjectMapping[row.subject?.trim()?.toLowerCase() || 'science'] || 'science',
-                section: row.section?.trim() || 'General',
-                question_number: row.question_number ? parseInt(row.question_number) : index + 1,
-                question_text: row.question_text?.trim() || '',
-                correct_answer: row.correct_answer?.trim()?.toUpperCase() || 'A',
-                option_a: row.option_a?.trim() || '',
-                option_b: row.option_b?.trim() || '',
-                option_c: row.option_c?.trim() || '',
-                option_d: row.option_d?.trim() || '',
-                difficulty: row.difficulty?.trim()?.toLowerCase() || 'medium',
-                time_limit: row.time_limit ? parseInt(row.time_limit) : 60
-              };
-              return question;
-            })
-            .filter(q => q.question_text && q.question_text.length > 0);
-
+          const questions = results.data.map((row: any, index: number) => {
+            const question = {
+              test_name: row.test_name?.trim() || 'Unnamed Test',
+              subject: subjectMapping[row.subject?.trim()?.toLowerCase() || 'science'] || 'science',
+              section: row.section?.trim() || 'General',
+              question_number: row.question_number ? parseInt(row.question_number) : index + 1,
+              question_text: row.question_text?.trim() || '',
+              correct_answer: row.correct_answer?.trim()?.toUpperCase() || 'A',
+              option_a: row.option_a?.trim() || '',
+              option_b: row.option_b?.trim() || '',
+              option_c: row.option_c?.trim() || '',
+              option_d: row.option_d?.trim() || '',
+              difficulty: row.difficulty?.trim()?.toLowerCase() || 'medium',
+              time_limit: row.time_limit ? parseInt(row.time_limit) : 60
+            };
+            return question;
+          }).filter(q => q.question_text && q.question_text.length > 0);
           console.log('Parsed questions before dedup:', questions.length);
 
           // Remove duplicates based on test name and question text
-          const uniqueQuestions = questions.filter((q, index, self) =>
-            index === self.findIndex(t => 
-              t.test_name === q.test_name && 
-              t.question_text === q.question_text
-            )
-          );
-
+          const uniqueQuestions = questions.filter((q, index, self) => index === self.findIndex(t => t.test_name === q.test_name && t.question_text === q.question_text));
           console.log('Unique questions:', uniqueQuestions.length);
-
           if (uniqueQuestions.length === 0) {
             toast({
               title: "No valid questions found",
               description: "Please check your CSV format and ensure question_text column has values",
               variant: "destructive"
             });
-            setUploadStats(prev => ({ ...prev, parsing: false }));
+            setUploadStats(prev => ({
+              ...prev,
+              parsing: false
+            }));
             return;
           }
-
           setParsedQuestions(uniqueQuestions);
           setUploadStats({
             parsing: false,
@@ -259,7 +232,6 @@ const MockTestBulkUploadForm = () => {
             totalQuestions: uniqueQuestions.length,
             syncedQuestions: 0
           });
-
           toast({
             title: "CSV parsed successfully",
             description: `Found ${uniqueQuestions.length} unique questions`
@@ -271,25 +243,32 @@ const MockTestBulkUploadForm = () => {
             description: error instanceof Error ? error.message : "Error processing CSV file",
             variant: "destructive"
           });
-          setUploadStats(prev => ({ ...prev, parsing: false }));
+          setUploadStats(prev => ({
+            ...prev,
+            parsing: false
+          }));
         }
       },
-      error: (error) => {
+      error: error => {
         console.error('CSV error:', error);
         toast({
           title: "CSV parsing failed",
           description: error.message,
           variant: "destructive"
         });
-        setUploadStats(prev => ({ ...prev, parsing: false }));
+        setUploadStats(prev => ({
+          ...prev,
+          parsing: false
+        }));
       }
     });
   };
-
   const syncToDatabase = async () => {
-    setUploadStats(prev => ({ ...prev, syncing: true }));
+    setUploadStats(prev => ({
+      ...prev,
+      syncing: true
+    }));
     let synced = 0;
-
     try {
       // First, save questions to the persistent question bank
       const bankQuestions = parsedQuestions.map(q => ({
@@ -306,13 +285,12 @@ const MockTestBulkUploadForm = () => {
       }));
 
       // Save to question bank (ignore duplicates)
-      const { error: bankError } = await supabase
-        .from('mock_test_question_bank')
-        .upsert(bankQuestions, { 
-          onConflict: 'question_text',
-          ignoreDuplicates: true 
-        });
-
+      const {
+        error: bankError
+      } = await supabase.from('mock_test_question_bank').upsert(bankQuestions, {
+        onConflict: 'question_text',
+        ignoreDuplicates: true
+      });
       if (bankError && bankError.code !== '23505') {
         console.error('Question bank save error:', bankError);
       }
@@ -325,33 +303,26 @@ const MockTestBulkUploadForm = () => {
         }
         testGroups[q.test_name].push(q);
       });
-
       for (const [testName, questions] of Object.entries(testGroups)) {
         // Check if test exists
-        const { data: existingTest } = await supabase
-          .from('mock_tests')
-          .select('id')
-          .eq('title', testName)
-          .single();
-
+        const {
+          data: existingTest
+        } = await supabase.from('mock_tests').select('id').eq('title', testName).single();
         let testId: string;
-
         if (existingTest) {
           testId = existingTest.id;
         } else {
           // Create new mock test - use first question's subject and section as defaults
           const firstQuestion = questions[0];
-          const { data: newTest, error: testError } = await supabase
-            .from('mock_tests')
-            .insert({
-              title: testName,
-              subject: firstQuestion.subject as any,
-              topic: firstQuestion.section || 'General',
-              is_published: false
-            })
-            .select()
-            .single();
-
+          const {
+            data: newTest,
+            error: testError
+          } = await supabase.from('mock_tests').insert({
+            title: testName,
+            subject: firstQuestion.subject as any,
+            topic: firstQuestion.section || 'General',
+            is_published: false
+          }).select().single();
           if (testError) throw testError;
           testId = newTest.id;
         }
@@ -367,18 +338,21 @@ const MockTestBulkUploadForm = () => {
           has_sub_questions: false,
           marks: 1
         }));
-
-        const { error: questionsError } = await supabase
-          .from('mock_questions')
-          .insert(questionsToInsert);
-
+        const {
+          error: questionsError
+        } = await supabase.from('mock_questions').insert(questionsToInsert);
         if (questionsError) throw questionsError;
-
         synced += questions.length;
-        setUploadStats(prev => ({ ...prev, syncedQuestions: synced }));
+        setUploadStats(prev => ({
+          ...prev,
+          syncedQuestions: synced
+        }));
       }
-
-      setUploadStats(prev => ({ ...prev, syncing: false, completed: true }));
+      setUploadStats(prev => ({
+        ...prev,
+        syncing: false,
+        completed: true
+      }));
       toast({
         title: "Sync completed",
         description: `Successfully synced ${synced} questions to database`
@@ -390,20 +364,23 @@ const MockTestBulkUploadForm = () => {
         description: error.message,
         variant: "destructive"
       });
-      setUploadStats(prev => ({ ...prev, syncing: false }));
+      setUploadStats(prev => ({
+        ...prev,
+        syncing: false
+      }));
     }
   };
-
   const exportCSV = () => {
     const csv = Papa.unparse(filteredQuestions);
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], {
+      type: 'text/csv'
+    });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `mock-test-export-${Date.now()}.csv`;
     a.click();
   };
-
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
       const newSet = new Set(prev);
@@ -420,12 +397,12 @@ const MockTestBulkUploadForm = () => {
   const fetchQuestionBank = async () => {
     setLoadingBank(true);
     try {
-      const { data, error } = await supabase
-        .from('mock_test_question_bank')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('mock_test_question_bank').select('*').eq('is_active', true).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       setBankQuestions(data || []);
     } catch (error) {
@@ -439,44 +416,25 @@ const MockTestBulkUploadForm = () => {
       setLoadingBank(false);
     }
   };
-
   const filteredBankQuestions = useMemo(() => {
     let filtered = bankQuestions;
-
     if (bankSubjectFilter !== 'all') {
       filtered = filtered.filter(q => q.subject === bankSubjectFilter);
     }
-
     if (bankTopicFilter !== 'all') {
       filtered = filtered.filter(q => q.topic === bankTopicFilter);
     }
-
     if (bankCategoryFilter !== 'all') {
       filtered = filtered.filter(q => q.category === bankCategoryFilter);
     }
-
     if (bankSearchQuery.trim()) {
       const query = bankSearchQuery.toLowerCase();
-      filtered = filtered.filter(q => 
-        q.question_text.toLowerCase().includes(query) ||
-        q.topic?.toLowerCase().includes(query) ||
-        q.subject?.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(q => q.question_text.toLowerCase().includes(query) || q.topic?.toLowerCase().includes(query) || q.subject?.toLowerCase().includes(query));
     }
-
     return filtered;
   }, [bankQuestions, bankSearchQuery, bankSubjectFilter, bankTopicFilter, bankCategoryFilter]);
-
-  const bankTopics = useMemo(() => 
-    Array.from(new Set(bankQuestions.map(q => q.topic).filter(Boolean))).sort(),
-    [bankQuestions]
-  );
-
-  const bankCategories = useMemo(() => 
-    Array.from(new Set(bankQuestions.map(q => q.category).filter(Boolean))).sort(),
-    [bankQuestions]
-  );
-
+  const bankTopics = useMemo(() => Array.from(new Set(bankQuestions.map(q => q.topic).filter(Boolean))).sort(), [bankQuestions]);
+  const bankCategories = useMemo(() => Array.from(new Set(bankQuestions.map(q => q.category).filter(Boolean))).sort(), [bankQuestions]);
   const toggleBankSelection = (id: string) => {
     const newSelected = new Set(selectedBankIds);
     if (newSelected.has(id)) {
@@ -486,10 +444,9 @@ const MockTestBulkUploadForm = () => {
     }
     setSelectedBankIds(newSelected);
   };
-
   const loadSelectedFromBank = () => {
     const selected = bankQuestions.filter(q => selectedBankIds.has(q.id));
-    
+
     // Convert bank questions to parsed format
     const converted: ParsedMockQuestion[] = selected.map((q, index) => ({
       test_name: q.topic || 'Imported Test',
@@ -505,18 +462,14 @@ const MockTestBulkUploadForm = () => {
       difficulty: q.difficulty || 'medium',
       time_limit: 60
     }));
-
     setParsedQuestions(prev => [...prev, ...converted]);
     setSelectedBankIds(new Set());
-    
     toast({
       title: "Questions loaded",
       description: `Added ${selected.length} question(s) from bank`
     });
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Upload Section */}
       <Card className="shadow-md">
         <CardHeader>
@@ -529,36 +482,20 @@ const MockTestBulkUploadForm = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
-            }`}
-          >
-            {!uploadedFile ? (
-              <div className="space-y-4">
+          <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}`}>
+            {!uploadedFile ? <div className="space-y-4">
                 <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
                 <div>
                   <p className="text-lg font-medium">Drop your CSV file here</p>
                   <p className="text-sm text-muted-foreground">or click to browse</p>
                 </div>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="csv-upload"
-                />
+                <input type="file" accept=".csv" onChange={handleFileSelect} className="hidden" id="csv-upload" />
                 <Button asChild>
                   <label htmlFor="csv-upload" className="cursor-pointer">
                     Select CSV File
                   </label>
                 </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
+              </div> : <div className="space-y-4">
                 <CheckCircle2 className="h-12 w-12 mx-auto text-success" />
                 <div>
                   <p className="text-lg font-medium">{uploadedFile.name}</p>
@@ -566,37 +503,26 @@ const MockTestBulkUploadForm = () => {
                     {parsedQuestions.length} questions parsed
                   </p>
                 </div>
-                {uploadStats.parsing && (
-                  <div className="space-y-2">
+                {uploadStats.parsing && <div className="space-y-2">
                     <Progress value={50} className="w-full" />
                     <p className="text-sm text-muted-foreground">Parsing CSV...</p>
-                  </div>
-                )}
-              </div>
-            )}
+                  </div>}
+              </div>}
           </div>
 
-          {uploadStats.syncing && (
-            <div className="mt-4 space-y-2">
-              <Progress 
-                value={(uploadStats.syncedQuestions / uploadStats.totalQuestions) * 100} 
-                className="w-full" 
-              />
+          {uploadStats.syncing && <div className="mt-4 space-y-2">
+              <Progress value={uploadStats.syncedQuestions / uploadStats.totalQuestions * 100} className="w-full" />
               <p className="text-sm text-muted-foreground text-center">
                 Syncing: {uploadStats.syncedQuestions} / {uploadStats.totalQuestions} questions
               </p>
-            </div>
-          )}
+            </div>}
         </CardContent>
       </Card>
 
       {/* Question Bank Loader Section */}
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            📚 Load from Question Bank
-          </CardTitle>
+          
           <CardDescription>
             Use existing saved questions from the persistent mock test bank
           </CardDescription>
@@ -607,12 +533,7 @@ const MockTestBulkUploadForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search by subject, topic, or keyword..."
-                  value={bankSearchQuery}
-                  onChange={(e) => setBankSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Search by subject, topic, or keyword..." value={bankSearchQuery} onChange={e => setBankSearchQuery(e.target.value)} className="pl-10" />
               </div>
               
               <Select value={bankSubjectFilter} onValueChange={setBankSubjectFilter}>
@@ -637,9 +558,7 @@ const MockTestBulkUploadForm = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Topics</SelectItem>
-                  {bankTopics.map(topic => (
-                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                  ))}
+                  {bankTopics.map(topic => <SelectItem key={topic} value={topic}>{topic}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -649,9 +568,7 @@ const MockTestBulkUploadForm = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {bankCategories.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
+                  {bankCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -660,53 +577,27 @@ const MockTestBulkUploadForm = () => {
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 {selectedBankIds.size} of {filteredBankQuestions.length} selected
-                {bankQuestions.length > 0 && (
-                  <span className="ml-2">• {bankQuestions.length} total in bank</span>
-                )}
+                {bankQuestions.length > 0 && <span className="ml-2">• {bankQuestions.length} total in bank</span>}
               </div>
-              <Button 
-                onClick={loadSelectedFromBank}
-                disabled={selectedBankIds.size === 0}
-                size="sm"
-              >
+              <Button onClick={loadSelectedFromBank} disabled={selectedBankIds.size === 0} size="sm">
                 Load Selected Questions ({selectedBankIds.size})
               </Button>
             </div>
 
             {/* Scrollable Question List */}
             <ScrollArea className="h-[400px] border rounded-lg bg-card">
-              {loadingBank ? (
-                <div className="flex items-center justify-center h-full">
+              {loadingBank ? <div className="flex items-center justify-center h-full">
                   <p className="text-muted-foreground">Loading questions...</p>
-                </div>
-              ) : filteredBankQuestions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                </div> : filteredBankQuestions.length === 0 ? <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                   <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
                   <p className="text-muted-foreground">No questions found</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {bankQuestions.length === 0 
-                      ? 'Upload CSV files to populate your question bank' 
-                      : 'Try adjusting your filters'}
+                    {bankQuestions.length === 0 ? 'Upload CSV files to populate your question bank' : 'Try adjusting your filters'}
                   </p>
-                </div>
-              ) : (
-                <div className="p-4 space-y-2">
-                  {filteredBankQuestions.map((question) => (
-                    <div
-                      key={question.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-sm ${
-                        selectedBankIds.has(question.id)
-                          ? 'border-primary bg-primary/5'
-                          : 'hover:border-primary/30'
-                      }`}
-                      onClick={() => toggleBankSelection(question.id)}
-                    >
+                </div> : <div className="p-4 space-y-2">
+                  {filteredBankQuestions.map(question => <div key={question.id} className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-sm ${selectedBankIds.has(question.id) ? 'border-primary bg-primary/5' : 'hover:border-primary/30'}`} onClick={() => toggleBankSelection(question.id)}>
                       <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={selectedBankIds.has(question.id)}
-                          onCheckedChange={() => toggleBankSelection(question.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
+                        <Checkbox checked={selectedBankIds.has(question.id)} onCheckedChange={() => toggleBankSelection(question.id)} onClick={e => e.stopPropagation()} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium line-clamp-2 mb-2">
                             {question.question_text}
@@ -718,42 +609,32 @@ const MockTestBulkUploadForm = () => {
                             <Badge variant="secondary" className="text-xs">
                               {question.topic}
                             </Badge>
-                            {question.category && (
-                              <Badge className="text-xs">{question.category}</Badge>
-                            )}
+                            {question.category && <Badge className="text-xs">{question.category}</Badge>}
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleBankSelection(question.id);
-                            if (!selectedBankIds.has(question.id)) {
-                              const newSet = new Set(selectedBankIds);
-                              newSet.add(question.id);
-                              setSelectedBankIds(newSet);
-                              setTimeout(() => loadSelectedFromBank(), 100);
-                            }
-                          }}
-                          className="flex-shrink-0"
-                        >
+                        <Button size="sm" variant="ghost" onClick={e => {
+                    e.stopPropagation();
+                    toggleBankSelection(question.id);
+                    if (!selectedBankIds.has(question.id)) {
+                      const newSet = new Set(selectedBankIds);
+                      newSet.add(question.id);
+                      setSelectedBankIds(newSet);
+                      setTimeout(() => loadSelectedFromBank(), 100);
+                    }
+                  }} className="flex-shrink-0">
                           <Plus className="h-4 w-4 mr-1" />
                           Add
                         </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
             </ScrollArea>
           </div>
         </CardContent>
       </Card>
 
       {/* Questions Preview */}
-      {parsedQuestions.length > 0 && (
-        <Card>
+      {parsedQuestions.length > 0 && <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -767,11 +648,7 @@ const MockTestBulkUploadForm = () => {
                   <Download className="h-4 w-4 mr-2" />
                   Export CSV
                 </Button>
-                <Button 
-                  onClick={syncToDatabase}
-                  disabled={uploadStats.syncing || uploadStats.completed}
-                  size="sm"
-                >
+                <Button onClick={syncToDatabase} disabled={uploadStats.syncing || uploadStats.completed} size="sm">
                   {uploadStats.completed ? 'Synced' : 'Sync to Database'}
                 </Button>
               </div>
@@ -782,12 +659,7 @@ const MockTestBulkUploadForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search questions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+                <Input placeholder="Search questions..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
               </div>
               
               <Select value={selectedTest} onValueChange={setSelectedTest}>
@@ -796,9 +668,7 @@ const MockTestBulkUploadForm = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Tests</SelectItem>
-                  {testNames.map(test => (
-                    <SelectItem key={test} value={test}>{test}</SelectItem>
-                  ))}
+                  {testNames.map(test => <SelectItem key={test} value={test}>{test}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -808,17 +678,14 @@ const MockTestBulkUploadForm = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map(subject => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                  ))}
+                  {subjects.map(subject => <SelectItem key={subject} value={subject}>{subject}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
             {/* Questions List */}
             <div className="space-y-4">
-              {Object.entries(groupedQuestions).map(([testName, subjects]) => (
-                <div key={testName} className="border rounded-lg">
+              {Object.entries(groupedQuestions).map(([testName, subjects]) => <div key={testName} className="border rounded-lg">
                   <div className="bg-muted/50 p-4 font-medium flex items-center justify-between">
                     <span>{testName}</span>
                     <Badge variant="secondary">
@@ -827,11 +694,9 @@ const MockTestBulkUploadForm = () => {
                   </div>
                   
                   {Object.entries(subjects).map(([subject, questions]) => {
-                    const groupKey = `${testName}-${subject}`;
-                    const isExpanded = expandedGroups.has(groupKey);
-                    
-                    return (
-                      <Collapsible key={groupKey} open={isExpanded} onOpenChange={() => toggleGroup(groupKey)}>
+              const groupKey = `${testName}-${subject}`;
+              const isExpanded = expandedGroups.has(groupKey);
+              return <Collapsible key={groupKey} open={isExpanded} onOpenChange={() => toggleGroup(groupKey)}>
                         <CollapsibleTrigger className="w-full p-4 hover:bg-muted/30 flex items-center justify-between border-t">
                           <div className="flex items-center gap-2">
                             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -842,8 +707,7 @@ const MockTestBulkUploadForm = () => {
                         
                         <CollapsibleContent>
                           <div className="space-y-2 p-4 bg-background">
-                            {questions.map((q, idx) => (
-                              <div key={idx} className="border rounded p-3 space-y-2">
+                            {questions.map((q, idx) => <div key={idx} className="border rounded p-3 space-y-2">
                                 <div className="flex items-start justify-between">
                                   <p className="font-medium">Q{q.question_number}: {q.question_text}</p>
                                   <Badge variant="outline">{q.difficulty}</Badge>
@@ -862,21 +726,15 @@ const MockTestBulkUploadForm = () => {
                                     D) {q.option_d}
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              </div>)}
                           </div>
                         </CollapsibleContent>
-                      </Collapsible>
-                    );
-                  })}
-                </div>
-              ))}
+                      </Collapsible>;
+            })}
+                </div>)}
             </div>
           </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+        </Card>}
+    </div>;
 };
-
 export default MockTestBulkUploadForm;
