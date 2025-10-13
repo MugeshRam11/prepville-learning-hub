@@ -251,16 +251,21 @@ const MockTestBulkUploadForm = () => {
         difficulty: (q.difficulty || 'medium') as any,
         category: q.section,
         subject: q.subject as any,
-        topic: q.section || 'General',
+        topic: q.test_name,
         is_active: true
       }));
 
-      // Save to question bank
+      // Save to question bank (ignore duplicates)
       const { error: bankError } = await supabase
         .from('mock_test_question_bank')
-        .insert(bankQuestions);
+        .upsert(bankQuestions, { 
+          onConflict: 'question_text',
+          ignoreDuplicates: true 
+        });
 
-      if (bankError) console.error('Question bank save error:', bankError);
+      if (bankError && bankError.code !== '23505') {
+        console.error('Question bank save error:', bankError);
+      }
 
       // Group questions by test to create/update mock tests
       const testGroups: Record<string, ParsedMockQuestion[]> = {};
