@@ -219,14 +219,10 @@ const UserManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(user.user_id)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => toggleUserStatus(user.user_id, user.is_active)}>
-                          {user.is_active ? 'Deactivate' : 'Activate'}
-                        </Button>
-                      </div>
+                      <Button variant="outline" size="sm" onClick={() => handleViewDetails(user.user_id)}>
+                        <Eye className="h-4 w-4" />
+                        View Details
+                      </Button>
                     </TableCell>
                   </TableRow>)}
               </TableBody>
