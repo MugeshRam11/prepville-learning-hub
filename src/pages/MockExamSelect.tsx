@@ -31,6 +31,9 @@ const MockExamSelect = () => {
 
       if (error) throw error;
       
+      console.log('Fetched mock tests:', data);
+      console.log('Total published tests:', data?.length || 0);
+      
       setMockTests(data || []);
     } catch (error) {
       console.error('Error fetching mock tests:', error);
@@ -179,8 +182,9 @@ const MockExamSelect = () => {
         <section className="py-8">
           <div className="container">
             {Object.keys(testsByCategory).length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No mock tests found matching your criteria.</p>
+              <div className="text-center py-12 space-y-4">
+                <p className="text-muted-foreground text-lg">No published mock tests available.</p>
+                <p className="text-sm text-muted-foreground">Tests must be published by an administrator to appear here.</p>
               </div>
             ) : (
               <div className="space-y-12">
