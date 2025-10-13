@@ -164,8 +164,22 @@ const MockTestBulkUploadForm = () => {
       skipEmptyLines: true,
       complete: (results) => {
         try {
+          console.log('CSV Parse Results:', results);
+          
+          if (!results.data || results.data.length === 0) {
+            toast({
+              title: "Empty CSV file",
+              description: "No data found in the CSV file",
+              variant: "destructive"
+            });
+            setUploadStats(prev => ({ ...prev, parsing: false }));
+            return;
+          }
+
           const requiredColumns = ['test_name', 'subject', 'question_text', 'correct_answer', 'option_a', 'option_b', 'option_c', 'option_d'];
           const headers = Object.keys(results.data[0] || {});
+          console.log('CSV Headers:', headers);
+          
           const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
           if (missingColumns.length > 0) {
@@ -178,28 +192,47 @@ const MockTestBulkUploadForm = () => {
             return;
           }
 
-          const questions = results.data.map((row: any, index: number) => ({
-            test_name: row.test_name?.trim() || 'Unnamed Test',
-            subject: subjectMapping[row.subject?.trim()?.toLowerCase() || 'science'] || 'science',
-            section: row.section?.trim() || 'General',
-            question_number: row.question_number ? parseInt(row.question_number) : index + 1,
-            question_text: row.question_text?.trim() || '',
-            correct_answer: row.correct_answer?.trim()?.toUpperCase() || 'A',
-            option_a: row.option_a?.trim() || '',
-            option_b: row.option_b?.trim() || '',
-            option_c: row.option_c?.trim() || '',
-            option_d: row.option_d?.trim() || '',
-            difficulty: row.difficulty?.trim() || 'medium',
-            time_limit: row.time_limit ? parseInt(row.time_limit) : 60
-          })).filter(q => q.question_text);
+          const questions = results.data
+            .map((row: any, index: number) => {
+              const question = {
+                test_name: row.test_name?.trim() || 'Unnamed Test',
+                subject: subjectMapping[row.subject?.trim()?.toLowerCase() || 'science'] || 'science',
+                section: row.section?.trim() || 'General',
+                question_number: row.question_number ? parseInt(row.question_number) : index + 1,
+                question_text: row.question_text?.trim() || '',
+                correct_answer: row.correct_answer?.trim()?.toUpperCase() || 'A',
+                option_a: row.option_a?.trim() || '',
+                option_b: row.option_b?.trim() || '',
+                option_c: row.option_c?.trim() || '',
+                option_d: row.option_d?.trim() || '',
+                difficulty: row.difficulty?.trim()?.toLowerCase() || 'medium',
+                time_limit: row.time_limit ? parseInt(row.time_limit) : 60
+              };
+              return question;
+            })
+            .filter(q => q.question_text && q.question_text.length > 0);
 
-          // Remove duplicates
+          console.log('Parsed questions before dedup:', questions.length);
+
+          // Remove duplicates based on test name and question text
           const uniqueQuestions = questions.filter((q, index, self) =>
             index === self.findIndex(t => 
               t.test_name === q.test_name && 
               t.question_text === q.question_text
             )
           );
+
+          console.log('Unique questions:', uniqueQuestions.length);
+
+          if (uniqueQuestions.length === 0) {
+            toast({
+              title: "No valid questions found",
+              description: "Please check your CSV format and ensure question_text column has values",
+              variant: "destructive"
+            });
+            setUploadStats(prev => ({ ...prev, parsing: false }));
+            return;
+          }
 
           setParsedQuestions(uniqueQuestions);
           setUploadStats({
@@ -218,7 +251,7 @@ const MockTestBulkUploadForm = () => {
           console.error('Parse error:', error);
           toast({
             title: "Parsing failed",
-            description: "Error processing CSV file",
+            description: error instanceof Error ? error.message : "Error processing CSV file",
             variant: "destructive"
           });
           setUploadStats(prev => ({ ...prev, parsing: false }));
