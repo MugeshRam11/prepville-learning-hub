@@ -136,6 +136,23 @@ const AdminMockTests = () => {
     }
   };
 
+  const publishAllTests = async () => {
+    try {
+      const { error } = await supabase
+        .from('mock_tests')
+        .update({ is_published: true })
+        .eq('is_published', false);
+
+      if (error) throw error;
+
+      toast.success('All tests published successfully');
+      fetchMockTests();
+    } catch (error) {
+      console.error('Error publishing all tests:', error);
+      toast.error('Failed to publish tests');
+    }
+  };
+
   const getSubjectLabel = (subject) => {
     const labels = {
       'mathematics': 'Mathematics',
@@ -336,6 +353,16 @@ const AdminMockTests = () => {
             <p className="text-muted-foreground">Create and manage mock examination content</p>
           </div>
           <div className="flex gap-2">
+            {mockTests.filter(t => !t.is_published).length > 0 && (
+              <Button 
+                onClick={publishAllTests}
+                variant="default"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Publish All Tests ({mockTests.filter(t => !t.is_published).length})
+              </Button>
+            )}
             <Button 
               onClick={() => setShowQuestionBank(!showQuestionBank)} 
               variant="outline"
