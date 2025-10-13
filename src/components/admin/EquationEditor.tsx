@@ -32,14 +32,13 @@ export default function EquationEditor({ value, onChange, placeholder, className
   // Initialize MathLive when component mounts
   useEffect(() => {
     if (mathfieldRef.current) {
-      mathfieldRef.current.setOptions({
-        smartFence: true,
-        smartMode: true,
-        smartSuperscript: true,
-        virtualKeyboardMode: "manual",
-        defaultMode: "math",
-        letterShapeStyle: "auto",
-      });
+      // Set properties directly instead of using deprecated setOptions
+      mathfieldRef.current.smartFence = true;
+      mathfieldRef.current.smartMode = true;
+      mathfieldRef.current.smartSuperscript = true;
+      mathfieldRef.current.mathVirtualKeyboardPolicy = "manual";
+      mathfieldRef.current.defaultMode = "math";
+      mathfieldRef.current.letterShapeStyle = "auto";
       
       // Set initial value
       if (value) {

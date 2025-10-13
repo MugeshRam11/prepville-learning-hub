@@ -73,6 +73,7 @@ const SubjectLearning = () => {
   const [userAnswers, setUserAnswers] = useState<{ [key: string]: string }>({});
   const [submittedAnswers, setSubmittedAnswers] = useState<{ [key: string]: boolean }>({});
   const [incorrectAnswers, setIncorrectAnswers] = useState<string[]>([]);
+  const [isTyping, setIsTyping] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     if (user) {
@@ -424,6 +425,20 @@ const SubjectLearning = () => {
       ...prev,
       [questionId]: value
     }));
+    setIsTyping(prev => ({
+      ...prev,
+      [questionId]: true
+    }));
+  };
+
+  const handleAnswerBlur = (questionId: string) => {
+    // Wait a moment before marking as not typing (to avoid flickering)
+    setTimeout(() => {
+      setIsTyping(prev => ({
+        ...prev,
+        [questionId]: false
+      }));
+    }, 300);
   };
 
   const renderMathText = (text: string) => {
@@ -717,20 +732,23 @@ const SubjectLearning = () => {
                                 {!submittedAnswers[question.id] ? (
                                   <div className="space-y-3">
                                     <label className="text-sm font-medium">Your Answer:</label>
-                                    <EquationEditor
-                                      value={userAnswers[question.id] || ''}
-                                      onChange={(value) => handleAnswerChange(question.id, value)}
-                                      placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly."
-                                      className="min-h-[120px]"
-                                    />
-                                    <Button
-                                      onClick={() => handleAnswerSubmit(question.id)}
-                                      disabled={!userAnswers[question.id]?.trim()}
-                                      className="flex items-center gap-2"
-                                    >
-                                      <Send className="w-4 h-4" />
-                                      Submit Answer
-                                    </Button>
+                                    <div onBlur={() => handleAnswerBlur(question.id)}>
+                                      <EquationEditor
+                                        value={userAnswers[question.id] || ''}
+                                        onChange={(value) => handleAnswerChange(question.id, value)}
+                                        placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly."
+                                        className="min-h-[120px]"
+                                      />
+                                    </div>
+                                    {!isTyping[question.id] && userAnswers[question.id]?.trim() && (
+                                      <Button
+                                        onClick={() => handleAnswerSubmit(question.id)}
+                                        className="flex items-center gap-2"
+                                      >
+                                        <Send className="w-4 h-4" />
+                                        Submit Answer
+                                      </Button>
+                                    )}
                                   </div>
                                  ) : (
                                    <div className="space-y-3">
