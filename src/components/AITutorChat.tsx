@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Send, Loader2, MessageSquare } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { X, Send, Loader2, MessageSquare, Menu } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import EquationEditor from '@/components/admin/EquationEditor';
@@ -23,6 +24,7 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showMathEditor, setShowMathEditor] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -93,6 +95,13 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -214,18 +223,46 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
       {/* Input */}
       <div className="p-4 border-t border-border bg-background">
         <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <EquationEditor
-              value={input}
-              onChange={(value) => setInput(value)}
-              placeholder="Ask your question... Use math notation, fractions, symbols, and equations."
-              className="min-h-[80px]"
-            />
-          </div>
+          {!showMathEditor ? (
+            <>
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask your question..."
+                className="flex-1 min-h-[60px] max-h-[120px] resize-none"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowMathEditor(true)}
+                className="shrink-0"
+              >
+                <Menu className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <div className="flex-1">
+              <EquationEditor
+                value={input}
+                onChange={(value) => setInput(value)}
+                placeholder="Use the math toolbar to insert equations and symbols..."
+                className="min-h-[80px]"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMathEditor(false)}
+                className="mt-2"
+              >
+                Hide Math Editor
+              </Button>
+            </div>
+          )}
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white"
+            className="bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white shrink-0"
             size="icon"
           >
             {isLoading ? (
@@ -235,9 +272,11 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Use the math toolbar to insert equations and symbols
-        </p>
+        {!showMathEditor && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Press Enter to send, Shift+Enter for new line. Click menu icon for math editor.
+          </p>
+        )}
       </div>
     </div>
   );
