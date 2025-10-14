@@ -43,6 +43,7 @@ import NotFound from "./pages/NotFound";
 import LevelDetails from "./pages/LevelDetails";
 import SubjectLearning from "./pages/SubjectLearning";
 import QuestionBuilder from "./pages/QuestionBuilder";
+import UploadDemo1 from "./pages/UploadDemo1";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CopyPasteProtection from "./components/CopyPasteProtection";
 
@@ -249,6 +250,11 @@ const App = () => (
           <Route path="/level-details" element={
             <ProtectedRoute>
               <LevelDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/upload-demo1" element={
+            <ProtectedRoute>
+              <UploadDemo1 />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />
