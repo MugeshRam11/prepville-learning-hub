@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 const Subjects = () => {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState<string>('General');
 
   useEffect(() => {
