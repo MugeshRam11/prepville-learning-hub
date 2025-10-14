@@ -341,10 +341,48 @@ const AdminMockTests = () => {
     );
   }
 
+  const subjects = [
+    { value: 'all', label: 'All Subjects' },
+    { value: 'mathematics', label: 'Mathematics' },
+    { value: 'science', label: 'Science' },
+    { value: 'language_literature', label: 'Language & Literature' },
+    { value: 'social_studies', label: 'Social Studies' },
+    { value: 'physics', label: 'Physics' },
+    { value: 'chemistry', label: 'Chemistry' },
+    { value: 'biology', label: 'Biology' },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
-      <div className="flex-1 ml-64 p-6">
+      
+      {/* Subject Filter Sidebar */}
+      <div className="w-64 ml-64 bg-card border-r border-border p-4">
+        <ScrollArea className="h-screen">
+          <div className="space-y-1">
+            {subjects.map((subject) => (
+              <button
+                key={subject.value}
+                onClick={() => setSubjectFilter(subject.value)}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
+                  subjectFilter === subject.value
+                    ? 'bg-primary text-primary-foreground font-medium'
+                    : 'hover:bg-muted text-foreground'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {subjectFilter === subject.value && (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  <span>{subject.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+
+      <div className="flex-1 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
