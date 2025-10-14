@@ -22,13 +22,15 @@ import {
   Trophy,
   Target,
   Send,
-  RotateCcw
+  RotateCcw,
+  MessageSquare
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import EquationEditor from '@/components/admin/EquationEditor';
+import { AITutorChat } from '@/components/AITutorChat';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -74,6 +76,8 @@ const SubjectLearning = () => {
   const [submittedAnswers, setSubmittedAnswers] = useState<{ [key: string]: boolean }>({});
   const [incorrectAnswers, setIncorrectAnswers] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState<{ [key: string]: boolean }>({});
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -740,15 +744,28 @@ const SubjectLearning = () => {
                                         className="min-h-[120px]"
                                       />
                                     </div>
-                                    {!isTyping[question.id] && userAnswers[question.id]?.trim() && (
+                                    <div className="flex items-center gap-2">
+                                      {!isTyping[question.id] && userAnswers[question.id]?.trim() && (
+                                        <Button
+                                          onClick={() => handleAnswerSubmit(question.id)}
+                                          className="flex items-center gap-2"
+                                        >
+                                          <Send className="w-4 h-4" />
+                                          Submit Answer
+                                        </Button>
+                                      )}
                                       <Button
-                                        onClick={() => handleAnswerSubmit(question.id)}
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedQuestion(question);
+                                          setIsChatOpen(true);
+                                        }}
                                         className="flex items-center gap-2"
                                       >
-                                        <Send className="w-4 h-4" />
-                                        Submit Answer
+                                        <MessageSquare className="w-4 h-4" />
+                                        Ask AI Tutor
                                       </Button>
-                                    )}
+                                    </div>
                                   </div>
                                  ) : (
                                    <div className="space-y-3">
@@ -903,6 +920,16 @@ const SubjectLearning = () => {
           </div>
         </div>
       </div>
+
+      {/* AI Tutor Chat */}
+      <AITutorChat
+        subject={selectedQuestion ? `${subjectTitle} - ${selectedQuestion.topic}` : subjectTitle}
+        isOpen={isChatOpen}
+        onClose={() => {
+          setIsChatOpen(false);
+          setSelectedQuestion(null);
+        }}
+      />
     </div>
   );
 };
