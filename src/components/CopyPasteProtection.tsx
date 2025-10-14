@@ -1,10 +1,18 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 const CopyPasteProtection = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
+  const location = useLocation();
+  
+  // Disable protection on admin routes
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   useEffect(() => {
+    // Skip protection on admin routes
+    if (isAdminRoute) return;
+
     const showProtectionMessage = () => {
       toast({
         title: "Copy-Paste is disabled",
@@ -82,7 +90,12 @@ const CopyPasteProtection = ({ children }: { children: React.ReactNode }) => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [toast]);
+  }, [toast, isAdminRoute]);
+
+  // On admin routes, render without protection
+  if (isAdminRoute) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none' }}>
