@@ -705,32 +705,29 @@ const AdminMockTests = () => {
             }, {})).map(([category, tests]) => {
               const categoryTests = tests as any[];
               return (
-              <Card key={category} className="border-primary/20">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
-                      <CardTitle className="text-xl">{category}</CardTitle>
-                      <Badge variant="secondary">{categoryTests.length} test{categoryTests.length !== 1 ? 's' : ''}</Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {categoryTests.map((test) => (
-                      <MockTestCard
-                        key={test.id}
-                        test={test}
-                        onEdit={(id) => navigate(`/admin/mock-tests/edit/${id}`)}
-                        onView={(id) => navigate(`/admin/mock-tests/view/${id}`)}
-                        onDelete={handleDelete}
-                        onTogglePublish={togglePublished}
-                        isAdmin={true}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={category} className="space-y-4">
+                {/* Topic Header */}
+                <div className="flex items-center gap-3 pb-2 border-b">
+                  <div className="h-8 w-1 bg-primary rounded-full" />
+                  <h2 className="text-xl font-semibold">{category}</h2>
+                  <Badge variant="secondary" className="ml-2">{categoryTests.length} test{categoryTests.length !== 1 ? 's' : ''}</Badge>
+                </div>
+                
+                {/* Test Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {categoryTests.map((test) => (
+                    <MockTestCard
+                      key={test.id}
+                      test={test}
+                      onEdit={(id) => navigate(`/admin/mock-tests/edit/${id}`)}
+                      onView={(id) => navigate(`/admin/mock-tests/view/${id}`)}
+                      onDelete={handleDelete}
+                      onTogglePublish={togglePublished}
+                      isAdmin={true}
+                    />
+                  ))}
+                </div>
+              </div>
             )})
           )}
         </div>
