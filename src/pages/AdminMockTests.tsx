@@ -344,6 +344,94 @@ const AdminMockTests = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
+      
+      {/* Subject Filter Sidebar */}
+      <div className="fixed left-64 top-0 w-64 h-full bg-card border-r border-border overflow-y-auto z-10">
+        <div className="p-6 space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-4">Filter by Subject</h3>
+          <button
+            onClick={() => setSubjectFilter('all')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'all' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            All Subjects
+          </button>
+          <button
+            onClick={() => setSubjectFilter('mathematics')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'mathematics' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            Mathematics
+          </button>
+          <button
+            onClick={() => setSubjectFilter('science')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'science' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            Science
+          </button>
+          <button
+            onClick={() => setSubjectFilter('language_literature')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'language_literature' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            Language & Literature
+          </button>
+          <button
+            onClick={() => setSubjectFilter('social_studies')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'social_studies' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            Social Studies
+          </button>
+          <button
+            onClick={() => setSubjectFilter('physics')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'physics' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            Physics
+          </button>
+          <button
+            onClick={() => setSubjectFilter('chemistry')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'chemistry' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            Chemistry
+          </button>
+          <button
+            onClick={() => setSubjectFilter('biology')}
+            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
+              subjectFilter === 'biology' 
+                ? 'bg-primary text-primary-foreground font-medium' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            Biology
+          </button>
+        </div>
+      </div>
+
       <div className="flex-1 ml-64 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
@@ -611,91 +699,43 @@ const AdminMockTests = () => {
           </Card>
         )}
 
-        {/* Filters */}
+        {/* Search Bar */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex space-x-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search by title or topic..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  <SelectItem value="mathematics">Mathematics</SelectItem>
-                  <SelectItem value="science">Science</SelectItem>
-                  <SelectItem value="language_literature">Language & Literature</SelectItem>
-                  <SelectItem value="social_studies">Social Studies</SelectItem>
-                  <SelectItem value="physics">Physics</SelectItem>
-                  <SelectItem value="chemistry">Chemistry</SelectItem>
-                  <SelectItem value="biology">Biology</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search by title or topic..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Mock Tests by Category */}
-        <div className="space-y-8">
-          {Object.keys(filteredTests.reduce((acc: Record<string, any[]>, test: any) => {
-            const category = test.topic || 'General';
-            if (!acc[category]) acc[category] = [];
-            acc[category].push(test);
-            return acc;
-          }, {})).length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">No mock tests found</p>
-              </CardContent>
-            </Card>
-          ) : (
-            Object.entries(filteredTests.reduce((acc: Record<string, any[]>, test: any) => {
-              const category = test.topic || 'General';
-              if (!acc[category]) acc[category] = [];
-              acc[category].push(test);
-              return acc;
-            }, {})).map(([category, tests]) => {
-              const categoryTests = tests as any[];
-              return (
-              <Card key={category} className="border-primary/20">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
-                      <CardTitle className="text-xl">{category}</CardTitle>
-                      <Badge variant="secondary">{categoryTests.length} test{categoryTests.length !== 1 ? 's' : ''}</Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {categoryTests.map((test) => (
-                      <MockTestCard
-                        key={test.id}
-                        test={test}
-                        onEdit={(id) => navigate(`/admin/mock-tests/edit/${id}`)}
-                        onView={(id) => navigate(`/admin/mock-tests/view/${id}`)}
-                        onDelete={handleDelete}
-                        onTogglePublish={togglePublished}
-                        isAdmin={true}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )})
-          )}
-        </div>
+        {/* Mock Tests Grid - All topics as individual cards */}
+        {filteredTests.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">No mock tests found</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTests.map((test) => (
+              <MockTestCard
+                key={test.id}
+                test={test}
+                onEdit={(id) => navigate(`/admin/mock-tests/edit/${id}`)}
+                onView={(id) => navigate(`/admin/mock-tests/view/${id}`)}
+                onDelete={handleDelete}
+                onTogglePublish={togglePublished}
+                isAdmin={true}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
     </div>
