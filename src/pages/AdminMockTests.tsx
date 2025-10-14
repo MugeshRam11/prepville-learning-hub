@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, FileText, Database, Upload, Download, CheckCircle2, XCircle, Filter, X } from 'lucide-react';
+import { Plus, Search, FileText, Database, Upload, Download, CheckCircle2, XCircle, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import MockTestCard from '@/components/mock-exam/MockTestCard';
@@ -23,7 +23,7 @@ const AdminMockTests = () => {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(true);
   const testsPerPage = 10;
 
   // Question Bank State
@@ -346,21 +346,13 @@ const AdminMockTests = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
       
-      {/* Subject Filter Sidebar - Responsive */}
-      <div className={`fixed left-64 top-0 w-64 h-full bg-card border-r border-border overflow-y-auto z-20 transition-transform duration-300 ease-in-out ${
-        isFilterOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      {/* Subject Filter Sidebar - Collapsible */}
+      <div className={`fixed left-64 top-0 h-full bg-card border-r border-border overflow-y-auto z-20 transition-all duration-300 ease-in-out ${
+        isFilterOpen ? 'w-64' : 'w-0'
       }`}>
-        <div className="p-6 space-y-2">
+        <div className={`p-6 space-y-2 transition-opacity duration-300 ${isFilterOpen ? 'opacity-100' : 'opacity-0'}`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-muted-foreground">Filter by Subject</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="lg:hidden"
-              onClick={() => setIsFilterOpen(false)}
-            >
-              <X className="w-4 h-4" />
-            </Button>
           </div>
           <button
             onClick={() => setSubjectFilter('all')}
@@ -445,32 +437,35 @@ const AdminMockTests = () => {
         </div>
       </div>
 
-      {/* Overlay for mobile */}
-      {isFilterOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-10 lg:hidden"
-          onClick={() => setIsFilterOpen(false)}
-        />
-      )}
+      {/* Toggle Button for Filter Sidebar */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setIsFilterOpen(!isFilterOpen)}
+        className={`fixed top-4 z-30 transition-all duration-300 shadow-lg ${
+          isFilterOpen ? 'left-[512px]' : 'left-64'
+        }`}
+      >
+        {isFilterOpen ? (
+          <>
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Hide Filters
+          </>
+        ) : (
+          <>
+            <ChevronRight className="w-4 h-4 mr-1" />
+            Show Filters
+          </>
+        )}
+      </Button>
 
-      <div className="flex-1 lg:ml-64 p-6">
+      <div className={`flex-1 p-6 transition-all duration-300 ${isFilterOpen ? 'ml-64' : 'ml-0'}`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="lg:hidden"
-              onClick={() => setIsFilterOpen(true)}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Mock Tests Management</h1>
-              <p className="text-muted-foreground">Create and manage mock examination content</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Mock Tests Management</h1>
+            <p className="text-muted-foreground">Create and manage mock examination content</p>
           </div>
           <div className="flex gap-2">
             {mockTests.filter(t => !t.is_published).length > 0 && (
