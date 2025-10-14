@@ -112,7 +112,7 @@ const App = () => (
               <MockExamSubjectView />
             </ProtectedRoute>
           } />
-          <Route path="/mock-exams/start" element={
+          <Route path="/mock-exams/start/:testId" element={
             <ProtectedRoute requiresSubscription>
               <MockExamStart />
             </ProtectedRoute>
