@@ -34,77 +34,103 @@ const MockTestCard: React.FC<MockTestCardProps> = ({
 }) => {
   const getSubjectColor = (subject: string) => {
     const colors = {
-      'mathematics': 'from-blue-500 to-blue-600',
-      'Mathematics': 'from-blue-500 to-blue-600',
-      'physics': 'from-purple-500 to-purple-600',
-      'Physics': 'from-purple-500 to-purple-600',
-      'chemistry': 'from-green-500 to-green-600',
-      'Chemistry': 'from-green-500 to-green-600',
-      'biology': 'from-emerald-500 to-emerald-600',
-      'Biology': 'from-emerald-500 to-emerald-600',
-      'science': 'from-teal-500 to-teal-600',
-      'Science': 'from-teal-500 to-teal-600',
+      'mathematics': 'bg-blue-500',
+      'Mathematics': 'bg-blue-500',
+      'physics': 'bg-red-500',
+      'Physics': 'bg-red-500',
+      'chemistry': 'bg-teal-500',
+      'Chemistry': 'bg-teal-500',
+      'biology': 'bg-green-500',
+      'Biology': 'bg-green-500',
+      'science': 'bg-emerald-500',
+      'Science': 'bg-emerald-500',
     };
-    return colors[subject] || 'from-primary to-primary/80';
+    return colors[subject] || 'bg-primary';
   };
 
-  return (
-    <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg border-border bg-card">
-      {/* Gradient Header */}
-      <div className={`h-2 bg-gradient-to-r ${getSubjectColor(test.subject)}`} />
-      
-      <CardHeader className="space-y-3">
-        <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">
-          {test.topic || test.title}
-        </CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">
-          {test.topic || test.title}
-        </CardDescription>
-      </CardHeader>
+  const getSubjectLabel = (subject: string) => {
+    const labels = {
+      'mathematics': 'MYP',
+      'Mathematics': 'MYP',
+      'physics': 'MYP',
+      'Physics': 'MYP',
+      'chemistry': 'MYP',
+      'Chemistry': 'MYP',
+      'biology': 'MYP',
+      'Biology': 'MYP',
+      'science': 'MYP',
+      'Science': 'MYP',
+    };
+    return labels[subject] || 'MYP';
+  };
 
-      <CardContent className="space-y-4">
-        {/* Test Info */}
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <FileText className="w-4 h-4 text-primary" />
-            <span className="font-medium">{test.total_questions || 0} Questions</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Award className="w-4 h-4 text-primary" />
-            <span className="font-medium capitalize">{typeof test.subject === 'string' ? test.subject : 'Subject'}</span>
-          </div>
+  const formatSubjectName = (subject: string) => {
+    const formatted = subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase();
+    return `MYP ${formatted}`;
+  };
+
+  // Extract topics from title or use default
+  const topics = ['Topic 1', 'Topic 2', 'Topic 3'];
+
+  return (
+    <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl border-border/50 bg-card rounded-2xl">
+      <CardContent className="p-6 space-y-4">
+        {/* Header with badge and dot */}
+        <div className="flex items-start justify-between">
+          <Badge variant="secondary" className="text-xs font-medium bg-muted/50">
+            {getSubjectLabel(test.subject)}
+          </Badge>
+          <div className={`w-3 h-3 rounded-full ${getSubjectColor(test.subject)}`} />
+        </div>
+
+        {/* Title */}
+        <div className="space-y-2">
+          <h3 className="text-2xl font-bold text-foreground leading-tight">
+            {formatSubjectName(test.subject)}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {test.topic}
+          </p>
+        </div>
+
+        {/* Topic badges */}
+        <div className="flex flex-wrap gap-2">
+          {test.topic && (
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal bg-background">
+              {test.topic}
+            </Badge>
+          )}
           {isAdmin && test.is_published !== undefined && (
-            <Badge variant={test.is_published ? "default" : "secondary"} className="ml-auto">
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal bg-background">
               {test.is_published ? 'Published' : 'Draft'}
             </Badge>
           )}
         </div>
 
-        {isAdmin && test.created_at && (
-          <div className="text-xs text-muted-foreground">
-            Created {format(new Date(test.created_at), 'MMM dd, yyyy')}
-          </div>
-        )}
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+          <span className="font-medium">{test.total_questions || 0} Questions</span>
+          <span className="font-medium">0 Videos</span>
+        </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
+        {/* Action Button */}
+        <div className="pt-2">
           {!isAdmin && onStart && (
             <Button 
               onClick={() => onStart(test.id)}
-              className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 text-base font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200"
             >
-              <FileText className="w-4 h-4 mr-2" />
-              Start Test
+              Start Learning
             </Button>
           )}
           
           {isAdmin && (
-            <>
+            <div className="flex gap-2">
               <Button 
                 onClick={() => onView?.(test.id)}
                 variant="outline"
                 size="sm"
-                className="flex-1"
+                className="flex-1 rounded-lg"
               >
                 <Eye className="w-4 h-4 mr-1" />
                 View
@@ -113,7 +139,7 @@ const MockTestCard: React.FC<MockTestCardProps> = ({
                 onClick={() => onEdit?.(test.id)}
                 variant="outline"
                 size="sm"
-                className="flex-1"
+                className="flex-1 rounded-lg"
               >
                 <Edit className="w-4 h-4 mr-1" />
                 Edit
@@ -122,11 +148,11 @@ const MockTestCard: React.FC<MockTestCardProps> = ({
                 onClick={() => onDelete?.(test.id)}
                 variant="outline"
                 size="sm"
-                className="text-destructive hover:bg-destructive/10"
+                className="text-destructive hover:bg-destructive/10 rounded-lg"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
-            </>
+            </div>
           )}
         </div>
       </CardContent>
