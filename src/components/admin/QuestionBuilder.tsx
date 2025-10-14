@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Upload, X } from 'lucide-react';
-import EquationEditor from './EquationEditor';
+import RichTextEditor from './RichTextEditor';
 import ImageUpload from './ImageUpload';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
@@ -127,11 +127,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Question Text */}
             <div>
               <label className="block text-sm font-medium mb-2">Question Text *</label>
-              <EquationEditor
+              <RichTextEditor
                 value={question.question_text}
                 onChange={(value) => updateQuestion(question.id, 'question_text', value)}
-                placeholder="Enter your question here. Use LaTeX for math: \\frac{a}{b}, x^2, \\sqrt{x}..."
-                className="min-h-[120px]"
+                placeholder="Enter your question here with full text formatting support..."
               />
             </div>
 
@@ -261,11 +260,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                     <CardContent className="space-y-3">
                       <div>
                         <label className="block text-xs font-medium mb-1">Sub-question Text *</label>
-                        <EquationEditor
+                        <RichTextEditor
                           value={subQuestion.sub_question_text}
                           onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_text', value)}
-                          placeholder="Enter sub-question with LaTeX support..."
-                          className="min-h-[80px]"
+                          placeholder="Enter sub-question with full text formatting support..."
                         />
                       </div>
 
