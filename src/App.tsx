@@ -63,12 +63,12 @@ const App = () => (
     <AuthProvider>
       <SubscriptionProvider>
         <TooltipProvider>
-          <CopyPasteProtection>
-            <Toaster />
-            <Sonner />
-            <StreakAutoRecorder />
-            <SessionTracker />
-            <BrowserRouter>
+          <Toaster />
+          <Sonner />
+          <StreakAutoRecorder />
+          <SessionTracker />
+          <BrowserRouter>
+            <CopyPasteProtection>
               <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
@@ -253,8 +253,8 @@ const App = () => (
           } />
           <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-            </CopyPasteProtection>
+              </CopyPasteProtection>
+            </BrowserRouter>
           </TooltipProvider>
         </SubscriptionProvider>
       </AuthProvider>
