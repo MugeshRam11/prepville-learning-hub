@@ -41,15 +41,17 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   const [showSymbolPicker, setShowSymbolPicker] = useState(false);
   const [currentFont, setCurrentFont] = useState("Arial");
   const [currentSize, setCurrentSize] = useState("16px");
+  const isUpdatingRef = useRef(false);
 
+  // Only set initial value once on mount
   useEffect(() => {
-    if (editorRef.current && value !== editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = value;
+    if (editorRef.current && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = value || '';
     }
-  }, [value]);
+  }, []);
 
   const handleInput = () => {
-    if (editorRef.current) {
+    if (editorRef.current && !isUpdatingRef.current) {
       onChange(editorRef.current.innerHTML);
     }
   };
@@ -82,6 +84,8 @@ export default function RichTextEditor({ value, onChange, placeholder, className
 
   const handleMathInsert = (latex: string) => {
     if (editorRef.current && latex) {
+      isUpdatingRef.current = true;
+      
       const mathSpan = document.createElement('span');
       mathSpan.className = 'math-expression';
       mathSpan.setAttribute('data-latex', latex);
@@ -99,7 +103,10 @@ export default function RichTextEditor({ value, onChange, placeholder, className
         selection.addRange(range);
       }
       
-      handleInput();
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+        handleInput();
+      }, 0);
     }
     setShowMathEditor(false);
   };
@@ -328,13 +335,8 @@ export default function RichTextEditor({ value, onChange, placeholder, className
             lineHeight: "1.6",
           }}
           suppressContentEditableWarning
-        >
-          {!value && (
-            <span className="text-muted-foreground pointer-events-none">
-              {placeholder || "Type your question here..."}
-            </span>
-          )}
-        </div>
+          data-placeholder={placeholder || "Type your question here..."}
+        />
 
         {/* Math Editor Modal */}
         {showMathEditor && (
