@@ -22,6 +22,7 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -34,7 +35,7 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
+    if (isOpen && isExpanded && messages.length === 0) {
       setMessages([
         {
           role: 'assistant',
@@ -42,7 +43,7 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
         }
       ]);
     }
-  }, [isOpen, subject]);
+  }, [isOpen, isExpanded, subject]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -142,6 +143,20 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
 
   if (!isOpen) return null;
 
+  // Minimized floating button
+  if (!isExpanded) {
+    return (
+      <Button
+        onClick={() => setIsExpanded(true)}
+        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white shadow-2xl z-50 p-0 flex items-center justify-center"
+        size="icon"
+      >
+        <MessageSquare className="w-6 h-6" />
+      </Button>
+    );
+  }
+
+  // Expanded chat window
   return (
     <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-background border border-border rounded-lg shadow-2xl flex flex-col z-50 overflow-hidden">
       {/* Header */}
@@ -156,7 +171,9 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={onClose}
+          onClick={() => {
+            setIsExpanded(false);
+          }}
           className="text-white hover:bg-white/20"
         >
           <X className="w-5 h-5" />
