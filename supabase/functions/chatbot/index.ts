@@ -14,63 +14,65 @@ serve(async (req) => {
   try {
     const { subject, message, conversationHistory } = await req.json();
     
-    const HUGGINGFACE_API_KEY = Deno.env.get('HUGGINGFACE_API_KEY');
-    if (!HUGGINGFACE_API_KEY) {
-      throw new Error('HUGGINGFACE_API_KEY is not configured');
+    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+    if (!OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY is not configured');
     }
 
-    // Build context-aware prompt
-    const systemPrompt = `You are an expert ${subject} tutor helping students prepare for exams. Your role is to:
-- Provide clear, step-by-step explanations
-- Use simple language suitable for exam preparation
-- Give practical examples and study tips
-- Break down complex concepts into easy-to-understand parts
-- Encourage students and build their confidence
+    // Build system prompt
+    const systemPrompt = `You are "TutorBot", an AI assistant for PrepVille Learning Hub.
+You help students with Biology, Economics, English, Computer Science, etc.
+Give clear explanations, break down complex topics step by step, provide examples, and ask follow-up questions if needed.
+Be polite, student-friendly, and concise unless more detail is requested.`;
 
-Keep responses concise (2-3 paragraphs max) and focused on the question asked.`;
+    // Build messages array
+    const messages = [
+      { role: 'system', content: systemPrompt }
+    ];
 
-    // Build conversation context
-    let conversationContext = systemPrompt + "\n\n";
+    // Add conversation history
     if (conversationHistory && conversationHistory.length > 0) {
-      conversationContext += "Previous conversation:\n";
-      conversationHistory.slice(-4).forEach((msg: any) => {
-        conversationContext += `${msg.role === 'user' ? 'Student' : 'Tutor'}: ${msg.content}\n`;
+      conversationHistory.forEach((msg: any) => {
+        messages.push({
+          role: msg.role,
+          content: msg.content
+        });
       });
     }
-    conversationContext += `\nStudent: ${message}\nTutor:`;
 
-    console.log('Calling Hugging Face API for subject:', subject);
+    // Add current message
+    messages.push({
+      role: 'user',
+      content: message
+    });
+
+    console.log('Calling OpenRouter API for subject:', subject);
 
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/google/flan-t5-large',
+      'https://openrouter.ai/api/v1/chat/completions',
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`,
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: conversationContext,
-          parameters: {
-            max_new_tokens: 250,
-            temperature: 0.7,
-            top_p: 0.9,
-            return_full_text: false,
-          },
+          model: 'openai/gpt-4o',
+          messages: messages
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Hugging Face API error:', response.status, errorText);
+      console.error('OpenRouter API error:', response.status, errorText);
       
-      if (response.status === 503) {
+      if (response.status === 429) {
         return new Response(
           JSON.stringify({ 
-            error: 'The AI model is currently loading. Please try again in a moment.' 
+            error: 'Rate limit exceeded. Please try again in a moment.' 
           }),
-          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
@@ -78,7 +80,7 @@ Keep responses concise (2-3 paragraphs max) and focused on the question asked.`;
     }
 
     const data = await response.json();
-    const tutorResponse = Array.isArray(data) ? data[0]?.generated_text : data.generated_text;
+    const tutorResponse = data.choices?.[0]?.message?.content;
 
     if (!tutorResponse) {
       throw new Error('No response generated from the model');
