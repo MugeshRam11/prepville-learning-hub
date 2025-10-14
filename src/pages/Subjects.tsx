@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SubjectFilter from '@/components/SubjectFilter';
+import { AITutorChat } from '@/components/AITutorChat';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Subjects = () => {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<string>('General');
 
   useEffect(() => {
     fetchSubjectsFromDB();
@@ -174,6 +178,25 @@ const Subjects = () => {
         </section>
       </main>
       <Footer />
+
+      {/* Floating AI Tutor Button */}
+      <Button
+        onClick={() => {
+          setSelectedSubject('General');
+          setIsChatOpen(true);
+        }}
+        className="fixed bottom-6 right-6 w-16 h-16 rounded-full shadow-lg bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white z-40"
+        size="icon"
+      >
+        <MessageSquare className="w-6 h-6" />
+      </Button>
+
+      {/* AI Tutor Chat Window */}
+      <AITutorChat
+        subject={selectedSubject}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
     </div>
   );
 };

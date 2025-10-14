@@ -2,3 +2,6 @@ project_id = "mvmciqmszakciijfdyos"
 
 [functions.parse-word-test]
 verify_jwt = true
+
+[functions.chatbot]
+verify_jwt = true
