@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { X, Send, Loader2, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import EquationEditor from '@/components/admin/EquationEditor';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -93,10 +95,48 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const renderMathText = (text: string) => {
+    // Check if the text contains LaTeX commands (starts with backslash)
+    const hasLatex = /\\[a-zA-Z]+/.test(text);
+    
+    if (hasLatex) {
+      // If it's mostly LaTeX (no $ delimiters), render the entire text as LaTeX
+      try {
+        const html = katex.renderToString(text, {
+          displayMode: false,
+          throwOnError: false,
+          errorColor: '#cc0000',
+          strict: false
+        });
+        return <span dangerouslySetInnerHTML={{ __html: html }} />;
+      } catch (error) {
+        console.error('LaTeX rendering error:', error);
+        return <span className="text-red-500">LaTeX Error: {text}</span>;
+      }
+    } else {
+      // Split text by $...$ patterns to find LaTeX equations in regular text
+      const parts = text.split(/(\$[^$]+\$)/g);
+      
+      return parts.map((part, index) => {
+        if (part.startsWith('$') && part.endsWith('$')) {
+          // This is a LaTeX equation
+          const equation = part.slice(1, -1); // Remove the $ symbols
+          try {
+            const html = katex.renderToString(equation, {
+              displayMode: false,
+              throwOnError: false,
+              errorColor: '#cc0000',
+              strict: false
+            });
+            return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+          } catch (error) {
+            return <span key={index} className="text-red-500">Error: {equation}</span>;
+          }
+        } else {
+          // Regular text
+          return <span key={index}>{part}</span>;
+        }
+      });
     }
   };
 
@@ -137,7 +177,7 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
                   : 'bg-muted text-foreground'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              <div className="text-sm whitespace-pre-wrap">{renderMathText(msg.content)}</div>
             </div>
           </div>
         ))}
@@ -156,15 +196,15 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
 
       {/* Input */}
       <div className="p-4 border-t border-border bg-background">
-        <div className="flex gap-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask your question..."
-            className="flex-1 min-h-[60px] max-h-[120px] resize-none"
-            disabled={isLoading}
-          />
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <EquationEditor
+              value={input}
+              onChange={(value) => setInput(value)}
+              placeholder="Ask your question... Use math notation, fractions, symbols, and equations."
+              className="min-h-[80px]"
+            />
+          </div>
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
@@ -179,7 +219,7 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Press Enter to send, Shift+Enter for new line
+          Use the math toolbar to insert equations and symbols
         </p>
       </div>
     </div>
