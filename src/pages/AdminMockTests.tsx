@@ -1,19 +1,15 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, FileText, Database, Upload, Download, CheckCircle2, XCircle, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import MockTestCard from '@/components/mock-exam/MockTestCard';
 
 const AdminMockTests = () => {
   const navigate = useNavigate();
@@ -22,25 +18,9 @@ const AdminMockTests = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isFilterOpen, setIsFilterOpen] = useState(true);
-  const testsPerPage = 10;
-
-  // Question Bank State
-  const [showQuestionBank, setShowQuestionBank] = useState(false);
-  const [bankQuestions, setBankQuestions] = useState([]);
-  const [bankSearchQuery, setBankSearchQuery] = useState('');
-  const [bankSubjectFilter, setBankSubjectFilter] = useState('all');
-  const [bankTopicFilter, setBankTopicFilter] = useState('all');
-  const [bankCategoryFilter, setBankCategoryFilter] = useState('all');
-  const [selectedBankIds, setSelectedBankIds] = useState(new Set());
-  const [loadingBank, setLoadingBank] = useState(false);
-  const [syncedQuestions, setSyncedQuestions] = useState([]);
-  const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, synced
 
   useEffect(() => {
     fetchMockTests();
-    fetchQuestionBank();
   }, []);
 
   useEffect(() => {
@@ -64,25 +44,6 @@ const AdminMockTests = () => {
     }
   };
 
-  const fetchQuestionBank = async () => {
-    setLoadingBank(true);
-    try {
-      const { data, error } = await supabase
-        .from('mock_test_question_bank')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBankQuestions(data || []);
-    } catch (error) {
-      console.error('Error fetching question bank:', error);
-      toast.error('Failed to fetch question bank');
-    } finally {
-      setLoadingBank(false);
-    }
-  };
-
   const filterTests = () => {
     let filtered = mockTests;
 
@@ -98,7 +59,6 @@ const AdminMockTests = () => {
     }
 
     setFilteredTests(filtered);
-    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const handleDelete = async (testId) => {
@@ -154,617 +114,258 @@ const AdminMockTests = () => {
     }
   };
 
-  const getSubjectLabel = (subject) => {
-    const labels = {
-      'mathematics': 'Mathematics',
-      'science': 'Science',
-      'language_literature': 'Language & Literature',
-      'social_studies': 'Social Studies',
-      'physics': 'Physics',
-      'chemistry': 'Chemistry',
-      'biology': 'Biology'
+  const getSubjectColor = (subject: string) => {
+    const colors = {
+      'mathematics': 'bg-blue-500',
+      'physics': 'bg-red-500',
+      'chemistry': 'bg-teal-500',
+      'biology': 'bg-green-500',
+      'science': 'bg-emerald-500',
+      'language_literature': 'bg-purple-500',
+      'social_studies': 'bg-amber-500',
     };
-    return labels[subject] || subject;
+    return colors[subject] || 'bg-primary';
   };
 
-  // Question Bank Filtering
-  const bankTopics = useMemo(() => {
-    const topics = new Set(bankQuestions.map(q => q.topic));
-    return Array.from(topics).filter(Boolean);
-  }, [bankQuestions]);
-
-  const bankCategories = useMemo(() => {
-    const categories = new Set(bankQuestions.map(q => q.category));
-    return Array.from(categories).filter(Boolean);
-  }, [bankQuestions]);
-
-  const filteredBankQuestions = useMemo(() => {
-    return bankQuestions.filter(q => {
-      const matchesSearch = !bankSearchQuery || 
-        q.question_text.toLowerCase().includes(bankSearchQuery.toLowerCase()) ||
-        q.topic.toLowerCase().includes(bankSearchQuery.toLowerCase());
-      
-      const matchesSubject = bankSubjectFilter === 'all' || q.subject === bankSubjectFilter;
-      const matchesTopic = bankTopicFilter === 'all' || q.topic === bankTopicFilter;
-      const matchesCategory = bankCategoryFilter === 'all' || q.category === bankCategoryFilter;
-
-      return matchesSearch && matchesSubject && matchesTopic && matchesCategory;
-    });
-  }, [bankQuestions, bankSearchQuery, bankSubjectFilter, bankTopicFilter, bankCategoryFilter]);
-
-  const toggleBankSelection = (questionId) => {
-    setSelectedBankIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(questionId)) {
-        newSet.delete(questionId);
-      } else {
-        newSet.add(questionId);
-      }
-      return newSet;
-    });
+  const formatSubjectName = (subject: string) => {
+    const formatted = subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase().replace('_', ' ');
+    return `MYP ${formatted}`;
   };
-
-  const loadSelectedFromBank = () => {
-    const selected = bankQuestions.filter(q => selectedBankIds.has(q.id));
-    setSyncedQuestions(prev => [...prev, ...selected]);
-    setSelectedBankIds(new Set());
-    setShowQuestionBank(false);
-    setSyncStatus('idle');
-    toast.success(`Loaded ${selected.length} questions from bank`);
-  };
-
-  const syncToDatabase = async () => {
-    if (syncedQuestions.length === 0) {
-      toast.error('No questions to sync');
-      return;
-    }
-
-    setSyncStatus('syncing');
-    try {
-      // Group by topic/test name
-      const groupedByTopic = syncedQuestions.reduce((acc, q) => {
-        if (!acc[q.topic]) acc[q.topic] = [];
-        acc[q.topic].push(q);
-        return acc;
-      }, {});
-
-      for (const [topic, questions] of Object.entries(groupedByTopic)) {
-        const topicQuestions = questions as any[];
-        // Create or find mock test
-        const { data: existingTest } = await supabase
-          .from('mock_tests')
-          .select('id')
-          .eq('topic', topic)
-          .eq('subject', topicQuestions[0].subject)
-          .single();
-
-        let testId = existingTest?.id;
-
-        if (!testId) {
-          const { data: newTest, error: testError } = await supabase
-            .from('mock_tests')
-            .insert({
-              title: `${getSubjectLabel(topicQuestions[0].subject)} - ${topic}`,
-              subject: topicQuestions[0].subject,
-              topic: topic,
-              is_published: false,
-              total_questions: topicQuestions.length
-            })
-            .select('id')
-            .single();
-
-          if (testError) throw testError;
-          testId = newTest.id;
-        }
-
-        // Insert questions
-        const questionsToInsert = topicQuestions.map(q => ({
-          mock_test_id: testId,
-          question_number: q.question_number,
-          question_text: q.question_text,
-          answer_key: q.answer_key,
-          category: q.category,
-          difficulty: q.difficulty,
-          has_sub_questions: q.has_sub_questions || false,
-          marks: q.marks || 1,
-          question_image_url: q.question_image_url
-        }));
-
-        const { error: questionsError } = await supabase
-          .from('mock_questions')
-          .insert(questionsToInsert);
-
-        if (questionsError) throw questionsError;
-      }
-
-      setSyncStatus('synced');
-      toast.success('Questions synced to database successfully');
-      fetchMockTests();
-      
-      setTimeout(() => {
-        setSyncedQuestions([]);
-        setSyncStatus('idle');
-      }, 2000);
-    } catch (error) {
-      console.error('Error syncing to database:', error);
-      toast.error('Failed to sync questions');
-      setSyncStatus('idle');
-    }
-  };
-
-  const exportCSV = () => {
-    if (syncedQuestions.length === 0) {
-      toast.error('No questions to export');
-      return;
-    }
-
-    const headers = ['subject', 'test_name', 'question_text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer'];
-    const rows = syncedQuestions.map(q => [
-      q.subject,
-      q.topic,
-      q.question_text,
-      'Option A',
-      'Option B',
-      'Option C',
-      'Option D',
-      q.answer_key
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mock_questions_${Date.now()}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    
-    toast.success('CSV exported successfully');
-  };
-
-  // Pagination logic
-  const indexOfLastTest = currentPage * testsPerPage;
-  const indexOfFirstTest = indexOfLastTest - testsPerPage;
-  const currentTests = filteredTests.slice(indexOfFirstTest, indexOfLastTest);
-  const totalPages = Math.ceil(filteredTests.length / testsPerPage);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Loading mock tests...</div>
+      <div className="min-h-screen flex">
+        <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <div className="text-lg text-muted-foreground">Loading mock tests...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
+    <div className="min-h-screen bg-gray-50 flex">
       <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
       
-      {/* Subject Filter Sidebar - Collapsible */}
-      <div className={`fixed left-64 top-0 h-full bg-card border-r border-border overflow-y-auto z-20 transition-all duration-300 ease-in-out ${
-        isFilterOpen ? 'w-64' : 'w-0'
-      }`}>
-        <div className={`p-6 space-y-2 transition-opacity duration-300 ${isFilterOpen ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-muted-foreground">Filter by Subject</h3>
-          </div>
-          <button
-            onClick={() => setSubjectFilter('all')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'all' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            All Subjects
-          </button>
-          <button
-            onClick={() => setSubjectFilter('mathematics')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'mathematics' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            Mathematics
-          </button>
-          <button
-            onClick={() => setSubjectFilter('science')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'science' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            Science
-          </button>
-          <button
-            onClick={() => setSubjectFilter('language_literature')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'language_literature' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            Language & Literature
-          </button>
-          <button
-            onClick={() => setSubjectFilter('social_studies')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'social_studies' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            Social Studies
-          </button>
-          <button
-            onClick={() => setSubjectFilter('physics')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'physics' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            Physics
-          </button>
-          <button
-            onClick={() => setSubjectFilter('chemistry')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'chemistry' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            Chemistry
-          </button>
-          <button
-            onClick={() => setSubjectFilter('biology')}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all ${
-              subjectFilter === 'biology' 
-                ? 'bg-primary text-primary-foreground font-medium' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-          >
-            Biology
-          </button>
-        </div>
-      </div>
-
-      {/* Toggle Button for Filter Sidebar */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsFilterOpen(!isFilterOpen)}
-        className={`fixed top-4 z-30 transition-all duration-300 shadow-lg ${
-          isFilterOpen ? 'left-[512px]' : 'left-64'
-        }`}
-      >
-        {isFilterOpen ? (
-          <>
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Hide Filters
-          </>
-        ) : (
-          <>
-            <ChevronRight className="w-4 h-4 mr-1" />
-            Show Filters
-          </>
-        )}
-      </Button>
-
-      <div className={`flex-1 p-6 transition-all duration-300 ${isFilterOpen ? 'ml-64' : 'ml-0'}`}>
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Mock Tests Management</h1>
-            <p className="text-muted-foreground">Create and manage mock examination content</p>
-          </div>
-          <div className="flex gap-2">
-            {mockTests.filter(t => !t.is_published).length > 0 && (
-              <Button 
-                onClick={publishAllTests}
-                variant="default"
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Publish All Tests ({mockTests.filter(t => !t.is_published).length})
-              </Button>
-            )}
-            <Button 
-              onClick={() => setShowQuestionBank(!showQuestionBank)} 
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Database className="w-4 h-4" />
-              {showQuestionBank ? 'Hide' : 'Load from'} Question Bank
-            </Button>
-            <Button onClick={() => navigate('/admin/mock-test-bulk-upload')} variant="outline" className="flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              Bulk Upload CSV
-            </Button>
-            <Button onClick={() => navigate('/admin/mock-tests/create')} className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Create New Mock Test
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Mock Tests</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockTests.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Published Tests</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockTests.filter(t => t.is_published).length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Draft Tests</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockTests.filter(t => !t.is_published).length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Question Bank</CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{bankQuestions.length}</div>
-              <p className="text-xs text-muted-foreground">Total questions</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Load from Question Bank Section */}
-        {showQuestionBank && (
-          <Card className="border-primary/20">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Database className="w-5 h-5 text-primary" />
-                  <div>
-                    <CardTitle>📚 Load from Question Bank</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Use existing saved questions from the persistent mock test bank</p>
-                  </div>
-                </div>
+      <div className="flex-1 ml-64">
+        {/* Top Bar */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="px-8 py-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Mock Tests Management</h1>
+                <p className="text-gray-600 mt-1">Create and manage mock examination content</p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Search and Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Search by subject, topic, or keyword..."
-                    value={bankSearchQuery}
-                    onChange={(e) => setBankSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={bankSubjectFilter} onValueChange={setBankSubjectFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Subjects" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Subjects</SelectItem>
-                    <SelectItem value="mathematics">Mathematics</SelectItem>
-                    <SelectItem value="physics">Physics</SelectItem>
-                    <SelectItem value="chemistry">Chemistry</SelectItem>
-                    <SelectItem value="biology">Biology</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={bankTopicFilter} onValueChange={setBankTopicFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Topics" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Topics</SelectItem>
-                    {bankTopics.map(topic => (
-                      <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={bankCategoryFilter} onValueChange={setBankCategoryFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {bankCategories.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Selection Info */}
-              <div className="flex justify-between items-center text-sm text-muted-foreground">
-                <span>{selectedBankIds.size} of {filteredBankQuestions.length} selected</span>
+              <div className="flex gap-3">
+                {mockTests.filter(t => !t.is_published).length > 0 && (
+                  <Button 
+                    onClick={publishAllTests}
+                    variant="outline"
+                    className="border-green-600 text-green-600 hover:bg-green-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Publish All ({mockTests.filter(t => !t.is_published).length})
+                  </Button>
+                )}
                 <Button 
-                  onClick={loadSelectedFromBank}
-                  disabled={selectedBankIds.size === 0}
-                  className="flex items-center gap-2"
+                  onClick={() => navigate('/admin/mock-test-bulk-upload')} 
+                  variant="outline"
+                  className="border-gray-300"
                 >
-                  Load Selected Questions ({selectedBankIds.size})
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Upload CSV
+                </Button>
+                <Button 
+                  onClick={() => navigate('/admin/mock-tests/create')}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Mock Test
                 </Button>
               </div>
-
-              {/* Question List */}
-              <ScrollArea className="h-[400px] rounded-md border">
-                {loadingBank ? (
-                  <div className="flex justify-center items-center h-40">
-                    <p className="text-muted-foreground">Loading questions...</p>
-                  </div>
-                ) : filteredBankQuestions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-center p-6">
-                    <p className="text-muted-foreground mb-2">No questions found</p>
-                    <p className="text-sm text-muted-foreground">Upload CSV files to populate your question bank</p>
-                  </div>
-                ) : (
-                  <div className="p-4 space-y-3">
-                    {filteredBankQuestions.map(question => (
-                      <div 
-                        key={question.id}
-                        className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                      >
-                        <Checkbox
-                          checked={selectedBankIds.has(question.id)}
-                          onCheckedChange={() => toggleBankSelection(question.id)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm line-clamp-2 mb-2">{question.question_text}</p>
-                          <div className="flex gap-2 flex-wrap">
-                            <Badge variant="outline" className="text-xs">{getSubjectLabel(question.subject)}</Badge>
-                            <Badge variant="secondary" className="text-xs">{question.topic}</Badge>
-                            {question.category && <Badge variant="default" className="text-xs">{question.category}</Badge>}
-                          </div>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedBankIds(new Set([question.id]));
-                            loadSelectedFromBank();
-                          }}
-                          className="flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" />
-                          Add
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Synced Questions Display */}
-        {syncedQuestions.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    Parsed Mock Test Questions
-                    {syncStatus === 'synced' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
-                    {syncStatus === 'idle' && <XCircle className="w-5 h-5 text-orange-600" />}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">Review and filter questions before syncing to database</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={exportCSV} variant="outline" className="flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Export CSV
-                  </Button>
-                  <Button 
-                    onClick={syncToDatabase}
-                    disabled={syncStatus === 'syncing'}
-                    className="flex items-center gap-2"
-                  >
-                    {syncStatus === 'syncing' ? 'Syncing...' : 'Sync to Database'}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Group by topic */}
-                {Object.entries(syncedQuestions.reduce((acc: Record<string, any[]>, q: any) => {
-                  if (!acc[q.topic]) acc[q.topic] = [];
-                  acc[q.topic].push(q);
-                  return acc;
-                }, {})).map(([topic, questions]) => {
-                  const topicQuestions = questions as any[];
-                  return (
-                  <div key={topic} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-lg">{topic}</h3>
-                      <Badge className="text-xs">{topicQuestions.length} questions</Badge>
-                    </div>
-                    <div className="space-y-2">
-                      {topicQuestions.map((q, idx) => (
-                        <div key={idx} className="text-sm p-2 bg-muted/50 rounded">
-                          <p className="line-clamp-1">{q.question_text}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">{getSubjectLabel(q.subject)}</Badge>
-                            {q.category && <Badge variant="secondary" className="text-xs">{q.category}</Badge>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )})}
-
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Search Bar */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search by title or topic..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Mock Tests Grid - All topics as individual cards */}
-        {filteredTests.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">No mock tests found</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTests.map((test) => (
-              <MockTestCard
-                key={test.id}
-                test={test}
-                onEdit={(id) => navigate(`/admin/mock-tests/edit/${id}`)}
-                onView={(id) => navigate(`/admin/mock-tests/view/${id}`)}
-                onDelete={handleDelete}
-                onTogglePublish={togglePublished}
-                isAdmin={true}
-              />
-            ))}
+            {/* Filters and Search */}
+            <div className="flex gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  placeholder="Search by title or topic..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-50 border-gray-300"
+                />
+              </div>
+              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                <SelectTrigger className="w-64 bg-gray-50 border-gray-300">
+                  <SelectValue placeholder="Filter by Subject" />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-white">
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  <SelectItem value="mathematics">Mathematics</SelectItem>
+                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="language_literature">Language & Literature</SelectItem>
+                  <SelectItem value="social_studies">Social Studies</SelectItem>
+                  <SelectItem value="physics">Physics</SelectItem>
+                  <SelectItem value="chemistry">Chemistry</SelectItem>
+                  <SelectItem value="biology">Biology</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Main Content */}
+        <div className="p-8">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Published Tests</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                      {mockTests.filter(t => t.is_published).length}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Draft Tests</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                      {mockTests.filter(t => !t.is_published).length}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-amber-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Mock Tests</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">{mockTests.length}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Database className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mock Tests Grid */}
+          {filteredTests.length === 0 ? (
+            <Card className="bg-white border border-gray-200">
+              <CardContent className="py-16 text-center">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-lg text-gray-600">No mock tests found</p>
+                <p className="text-sm text-gray-500 mt-2">Try adjusting your search or create a new mock test</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredTests.map((test) => (
+                <Card 
+                  key={test.id} 
+                  className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden group"
+                >
+                  <CardContent className="p-6">
+                    {/* Header with badge and dot */}
+                    <div className="flex items-start justify-between mb-4">
+                      <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">
+                        MYP
+                      </Badge>
+                      <div className={`w-3 h-3 rounded-full ${getSubjectColor(test.subject)}`} />
+                    </div>
+
+                    {/* Title */}
+                    <div className="mb-4">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+                        {formatSubjectName(test.subject)}
+                      </h3>
+                      <p className="text-sm text-gray-600 line-clamp-1">{test.topic}</p>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <Badge 
+                        variant="outline" 
+                        className="rounded-full px-3 py-1 text-xs font-normal bg-white border-gray-300"
+                      >
+                        {test.topic}
+                      </Badge>
+                      <Badge 
+                        variant={test.is_published ? "default" : "secondary"}
+                        className={`rounded-full px-3 py-1 text-xs font-normal ${
+                          test.is_published 
+                            ? 'bg-green-100 text-green-700 border-green-300' 
+                            : 'bg-amber-100 text-amber-700 border-amber-300'
+                        }`}
+                      >
+                        {test.is_published ? 'Published' : 'Draft'}
+                      </Badge>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-6 text-sm text-gray-600 mb-6 pb-6 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        <span className="font-medium">{test.total_questions || 0} Questions</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">0 Videos</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => navigate(`/admin/mock-tests/view/${test.id}`)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-gray-300 hover:bg-gray-50"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                      <Button 
+                        onClick={() => navigate(`/admin/mock-tests/edit/${test.id}`)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-gray-300 hover:bg-gray-50"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button 
+                        onClick={() => handleDelete(test.id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   );
 };
