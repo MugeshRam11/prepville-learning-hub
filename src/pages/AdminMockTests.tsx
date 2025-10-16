@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
@@ -20,6 +21,7 @@ const AdminMockTests = () => {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [showAIUpload, setShowAIUpload] = useState(false);
+  const [selectedTests, setSelectedTests] = useState<string[]>([]);
 
   useEffect(() => {
     fetchMockTests();
@@ -79,6 +81,44 @@ const AdminMockTests = () => {
     } catch (error) {
       console.error('Error deleting mock test:', error);
       toast.error('Failed to delete mock test');
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTests(filteredTests.map(test => test.id));
+    } else {
+      setSelectedTests([]);
+    }
+  };
+
+  const handleSelectTest = (testId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedTests([...selectedTests, testId]);
+    } else {
+      setSelectedTests(selectedTests.filter(id => id !== testId));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedTests.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedTests.length} mock test(s)? This action cannot be undone.`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('mock_tests')
+        .delete()
+        .in('id', selectedTests);
+
+      if (error) throw error;
+
+      toast.success(`${selectedTests.length} mock test(s) deleted successfully`);
+      setSelectedTests([]);
+      fetchMockTests();
+    } catch (error) {
+      console.error('Error deleting mock tests:', error);
+      toast.error('Failed to delete mock tests');
     }
   };
 
@@ -159,6 +199,16 @@ const AdminMockTests = () => {
                 <p className="text-gray-600 mt-1">Create and manage mock examination content</p>
               </div>
               <div className="flex gap-3">
+                {selectedTests.length > 0 && (
+                  <Button 
+                    onClick={handleDeleteSelected}
+                    variant="outline"
+                    className="border-red-600 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected ({selectedTests.length})
+                  </Button>
+                )}
                 {mockTests.filter(t => !t.is_published).length > 0 && (
                   <Button 
                     onClick={publishAllTests}
@@ -196,7 +246,14 @@ const AdminMockTests = () => {
             </div>
 
             {/* Filters and Search */}
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={filteredTests.length > 0 && selectedTests.length === filteredTests.length}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm text-gray-600">Select All</span>
+              </div>
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
@@ -307,11 +364,17 @@ const AdminMockTests = () => {
                   className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden group"
                 >
                   <CardContent className="p-6">
-                    {/* Header with badge and dot */}
+                    {/* Header with checkbox and badge */}
                     <div className="flex items-start justify-between mb-4">
-                      <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">
-                        MYP
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          checked={selectedTests.includes(test.id)}
+                          onCheckedChange={(checked) => handleSelectTest(test.id, checked as boolean)}
+                        />
+                        <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">
+                          MYP
+                        </Badge>
+                      </div>
                       <div className={`w-3 h-3 rounded-full ${getSubjectColor(test.subject)}`} />
                     </div>
 
