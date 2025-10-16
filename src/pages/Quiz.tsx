@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useProgressTracking } from '@/hooks/useProgressTracking';
 import { useXPSystem } from '@/hooks/useXPSystem';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Mock quiz data
 const mockQuizData = {
@@ -412,8 +414,78 @@ const Quiz = () => {
   const [isCompleted, setIsCompleted] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [progressUpdated, setProgressUpdated] = useState(false);
+  const [quizData, setQuizData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const quizData = quizId ? mockQuizData[quizId as keyof typeof mockQuizData] : null;
+  // Fetch quiz from database if UUID format, otherwise use mock data
+  useEffect(() => {
+    const fetchQuizData = async () => {
+      if (!quizId) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if it's a UUID (database test) or slug (mock data)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(quizId);
+
+      if (isUUID) {
+        // Fetch from database
+        try {
+          const { data: test, error: testError } = await supabase
+            .from('tests')
+            .select('*')
+            .eq('id', quizId)
+            .single();
+
+          if (testError) throw testError;
+
+          if (!test) {
+            toast.error('Test not found');
+            setIsLoading(false);
+            return;
+          }
+
+          // Fetch questions for this test
+          const { data: questions, error: questionsError } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('test_id', quizId)
+            .order('created_at');
+
+          if (questionsError) throw questionsError;
+
+          // Format data to match quiz structure
+          const formattedQuiz = {
+            title: test.title,
+            subject: test.test_type || 'General',
+            topic: test.description || '',
+            timeMinutes: test.time_limit_minutes || 10,
+            questions: questions?.map((q, idx) => ({
+              id: idx + 1,
+              question: q.question_text,
+              options: [q.option_a, q.option_b, q.option_c, q.option_d],
+              correctAnswer: q.correct_answer ? q.correct_answer.charCodeAt(0) - 65 : 0, // Convert 'A' to 0, 'B' to 1, etc.
+              explanation: q.explanation || undefined,
+              image: q.question_image_url || undefined
+            })) || []
+          };
+
+          setQuizData(formattedQuiz);
+        } catch (error) {
+          console.error('Error fetching quiz:', error);
+          toast.error('Failed to load quiz');
+        }
+      } else {
+        // Use mock data
+        const mockData = mockQuizData[quizId as keyof typeof mockQuizData];
+        setQuizData(mockData || null);
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchQuizData();
+  }, [quizId]);
 
   useEffect(() => {
     if (quizData && !isInitialized) {
@@ -435,6 +507,20 @@ const Quiz = () => {
       handleSubmitQuiz();
     }
   }, [timeLeft, isCompleted, isInitialized]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Loading Quiz...</h1>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!quizData) {
     return (
@@ -461,7 +547,7 @@ const Quiz = () => {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Loading Quiz...</h1>
+            <h1 className="text-2xl font-bold mb-4">Preparing Quiz...</h1>
           </div>
         </main>
         <Footer />
