@@ -347,31 +347,60 @@ Return JSON with this exact structure:
   const quickPrompt = `You are an expert educational document parser. Extract ALL questions from ANY document format and convert them to simple multiple-choice questions.
 
 **CRITICAL: QUICK TEST FORMAT REQUIREMENTS:**
+- **100% MCQ FORMAT**: EVERY question MUST have exactly 4 options (A, B, C, D) - NO EXCEPTIONS
+- **AUTO-GENERATE OPTIONS**: If original question is short answer/essay, create plausible MCQ options based on the correct answer
 - **NO SUB-QUESTIONS ALLOWED**: If document has sub-questions (a, b, c), convert EACH ONE into a SEPARATE complete question
 - **FLATTEN STRUCTURE**: Question 1a, 1b, 1c should become Question 1, Question 2, Question 3
 - **STANDALONE QUESTIONS**: Each question must be completely independent with its own context
-- **MCQ ONLY**: Convert all question types to multiple choice format (A/B/C/D)
+- **100% IMAGE ASSIGNMENT**: ALL extracted images MUST be assigned to questions - ZERO images should be left unassigned
+
+**MANDATORY MCQ OPTION GENERATION:**
+- If question has an answer but no options → CREATE 4 plausible options (1 correct + 3 distractors)
+- Distractors should be realistic but clearly wrong
+- For numerical answers: use similar numbers with different values
+- For text answers: use related but incorrect concepts
+- EXAMPLE: Answer is "94" → Options: ["A. 94", "B. 84", "C. 104", "D. 74"]
+
+**100% IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}
+YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to questions:
+1. **Direct References**: "see diagram", "refer to figure", "tree diagram", "table shown", "graph"
+2. **Contextual Matching**: Match images to questions by topic (probability tree → probability question)
+3. **Distribute All Images**: EVERY image must be assigned - spread them across relevant questions
+4. **Priority Assignment**: Tables/diagrams mentioned in text get highest priority
+5. **No Unassigned Images**: Count your assignments - must equal total extracted images
+6. **Image URLs**: Use exact URLs from extracted images list: ${extractedImages?.join(', ') || 'none'}
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
-- **PDF**: Extract from formatted layouts  
-- **Images**: Perform OCR to recognize text
-- **Word**: Parse structured documents and FLATTEN all sub-questions
+- **PDF**: Extract from formatted layouts + images
+- **Images**: Perform OCR to recognize text + extract visual elements
+- **Word**: Parse structured documents and FLATTEN all sub-questions + extract embedded images
 
 **PARSING RULES:**
-1. **Flatten Sub-questions**: Convert "Question 1: [context] a) [sub-q] b) [sub-q]" into separate Question 1, Question 2 each with full context
+1. **Flatten Sub-questions**: Convert "Question 1: [context] a) [sub-q] b) [sub-q]" into separate standalone questions
 2. **Standalone Context**: Include necessary context from parent question in each flattened question
-3. **MCQ Format**: If original is short answer, create MCQ options based on the answer
-4. **Complete Questions**: Each question_text must be fully self-contained with all necessary information
+3. **Force MCQ Format**: ALWAYS create 4 options even if original is short answer/essay
+4. **Complete Questions**: Each question_text must be fully self-contained
 5. **Never Skip**: Extract every question/sub-question as a separate item
+6. **Assign All Images**: Every extracted image must appear in question_image_url field
 
 **FLATTENING EXAMPLE:**
-Original: "Question 1: A survey shows... a) Find missing values b) Calculate probability"
+Original: "Question 1: A survey shows... a) Find missing values [answer: 94, 29, 150] b) Calculate probability [answer: 0.82]"
 Output: 
-- Question 1: "A survey shows... Find the missing values in the table." [with MCQ options]
-- Question 2: "A survey shows... Calculate the probability that..." [with MCQ options]
+- Question 1: "A survey shows... Find the missing values in the table." 
+  → options: ["A. 94, 29, 150", "B. 84, 19, 140", "C. 104, 39, 160", "D. 74, 29, 130"]
+  → question_image_url: "[table image URL if available]"
+- Question 2: "A survey shows... Calculate the probability that a person is a student or travels by train." 
+  → options: ["A. 0.82", "B. 0.72", "C. 0.92", "D. 0.62"]
+  → question_image_url: "[same table image or null]"
 
 **VALID SUBJECTS:** "mathematics", "science", "english", "history" (default: mathematics if unclear)
+
+**IMAGE ASSIGNMENT VALIDATION:**
+Before returning JSON, verify:
+- Count of question_image_url fields with non-null values = ${extractedImages?.length || 0}
+- Every extracted image URL appears at least once in questions array
+- No images are left unassigned
 
 Return JSON:
 {
@@ -385,8 +414,9 @@ Return JSON:
     {
       "question_text": "string (complete standalone question with all context)",
       "question_type": "mcq",
-      "options": ["A. text", "B. text", "C. text", "D. text"],
-      "correct_answer": "A|B|C|D",
+      "question_image_url": "string (assign from extracted images if relevant, null otherwise)",
+      "options": ["A. text", "B. text", "C. text", "D. text"] (MANDATORY - always 4 options),
+      "correct_answer": "A|B|C|D" (MANDATORY - must be one of A/B/C/D),
       "explanation": "string (detailed explanation)",
       "difficulty": "easy|medium|hard"
     }
@@ -455,16 +485,47 @@ ${!extractedText ? content : ''}
 - **Normalize Answers**: Convert all formats (1/2/3/4, A/B/C/D, a/b/c/d) to A/B/C/D
 - **Extract EVERYTHING**: Never skip questions due to format issues - use defaults if needed
 
-${extractedImages && extractedImages.length > 0 ? `\n**IMAGE ASSIGNMENT (CRITICAL)**:
-You have ${extractedImages.length} extracted images. You MUST:
-1. Look for references in text like "see diagram", "refer to figure", "tree diagram", "table", "graph", "chart"
-2. Assign images to questions based on context and proximity
-3. Use question_image_url field with the full URL from the extracted images list
-4. If a question mentions an image/diagram/table/tree diagram, assign the most relevant image URL
-5. For probability trees, data tables, charts → ALWAYS assign an image
-6. Distribute images logically across questions (don't leave all null)
+${parseMode === 'quick' ? `\n**🎯 QUICK TEST MODE - CRITICAL REQUIREMENTS:**
+1. **100% MCQ FORMAT**: EVERY question MUST have exactly 4 options (A, B, C, D)
+2. **AUTO-GENERATE OPTIONS**: If no options exist, create them based on the correct answer
+   - For numerical answers: create similar numbers with variations
+   - For text answers: create plausible but incorrect alternatives
+3. **FLATTEN SUB-QUESTIONS**: Convert Question 1a, 1b, 1c into separate Question 1, 2, 3
+4. **STANDALONE CONTEXT**: Each question must include all necessary context from parent
+5. **NO SHORT ANSWER**: Convert ALL question types to MCQ with 4 options\n` : ''}
 
-**SUB-QUESTION EXTRACTION (CRITICAL)**:
+${extractedImages && extractedImages.length > 0 ? `\n**📸 100% IMAGE ASSIGNMENT (CRITICAL - ${extractedImages.length} IMAGES TOTAL)**:
+YOU MUST ASSIGN ALL ${extractedImages.length} IMAGES - ZERO IMAGES SHOULD BE LEFT UNASSIGNED!
+
+**Available Image URLs:**
+${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+
+**Assignment Strategy:**
+1. **Direct References First**: Look for text like "see diagram", "refer to figure", "tree diagram", "table", "graph", "chart"
+2. **Contextual Matching**: Match images to questions by content (probability tree → probability question, table → data question)
+3. **Distribute ALL Images**: Every single image must appear in at least one question's question_image_url field
+4. **Shared Images OK**: Multiple questions can reference the same image if they all relate to it
+5. **Verify 100%**: Before finishing, count - did you assign all ${extractedImages.length} images?
+
+**Examples of Good Assignment:**
+- Question mentions "tree diagram" → assign tree image URL
+- Question has table data → assign table image URL
+- Question about probability with tree reference → assign tree image URL
+- Multiple parts (a,b,c) referencing same diagram → assign same image to each flattened question
+
+**VALIDATION CHECK:**
+After assigning, verify that all ${extractedImages.length} image URLs appear in your questions array.
+Count of non-null question_image_url values should equal ${extractedImages.length}.
+` : ''}
+
+${parseMode === 'quick' && extractedImages && extractedImages.length > 0 ? `\n**⚠️ QUICK TEST + IMAGES CHECKLIST:**
+✓ Every question has exactly 4 MCQ options (A, B, C, D)
+✓ All ${extractedImages.length} images are assigned to questions
+✓ Sub-questions are flattened into separate standalone questions
+✓ Each question includes necessary context
+✓ No short answer or essay questions remain\n` : ''}
+
+${parseMode === 'mock' ? `\n**SUB-QUESTION EXTRACTION (CRITICAL)**:
 1. Detect sub-parts labeled as: a), b), c), d) OR (a), (b), (c) OR i), ii), iii)
 2. If found, set "has_sub_questions": true and populate "sub_questions" array
 3. Each sub-question needs: label (just letter/number), text, marks, answer
