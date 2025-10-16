@@ -23,6 +23,49 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
   const [parseResult, setParseResult] = useState<any>(null);
   const [actionMode, setActionMode] = useState<ActionMode>('parse');
 
+  const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
+    try {
+      // Convert base64 to blob
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: contentType });
+      
+      // Generate unique filename
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(7);
+      const extension = contentType.split('/')[1] || 'png';
+      const fileName = `question-img-${timestamp}-${random}.${extension}`;
+      
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('question-images')
+        .upload(fileName, blob, {
+          contentType,
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Image upload error:', error);
+        return null;
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('question-images')
+        .getPublicUrl(fileName);
+      
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      return null;
+    }
+  };
+
   const processFile = async (file: File) => {
     setUploading(true);
     setProgress(10);
@@ -31,13 +74,14 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
     try {
       let content = '';
       let extractedText = '';
+      let extractedImages: string[] = [];
       const fileType = file.type;
       const fileName = file.name.toLowerCase();
       
       console.log('📄 Processing:', fileName, '| Type:', fileType);
       setProgress(20);
       
-      // Enhanced document parsing with text extraction
+      // Enhanced document parsing with text AND image extraction
       if (fileType === 'text/csv' || fileName.endsWith('.csv')) {
         // Read CSV as text
         content = await file.text();
@@ -45,15 +89,51 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
         console.log('✅ CSV text extracted:', content.substring(0, 200));
         
       } else if (fileName.endsWith('.docx')) {
-        // Extract text from Word using mammoth
+        // Extract text AND images from Word document via edge function
         setProgress(25);
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        extractedText = result.value;
-        content = extractedText;
         
-        console.log('✅ Word extracted:', extractedText.substring(0, 200));
-        toast.info(`Extracted ${extractedText.length} chars from Word doc (includes tables & diagrams)`);
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        toast.info('Extracting text and images from Word document...');
+        
+        // Call edge function to extract images and text
+        const extractResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-doc-images`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+            },
+            body: formData
+          }
+        );
+        
+        if (extractResponse.ok) {
+          const extractData = await extractResponse.json();
+          extractedText = extractData.text || '';
+          extractedImages = extractData.images || [];
+          content = extractedText;
+          
+          console.log('✅ Word extraction complete:', {
+            textLength: extractedText.length,
+            imageCount: extractedImages.length
+          });
+          
+          if (extractedImages.length > 0) {
+            toast.success(`Extracted ${extractedImages.length} image(s) from Word document!`);
+          }
+        } else {
+          // Fallback to text-only extraction
+          console.warn('Image extraction failed, falling back to text-only');
+          const arrayBuffer = await file.arrayBuffer();
+          const textResult = await mammoth.extractRawText({ arrayBuffer });
+          extractedText = textResult.value;
+          content = extractedText;
+          toast.info('Extracted text only (image extraction unavailable)');
+        }
+        
+        setProgress(35);
         
       } else if (fileName.endsWith('.pdf')) {
         // Extract text from PDF using pdfjs
@@ -108,10 +188,10 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
       };
 
       toast.info(`🤖 AI is ${actionDescriptions[actionMode]}...`, {
-        description: `Extracted: ${extractedText ? `${extractedText.length} characters` : 'preparing content'}`
+        description: `Content: ${extractedText ? `${extractedText.length} chars` : 'preparing'}${extractedImages.length > 0 ? ` | ${extractedImages.length} images` : ''}`
       });
 
-      // Call AI parser function with action mode
+      // Call AI parser function with action mode and extracted images
       const { data, error } = await supabase.functions.invoke('ai-question-parser', {
         body: { 
           content, 
@@ -119,6 +199,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
           fileName: file.name,
           parseMode: mode,
           extractedText: extractedText || undefined,
+          extractedImages: extractedImages.length > 0 ? extractedImages : undefined,
           actionMode
         }
       });
@@ -144,13 +225,14 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
         success: true,
         actionMode: data.actionMode,
         count: data.parsed_count,
-        data: savedData || data.data
+        data: savedData || data.data,
+        images: extractedImages
       });
 
       const successMessages: Record<ActionMode, string> = {
-        parse: `Successfully parsed ${data.parsed_count} questions!`,
+        parse: `Successfully parsed ${data.parsed_count} questions${extractedImages.length > 0 ? ` with ${extractedImages.length} images` : ''}!`,
         summarize: 'Document summarized successfully!',
-        quiz: `Generated ${data.parsed_count} quiz questions!`,
+        quiz: `Generated ${data.parsed_count} quiz questions${extractedImages.length > 0 ? ` with ${extractedImages.length} images` : ''}!`,
         extract_data: 'Data extracted successfully!'
       };
 
@@ -201,7 +283,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Create test
     const { data: test, error: testError } = await supabase
       .from('tests')
       .insert({
@@ -218,24 +299,23 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
 
     if (testError) throw testError;
 
-    // Create questions - handle both MCQ and short-answer types
     const questions = data.questions.map((q: any, idx: number) => {
       const isMCQ = q.options && q.options.length > 0;
       
-      // For MCQ questions, normalize answer to A/B/C/D
       let correctAnswer = null;
       if (isMCQ) {
         const answerChar = q.correct_answer?.charAt(0)?.toUpperCase();
         if (['A', 'B', 'C', 'D'].includes(answerChar)) {
           correctAnswer = answerChar;
         } else {
-          correctAnswer = 'A'; // Default fallback
+          correctAnswer = 'A';
         }
       }
       
       return {
         test_id: test.id,
         question_text: q.question_text,
+        question_image_url: q.question_image_url || null,
         option_a: q.options?.[0] || '',
         option_b: q.options?.[1] || '',
         option_c: q.options?.[2] || '',
@@ -261,17 +341,14 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Map subject to valid enum value
     const validSubjects = ['mathematics', 'science', 'language_literature', 'social_studies', 'physics', 'chemistry', 'biology'];
     let subject = data.test_metadata?.subject || 'mathematics';
     
-    // Validate and default to mathematics if invalid
     if (!validSubjects.includes(subject)) {
       console.warn(`Invalid subject "${subject}", defaulting to "mathematics"`);
       subject = 'mathematics';
     }
 
-    // Create mock test
     const { data: mockTest, error: mockTestError } = await supabase
       .from('mock_tests')
       .insert({
@@ -287,7 +364,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
 
     if (mockTestError) throw mockTestError;
 
-    // Create questions
     for (const q of data.questions) {
       const { data: question, error: questionError } = await supabase
         .from('mock_questions')
@@ -295,6 +371,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
           mock_test_id: mockTest.id,
           question_number: q.question_number,
           question_text: q.question_text,
+          question_image_url: q.question_image_url || null,
           marks: q.marks || 1,
           has_sub_questions: q.has_sub_questions || false,
           difficulty: q.difficulty || 'medium',
@@ -306,7 +383,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
 
       if (questionError) throw questionError;
 
-      // Add sub-questions if any
       if (q.sub_questions && q.sub_questions.length > 0) {
         const subQuestions = q.sub_questions.map((sq: any) => ({
           question_id: question.id,
@@ -341,7 +417,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
       'application/msword': ['.doc'],
       'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']
     },
-    maxSize: 20 * 1024 * 1024, // 20MB max
+    maxSize: 20 * 1024 * 1024,
     maxFiles: 1,
     disabled: uploading
   });
@@ -354,7 +430,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
           AI Document Processor (docTR-like OCR + Gemini)
         </CardTitle>
         <CardDescription>
-          📄 Multi-format parser: PDF, Images (OCR), Word, CSV | 🎯 Actions: Parse, Summarize, Quiz, Extract Data
+          📄 Multi-format parser: PDF, Images (OCR), Word with image extraction, CSV | 🎯 Actions: Parse, Summarize, Quiz, Extract
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -388,6 +464,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
             {actionMode === 'extract_data' && '🔍 Extract structured data'}
           </p>
         </div>
+
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
@@ -408,7 +485,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
                 {isDragActive ? 'Drop file here' : 'Drag & drop or click to upload'}
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports: CSV, PDF, Word (.docx), Images (OCR), Text | Max 20MB
+                PDF, Word (with images), CSV, Images (OCR), Text | Max 20MB
               </p>
             </>
           )}
@@ -425,7 +502,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
               <div className="flex-1">
                 <p className={`font-medium ${parseResult.success ? 'text-green-900' : 'text-red-900'}`}>
                   {parseResult.success ? (
-                    parseResult.actionMode === 'parse' ? `Success! Parsed ${parseResult.count} questions` :
+                    parseResult.actionMode === 'parse' ? `Success! Parsed ${parseResult.count} questions${parseResult.images?.length > 0 ? ` with ${parseResult.images.length} images` : ''}` :
                     parseResult.actionMode === 'summarize' ? 'Summary created successfully!' :
                     parseResult.actionMode === 'quiz' ? `Quiz generated with ${parseResult.count} questions!` :
                     'Data extracted successfully!'

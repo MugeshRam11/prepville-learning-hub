@@ -17,7 +17,8 @@ serve(async (req) => {
       parseMode = 'quick', 
       fileName, 
       extractedText,
-      actionMode = 'parse' // 'parse' | 'summarize' | 'quiz' | 'extract_data'
+      extractedImages = [],  // Array of image URLs from Word doc
+      actionMode = 'parse'
     } = await req.json();
     
     console.log('📥 Processing request:', { 
@@ -26,7 +27,8 @@ serve(async (req) => {
       parseMode,
       actionMode,
       contentLength: content?.length,
-      hasExtractedText: !!extractedText 
+      hasExtractedText: !!extractedText,
+      extractedImagesCount: extractedImages?.length || 0
     });
     
     if (!content && !extractedText) {
@@ -46,8 +48,8 @@ serve(async (req) => {
     }
 
     // Get appropriate prompts based on action mode
-    const systemPrompt = getSystemPrompt(actionMode, parseMode);
-    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, content, extractedText);
+    const systemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages);
+    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, content, extractedText, extractedImages);
 
     console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
     
@@ -140,7 +142,12 @@ serve(async (req) => {
 
 // ============= Helper Functions =============
 
-function getSystemPrompt(actionMode: string, parseMode: string): string {
+function getSystemPrompt(actionMode: string, parseMode: string, extractedImages?: string[]): string {
+  const hasImages = extractedImages && extractedImages.length > 0;
+  const imageContext = hasImages 
+    ? `\n\n📸 **IMAGE HANDLING**: ${extractedImages.length} images were extracted from the document at URLs: ${extractedImages.join(', ')}. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).`
+    : '';
+  
   if (actionMode === 'summarize') {
     return `You are an expert document summarizer specializing in educational content. Create comprehensive, structured summaries.
 
@@ -251,9 +258,17 @@ Return JSON:
 **MULTI-FORMAT PARSING (docTR-like OCR + AI):**
 - **PDF**: Extract from formatted text, tables, and layouts
 - **Images**: Perform intelligent OCR - recognize handwritten/printed text
-- **Word (.docx)**: Parse formatted documents, tables, diagrams
+- **Word (.docx)**: Parse formatted documents, tables, diagrams WITH IMAGE SUPPORT
 - **CSV**: Intelligently map columns to question components
 - **Text**: Handle numbered lists, bullets, paragraphs
+
+**IMAGE EXTRACTION & ASSIGNMENT:**${imageContext}
+When images are provided, you MUST:
+1. Analyze the text for image references (e.g., "see diagram", "refer to figure", "image shows")
+2. Match images to questions based on proximity, question numbers, or contextual clues
+3. Assign the correct image URL to the "question_image_url" field
+4. If multiple images exist for one question, assign the first relevant one
+5. If unsure, assign images sequentially to questions in order
 
 **ADAPTIVE PARSING RULES:**
 1. **Format-Agnostic**: Handle any document structure
@@ -263,6 +278,7 @@ Return JSON:
 5. **Answer Normalization**: Convert all answer formats to A/B/C/D standard
 6. **Missing Data Handling**: Use sensible defaults, never skip questions
 7. **Sub-question Support**: Detect and structure multi-part questions
+8. **Image Association**: Link images to questions intelligently
 
 **CRITICAL - VALID SUBJECT VALUES ONLY:**
 You MUST use ONLY these exact values:
@@ -288,6 +304,7 @@ Return JSON with this exact structure:
     {
       "question_number": number (auto-increment from 1),
       "question_text": "string (complete question)",
+      "question_image_url": "string (assign from extracted images if relevant, otherwise null)",
       "question_type": "mcq|true_false|short_answer|essay",
       "marks": number (default: 1),
       "difficulty": "easy|medium|hard" (default: medium),
@@ -352,11 +369,15 @@ function getUserPrompt(
   fileName: string | undefined, 
   fileType: string | undefined,
   content: string, 
-  extractedText: string | undefined
+  extractedText: string | undefined,
+  extractedImages?: string[]
 ): string {
   const fileContext = fileName ? `\n📁 File: ${fileName} (${fileType})` : '';
   const textPreview = extractedText 
     ? `\n\n📄 Pre-extracted Text (${extractedText.length} characters):\n${extractedText.substring(0, 2500)}${extractedText.length > 2500 ? '\n...(truncated)' : ''}`
+    : '';
+  const imageContext = extractedImages && extractedImages.length > 0
+    ? `\n\n📸 Extracted Images (${extractedImages.length} total):\n${extractedImages.map((url, i) => `Image ${i + 1}: ${url}`).join('\n')}`
     : '';
 
   if (actionMode === 'summarize') {
@@ -387,7 +408,7 @@ Return pure JSON only (no markdown, no explanations).`;
   }
 
   // Default: parse mode
-  return `Parse this educational document and extract ALL questions with complete details.${fileContext}${textPreview}
+  return `Parse this educational document and extract ALL questions with complete details.${fileContext}${textPreview}${imageContext}
 
 ${extractedText ? 'Use the pre-extracted text above for accurate parsing.' : 'Content to parse:'}
 ${!extractedText ? content : ''}
@@ -400,6 +421,14 @@ ${!extractedText ? content : ''}
 - **Auto-detect Structure**: Question types, options, answers, sub-questions
 - **Normalize Answers**: Convert all formats (1/2/3/4, A/B/C/D, a/b/c/d) to A/B/C/D
 - **Extract EVERYTHING**: Never skip questions due to format issues - use defaults if needed
+
+${extractedImages && extractedImages.length > 0 ? `\n**IMAGE ASSIGNMENT (CRITICAL)**:
+You have ${extractedImages.length} extracted images. You MUST:
+1. Look for references in text like "see diagram", "refer to figure", "tree diagram", "image", etc.
+2. Assign images to questions based on context and proximity
+3. Use question_image_url field with the full URL from the extracted images list
+4. If a question mentions an image/diagram, assign the most relevant image URL
+5. Distribute images logically across questions (don't leave all null)` : ''}
 
 Return pure JSON only (no markdown blocks, no explanations).`;
 }
