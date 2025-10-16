@@ -240,7 +240,7 @@ const AdminTests = () => {
                   {showAIUpload ? 'Hide AI Upload' : 'Upload with AI'}
                 </Button>
                 <Button
-                  onClick={() => navigate('/admin/question-builder')}
+                  onClick={() => navigate('/admin/quick-tests/create')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Plus className="w-4 h-4 mr-2" />
