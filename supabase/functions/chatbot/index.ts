@@ -1,6 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,12 +15,20 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, subject, message, question, studentAnswer, sessionId, attemptNumber, conversationHistory, testType, topic, score, correctAnswers, totalQuestions, questions, answers } = await req.json();
+    const { mode, subject, message, question, studentAnswer, sessionId, attemptNumber, conversationHistory, testType, topic, score, correctAnswers, totalQuestions, questions, answers, userId } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
+
+    // Create Supabase client for database access
+    const supabaseClient = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY 
+      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      : null;
 
     // Handle different tutoring modes
     if (mode === 'evaluate') {
@@ -45,12 +56,14 @@ serve(async (req) => {
         corsHeaders
       });
     } else if (mode === 'tutor') {
-      // Interactive tutoring mode
+      // Interactive tutoring mode with user context
       return await guideTutoring({
         question,
         message,
         conversationHistory,
         subject,
+        userId,
+        supabaseClient,
         apiKey: LOVABLE_API_KEY,
         corsHeaders
       });
@@ -268,8 +281,58 @@ Respond ONLY with a JSON object like:
 }
 
 // Interactive Tutoring Function
-async function guideTutoring({ question, message, conversationHistory, subject, apiKey, corsHeaders }: any) {
+async function guideTutoring({ question, message, conversationHistory, subject, apiKey, corsHeaders, userId, supabaseClient }: any) {
+  // Fetch user context for personalized tutoring
+  let userContext = '';
+  
+  if (userId && supabaseClient) {
+    try {
+      // Get user level and XP
+      const { data: xpData } = await supabaseClient
+        .from('user_xp')
+        .select('current_level, total_xp')
+        .eq('user_id', userId)
+        .single();
+
+      // Get user struggle topics
+      const { data: struggleTopics } = await supabaseClient
+        .from('student_struggle_topics')
+        .select('subject, topic, difficulty_level, struggle_count')
+        .eq('user_id', userId)
+        .order('struggle_count', { ascending: false })
+        .limit(5);
+
+      // Get recent performance
+      const { data: recentAttempts } = await supabaseClient
+        .from('test_attempts')
+        .select('score, total_questions')
+        .eq('user_id', userId)
+        .order('completed_at', { ascending: false })
+        .limit(5);
+
+      const avgScore = recentAttempts?.length 
+        ? (recentAttempts.reduce((sum: number, a: any) => sum + (a.score / a.total_questions * 100), 0) / recentAttempts.length).toFixed(1)
+        : 'N/A';
+
+      userContext = `
+**Student Profile:**
+- Level: ${xpData?.current_level || 1} (${xpData?.total_xp || 0} XP)
+- Recent Average Score: ${avgScore}%
+${struggleTopics?.length ? `- Known Struggle Topics: ${struggleTopics.map((t: any) => `${t.topic} (${t.subject})`).join(', ')}` : ''}
+
+**Tutoring Strategy:**
+- Adjust explanation complexity based on student level
+- Be extra patient with topics they've struggled with before
+- Build on their existing knowledge
+`;
+    } catch (error) {
+      console.error('Failed to fetch user context:', error);
+    }
+  }
+
   const tutoringPrompt = `You are a patient, encouraging AI tutor helping a student with ${subject}.
+
+${userContext}
 
 **Question Context:**
 - Topic: ${question.topic}
@@ -289,6 +352,7 @@ ${conversationHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n'
 - Break down complex concepts into simpler parts
 - Use analogies and examples when helpful
 - NEVER reveal the final answer directly
+- Consider their level and past struggles when explaining
 
 Respond with:
 1. A conversational response (3-5 sentences)
@@ -301,7 +365,7 @@ Format your response as JSON:
   "messageType": "chat"
 }`;
 
-  console.log('Generating tutoring guidance with Gemini...');
+  console.log('Generating tutoring guidance with user context...');
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -312,7 +376,7 @@ Format your response as JSON:
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
       messages: [
-        { role: 'system', content: 'You are a patient, encouraging tutor who guides students through reasoning without giving away answers.' },
+        { role: 'system', content: 'You are a patient, encouraging tutor who guides students through reasoning without giving away answers. You adapt your teaching style based on the student\'s level and known struggle areas.' },
         { role: 'user', content: tutoringPrompt }
       ],
       temperature: 0.8
@@ -347,7 +411,7 @@ Format your response as JSON:
     };
   }
 
-  console.log('Generated tutoring response');
+  console.log('Generated tutoring response with personalization');
 
   return new Response(
     JSON.stringify(tutoringData),

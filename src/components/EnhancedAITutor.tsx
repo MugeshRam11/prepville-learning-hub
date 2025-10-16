@@ -318,6 +318,7 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
         body: {
           mode: 'tutor',
           subject,
+          userId: user?.id,
           question: {
             id: question.id,
             content: question.content,

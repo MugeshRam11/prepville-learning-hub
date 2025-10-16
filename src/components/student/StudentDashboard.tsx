@@ -35,6 +35,7 @@ import { useAuth } from '@/hooks/useAuth';
 import PerformanceCriteria from './PerformanceCriteria';
 import DynamicTopicProgress from './DynamicTopicProgress';
 import DynamicDailyChallenge from './DynamicDailyChallenge';
+import PersonalizedSuggestions from './PersonalizedSuggestions';
 import { toast } from 'sonner';
 import StatsCards from './StatsCards';
 import { useTestProgressSync } from '@/hooks/useTestProgressSync';
@@ -374,6 +375,9 @@ const StudentDashboard = () => {
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
             {/* Main Content Area */}
             <div className="lg:col-span-2 space-y-6 animate-fade-in">
+              {/* AI-Powered Personalized Suggestions */}
+              <PersonalizedSuggestions />
+
               {/* Quick Actions */}
               <QuickActions />
 

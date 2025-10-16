@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.daily-motivation]
 verify_jwt = false
+
+[functions.analyze-user-progress]
+verify_jwt = false
