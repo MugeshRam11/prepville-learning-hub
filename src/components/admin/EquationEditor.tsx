@@ -2,9 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, FileText, Download, RotateCcw, Undo, Redo } from "lucide-react";
+import { Copy, FileText, Download, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import "mathlive";
+import 'katex/dist/katex.min.css';
+import renderToString from 'katex/dist/katex.mjs';
+import copy from 'copy-to-clipboard';
+import html2canvas from 'html2canvas';
 
 // MathLive type declarations
 declare global {
@@ -12,6 +16,9 @@ declare global {
     interface IntrinsicElements {
       'math-field': any;
     }
+  }
+  interface Window {
+    MathJax?: any;
   }
 }
 
@@ -25,9 +32,25 @@ interface EquationEditorProps {
 export default function EquationEditor({ value, onChange, placeholder, className }: EquationEditorProps) {
   const mathfieldRef = useRef<any>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [history, setHistory] = useState<string[]>([value || ""]);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  const [mathml, setMathml] = useState('');
+  const [katexHtml, setKatexHtml] = useState('');
+  const previewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Load MathJax for TeX -> MathML conversion
+  useEffect(() => {
+    if (!window.MathJax) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.async = true;
+      document.head.appendChild(script);
+      script.onload = () => {
+        if (value) convertToMathML(value);
+      };
+    } else {
+      if (value) convertToMathML(value);
+    }
+  }, []);
 
   // Initialize MathLive when component mounts
   useEffect(() => {
@@ -53,38 +76,44 @@ export default function EquationEditor({ value, onChange, placeholder, className
     }
   }, []);
 
-  // Update mathfield when value changes externally
+  // Update mathfield and render when value changes externally
   useEffect(() => {
     if (mathfieldRef.current && mathfieldRef.current.getValue() !== value) {
       mathfieldRef.current.setValue(value || "");
     }
+    renderKaTeX(value || "");
+    convertToMathML(value || "");
   }, [value]);
 
-  // Initialize history with current value
-  useEffect(() => {
-    if (value !== history[historyIndex]) {
-      setHistory([value || ""]);
-      setHistoryIndex(0);
+  function renderKaTeX(tex: string) {
+    if (!tex) {
+      setKatexHtml('');
+      return;
     }
-  }, []);
+    try {
+      const html = renderToString(tex, { throwOnError: false, displayMode: true });
+      setKatexHtml(html);
+    } catch (e) {
+      setKatexHtml('<span style="color: red">KaTeX render error</span>');
+    }
+  }
 
-  // Add to history when value changes (debounced)
-  useEffect(() => {
-    if (value === history[historyIndex]) return;
-    
-    const timer = setTimeout(() => {
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(value);
-      if (newHistory.length > 50) { // Limit history size
-        newHistory.shift();
-      } else {
-        setHistoryIndex(historyIndex + 1);
+  function convertToMathML(tex: string) {
+    if (!tex) {
+      setMathml('');
+      return;
+    }
+    if (window.MathJax && window.MathJax.tex2mml) {
+      try {
+        const mml = window.MathJax.tex2mml(tex, { parent: null });
+        setMathml(mml);
+      } catch (e) {
+        setMathml('');
       }
-      setHistory(newHistory);
-    }, 1000); // 1 second debounce
-
-    return () => clearTimeout(timer);
-  }, [value, history, historyIndex]);
+    } else {
+      setMathml('');
+    }
+  }
 
   function insertSymbol(symbol: string) {
     if (mathfieldRef.current) {
@@ -104,48 +133,108 @@ export default function EquationEditor({ value, onChange, placeholder, className
     onChange(newValue);
   }
 
-  function undo() {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      const previousValue = history[newIndex];
-      onChange(previousValue);
-      if (mathfieldRef.current) {
-        mathfieldRef.current.setValue(previousValue);
-      }
-    }
+  function handleCopyLatex() {
+    copy(value);
+    toast({
+      title: "LaTeX copied",
+      description: "Content has been copied to clipboard",
+    });
   }
 
-  function redo() {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      setHistoryIndex(newIndex);
-      const nextValue = history[newIndex];
-      onChange(nextValue);
-      if (mathfieldRef.current) {
-        mathfieldRef.current.setValue(nextValue);
-      }
-    }
-  }
-
-  function copyToClipboard(textToCopy: string) {
-    navigator.clipboard.writeText(textToCopy).then(() => {
+  function handleCopyMathML() {
+    if (!mathml) {
       toast({
-        title: "Copied to clipboard",
-        description: "Content has been copied successfully",
+        title: "MathML not available",
+        description: "MathJax is still loading or conversion failed",
+        variant: "destructive"
+      });
+      return;
+    }
+    copy(mathml);
+    toast({
+      title: "MathML copied",
+      description: "MathML has been copied to clipboard",
+    });
+  }
+
+  function handleCopyPNG() {
+    if (!previewRef.current || !katexHtml) {
+      toast({
+        title: "No preview available",
+        description: "Enter some math content first",
+        variant: "destructive"
+      });
+      return;
+    }
+    const node = previewRef.current;
+    html2canvas(node, { backgroundColor: null, scale: 2 }).then((canvas) => {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        if (navigator.clipboard && typeof (navigator.clipboard as any).write === 'function') {
+          const item = new ClipboardItem({ [blob.type]: blob });
+          (navigator.clipboard as any).write([item]).then(() => {
+            toast({
+              title: "PNG copied",
+              description: "Image has been copied to clipboard",
+            });
+          }).catch(() => {
+            downloadBlob(blob, 'equation.png');
+          });
+        } else {
+          downloadBlob(blob, 'equation.png');
+        }
+      });
+    }).catch((e) => {
+      console.error(e);
+      toast({
+        title: "Error",
+        description: "Failed to generate PNG",
+        variant: "destructive"
       });
     });
   }
 
-  function exportAsLaTeX() {
-    copyToClipboard(value);
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast({
+      title: "PNG downloaded",
+      description: "Image file has been downloaded",
+    });
   }
 
-  function exportAsUnicode() {
-    if (mathfieldRef.current) {
-      const unicodeValue = mathfieldRef.current.getValue('latex-expanded');
-      copyToClipboard(unicodeValue);
+  function handleDownloadSVG() {
+    if (!katexHtml) {
+      toast({
+        title: "Nothing to export",
+        description: "Enter some math content first",
+        variant: "destructive"
+      });
+      return;
     }
+    const svgContent = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='200'>` +
+      `<foreignObject width='100%' height='100%'><div xmlns='http://www.w3.org/1999/xhtml'>${katexHtml}</div></foreignObject>` +
+      `</svg>`;
+    const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'equation.svg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast({
+      title: "SVG downloaded",
+      description: "Vector image has been downloaded",
+    });
   }
 
   const mathTemplates = [
@@ -210,40 +299,14 @@ export default function EquationEditor({ value, onChange, placeholder, className
         <Card className="border-dashed">
           <CardContent className="p-3 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">Word-like Math Editor</Badge>
-                
-                {/* Undo/Redo buttons */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={undo}
-                    disabled={historyIndex <= 0}
-                    className="h-7 w-7 p-0"
-                    title="Undo (Ctrl+Z)"
-                  >
-                    <Undo className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={redo}
-                    disabled={historyIndex >= history.length - 1}
-                    className="h-7 w-7 p-0"
-                    title="Redo (Ctrl+Y)"
-                  >
-                    <Redo className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
+              <Badge variant="secondary" className="text-xs">Math Editor with Export Options</Badge>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="h-7 w-7 p-0"
+                className="h-7 text-xs"
               >
-                <RotateCcw className="h-3 w-3" />
+                {isExpanded ? 'Hide' : 'Show'} Tools
               </Button>
             </div>
 
@@ -287,39 +350,61 @@ export default function EquationEditor({ value, onChange, placeholder, className
               </div>
             )}
 
-            <div className="flex items-center gap-2 pt-2 border-t">
-              <div className="flex gap-1">
+            {/* Export Options */}
+            <div className="space-y-2 pt-2 border-t">
+              <div className="flex flex-wrap gap-1">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => copyToClipboard(value)}
+                  onClick={handleCopyLatex}
                   className="h-7 px-2 text-xs"
                 >
                   <Copy className="h-3 w-3 mr-1" />
-                  Copy
+                  Copy LaTeX
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={exportAsLaTeX}
+                  onClick={handleCopyMathML}
                   className="h-7 px-2 text-xs"
                 >
                   <FileText className="h-3 w-3 mr-1" />
-                  LaTeX
+                  Copy MathML
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={exportAsUnicode}
+                  onClick={handleCopyPNG}
+                  className="h-7 px-2 text-xs"
+                >
+                  <ImageIcon className="h-3 w-3 mr-1" />
+                  Copy PNG
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadSVG}
                   className="h-7 px-2 text-xs"
                 >
                   <Download className="h-3 w-3 mr-1" />
-                  Unicode
+                  Download SVG
                 </Button>
               </div>
               
-              <div className="text-xs text-muted-foreground flex-1">
-                ✨ Copy equations from Word or type directly. Fractions, powers, roots work visually.
+              {/* Preview */}
+              {katexHtml && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Rendered Preview:</label>
+                  <div 
+                    ref={previewRef} 
+                    className="p-3 border rounded-md bg-background/50 min-h-[48px] overflow-x-auto" 
+                    dangerouslySetInnerHTML={{ __html: katexHtml }} 
+                  />
+                </div>
+              )}
+              
+              <div className="text-xs text-muted-foreground">
+                <strong>Tip for Word:</strong> Use "Copy PNG" to paste as image into Word, or use "Copy MathML" for newer Word versions. SVG provides best quality for documents.
               </div>
             </div>
           </CardContent>
