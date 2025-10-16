@@ -10,8 +10,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import MockTestWordUpload from '@/components/admin/MockTestWordUpload';
+import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
 import QuestionBankSelector from '@/components/admin/QuestionBankSelector';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import type { Database } from '@/integrations/supabase/types';
 
 type TestSubject = Database['public']['Enums']['test_subject'];
@@ -29,7 +30,7 @@ const AdminMockTestCreate = () => {
     topic: ''
   });
   const [questions, setQuestions] = useState([]);
-  const [showWordUpload, setShowWordUpload] = useState(false);
+  const [showAIParser, setShowAIParser] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
 
   const handleLoadSample = (sampleData: any) => {
@@ -278,9 +279,9 @@ const AdminMockTestCreate = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setShowWordUpload(true)}>
+                      <DropdownMenuItem onClick={() => setShowAIParser(true)}>
                         <Upload className="w-4 h-4 mr-2" />
-                        AI Upload
+                        AI Upload (PDF, Word, CSV, Images)
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -321,12 +322,30 @@ const AdminMockTestCreate = () => {
         </div>
       </div>
 
-      {/* Word Upload Modal */}
-      <MockTestWordUpload
-        isOpen={showWordUpload}
-        onClose={() => setShowWordUpload(false)}
-        onTestParsed={handleWordTestParsed}
-      />
+      {/* AI Parser Modal */}
+      <Dialog open={showAIParser} onOpenChange={setShowAIParser}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>AI Document Parser - Multi-Format Upload</DialogTitle>
+            <DialogDescription>
+              Upload PDF, Word, CSV, or images. Choose from Parse, Summarize, Quiz Generation, or Data Extraction actions.
+            </DialogDescription>
+          </DialogHeader>
+          <QuestionUploadCard 
+            mode="mock"
+            onSuccess={(data) => {
+              if (data.mockTest) {
+                // Navigate to edit the created test
+                toast.success('Mock test created! Redirecting to view...');
+                setTimeout(() => {
+                  navigate(`/admin/mock-tests/edit/${data.mockTest.id}`);
+                }, 1500);
+              }
+              setShowAIParser(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Question Bank Selector */}
       <QuestionBankSelector
