@@ -344,20 +344,32 @@ Return JSON with this exact structure:
   ]
 }`;
 
-  const quickPrompt = `You are an expert educational document parser. Extract ALL questions from ANY document format with maximum flexibility.
+  const quickPrompt = `You are an expert educational document parser. Extract ALL questions from ANY document format and convert them to simple multiple-choice questions.
+
+**CRITICAL: QUICK TEST FORMAT REQUIREMENTS:**
+- **NO SUB-QUESTIONS ALLOWED**: If document has sub-questions (a, b, c), convert EACH ONE into a SEPARATE complete question
+- **FLATTEN STRUCTURE**: Question 1a, 1b, 1c should become Question 1, Question 2, Question 3
+- **STANDALONE QUESTIONS**: Each question must be completely independent with its own context
+- **MCQ ONLY**: Convert all question types to multiple choice format (A/B/C/D)
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
-- **PDF**: Extract from formatted layouts
+- **PDF**: Extract from formatted layouts  
 - **Images**: Perform OCR to recognize text
-- **Word**: Parse structured documents
+- **Word**: Parse structured documents and FLATTEN all sub-questions
 
 **PARSING RULES:**
-1. **Format-Agnostic**: Handle any structure
-2. **Flexible Recognition**: Identify questions with varying formats
-3. **Auto-detect Types**: MCQ, True/False, Short Answer
-4. **Smart Defaults**: Use reasonable values for missing data
-5. **Never Skip**: Extract every question regardless of format issues
+1. **Flatten Sub-questions**: Convert "Question 1: [context] a) [sub-q] b) [sub-q]" into separate Question 1, Question 2 each with full context
+2. **Standalone Context**: Include necessary context from parent question in each flattened question
+3. **MCQ Format**: If original is short answer, create MCQ options based on the answer
+4. **Complete Questions**: Each question_text must be fully self-contained with all necessary information
+5. **Never Skip**: Extract every question/sub-question as a separate item
+
+**FLATTENING EXAMPLE:**
+Original: "Question 1: A survey shows... a) Find missing values b) Calculate probability"
+Output: 
+- Question 1: "A survey shows... Find the missing values in the table." [with MCQ options]
+- Question 2: "A survey shows... Calculate the probability that..." [with MCQ options]
 
 **VALID SUBJECTS:** "mathematics", "science", "english", "history" (default: mathematics if unclear)
 
@@ -366,16 +378,17 @@ Return JSON:
   "quiz_metadata": {
     "title": "string (default: 'Quick Practice Quiz')",
     "subject": "mathematics|science|english|history (default: mathematics)",
+    "topic": "string (inferred from content)",
     "difficulty": "easy|medium|hard (default: medium)"
   },
   "questions": [
     {
-      "question_text": "string",
-      "question_type": "mcq|true_false|short_answer",
-      "options": ["text", "text", "text", "text"] (for MCQ),
-      "correct_answer": "A|B|C|D|true|false|text",
-      "explanation": "string (optional)",
-      "difficulty": "easy|medium|hard (default: medium)"
+      "question_text": "string (complete standalone question with all context)",
+      "question_type": "mcq",
+      "options": ["A. text", "B. text", "C. text", "D. text"],
+      "correct_answer": "A|B|C|D",
+      "explanation": "string (detailed explanation)",
+      "difficulty": "easy|medium|hard"
     }
   ]
 }`;

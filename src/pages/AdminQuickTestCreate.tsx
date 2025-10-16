@@ -35,6 +35,8 @@ const AdminQuickTestCreate = () => {
   const [showAIParser, setShowAIParser] = useState(false);
 
   const handleTestParsed = (testData: any) => {
+    console.log('Received test data:', testData);
+    
     // Update test info from quiz_metadata
     const metadata = testData.quiz_metadata || testData;
     setTestInfo({
@@ -46,20 +48,42 @@ const AdminQuickTestCreate = () => {
     });
 
     // Transform questions to match the expected format
-    const transformedQuestions = (testData.questions || []).map((q: any, index: number) => ({
-      id: Date.now() + index,
-      question_text: q.question_text,
-      question_image_url: q.question_image_url || '',
-      option_a: q.options?.[0]?.replace('A. ', '') || '',
-      option_b: q.options?.[1]?.replace('B. ', '') || '',
-      option_c: q.options?.[2]?.replace('C. ', '') || '',
-      option_d: q.options?.[3]?.replace('D. ', '') || '',
-      correct_answer: q.correct_answer || 'A',
-      explanation: q.explanation || '',
-      difficulty_level: q.difficulty || 'medium'
-    }));
+    const transformedQuestions = (testData.questions || []).map((q: any, index: number) => {
+      // Extract options - handle both array format and object properties
+      let optionA = '', optionB = '', optionC = '', optionD = '';
+      
+      if (Array.isArray(q.options) && q.options.length >= 4) {
+        // Remove "A. ", "B. " prefixes if present
+        optionA = q.options[0]?.replace(/^[Aa]\.\s*/, '') || '';
+        optionB = q.options[1]?.replace(/^[Bb]\.\s*/, '') || '';
+        optionC = q.options[2]?.replace(/^[Cc]\.\s*/, '') || '';
+        optionD = q.options[3]?.replace(/^[Dd]\.\s*/, '') || '';
+      } else {
+        // Fallback to direct properties
+        optionA = q.option_a || q.optionA || '';
+        optionB = q.option_b || q.optionB || '';
+        optionC = q.option_c || q.optionC || '';
+        optionD = q.option_d || q.optionD || '';
+      }
+      
+      return {
+        id: Date.now() + index,
+        question_text: q.question_text || 'Question not found',
+        question_image_url: q.question_image_url || '',
+        option_a: optionA,
+        option_b: optionB,
+        option_c: optionC,
+        option_d: optionD,
+        correct_answer: q.correct_answer || 'A',
+        explanation: q.explanation || '',
+        difficulty_level: q.difficulty || 'medium'
+      };
+    });
 
+    console.log('Transformed questions:', transformedQuestions);
     setQuestions(transformedQuestions);
+    
+    toast.success(`Successfully parsed ${transformedQuestions.length} questions!`);
   };
 
   const handleSave = async (publish = false) => {
