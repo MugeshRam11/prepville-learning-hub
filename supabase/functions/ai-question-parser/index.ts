@@ -280,6 +280,19 @@ When images are provided, you MUST:
 7. **Sub-question Support**: Detect and structure multi-part questions
 8. **Image Association**: Link images to questions intelligently
 
+**CRITICAL SUB-QUESTION DETECTION:**
+- Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c)
+- Each sub-question should have its own text and marks allocation
+- If a question has sub-parts, set "has_sub_questions": true
+- Extract each sub-question with: label (e.g., "a"), text, marks, and answer (if provided)
+- The main question_text should contain the context/setup, sub_questions array contains the parts
+- Example: "Question 1" with parts a), b), c) → 1 main question + 3 sub-questions
+
+**TABLE & GRAPH EXTRACTION:**
+- If text mentions "tree diagram", "table", "graph", "chart", "figure" → assign relevant image
+- Tables in text should be preserved in question_text, AND linked image should be assigned
+- Probability trees, data tables, charts MUST have images assigned from extracted images list
+
 **CRITICAL - VALID SUBJECT VALUES ONLY:**
 You MUST use ONLY these exact values:
 - "mathematics"
@@ -311,13 +324,13 @@ Return JSON with this exact structure:
       "options": ["A. text", "B. text", "C. text", "D. text"] (for MCQ),
       "correct_answer": "A|B|C|D|true|false|text",
       "explanation": "string (optional)",
-      "has_sub_questions": boolean (default: false),
+      "has_sub_questions": boolean (set true if sub-parts exist like a), b), c)),
       "sub_questions": [
         {
-          "label": "string (a, b, c or i, ii, iii)",
-          "text": "string",
-          "marks": number,
-          "answer": "string"
+          "label": "string (e.g., 'a', 'b', 'c' or 'i', 'ii', 'iii')",
+          "text": "string (the actual sub-question text)",
+          "marks": number (marks for this sub-part),
+          "answer": "string (correct answer if provided)"
         }
       ]
     }
@@ -424,11 +437,20 @@ ${!extractedText ? content : ''}
 
 ${extractedImages && extractedImages.length > 0 ? `\n**IMAGE ASSIGNMENT (CRITICAL)**:
 You have ${extractedImages.length} extracted images. You MUST:
-1. Look for references in text like "see diagram", "refer to figure", "tree diagram", "image", etc.
+1. Look for references in text like "see diagram", "refer to figure", "tree diagram", "table", "graph", "chart"
 2. Assign images to questions based on context and proximity
 3. Use question_image_url field with the full URL from the extracted images list
-4. If a question mentions an image/diagram, assign the most relevant image URL
-5. Distribute images logically across questions (don't leave all null)` : ''}
+4. If a question mentions an image/diagram/table/tree diagram, assign the most relevant image URL
+5. For probability trees, data tables, charts → ALWAYS assign an image
+6. Distribute images logically across questions (don't leave all null)
+
+**SUB-QUESTION EXTRACTION (CRITICAL)**:
+1. Detect sub-parts labeled as: a), b), c), d) OR (a), (b), (c) OR i), ii), iii)
+2. If found, set "has_sub_questions": true and populate "sub_questions" array
+3. Each sub-question needs: label (just letter/number), text, marks, answer
+4. Main question should contain setup/context, sub-questions contain the actual parts
+5. Extract marks for each sub-part (e.g., "[2 marks]", "[3 marks]")
+6. Example: "Question 1: A park café..." with "a) Complete the tree diagram [3 marks]" → Main Q + sub_questions array` : ''}
 
 Return pure JSON only (no markdown blocks, no explanations).`;
 }
