@@ -313,6 +313,7 @@ const MockExamStart = () => {
         
         <MockExamQuestion
           question={questions[currentQuestionIndex]}
+          questionNumber={currentQuestionIndex + 1}
           subQuestionIndex={currentSubQuestionIndex}
           answer={getCurrentAnswer()}
           onAnswerChange={handleAnswerChange}

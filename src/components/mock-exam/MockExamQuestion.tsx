@@ -11,6 +11,7 @@ import type { Question } from '@/pages/MockExamStart';
 
 interface MockExamQuestionProps {
   question: Question;
+  questionNumber: number;
   subQuestionIndex: number | null;
   answer: string;
   onAnswerChange: (questionId: string, content: string, subQuestionId?: string) => void;
@@ -20,6 +21,7 @@ interface MockExamQuestionProps {
 
 const MockExamQuestion = ({
   question,
+  questionNumber,
   subQuestionIndex,
   answer,
   onAnswerChange,
@@ -110,14 +112,14 @@ const MockExamQuestion = ({
                   {subQuestionIndex !== null ? (
                     <div>
                       <div className="text-gray-600 text-base font-normal mb-2">
-                        Question {question.id}: {renderLatexContent(question.text)}
+                        Question {questionNumber}: {renderLatexContent(question.text)}
                       </div>
                       <div>
                         Part {String.fromCharCode(97 + subQuestionIndex)}: {renderLatexContent(displayQuestion.text)}
                       </div>
                     </div>
                   ) : (
-                    renderLatexContent(displayQuestion.text)
+                    <div>Question {questionNumber}: {renderLatexContent(displayQuestion.text)}</div>
                   )}
                 </CardTitle>
               </div>
