@@ -35,17 +35,18 @@ const AdminQuickTestCreate = () => {
   const [showAIParser, setShowAIParser] = useState(false);
 
   const handleTestParsed = (testData: any) => {
-    // Update test info
+    // Update test info from quiz_metadata
+    const metadata = testData.quiz_metadata || testData;
     setTestInfo({
-      title: testData.title,
-      subject: testData.subject as TestSubject,
-      topic: testData.topic,
+      title: metadata.title || 'Untitled Test',
+      subject: (metadata.subject || 'mathematics') as TestSubject,
+      topic: metadata.topic || 'General',
       timeLimit: 30,
-      difficulty: 'medium'
+      difficulty: metadata.difficulty || 'medium'
     });
 
     // Transform questions to match the expected format
-    const transformedQuestions = testData.questions.map((q: any, index: number) => ({
+    const transformedQuestions = (testData.questions || []).map((q: any, index: number) => ({
       id: Date.now() + index,
       question_text: q.question_text,
       question_image_url: q.question_image_url || '',
