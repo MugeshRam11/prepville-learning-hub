@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from 'sonner';
 import { Upload, FileText, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
-
 interface ParsedMockQuestion {
   question_text: string;
   question_image_url?: string;
@@ -24,30 +23,26 @@ interface ParsedMockQuestion {
     word_limit?: number;
   }>;
 }
-
 interface ParsedMockTest {
   title: string;
   subject: string;
   topic: string;
   questions: ParsedMockQuestion[];
 }
-
 interface MockTestWordUploadProps {
   isOpen: boolean;
   onClose: () => void;
   onTestParsed: (testData: ParsedMockTest) => void;
 }
-
-const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({ 
-  isOpen, 
-  onClose, 
-  onTestParsed 
+const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
+  isOpen,
+  onClose,
+  onTestParsed
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedMockTest | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -60,13 +55,11 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
       }
     }
   };
-
   const handleUploadAndParse = async () => {
     if (!selectedFile) {
       toast.error('Please select a Word file first.');
       return;
     }
-
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -75,23 +68,19 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
       // Use the parse-word-test edge function
       const FUNCTION_URL = 'https://mvmciqmszakciijfdyos.supabase.co/functions/v1/parse-word-test';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w';
-
       const response = await fetch(FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
+          'apikey': SUPABASE_ANON_KEY
         },
-        body: formData,
+        body: formData
       });
-
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.error || `Upload failed with status ${response.status}`);
       }
-
       const data = await response.json();
-
       if (data.success) {
         // Transform the parsed data to match mock test format
         const transformedData: ParsedMockTest = {
@@ -110,7 +99,6 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
             sub_questions: []
           }))
         };
-
         setParsedData(transformedData);
         setShowPreview(true);
         toast.success('Word file parsed successfully!');
@@ -124,7 +112,6 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
       setIsUploading(false);
     }
   };
-
   const handleImportToForm = () => {
     if (parsedData) {
       onTestParsed(parsedData);
@@ -132,7 +119,6 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
       toast.success('Questions imported successfully! Review and edit as needed before saving.');
     }
   };
-
   const handleClose = () => {
     setSelectedFile(null);
     setParsedData(null);
@@ -140,9 +126,7 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
     setIsUploading(false);
     onClose();
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+  return <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -151,41 +135,20 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        {!showPreview ? (
-          <div className="space-y-6">
+        {!showPreview ? <div className="space-y-6">
             <Alert>
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Upload a Word document (.docx) with the following format:
-                <div className="mt-2 p-3 bg-gray-50 rounded text-sm font-mono">
-                  <div>Mock Test Title: [Your Test Title]</div>
-                  <div>Subject: [mathematics/science/etc.]</div>
-                  <div>Topic: [Your Topic]</div>
-                  <div className="mt-2">Question 1</div>
-                  <div>Question Text: [Your question with LaTeX support]</div>
-                  <div>Category: [Optional category]</div>
-                  <div>Marks: [Number of marks]</div>
-                  <div>Difficulty: [Easy/Medium/Hard]</div>
-                  <div>Word Limit: [Optional word limit]</div>
-                  <div>Answer Key: [Expected answer]</div>
-                </div>
-              </AlertDescription>
+              
             </Alert>
 
             <div>
               <label className="block text-sm font-medium mb-2">
                 Select Word File (.docx)
               </label>
-              <input
-                type="file"
-                accept=".doc,.docx"
-                onChange={handleFileSelect}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
+              <input type="file" accept=".doc,.docx" onChange={handleFileSelect} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
             </div>
 
-            {selectedFile && (
-              <Card>
+            {selectedFile && <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
                     <FileText className="h-8 w-8 text-blue-500" />
@@ -197,29 +160,18 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
 
             <div className="flex gap-3">
-              <Button
-                onClick={handleUploadAndParse}
-                disabled={!selectedFile || isUploading}
-                className="flex items-center gap-2"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
+              <Button onClick={handleUploadAndParse} disabled={!selectedFile || isUploading} className="flex items-center gap-2">
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 {isUploading ? 'Parsing...' : 'Upload & Parse'}
               </Button>
               <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
+          </div> : <div className="space-y-6">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
               <h3 className="text-lg font-semibold">File Parsed Successfully</h3>
@@ -236,8 +188,7 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
 
             <div className="space-y-4">
               <h4 className="font-semibold">Preview Questions (First 3)</h4>
-              {parsedData?.questions.slice(0, 3).map((question, index) => (
-                <Card key={index}>
+              {parsedData?.questions.slice(0, 3).map((question, index) => <Card key={index}>
                   <CardContent className="pt-4 space-y-3">
                     <div className="flex justify-between items-start">
                       <h5 className="font-medium">Question {index + 1}</h5>
@@ -251,30 +202,20 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
                       </div>
                     </div>
                     <p className="text-sm">{question.question_text}</p>
-                    {question.category && (
-                      <p className="text-xs text-gray-600">Category: {question.category}</p>
-                    )}
-                    {question.answer_key && (
-                      <p className="text-sm text-green-700">
+                    {question.category && <p className="text-xs text-gray-600">Category: {question.category}</p>}
+                    {question.answer_key && <p className="text-sm text-green-700">
                         <strong>Answer:</strong> {question.answer_key}
-                      </p>
-                    )}
+                      </p>}
                   </CardContent>
-                </Card>
-              ))}
+                </Card>)}
 
-              {parsedData && parsedData.questions.length > 3 && (
-                <p className="text-sm text-gray-500 text-center">
+              {parsedData && parsedData.questions.length > 3 && <p className="text-sm text-gray-500 text-center">
                   ... and {parsedData.questions.length - 3} more questions
-                </p>
-              )}
+                </p>}
             </div>
 
             <div className="flex gap-3">
-              <Button
-                onClick={handleImportToForm}
-                className="flex items-center gap-2"
-              >
+              <Button onClick={handleImportToForm} className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
                 Import to Mock Test Form
               </Button>
@@ -285,11 +226,8 @@ const MockTestWordUpload: React.FC<MockTestWordUploadProps> = ({
                 Cancel
               </Button>
             </div>
-          </div>
-        )}
+          </div>}
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
-
 export default MockTestWordUpload;
