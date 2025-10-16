@@ -35,18 +35,10 @@ export default function EquationEditor({ value, onChange, placeholder, className
       // Set properties for optimal text and math input
       mathfieldRef.current.smartFence = true;
       mathfieldRef.current.smartMode = false;
-      mathfieldRef.current.smartSuperscript = true;
+      mathfieldRef.current.smartSuperscript = false;
       mathfieldRef.current.mathVirtualKeyboardPolicy = "manual";
       mathfieldRef.current.defaultMode = "text";
-      mathfieldRef.current.letterShapeStyle = "auto";
-      
-      // Handle space bar explicitly
-      mathfieldRef.current.addEventListener('beforeinput', (evt: any) => {
-        if (evt.inputType === 'insertText' && evt.data === ' ') {
-          evt.preventDefault();
-          mathfieldRef.current.executeCommand(['insert', ' ']);
-        }
-      });
+      mathfieldRef.current.inlineShortcuts = {};
       
       // Set initial value
       if (value) {
