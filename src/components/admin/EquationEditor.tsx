@@ -39,9 +39,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
       mathfieldRef.current.mathVirtualKeyboardPolicy = "manual";
       mathfieldRef.current.defaultMode = "text";
       mathfieldRef.current.letterShapeStyle = "auto";
-      mathfieldRef.current.inlineShortcuts = {
-        space: ' ',
-      };
+      mathfieldRef.current.removeExtraneousParentheses = false;
       
       // Set initial value
       if (value) {
@@ -196,6 +194,8 @@ export default function EquationEditor({ value, onChange, placeholder, className
               backgroundColor: "hsl(var(--background))",
               color: "hsl(var(--foreground))",
               fontFamily: "inherit",
+              letterSpacing: "normal",
+              wordSpacing: "normal",
             }}
             onFocus={() => setIsExpanded(true)}
           >
