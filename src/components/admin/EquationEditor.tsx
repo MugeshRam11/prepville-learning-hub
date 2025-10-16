@@ -39,22 +39,14 @@ export default function EquationEditor({ value, onChange, placeholder, className
       mathfieldRef.current.mathVirtualKeyboardPolicy = "manual";
       mathfieldRef.current.defaultMode = "text";
       mathfieldRef.current.letterShapeStyle = "auto";
-      mathfieldRef.current.removeExtraneousParentheses = false;
       
-      // Allow space bar to work in both text and math mode
-      mathfieldRef.current.keybindings = [
-        ...mathfieldRef.current.keybindings,
-        {
-          key: 'Space',
-          ifMode: 'text',
-          command: ['insert', ' ']
-        },
-        {
-          key: 'Space',
-          ifMode: 'math',
-          command: ['insert', ' ']
+      // Handle space bar explicitly
+      mathfieldRef.current.addEventListener('beforeinput', (evt: any) => {
+        if (evt.inputType === 'insertText' && evt.data === ' ') {
+          evt.preventDefault();
+          mathfieldRef.current.executeCommand(['insert', ' ']);
         }
-      ];
+      });
       
       // Set initial value
       if (value) {
