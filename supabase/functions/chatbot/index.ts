@@ -331,18 +331,4 @@ Be polite, student-friendly, and concise unless more detail is requested.`;
       status: 200 
     }
   );
-
-  } catch (error) {
-    console.error('Error in chatbot function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        details: 'Please try again or contact support if the issue persists.'
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-  }
-});
+}
