@@ -104,19 +104,34 @@ const StudyMaterialManager = () => {
     }
   };
 
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setUploadProgress(0);
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${formData.subject}/${formData.level}/${fileName}`;
 
+      // Simulate upload progress (Supabase doesn't provide real progress)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + 10;
+        });
+      }, 200);
+
       const { error: uploadError } = await supabase.storage
         .from('study-materials')
         .upload(filePath, file);
+
+      clearInterval(progressInterval);
+      setUploadProgress(95);
 
       if (uploadError) throw uploadError;
 
@@ -141,23 +156,27 @@ const StudyMaterialManager = () => {
 
       if (insertError) throw insertError;
 
+      setUploadProgress(100);
       toast({
         title: "Success",
         description: "Study material uploaded successfully",
       });
 
-      setFormData({
-        title: '',
-        description: '',
-        subject: '',
-        topic: '',
-        level: '',
-        material_type: '',
-        tags: '',
-        is_published: false
-      });
-      setIsDialogOpen(false);
-      fetchMaterials();
+      setTimeout(() => {
+        setFormData({
+          title: '',
+          description: '',
+          subject: '',
+          topic: '',
+          level: '',
+          material_type: '',
+          tags: '',
+          is_published: false
+        });
+        setIsDialogOpen(false);
+        setUploadProgress(0);
+        fetchMaterials();
+      }, 500);
     } catch (error) {
       console.error('Error uploading material:', error);
       toast({
@@ -165,6 +184,7 @@ const StudyMaterialManager = () => {
         description: "Failed to upload study material",
         variant: "destructive",
       });
+      setUploadProgress(0);
     } finally {
       setUploading(false);
     }
@@ -381,9 +401,17 @@ const StudyMaterialManager = () => {
               </div>
 
               {uploading && (
-                <div className="text-center py-4">
-                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                  <p className="mt-2 text-sm">Uploading...</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Uploading file...</span>
+                    <span className="text-muted-foreground">{uploadProgress}%</span>
+                  </div>
+                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-purple-600 transition-all duration-300 ease-out"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
                 </div>
               )}
             </div>

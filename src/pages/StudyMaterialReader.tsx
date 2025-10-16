@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -63,6 +64,8 @@ const StudyMaterialReader = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDirection, setFlipDirection] = useState<'forward' | 'backward'>('forward');
+  const [pagesLoaded, setPagesLoaded] = useState<Set<number>>(new Set());
+  const [isPageLoading, setIsPageLoading] = useState(false);
 
   // Memoize PDF options to prevent unnecessary reloads warning
   const pdfOptions = useMemo(() => ({
@@ -129,7 +132,13 @@ const StudyMaterialReader = () => {
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPdfError(null);
+    setPagesLoaded(new Set([1, 2])); // Pre-load first two pages
     console.log('PDF loaded successfully with', numPages, 'pages');
+  };
+
+  const onPageLoadSuccess = (pageNumber: number) => {
+    setPagesLoaded(prev => new Set([...prev, pageNumber]));
+    setIsPageLoading(false);
   };
 
   const onDocumentLoadError = (error: Error) => {
@@ -144,23 +153,31 @@ const StudyMaterialReader = () => {
 
   const handlePrevious = () => {
     if (currentPage > 2) {
+      setIsPageLoading(true);
       setIsFlipping(true);
       setFlipDirection('backward');
+      const newPage = Math.max(1, currentPage - 2);
+      // Preload upcoming pages
+      setPagesLoaded(prev => new Set([...prev, newPage, newPage + 1, newPage - 1, newPage - 2]));
       setTimeout(() => {
-        setCurrentPage(prev => Math.max(1, prev - 2));
+        setCurrentPage(newPage);
         setIsFlipping(false);
-      }, 600);
+      }, 400);
     }
   };
 
   const handleNext = () => {
     if (currentPage < numPages - 1) {
+      setIsPageLoading(true);
       setIsFlipping(true);
       setFlipDirection('forward');
+      const newPage = currentPage + 2;
+      // Preload upcoming pages
+      setPagesLoaded(prev => new Set([...prev, newPage, newPage + 1, newPage + 2, newPage + 3]));
       setTimeout(() => {
-        setCurrentPage(prev => prev + 2);
+        setCurrentPage(newPage);
         setIsFlipping(false);
-      }, 600);
+      }, 400);
     }
   };
 
@@ -224,10 +241,26 @@ const StudyMaterialReader = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading study material...</p>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-8 w-48" />
+            </div>
+            <div className="flex justify-center items-center min-h-[600px]">
+              <div className="flex gap-4">
+                <Skeleton className="h-[800px] w-[550px] rounded-lg" />
+                <Skeleton className="h-[800px] w-[550px] rounded-lg" />
+              </div>
+            </div>
+            <div className="flex justify-center gap-4">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -380,9 +413,15 @@ const StudyMaterialReader = () => {
             onLoadError={onDocumentLoadError}
             options={pdfOptions}
             loading={
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Loading PDF...</p>
+              <div className="flex gap-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-[800px] w-[550px] rounded-lg" />
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-[800px] w-[550px] rounded-lg" />
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                </div>
               </div>
             }
             error={
@@ -419,6 +458,10 @@ const StudyMaterialReader = () => {
                     scale={scale}
                     renderTextLayer={true}
                     renderAnnotationLayer={true}
+                    onLoadSuccess={() => onPageLoadSuccess(leftPage)}
+                    loading={
+                      <Skeleton className="h-[800px] w-full rounded-lg" />
+                    }
                   />
                 </div>
 
@@ -451,6 +494,10 @@ const StudyMaterialReader = () => {
                       scale={scale}
                       renderTextLayer={true}
                       renderAnnotationLayer={true}
+                      onLoadSuccess={() => onPageLoadSuccess(rightPage)}
+                      loading={
+                        <Skeleton className="h-[800px] w-full rounded-lg" />
+                      }
                     />
                   </div>
                 )}
