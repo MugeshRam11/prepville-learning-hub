@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Upload, Database as DatabaseIcon } from 'lucide-react';
+import { ArrowLeft, Save, Upload, Database as DatabaseIcon, ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
@@ -268,14 +269,21 @@ const AdminMockTestCreate = () => {
               <div className="flex justify-between items-center">
                 <CardTitle>Question Builder</CardTitle>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowWordUpload(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Import from Word
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setShowWordUpload(true)}>
+                        <Upload className="w-4 h-4 mr-2" />
+                        AI Upload
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button
                     variant="outline"
                     onClick={() => setShowQuestionBank(true)}

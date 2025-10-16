@@ -240,29 +240,7 @@ const AdminMockTests = () => {
                     Publish All ({mockTests.filter(t => !t.is_published).length})
                   </Button>
                 )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline"
-                      className="border-gray-300"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => setShowAIUpload(!showAIUpload)}>
-                      <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
-                      {showAIUpload ? 'Hide AI Upload' : 'AI Upload'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/admin/mock-test-bulk-upload')}>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Bulk Upload CSV
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button 
+                <Button
                   onClick={() => navigate('/admin/mock-tests/create')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
