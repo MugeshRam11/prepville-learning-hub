@@ -195,18 +195,35 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
 
     if (testError) throw testError;
 
-    // Create questions
-    const questions = data.questions.map((q: any, idx: number) => ({
-      test_id: test.id,
-      question_text: q.question_text,
-      option_a: q.options?.[0] || '',
-      option_b: q.options?.[1] || '',
-      option_c: q.options?.[2] || '',
-      option_d: q.options?.[3] || '',
-      correct_answer: q.correct_answer?.charAt(0)?.toUpperCase() || 'A',
-      explanation: q.explanation || null,
-      difficulty_level: q.difficulty || 'medium'
-    }));
+    // Create questions - handle both MCQ and short-answer types
+    const questions = data.questions.map((q: any, idx: number) => {
+      const isMCQ = q.options && q.options.length > 0;
+      
+      // For MCQ questions, normalize answer to A/B/C/D
+      let correctAnswer = null;
+      if (isMCQ) {
+        const answerChar = q.correct_answer?.charAt(0)?.toUpperCase();
+        if (['A', 'B', 'C', 'D'].includes(answerChar)) {
+          correctAnswer = answerChar;
+        } else {
+          correctAnswer = 'A'; // Default fallback
+        }
+      }
+      
+      return {
+        test_id: test.id,
+        question_text: q.question_text,
+        option_a: q.options?.[0] || '',
+        option_b: q.options?.[1] || '',
+        option_c: q.options?.[2] || '',
+        option_d: q.options?.[3] || '',
+        correct_answer: correctAnswer,
+        explanation: isMCQ 
+          ? q.explanation 
+          : `Answer: ${q.correct_answer}\n\n${q.explanation || ''}`,
+        difficulty_level: q.difficulty || 'medium'
+      };
+    });
 
     const { error: questionsError } = await supabase
       .from('questions')
