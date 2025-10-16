@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle, XCircle, Brain, FileSearch, ListChecks, Eye } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -14,10 +15,13 @@ interface QuestionUploadCardProps {
   onSuccess?: (data: any) => void;
 }
 
+type ActionMode = 'parse' | 'summarize' | 'quiz' | 'extract_data';
+
 const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess }) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [parseResult, setParseResult] = useState<any>(null);
+  const [actionMode, setActionMode] = useState<ActionMode>('parse');
 
   const processFile = async (file: File) => {
     setUploading(true);
@@ -96,18 +100,26 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
 
       setProgress(40);
 
-      toast.info('🤖 AI is analyzing your document...', {
+      const actionDescriptions: Record<ActionMode, string> = {
+        parse: 'Parsing questions',
+        summarize: 'Creating summary',
+        quiz: 'Generating quiz',
+        extract_data: 'Extracting data'
+      };
+
+      toast.info(`🤖 AI is ${actionDescriptions[actionMode]}...`, {
         description: `Extracted: ${extractedText ? `${extractedText.length} characters` : 'preparing content'}`
       });
 
-      // Call AI parser function with extracted text
+      // Call AI parser function with action mode
       const { data, error } = await supabase.functions.invoke('ai-question-parser', {
         body: { 
           content, 
           fileType: file.type,
           fileName: file.name,
           parseMode: mode,
-          extractedText: extractedText || undefined
+          extractedText: extractedText || undefined,
+          actionMode
         }
       });
 
@@ -116,24 +128,35 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
       setProgress(70);
 
       if (!data || !data.success) {
-        throw new Error(data?.error || 'Failed to parse questions');
+        throw new Error(data?.error || 'Failed to process document');
       }
 
       setProgress(90);
       
-      // Save questions to database
-      const savedData = await saveQuestions(data.data);
+      // Handle different action modes
+      let savedData = null;
+      if (actionMode === 'parse' || actionMode === 'quiz') {
+        savedData = await saveQuestions(data.data);
+      }
       
       setProgress(100);
       setParseResult({
         success: true,
+        actionMode: data.actionMode,
         count: data.parsed_count,
-        data: savedData
+        data: savedData || data.data
       });
 
-      toast.success(`Successfully parsed ${data.parsed_count} questions!`);
+      const successMessages: Record<ActionMode, string> = {
+        parse: `Successfully parsed ${data.parsed_count} questions!`,
+        summarize: 'Document summarized successfully!',
+        quiz: `Generated ${data.parsed_count} quiz questions!`,
+        extract_data: 'Data extracted successfully!'
+      };
+
+      toast.success(successMessages[actionMode]);
       
-      if (onSuccess) {
+      if (onSuccess && savedData) {
         onSuccess(savedData);
       }
 
@@ -327,14 +350,44 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          Upload & Parse Questions with AI
+          <Brain className="w-5 h-5" />
+          AI Document Processor (docTR-like OCR + Gemini)
         </CardTitle>
         <CardDescription>
-          📄 Multi-format AI parser: CSV, PDF, Word (.docx), Images, Text | Auto-extracts text using docTR-like OCR + Gemini AI
+          📄 Multi-format parser: PDF, Images (OCR), Word, CSV | 🎯 Actions: Parse, Summarize, Quiz, Extract Data
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
+        {/* Action Mode Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Processing Action</label>
+          <Tabs value={actionMode} onValueChange={(v) => setActionMode(v as ActionMode)} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="parse" className="flex items-center gap-2">
+                <ListChecks className="w-4 h-4" />
+                <span className="hidden sm:inline">Parse</span>
+              </TabsTrigger>
+              <TabsTrigger value="summarize" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">Summarize</span>
+              </TabsTrigger>
+              <TabsTrigger value="quiz" className="flex items-center gap-2">
+                <Brain className="w-4 h-4" />
+                <span className="hidden sm:inline">Quiz</span>
+              </TabsTrigger>
+              <TabsTrigger value="extract_data" className="flex items-center gap-2">
+                <FileSearch className="w-4 h-4" />
+                <span className="hidden sm:inline">Extract</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <p className="text-xs text-muted-foreground">
+            {actionMode === 'parse' && '📝 Extract questions from document'}
+            {actionMode === 'summarize' && '📊 Create structured summary'}
+            {actionMode === 'quiz' && '🎯 Auto-generate quiz questions'}
+            {actionMode === 'extract_data' && '🔍 Extract structured data'}
+          </p>
+        </div>
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
@@ -371,10 +424,38 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
               )}
               <div className="flex-1">
                 <p className={`font-medium ${parseResult.success ? 'text-green-900' : 'text-red-900'}`}>
-                  {parseResult.success ? `Success! Parsed ${parseResult.count} questions` : 'Parsing Failed'}
+                  {parseResult.success ? (
+                    parseResult.actionMode === 'parse' ? `Success! Parsed ${parseResult.count} questions` :
+                    parseResult.actionMode === 'summarize' ? 'Summary created successfully!' :
+                    parseResult.actionMode === 'quiz' ? `Quiz generated with ${parseResult.count} questions!` :
+                    'Data extracted successfully!'
+                  ) : (
+                    `${parseResult.actionMode || 'Processing'} Failed`
+                  )}
                 </p>
                 {!parseResult.success && (
                   <p className="text-sm text-red-700 mt-1">{parseResult.error}</p>
+                )}
+                {parseResult.success && parseResult.data && (
+                  <div className="mt-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        const dataStr = JSON.stringify(parseResult.data, null, 2);
+                        const blob = new Blob([dataStr], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${parseResult.actionMode}-result.json`;
+                        a.click();
+                        toast.success('Result downloaded!');
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Download Result
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

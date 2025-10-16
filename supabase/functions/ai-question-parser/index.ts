@@ -11,17 +11,25 @@ serve(async (req) => {
   }
 
   try {
-    const { content, fileType, parseMode = 'quick', fileName, extractedText } = await req.json();
+    const { 
+      content, 
+      fileType, 
+      parseMode = 'quick', 
+      fileName, 
+      extractedText,
+      actionMode = 'parse' // 'parse' | 'summarize' | 'quiz' | 'extract_data'
+    } = await req.json();
     
-    console.log('📥 Parsing request:', { 
+    console.log('📥 Processing request:', { 
       fileName, 
       fileType, 
-      parseMode, 
+      parseMode,
+      actionMode,
       contentLength: content?.length,
       hasExtractedText: !!extractedText 
     });
     
-    if (!content) {
+    if (!content && !extractedText) {
       return new Response(
         JSON.stringify({ error: 'No content provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -37,107 +45,11 @@ serve(async (req) => {
       );
     }
 
-    // Enhanced adaptive prompt based on mode with flexible parsing
-    const systemPrompt = parseMode === 'mock' 
-      ? `You are an expert document parser specialized in educational content. Your task is to extract ALL questions from ANY document format, regardless of structure.
+    // Get appropriate prompts based on action mode
+    const systemPrompt = getSystemPrompt(actionMode, parseMode);
+    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, content, extractedText);
 
-ADAPTIVE PARSING RULES:
-1. **Be Format-Agnostic**: Handle CSV, PDF, Word, images, or any text format
-2. **Flexible Column Detection**: Recognize question data even if columns are named differently
-3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
-4. **Smart Option Extraction**: Recognize options in various formats
-5. **Answer Key Flexibility**: Accept various answer formats and normalize them
-6. **Handle Missing Data**: Use sensible defaults if information is missing
-7. **Extract Everything**: Never skip questions due to formatting issues
-
-**CRITICAL - VALID SUBJECT VALUES ONLY:**
-You MUST use ONLY these exact subject values (no other values allowed):
-- "mathematics"
-- "science"  
-- "language_literature"
-- "social_studies"
-- "physics"
-- "chemistry"
-- "biology"
-
-If the subject is unclear or general, default to "mathematics".
-
-Return JSON with this structure:
-{
-  "test_metadata": {
-    "title": "string (default: 'Imported Mock Test')",
-    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology (REQUIRED - choose closest match)",
-    "topic": "string (default: 'General')",
-    "total_marks": number (sum of all question marks)
-  },
-  "questions": [
-    {
-      "question_number": number (auto-increment if missing),
-      "question_text": "string",
-      "question_type": "mcq|true_false|short_answer|essay|fill_blank (auto-detect)",
-      "marks": number (default: 1),
-      "difficulty": "easy|medium|hard (default: 'medium')",
-      "options": ["A. text", "B. text", "C. text", "D. text"] (for MCQ, create labels if missing),
-      "correct_answer": "A|B|C|D|true|false|text (normalize to standard format)",
-      "explanation": "string (optional)",
-      "has_sub_questions": boolean (default: false),
-      "sub_questions": []
-    }
-  ]
-}`
-      : `You are an expert document parser specialized in educational content. Extract ALL questions from ANY document format with maximum flexibility.
-
-ADAPTIVE PARSING RULES:
-1. **Format-Agnostic**: Parse CSV, PDF, Word, images, or plain text
-2. **Flexible Recognition**: Identify questions even with varying column names or formats
-3. **Smart Detection**: Auto-detect question types and extract options intelligently
-4. **Missing Data**: Use reasonable defaults for missing information
-5. **Never Skip**: Extract every question regardless of format issues
-
-**VALID SUBJECT VALUES:**
-For quick practice, use: "mathematics", "science", "english", "history", or infer from content.
-Default to "mathematics" if unclear.
-
-Return JSON (use defaults for missing fields):
-{
-  "quiz_metadata": {
-    "title": "string (default: 'Quick Practice Quiz')",
-    "subject": "mathematics|science|english|history (choose closest match, default: 'mathematics')",
-    "difficulty": "easy|medium|hard (default: 'medium')"
-  },
-  "questions": [
-    {
-      "question_text": "string",
-      "question_type": "mcq|true_false|short_answer (auto-detect)",
-      "options": ["text", "text", "text", "text"] (create if MCQ),
-      "correct_answer": "A|B|C|D|true|false|text (normalize)",
-      "explanation": "string (optional)",
-      "difficulty": "easy|medium|hard (use from data or default: 'medium')"
-    }
-  ]
-}`;
-
-    // Prepare enhanced prompt with file context
-    const fileContext = fileName ? `\nFile: ${fileName} (${fileType})` : '';
-    const textPreview = extractedText ? `\n\n📄 Pre-extracted Text (${extractedText.length} chars):\n${extractedText.substring(0, 1000)}${extractedText.length > 1000 ? '...' : ''}` : '';
-    
-    const userPrompt = `Parse educational content and extract ALL questions with complete details.${fileContext}${textPreview}
-
-${extractedText ? 'Use the pre-extracted text above for accurate parsing.' : 'Content to parse:'}
-${!extractedText ? content : ''}
-
-PARSING INSTRUCTIONS:
-- For CSV: Parse column headers and rows intelligently
-- For Word/PDF: Extract from formatted text and tables  
-- For Images: Perform OCR and extract visible questions
-- Handle numbered lists, bullet points, tables, and paragraphs
-- Auto-detect question structure and types (MCQ, True/False, etc.)
-- Normalize answer formats (A/B/C/D, 1/2/3/4, true/false)
-- Extract EVERY question - never skip due to format issues
-
-Return pure JSON only (no markdown, no explanations).`;
-
-    console.log('Calling Lovable AI for question parsing...');
+    console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
     
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -157,7 +69,7 @@ Return pure JSON only (no markdown, no explanations).`;
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('Lovable AI error:', aiResponse.status, errorText);
+      console.error('Gemini AI error:', aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(
@@ -173,7 +85,7 @@ Return pure JSON only (no markdown, no explanations).`;
         );
       }
       
-      throw new Error(`AI parsing failed: ${aiResponse.status}`);
+      throw new Error(`AI processing failed: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
@@ -185,39 +97,309 @@ Return pure JSON only (no markdown, no explanations).`;
     } catch (e) {
       console.error('Failed to parse AI response as JSON:', e);
       return new Response(
-        JSON.stringify({ error: 'AI response format invalid' }),
+        JSON.stringify({ error: 'AI response format invalid', details: String(e) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate parsed data
-    const questions = parseMode === 'mock' ? parsedData.questions : parsedData.questions;
-    if (!questions || questions.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No questions found in the content' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Validate based on action mode
+    if (actionMode === 'parse') {
+      const questions = parsedData.questions || [];
+      if (questions.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No questions found in the content' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.log(`✅ Successfully parsed ${questions.length} questions`);
+    } else {
+      console.log(`✅ Successfully completed ${actionMode} action`);
     }
-
-    console.log(`Successfully parsed ${questions.length} questions`);
 
     return new Response(
       JSON.stringify({
         success: true,
+        actionMode,
         data: parsedData,
-        parsed_count: questions.length
+        parsed_count: actionMode === 'parse' ? (parsedData.questions?.length || 0) : null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in ai-question-parser:', error);
+    console.error('❌ Error in ai-question-parser:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        details: 'Failed to parse questions'
+        details: 'Failed to process document'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+
+// ============= Helper Functions =============
+
+function getSystemPrompt(actionMode: string, parseMode: string): string {
+  if (actionMode === 'summarize') {
+    return `You are an expert document summarizer specializing in educational content. Create comprehensive, structured summaries.
+
+**SUMMARIZATION CAPABILITIES:**
+- Extract key concepts and main ideas
+- Organize information hierarchically
+- Identify learning objectives
+- Preserve important details and context
+- Estimate difficulty and time requirements
+
+Return JSON with this structure:
+{
+  "summary": {
+    "title": "string",
+    "subject": "string",
+    "overview": "string (2-3 sentence summary)",
+    "key_topics": ["topic1", "topic2", "topic3"],
+    "main_points": [
+      {"heading": "string", "details": ["point1", "point2"]},
+      {"heading": "string", "details": ["point1", "point2"]}
+    ],
+    "difficulty_level": "beginner|intermediate|advanced",
+    "estimated_time_minutes": number,
+    "learning_objectives": ["objective1", "objective2"]
+  }
+}`;
+  }
+
+  if (actionMode === 'extract_data') {
+    return `You are an expert data extraction specialist. Extract structured information with maximum accuracy.
+
+**EXTRACTION CAPABILITIES:**
+- Identify and categorize entities (names, dates, numbers, terms)
+- Extract tabular data with proper structure
+- Preserve relationships between data points
+- Handle multiple data formats (CSV, tables, lists, paragraphs)
+- Provide confidence scores
+
+Return JSON with this structure:
+{
+  "extracted_data": {
+    "document_type": "academic|assessment|research|other",
+    "entities": {
+      "key_terms": ["term1", "term2"],
+      "names": ["name1", "name2"],
+      "dates": ["date1", "date2"],
+      "numerical_data": [{"value": number, "unit": "string", "context": "string"}]
+    },
+    "tables": [
+      {
+        "title": "string",
+        "headers": ["col1", "col2"],
+        "rows": [["val1", "val2"], ["val3", "val4"]]
+      }
+    ],
+    "key_facts": ["fact1", "fact2"],
+    "categories": ["category1", "category2"],
+    "metadata": {
+      "confidence": "high|medium|low",
+      "data_completeness": "complete|partial"
+    }
+  }
+}`;
+  }
+
+  if (actionMode === 'quiz') {
+    return `You are an expert educational content generator. Create high-quality quiz questions from ANY document format.
+
+**QUIZ GENERATION RULES:**
+1. **Auto-Generate from Content**: Create questions based on key concepts
+2. **Multiple Question Types**: MCQ (4 options), True/False, Short Answer
+3. **Difficulty Levels**: Mix of easy, medium, hard questions
+4. **Quality Distractors**: Create plausible wrong answers for MCQ
+5. **Comprehensive Explanations**: Detailed reasoning for each answer
+6. **Bloom's Taxonomy**: Cover remember, understand, apply, analyze levels
+
+**VALID SUBJECT VALUES:** ${parseMode === 'mock' 
+  ? '"mathematics", "science", "language_literature", "social_studies", "physics", "chemistry", "biology"'
+  : '"mathematics", "science", "english", "history" (or infer from content)'}
+
+Return JSON:
+{
+  "${parseMode === 'mock' ? 'test_metadata' : 'quiz_metadata'}": {
+    "title": "string",
+    "subject": "string (use valid values above, default: mathematics)",
+    "topic": "string",
+    "total_questions": number,
+    "difficulty_distribution": {"easy": number, "medium": number, "hard": number}
+  },
+  "questions": [
+    {
+      ${parseMode === 'mock' ? '"question_number": number,' : ''}
+      "question_text": "string",
+      "question_type": "mcq|true_false|short_answer",
+      ${parseMode === 'mock' ? '"marks": number,' : ''}
+      "difficulty": "easy|medium|hard",
+      "options": ["A. text", "B. text", "C. text", "D. text"],
+      "correct_answer": "A|B|C|D|true|false|text",
+      "explanation": "string (detailed reasoning)"
+    }
+  ]
+}`;
+  }
+
+  // Default: parse mode
+  const mockPrompt = `You are an expert educational document parser with OCR-like capabilities. Parse ANY document format and extract ALL questions with complete structure.
+
+**MULTI-FORMAT PARSING (docTR-like OCR + AI):**
+- **PDF**: Extract from formatted text, tables, and layouts
+- **Images**: Perform intelligent OCR - recognize handwritten/printed text
+- **Word (.docx)**: Parse formatted documents, tables, diagrams
+- **CSV**: Intelligently map columns to question components
+- **Text**: Handle numbered lists, bullets, paragraphs
+
+**ADAPTIVE PARSING RULES:**
+1. **Format-Agnostic**: Handle any document structure
+2. **Flexible Column Detection**: Recognize data even with different column names
+3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
+4. **Smart Option Extraction**: Handle options in any format (1/2/3/4, A/B/C/D, bullets)
+5. **Answer Normalization**: Convert all answer formats to A/B/C/D standard
+6. **Missing Data Handling**: Use sensible defaults, never skip questions
+7. **Sub-question Support**: Detect and structure multi-part questions
+
+**CRITICAL - VALID SUBJECT VALUES ONLY:**
+You MUST use ONLY these exact values:
+- "mathematics"
+- "science"
+- "language_literature"
+- "social_studies"
+- "physics"
+- "chemistry"
+- "biology"
+
+If unclear, default to "mathematics".
+
+Return JSON with this exact structure:
+{
+  "test_metadata": {
+    "title": "string (default: 'Imported Mock Test')",
+    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology (REQUIRED)",
+    "topic": "string (default: 'General')",
+    "total_marks": number
+  },
+  "questions": [
+    {
+      "question_number": number (auto-increment from 1),
+      "question_text": "string (complete question)",
+      "question_type": "mcq|true_false|short_answer|essay",
+      "marks": number (default: 1),
+      "difficulty": "easy|medium|hard" (default: medium),
+      "options": ["A. text", "B. text", "C. text", "D. text"] (for MCQ),
+      "correct_answer": "A|B|C|D|true|false|text",
+      "explanation": "string (optional)",
+      "has_sub_questions": boolean (default: false),
+      "sub_questions": [
+        {
+          "label": "string (a, b, c or i, ii, iii)",
+          "text": "string",
+          "marks": number,
+          "answer": "string"
+        }
+      ]
+    }
+  ]
+}`;
+
+  const quickPrompt = `You are an expert educational document parser. Extract ALL questions from ANY document format with maximum flexibility.
+
+**ADAPTIVE PARSING (works like docTR OCR + AI):**
+- **CSV/Text**: Parse column headers and rows intelligently
+- **PDF**: Extract from formatted layouts
+- **Images**: Perform OCR to recognize text
+- **Word**: Parse structured documents
+
+**PARSING RULES:**
+1. **Format-Agnostic**: Handle any structure
+2. **Flexible Recognition**: Identify questions with varying formats
+3. **Auto-detect Types**: MCQ, True/False, Short Answer
+4. **Smart Defaults**: Use reasonable values for missing data
+5. **Never Skip**: Extract every question regardless of format issues
+
+**VALID SUBJECTS:** "mathematics", "science", "english", "history" (default: mathematics if unclear)
+
+Return JSON:
+{
+  "quiz_metadata": {
+    "title": "string (default: 'Quick Practice Quiz')",
+    "subject": "mathematics|science|english|history (default: mathematics)",
+    "difficulty": "easy|medium|hard (default: medium)"
+  },
+  "questions": [
+    {
+      "question_text": "string",
+      "question_type": "mcq|true_false|short_answer",
+      "options": ["text", "text", "text", "text"] (for MCQ),
+      "correct_answer": "A|B|C|D|true|false|text",
+      "explanation": "string (optional)",
+      "difficulty": "easy|medium|hard (default: medium)"
+    }
+  ]
+}`;
+
+  return parseMode === 'mock' ? mockPrompt : quickPrompt;
+}
+
+function getUserPrompt(
+  actionMode: string, 
+  parseMode: string, 
+  fileName: string | undefined, 
+  fileType: string | undefined,
+  content: string, 
+  extractedText: string | undefined
+): string {
+  const fileContext = fileName ? `\n📁 File: ${fileName} (${fileType})` : '';
+  const textPreview = extractedText 
+    ? `\n\n📄 Pre-extracted Text (${extractedText.length} characters):\n${extractedText.substring(0, 2500)}${extractedText.length > 2500 ? '\n...(truncated)' : ''}`
+    : '';
+
+  if (actionMode === 'summarize') {
+    return `Analyze and summarize this educational document.${fileContext}${textPreview}
+
+${!extractedText ? `Content to summarize:\n${content}` : ''}
+
+Create a comprehensive, well-structured summary with key topics, main points, and learning objectives.
+Return pure JSON only (no markdown, no explanations).`;
+  }
+
+  if (actionMode === 'extract_data') {
+    return `Extract all structured data from this document.${fileContext}${textPreview}
+
+${!extractedText ? `Content to analyze:\n${content}` : ''}
+
+Extract entities, tables, key facts, and categorize all data points with high accuracy.
+Return pure JSON only (no markdown, no explanations).`;
+  }
+
+  if (actionMode === 'quiz') {
+    return `Generate high-quality quiz questions from this educational content.${fileContext}${textPreview}
+
+${!extractedText ? `Content to convert into quiz:\n${content}` : ''}
+
+Create a comprehensive quiz with multiple question types, varying difficulty, plausible distractors, and detailed explanations.
+Return pure JSON only (no markdown, no explanations).`;
+  }
+
+  // Default: parse mode
+  return `Parse this educational document and extract ALL questions with complete details.${fileContext}${textPreview}
+
+${extractedText ? 'Use the pre-extracted text above for accurate parsing.' : 'Content to parse:'}
+${!extractedText ? content : ''}
+
+**PARSING INSTRUCTIONS:**
+- **CSV**: Parse column headers and map to question components intelligently
+- **Word/PDF**: Extract from formatted text, tables, and structured layouts
+- **Images**: Perform OCR and extract all visible text and questions
+- **Handle All Formats**: Numbered lists (1, 2, 3), bullet points, tables, paragraphs
+- **Auto-detect Structure**: Question types, options, answers, sub-questions
+- **Normalize Answers**: Convert all formats (1/2/3/4, A/B/C/D, a/b/c/d) to A/B/C/D
+- **Extract EVERYTHING**: Never skip questions due to format issues - use defaults if needed
+
+Return pure JSON only (no markdown blocks, no explanations).`;
+}
