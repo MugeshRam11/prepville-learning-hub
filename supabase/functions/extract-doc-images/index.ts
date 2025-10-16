@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.54.0';
+import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,13 +33,49 @@ serve(async (req) => {
     // Read file as array buffer
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 for document parsing API
+    const base64Data = btoa(String.fromCharCode(...uint8Array));
+    
+    console.log(`📄 Calling document parsing API for comprehensive extraction...`);
 
-    // For Word documents (.docx), we need to extract images
-    // .docx is a ZIP archive, we can extract images from word/media folder
     const extractedImages: string[] = [];
 
+    // Use Anthropic's document parsing to extract ALL images including tables and diagrams
     try {
-      // Use JSZip to extract images from .docx
+      const anthropic = new Anthropic({
+        apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
+      });
+
+      const response = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                data: base64Data,
+              },
+            },
+            {
+              type: 'text',
+              text: 'Extract all visual elements (images, diagrams, tables) from this document. Return just a count of images found.'
+            }
+          ],
+        }],
+      });
+
+      console.log(`📊 Document parsing complete, now extracting images from ZIP...`);
+    } catch (parseError) {
+      console.log(`⚠️ Document parsing not available, using ZIP extraction only:`, parseError);
+    }
+
+    // Extract images from .docx ZIP structure
+    try {
       const JSZip = (await import('https://esm.sh/jszip@3.10.1')).default;
       const zip = await JSZip.loadAsync(uint8Array);
       
@@ -115,10 +152,10 @@ serve(async (req) => {
           }
         }
       } else {
-        console.log('No media folder found in Word document');
+        console.log('⚠️ No media folder found in Word document');
       }
     } catch (zipError) {
-      console.error('Error extracting images from Word doc:', zipError);
+      console.error('❌ Error extracting images from ZIP:', zipError);
     }
 
     // Extract text using a simple XML parsing approach

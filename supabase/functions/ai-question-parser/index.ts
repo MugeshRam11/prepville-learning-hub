@@ -262,13 +262,14 @@ Return JSON:
 - **CSV**: Intelligently map columns to question components
 - **Text**: Handle numbered lists, bullets, paragraphs
 
-**IMAGE EXTRACTION & ASSIGNMENT:**${imageContext}
-When images are provided, you MUST:
-1. Analyze the text for image references (e.g., "see diagram", "refer to figure", "image shows")
-2. Match images to questions based on proximity, question numbers, or contextual clues
-3. Assign the correct image URL to the "question_image_url" field
-4. If multiple images exist for one question, assign the first relevant one
-5. If unsure, assign images sequentially to questions in order
+**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}
+When images are provided, you MUST analyze and assign them intelligently:
+1. **Direct References**: Look for "diagram below", "tree diagram", "table shown", "graph", "figure"
+2. **Contextual Matching**: Match images to questions by content (e.g., probability tree image → probability question)
+3. **Sequential Assignment**: If unsure, assign images in order they appear to questions in order
+4. **Visual Elements**: ALL diagrams, tables, graphs, charts, figures MUST have corresponding image URLs
+5. **Sub-questions with shared images**: If sub-questions a), b), c) all refer to same diagram, assign image to main question
+6. **Multiple images per question**: If one question has multiple diagrams/tables, assign the most relevant primary image
 
 **ADAPTIVE PARSING RULES:**
 1. **Format-Agnostic**: Handle any document structure
@@ -281,17 +282,23 @@ When images are provided, you MUST:
 8. **Image Association**: Link images to questions intelligently
 
 **CRITICAL SUB-QUESTION DETECTION:**
-- Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c)
-- Each sub-question should have its own text and marks allocation
+- Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c) OR Part a:, Part b:
+- Each sub-question should have its own text and marks allocation  
+- COUNT MARKS CAREFULLY: Sum ALL individual sub-question marks to get the main question total
 - If a question has sub-parts, set "has_sub_questions": true
 - Extract each sub-question with: label (e.g., "a"), text, marks, and answer (if provided)
-- The main question_text should contain the context/setup, sub_questions array contains the parts
-- Example: "Question 1" with parts a), b), c) → 1 main question + 3 sub-questions
+- The main question_text should contain the context/setup text ONLY
+- Sub_questions array contains ALL the actual questions to be answered
+- Example: "Question 1" with parts a) [3 marks], b) [2 marks], c) [4 marks] → main question marks = 9
 
-**TABLE & GRAPH EXTRACTION:**
-- If text mentions "tree diagram", "table", "graph", "chart", "figure" → assign relevant image
-- Tables in text should be preserved in question_text, AND linked image should be assigned
-- Probability trees, data tables, charts MUST have images assigned from extracted images list
+**TABLE, GRAPH & DIAGRAM EXTRACTION (CRITICAL):**
+- **Tree diagrams**: If question mentions "tree diagram", "complete the tree diagram", "probability tree" → MUST assign tree diagram image
+- **Tables**: If question contains table data OR mentions "table" → assign table image if available
+- **Graphs/Charts**: If mentions "graph", "chart", "plot" → assign relevant graph image
+- **Diagrams**: If mentions "diagram", "figure", "illustration" → assign diagram image
+- **Visual References**: Look for phrases like "shown below", "diagram above", "see figure" → these need images
+- ALL extracted images should be assigned to their corresponding questions
+- If question text includes table/diagram data, still assign the image URL - images complement text
 
 **CRITICAL - VALID SUBJECT VALUES ONLY:**
 You MUST use ONLY these exact values:
