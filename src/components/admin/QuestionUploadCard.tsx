@@ -6,6 +6,8 @@ import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
@@ -24,37 +26,87 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
 
     try {
       let content = '';
+      let extractedText = '';
       const fileType = file.type;
+      const fileName = file.name.toLowerCase();
       
+      console.log('📄 Processing:', fileName, '| Type:', fileType);
       setProgress(20);
       
-      // Read file content based on type
-      if (fileType === 'text/csv' || fileType === 'text/plain') {
+      // Enhanced document parsing with text extraction
+      if (fileType === 'text/csv' || fileName.endsWith('.csv')) {
+        // Read CSV as text
         content = await file.text();
-      } else if (fileType === 'application/pdf') {
-        // For PDF, convert to base64 for AI processing
-        const base64 = await fileToBase64(file);
-        content = `[PDF Document Base64]: ${base64}`;
-      } else if (fileType.includes('word') || file.name.endsWith('.docx')) {
-        // For Word docs, convert to base64
-        const base64 = await fileToBase64(file);
-        content = `[Word Document Base64]: ${base64}`;
+        extractedText = content;
+        console.log('✅ CSV text extracted:', content.substring(0, 200));
+        
+      } else if (fileName.endsWith('.docx')) {
+        // Extract text from Word using mammoth
+        setProgress(25);
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        extractedText = result.value;
+        content = extractedText;
+        console.log('✅ Word text extracted:', extractedText.substring(0, 200));
+        toast.info(`Extracted ${extractedText.length} characters from Word doc`);
+        
+      } else if (fileName.endsWith('.pdf')) {
+        // Extract text from PDF using pdfjs
+        setProgress(25);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPages = pdf.numPages;
+        let pdfText = '';
+        
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          pdfText += `\n--- Page ${i} ---\n${pageText}`;
+          setProgress(25 + (i / numPages) * 15);
+        }
+        
+        extractedText = pdfText;
+        content = pdfText;
+        console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
+        toast.info(`Extracted text from ${numPages} PDF pages`);
+        
       } else if (fileType.includes('image')) {
-        // For images, convert to base64
+        // For images, send as base64 (AI will perform OCR)
         const base64 = await fileToBase64(file);
-        content = `[Image Base64]: ${base64}`;
-      } else {
+        content = base64;
+        extractedText = '[Image - AI will perform OCR]';
+        console.log('✅ Image prepared for OCR');
+        toast.info('Image uploaded - AI will extract text');
+        
+      } else if (fileType === 'text/plain') {
+        // Plain text
         content = await file.text();
+        extractedText = content;
+        console.log('✅ Plain text read');
+        
+      } else {
+        // Fallback: try to read as text
+        content = await file.text();
+        extractedText = content;
       }
 
       setProgress(40);
 
-      // Call AI parser function
+      toast.info('🤖 AI is analyzing your document...', {
+        description: `Extracted: ${extractedText ? `${extractedText.length} characters` : 'preparing content'}`
+      });
+
+      // Call AI parser function with extracted text
       const { data, error } = await supabase.functions.invoke('ai-question-parser', {
         body: { 
           content, 
           fileType: file.type,
-          parseMode: mode 
+          fileName: file.name,
+          parseMode: mode,
+          extractedText: extractedText || undefined
         }
       });
 
@@ -235,8 +287,9 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/msword': ['.doc'],
-      'image/*': ['.png', '.jpg', '.jpeg', '.webp']
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']
     },
+    maxSize: 20 * 1024 * 1024, // 20MB max
     maxFiles: 1,
     disabled: uploading
   });
@@ -249,7 +302,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
           Upload & Parse Questions with AI
         </CardTitle>
         <CardDescription>
-          Upload any document (CSV, PDF, Word, Image, Text) and AI will automatically extract and organize questions
+          📄 Multi-format AI parser: CSV, PDF, Word (.docx), Images, Text | Auto-extracts text using docTR-like OCR + Gemini AI
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -273,7 +326,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
                 {isDragActive ? 'Drop file here' : 'Drag & drop or click to upload'}
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports: CSV, PDF, Word, Images, Text
+                Supports: CSV, PDF, Word (.docx), Images (OCR), Text | Max 20MB
               </p>
             </>
           )}

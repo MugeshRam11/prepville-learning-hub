@@ -11,7 +11,15 @@ serve(async (req) => {
   }
 
   try {
-    const { content, fileType, parseMode = 'quick' } = await req.json();
+    const { content, fileType, parseMode = 'quick', fileName, extractedText } = await req.json();
+    
+    console.log('📥 Parsing request:', { 
+      fileName, 
+      fileType, 
+      parseMode, 
+      contentLength: content?.length,
+      hasExtractedText: !!extractedText 
+    });
     
     if (!content) {
       return new Response(
@@ -107,11 +115,25 @@ Return JSON (use defaults for missing fields):
   ]
 }`;
 
-    const userPrompt = `Parse the following ${fileType || 'content'} and extract all questions:
+    // Prepare enhanced prompt with file context
+    const fileContext = fileName ? `\nFile: ${fileName} (${fileType})` : '';
+    const textPreview = extractedText ? `\n\n📄 Pre-extracted Text (${extractedText.length} chars):\n${extractedText.substring(0, 1000)}${extractedText.length > 1000 ? '...' : ''}` : '';
+    
+    const userPrompt = `Parse educational content and extract ALL questions with complete details.${fileContext}${textPreview}
 
-${content}
+${extractedText ? 'Use the pre-extracted text above for accurate parsing.' : 'Content to parse:'}
+${!extractedText ? content : ''}
 
-Remember to extract EVERY question with complete accuracy.`;
+PARSING INSTRUCTIONS:
+- For CSV: Parse column headers and rows intelligently
+- For Word/PDF: Extract from formatted text and tables  
+- For Images: Perform OCR and extract visible questions
+- Handle numbered lists, bullet points, tables, and paragraphs
+- Auto-detect question structure and types (MCQ, True/False, etc.)
+- Normalize answer formats (A/B/C/D, 1/2/3/4, true/false)
+- Extract EVERY question - never skip due to format issues
+
+Return pure JSON only (no markdown, no explanations).`;
 
     console.log('Calling Lovable AI for question parsing...');
     
