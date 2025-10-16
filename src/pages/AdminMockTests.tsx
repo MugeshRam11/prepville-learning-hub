@@ -26,6 +26,26 @@ const AdminMockTests = () => {
 
   useEffect(() => {
     fetchMockTests();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('admin_mock_tests_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mock_tests'
+        },
+        () => {
+          fetchMockTests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {

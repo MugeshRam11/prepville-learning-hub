@@ -19,6 +19,26 @@ const MockExamSelect = () => {
 
   useEffect(() => {
     fetchSubjectStats();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('mock_tests_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mock_tests'
+        },
+        () => {
+          fetchSubjectStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchSubjectStats = async () => {
