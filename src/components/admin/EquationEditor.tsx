@@ -2,25 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, FileText, Download, Image as ImageIcon } from "lucide-react";
+import { Copy, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import "mathlive";
-import 'katex/dist/katex.min.css';
-import renderToString from 'katex/dist/katex.mjs';
-import copy from 'copy-to-clipboard';
-import html2canvas from 'html2canvas';
-
-// MathLive type declarations
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'math-field': any;
-    }
-  }
-  interface Window {
-    MathJax?: any;
-  }
-}
+import "katex/dist/katex.min.css";
+import renderToString from "katex/dist/katex.mjs";
+import copy from "copy-to-clipboard";
+import html2canvas from "html2canvas";
 
 interface EquationEditorProps {
   value: string;
@@ -30,165 +17,71 @@ interface EquationEditorProps {
 }
 
 export default function EquationEditor({ value, onChange, placeholder, className }: EquationEditorProps) {
-  const mathfieldRef = useRef<any>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [mathml, setMathml] = useState('');
-  const [katexHtml, setKatexHtml] = useState('');
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [lastValidHtml, setLastValidHtml] = useState("");
   const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Load MathJax for TeX -> MathML conversion
-  useEffect(() => {
-    if (!window.MathJax) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
-      script.async = true;
-      document.head.appendChild(script);
-      script.onload = () => {
-        if (value) convertToMathML(value);
-      };
-    } else {
-      if (value) convertToMathML(value);
-    }
-  }, []);
+  // Preserve caret position to fix "auto selecting" issue
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { selectionStart, selectionEnd, value: newValue } = e.target;
+    onChange(newValue);
 
-  // Initialize MathLive when component mounts
-  useEffect(() => {
-    if (mathfieldRef.current) {
-      // Set properties for optimal text and math input
-      mathfieldRef.current.smartFence = true;
-      mathfieldRef.current.smartMode = false;
-      mathfieldRef.current.smartSuperscript = false;
-      mathfieldRef.current.mathVirtualKeyboardPolicy = "manual";
-      mathfieldRef.current.defaultMode = "text";
-      mathfieldRef.current.inlineShortcuts = {};
-      
-      // Set initial value
-      if (value) {
-        mathfieldRef.current.setValue(value);
+    requestAnimationFrame(() => {
+      const node = textareaRef.current;
+      if (node) {
+        node.selectionStart = selectionStart;
+        node.selectionEnd = selectionEnd;
       }
-      
-      // Listen for input changes
-      mathfieldRef.current.addEventListener('input', (evt: any) => {
-        const newValue = evt.target.getValue();
-        handleValueChange(newValue);
-      });
-    }
-  }, []);
+    });
+  };
 
-  // Update mathfield and render when value changes externally
-  useEffect(() => {
-    if (mathfieldRef.current && mathfieldRef.current.getValue() !== value) {
-      mathfieldRef.current.setValue(value || "");
-    }
-    renderKaTeX(value || "");
-    convertToMathML(value || "");
-  }, [value]);
-
-  function renderKaTeX(tex: string) {
+  const renderKaTeX = (tex: string) => {
     if (!tex) {
-      setKatexHtml('');
+      setPreviewHtml("");
       setHasError(false);
-      setErrorMessage('');
       return;
     }
-    
+
     try {
-      // KaTeX with error tolerance
       const html = renderToString(tex, {
         throwOnError: false,
         displayMode: true,
-        errorColor: "#ff4d4f",
         strict: "ignore",
-        trust: false
+        errorColor: "#ff4d4f",
       });
-      
+
       // Check if KaTeX rendered an error
       if (html.includes('katex-error') || html.includes('ParseError')) {
         setHasError(true);
-        setErrorMessage('Invalid equation syntax — please check brackets or use \\text{} for plain text.');
-        setKatexHtml(html); // Still show the error render
+        setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid LaTeX syntax – showing last valid preview</div>`);
       } else {
         setHasError(false);
-        setErrorMessage('');
-        setKatexHtml(html);
+        setPreviewHtml(html);
+        setLastValidHtml(html);
       }
-    } catch (e) {
-      // Fallback for complete render failure
-      console.error('KaTeX render error:', e);
+    } catch (err) {
       setHasError(true);
-      setErrorMessage('Invalid equation syntax — please check brackets or use \\text{} for plain text.');
-      const escapedTex = tex.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      setKatexHtml(`<div style="color: #ff4d4f; font-size: 0.95rem; padding: 8px; background: #fff1f0; border-radius: 4px;">
-        <strong>⚠️ Render Error</strong><br/>
-        Raw input: <code>${escapedTex}</code>
-      </div>`);
+      setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid LaTeX syntax</div>`);
     }
-  }
+  };
 
-  function convertToMathML(tex: string) {
-    if (!tex) {
-      setMathml('');
-      return;
-    }
-    if (window.MathJax && window.MathJax.tex2mml) {
-      try {
-        const mml = window.MathJax.tex2mml(tex, { parent: null });
-        setMathml(mml);
-      } catch (e) {
-        setMathml('');
-      }
-    } else {
-      setMathml('');
-    }
-  }
+  useEffect(() => {
+    renderKaTeX(value);
+  }, [value]);
 
-  function insertSymbol(symbol: string) {
-    if (mathfieldRef.current) {
-      mathfieldRef.current.executeCommand(['insert', symbol]);
-      mathfieldRef.current.focus();
-    }
-  }
-
-  function insertTemplate(template: string) {
-    if (mathfieldRef.current) {
-      mathfieldRef.current.executeCommand(['insert', template]);
-      mathfieldRef.current.focus();
-    }
-  }
-
-  function handleValueChange(newValue: string) {
-    onChange(newValue);
-  }
-
-  function handleCopyLatex() {
+  const handleCopyLatex = () => {
     copy(value);
     toast({
       title: "LaTeX copied",
       description: "Content has been copied to clipboard",
     });
-  }
+  };
 
-  function handleCopyMathML() {
-    if (!mathml) {
-      toast({
-        title: "MathML not available",
-        description: "MathJax is still loading or conversion failed",
-        variant: "destructive"
-      });
-      return;
-    }
-    copy(mathml);
-    toast({
-      title: "MathML copied",
-      description: "MathML has been copied to clipboard",
-    });
-  }
-
-  function handleCopyPNG() {
-    if (!previewRef.current || !katexHtml) {
+  const handleCopyPNG = () => {
+    if (!previewRef.current || !previewHtml) {
       toast({
         title: "No preview available",
         description: "Enter some math content first",
@@ -196,8 +89,8 @@ export default function EquationEditor({ value, onChange, placeholder, className
       });
       return;
     }
-    const node = previewRef.current;
-    html2canvas(node, { backgroundColor: null, scale: 2 }).then((canvas) => {
+
+    html2canvas(previewRef.current, { backgroundColor: null, scale: 2 }).then((canvas) => {
       canvas.toBlob((blob) => {
         if (!blob) return;
         if (navigator.clipboard && typeof (navigator.clipboard as any).write === 'function') {
@@ -208,10 +101,34 @@ export default function EquationEditor({ value, onChange, placeholder, className
               description: "Image has been copied to clipboard",
             });
           }).catch(() => {
-            downloadBlob(blob, 'equation.png');
+            // Fallback: download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'equation.png';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            toast({
+              title: "PNG downloaded",
+              description: "Clipboard not available, file downloaded instead",
+            });
           });
         } else {
-          downloadBlob(blob, 'equation.png');
+          // Fallback: download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'equation.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          toast({
+            title: "PNG downloaded",
+            description: "File has been downloaded",
+          });
         }
       });
     }).catch((e) => {
@@ -222,242 +139,75 @@ export default function EquationEditor({ value, onChange, placeholder, className
         variant: "destructive"
       });
     });
-  }
-
-  function downloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    toast({
-      title: "PNG downloaded",
-      description: "Image file has been downloaded",
-    });
-  }
-
-  function handleDownloadSVG() {
-    if (!katexHtml) {
-      toast({
-        title: "Nothing to export",
-        description: "Enter some math content first",
-        variant: "destructive"
-      });
-      return;
-    }
-    const svgContent = `<?xml version="1.0" encoding="UTF-8"?>\n` +
-      `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='200'>` +
-      `<foreignObject width='100%' height='100%'><div xmlns='http://www.w3.org/1999/xhtml'>${katexHtml}</div></foreignObject>` +
-      `</svg>`;
-    const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'equation.svg';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    toast({
-      title: "SVG downloaded",
-      description: "Vector image has been downloaded",
-    });
-  }
-
-  const mathTemplates = [
-    { label: "Fraction", template: "\\frac{#@}{#?}" },
-    { label: "Power", template: "#@^{#?}" },
-    { label: "Subscript", template: "#@_{#?}" },
-    { label: "Square Root", template: "\\sqrt{#@}" },
-    { label: "Nth Root", template: "\\sqrt[#?]{#@}" },
-    { label: "Sum", template: "\\sum_{#?}^{#?}" },
-    { label: "Integral", template: "\\int_{#?}^{#?}" },
-    { label: "Limit", template: "\\lim_{#? \\to #?}" },
-    { label: "Matrix", template: "\\begin{pmatrix}#@ & #?\\\\#? & #?\\end{pmatrix}" },
-  ];
-
-  const symbolButtons = [
-    { label: "α", symbol: "\\alpha" },
-    { label: "β", symbol: "\\beta" },
-    { label: "γ", symbol: "\\gamma" },
-    { label: "π", symbol: "\\pi" },
-    { label: "∞", symbol: "\\infty" },
-    { label: "∂", symbol: "\\partial" },
-    { label: "∇", symbol: "\\nabla" },
-    { label: "≤", symbol: "\\le" },
-    { label: "≥", symbol: "\\ge" },
-    { label: "≠", symbol: "\\ne" },
-    { label: "±", symbol: "\\pm" },
-    { label: "÷", symbol: "\\div" },
-    { label: "×", symbol: "\\times" },
-    { label: "⋅", symbol: "\\cdot" },
-  ];
+  };
 
   return (
     <div className={className}>
-      <div className="space-y-2">
-        <div className="relative">
-          <math-field
-            ref={mathfieldRef}
-            style={{
-              width: "100%",
-              minHeight: "60px",
-              fontSize: "1.1rem",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "8px",
-              padding: "12px",
-              backgroundColor: "hsl(var(--background))",
-              color: "hsl(var(--foreground))",
-              fontFamily: "inherit",
-              letterSpacing: "normal",
-              wordSpacing: "normal",
-            }}
-            onFocus={() => setIsExpanded(true)}
-          >
-            {value}
-          </math-field>
-            {!value && (
-              <div className="absolute top-3 left-3 text-muted-foreground pointer-events-none text-sm">
-                {placeholder || "Type equations - supports LaTeX syntax like \\frac{a}{b}, x^2, \\sqrt{x}..."}
-              </div>
+      <Card className="border-dashed">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Badge variant="secondary" className="text-xs">Math Editor with Export Options</Badge>
+            {hasError && (
+              <Badge variant="destructive" className="text-xs">Invalid Syntax</Badge>
             )}
-            
-            {/* Error Tooltip */}
-            {hasError && errorMessage && (
-              <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 animate-in fade-in slide-in-from-top-1 z-10">
-                <span className="font-medium">⚠️ {errorMessage}</span>
-              </div>
+            {!hasError && value && (
+              <Badge variant="secondary" className="text-xs">✓ Valid</Badge>
             )}
           </div>
-        
-        <Card className="border-dashed">
-          <CardContent className="p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <Badge variant="secondary" className="text-xs">Math Editor with Export Options</Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="h-7 text-xs"
-              >
-                {isExpanded ? 'Hide' : 'Show'} Tools
-              </Button>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Type or paste LaTeX:</label>
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleInput}
+              rows={4}
+              className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono text-sm"
+              placeholder={placeholder || "e.g. \\frac{a}{b}, x^2, \\sqrt{x}"}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyLatex}
+              className="h-8 px-3 text-xs"
+            >
+              <Copy className="h-3 w-3 mr-1" />
+              Copy LaTeX
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyPNG}
+              className="h-8 px-3 text-xs"
+            >
+              <ImageIcon className="h-3 w-3 mr-1" />
+              Copy PNG
+            </Button>
+          </div>
+
+          {previewHtml && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Rendered Preview:</label>
+              <div
+                ref={previewRef}
+                className={`p-4 border rounded-md bg-background min-h-[64px] overflow-x-auto ${hasError ? 'border-red-200 bg-red-50/30' : 'border-border'}`}
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
             </div>
+          )}
 
-            {isExpanded && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Math Templates</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {mathTemplates.map((template) => (
-                      <Button
-                        key={template.label}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => insertTemplate(template.template)}
-                        className="h-8 px-3 text-xs"
-                        title={`Insert ${template.label}`}
-                      >
-                        {template.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Symbols</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {symbolButtons.map((symbol) => (
-                      <Button
-                        key={symbol.label}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => insertSymbol(symbol.symbol)}
-                        className="h-8 w-8 p-0 text-sm"
-                        title={`Insert ${symbol.label}`}
-                      >
-                        {symbol.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Export Options */}
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyLatex}
-                  className="h-7 px-2 text-xs"
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy LaTeX
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyMathML}
-                  className="h-7 px-2 text-xs"
-                >
-                  <FileText className="h-3 w-3 mr-1" />
-                  Copy MathML
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyPNG}
-                  className="h-7 px-2 text-xs"
-                >
-                  <ImageIcon className="h-3 w-3 mr-1" />
-                  Copy PNG
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadSVG}
-                  className="h-7 px-2 text-xs"
-                >
-                  <Download className="h-3 w-3 mr-1" />
-                  Download SVG
-                </Button>
-              </div>
-              
-              {/* Preview */}
-              {katexHtml && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-muted-foreground">Live Rendered Preview:</label>
-                    {hasError && (
-                      <Badge variant="destructive" className="text-xs">Invalid Syntax</Badge>
-                    )}
-                    {!hasError && value && (
-                      <Badge variant="secondary" className="text-xs">✓ Valid</Badge>
-                    )}
-                  </div>
-                  <div 
-                    ref={previewRef} 
-                    className={`p-3 border rounded-md bg-background/50 min-h-[48px] overflow-x-auto ${hasError ? 'border-red-200 bg-red-50/30' : 'border-border'}`}
-                    dangerouslySetInnerHTML={{ __html: katexHtml }} 
-                  />
-                </div>
-              )}
-              
-              <div className="text-xs text-muted-foreground space-y-1">
-                <div><strong>💡 Quick Tips:</strong></div>
-                <div>• Fractions: \frac{"{"} a {"}"}{"{"} b {"}"}, Powers: x^{"{"} n {"}"}, Roots: \sqrt{"{"} x {"}"}</div>
-                <div>• Plain text: \text{"{"} your text {"}"}</div>
-                <div>• <strong>For Word:</strong> Copy PNG to paste as image, or Copy MathML for newer versions</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
+            <div><strong>💡 Quick Tips:</strong></div>
+            <div>• Fractions: \frac{"{"} a {"}"}{"{"} b {"}"}, Powers: x^{"{"} n {"}"}, Roots: \sqrt{"{"} x {"}"}</div>
+            <div>• Plain text: \text{"{"} your text {"}"}</div>
+            <div>• <strong>For Word:</strong> Copy PNG to paste as image</div>
+            <div>• If input is invalid, last valid render stays visible</div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
