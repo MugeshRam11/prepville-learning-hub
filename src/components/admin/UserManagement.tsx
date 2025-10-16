@@ -240,40 +240,40 @@ const UserManagement = () => {
       {/* Users Table */}
       <Card>
         <CardContent className="pt-6">
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>
-                    <div className="flex items-center gap-1">
-                      <TrendingUp className="h-4 w-4" />
-                      XP / Level
+                  <TableHead className="min-w-[120px]">Name</TableHead>
+                  <TableHead className="min-w-[200px]">Email</TableHead>
+                  <TableHead className="min-w-[130px]">Role</TableHead>
+                  <TableHead className="min-w-[140px]">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <TrendingUp className="h-4 w-4 shrink-0" />
+                      <span>XP / Level</span>
                     </div>
                   </TableHead>
-                  <TableHead>
-                    <div className="flex items-center gap-1">
-                      <Flame className="h-4 w-4" />
-                      Streak
+                  <TableHead className="min-w-[100px]">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <Flame className="h-4 w-4 shrink-0 text-orange-500" />
+                      <span>Streak</span>
                     </div>
                   </TableHead>
-                  <TableHead>Tests</TableHead>
-                  <TableHead>Last Active</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="min-w-[80px] text-center">Tests</TableHead>
+                  <TableHead className="min-w-[120px]">Last Active</TableHead>
+                  <TableHead className="min-w-[90px]">Status</TableHead>
+                  <TableHead className="min-w-[140px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.map(user => <TableRow key={user.user_id}>
-                    <TableCell>
+                    <TableCell className="font-medium">
                       {user.first_name || user.last_name ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'N/A'}
                     </TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
                       <Select value={user.role} onValueChange={value => updateUserRole(user.user_id, value as UserRole)}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-[110px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -285,40 +285,40 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold">{user.total_xp.toLocaleString()}</span>
-                        <Badge variant="secondary" className="text-xs">
+                        <span className="font-semibold text-primary">{user.total_xp.toLocaleString()}</span>
+                        <Badge variant="secondary" className="text-xs font-bold">
                           L{user.current_level}
                         </Badge>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Flame className="h-4 w-4 text-orange-500" />
+                      <div className="flex items-center gap-1.5">
+                        <Flame className="h-4 w-4 text-orange-500 shrink-0" />
                         <span className="font-semibold">{user.longest_streak}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <span className="font-medium">{user.total_tests_taken}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm">
+                      <span className="text-sm text-muted-foreground">
                         {user.last_activity_date ? format(new Date(user.last_activity_date), 'MMM d, yyyy') : 'Never'}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.is_active ? 'default' : 'secondary'}>
+                      <Badge variant={user.is_active ? 'default' : 'secondary'} className="whitespace-nowrap">
                         {user.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(user.user_id)}>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(user.user_id)} title="View Details">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(user)} title="Edit User">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(user.user_id, user.email)}>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(user.user_id, user.email)} title="Delete User">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
