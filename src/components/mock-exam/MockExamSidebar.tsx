@@ -129,7 +129,7 @@ const MockExamSidebar = ({
                       <div className="flex items-center gap-2 min-w-0">
                         {getStatusIcon(subQuestionStatus, isSubActive)}
                         <span className="text-sm font-medium truncate">
-                          {String.fromCharCode(97 + subIndex)}) {subQuestion.id.slice(0, 20)}...
+                          {subQuestion.sub_question_label || String.fromCharCode(97 + subIndex)}) {subQuestion.sub_question_text?.slice(0, 30) || 'Sub-question'}...
                         </span>
                       </div>
                       <Badge 
