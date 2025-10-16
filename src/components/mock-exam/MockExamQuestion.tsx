@@ -14,13 +14,17 @@ interface MockExamQuestionProps {
   subQuestionIndex: number | null;
   answer: string;
   onAnswerChange: (questionId: string, content: string, subQuestionId?: string) => void;
+  onNext?: () => void;
+  isLastQuestion?: boolean;
 }
 
 const MockExamQuestion = ({
   question,
   subQuestionIndex,
   answer,
-  onAnswerChange
+  onAnswerChange,
+  onNext,
+  isLastQuestion
 }: MockExamQuestionProps) => {
   const [currentAnswer, setCurrentAnswer] = useState(answer);
   const [showPreview, setShowPreview] = useState(false);
@@ -156,6 +160,19 @@ const MockExamQuestion = ({
             <div className="text-sm text-gray-500 mb-4">
               {question.image ? 'Refer to the image above. ' : ''}Scroll down if the question continues...
             </div>
+
+            {/* Next Question Button */}
+            {onNext && (
+              <div className="flex justify-end mt-4">
+                <Button 
+                  onClick={onNext}
+                  disabled={isLastQuestion}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isLastQuestion ? 'Last Question' : 'Next Question'}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -150,6 +150,25 @@ const MockExamStart = () => {
     setCurrentSubQuestionIndex(subQuestionIndex ?? null);
   };
 
+  const handleNextQuestion = () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    
+    // If we're on a sub-question, try to move to next sub-question
+    if (currentSubQuestionIndex !== null && currentQuestion.subQuestions) {
+      if (currentSubQuestionIndex < currentQuestion.subQuestions.length - 1) {
+        setCurrentSubQuestionIndex(currentSubQuestionIndex + 1);
+        return;
+      }
+    }
+    
+    // Move to next main question
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const nextQuestion = questions[currentQuestionIndex + 1];
+      setCurrentSubQuestionIndex(nextQuestion.subQuestions?.length ? 0 : null);
+    }
+  };
+
   const handleAnswerChange = (questionId: string, content: string, subQuestionId?: string) => {
     const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
     
@@ -294,6 +313,10 @@ const MockExamStart = () => {
           subQuestionIndex={currentSubQuestionIndex}
           answer={getCurrentAnswer()}
           onAnswerChange={handleAnswerChange}
+          onNext={handleNextQuestion}
+          isLastQuestion={currentQuestionIndex === questions.length - 1 && 
+            (currentSubQuestionIndex === null || 
+             currentSubQuestionIndex === (questions[currentQuestionIndex]?.subQuestions?.length ?? 0) - 1)}
         />
       </div>
     </div>
