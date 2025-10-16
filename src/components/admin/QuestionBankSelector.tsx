@@ -138,6 +138,33 @@ const QuestionBankSelector = ({
     }
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} question(s) from the question bank? This cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('mock_test_question_bank')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`${selectedIds.size} question(s) deleted from bank`);
+      setSelectedIds(new Set());
+      await fetchQuestions();
+    } catch (error) {
+      console.error('Error deleting questions:', error);
+      toast.error('Failed to delete questions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleConfirm = () => {
     const selected = questions.filter(q => selectedIds.has(q.id));
     
@@ -242,6 +269,14 @@ const QuestionBankSelector = ({
                 onClick={handleSelectAll}
               >
                 {selectedIds.size === filteredQuestions.length ? 'Deselect All' : 'Select All'}
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={selectedIds.size === 0}
+              >
+                Delete Selected ({selectedIds.size})
               </Button>
               <span className="text-sm text-muted-foreground">
                 {selectedIds.size} of {filteredQuestions.length} selected
