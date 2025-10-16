@@ -34,8 +34,13 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Convert to base64 for document parsing API
-    const base64Data = btoa(String.fromCharCode(...uint8Array));
+    // Convert to base64 safely for large files (chunk by chunk)
+    const chunkSize = 8192;
+    let base64Data = '';
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      base64Data += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+    }
     
     console.log(`📄 Calling document parsing API for comprehensive extraction...`);
 
@@ -74,7 +79,7 @@ serve(async (req) => {
       console.log(`⚠️ Document parsing not available, using ZIP extraction only:`, parseError);
     }
 
-    // Extract images from .docx ZIP structure
+    // Extract images from .docx ZIP structure and analyze them for answer keys
     try {
       const JSZip = (await import('https://esm.sh/jszip@3.10.1')).default;
       const zip = await JSZip.loadAsync(uint8Array);
@@ -158,6 +163,60 @@ serve(async (req) => {
       console.error('❌ Error extracting images from ZIP:', zipError);
     }
 
+    // Use AI to analyze images and extract answer keys
+    const imageAnalysis: any[] = [];
+    if (extractedImages.length > 0) {
+      console.log(`🤖 Analyzing ${extractedImages.length} images for answer keys...`);
+      try {
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        if (LOVABLE_API_KEY) {
+          for (const imageUrl of extractedImages) {
+            try {
+              const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-2.5-flash',
+                  messages: [{
+                    role: 'user',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'Analyze this question image and extract: 1) The question text 2) Any visible answer or solution. If there is an answer key, solution, or correct answer shown in the image, extract it. Return ONLY the answer/solution text, or "NO_ANSWER" if no answer is visible.'
+                      },
+                      {
+                        type: 'image_url',
+                        image_url: { url: imageUrl }
+                      }
+                    ]
+                  }],
+                  max_tokens: 500
+                })
+              });
+
+              if (response.ok) {
+                const aiData = await response.json();
+                const extractedAnswer = aiData.choices?.[0]?.message?.content || 'NO_ANSWER';
+                console.log(`✅ Image analysis complete for ${imageUrl}: ${extractedAnswer.substring(0, 100)}`);
+                imageAnalysis.push({
+                  imageUrl,
+                  extractedAnswer: extractedAnswer !== 'NO_ANSWER' ? extractedAnswer : null
+                });
+              }
+            } catch (analyzeError) {
+              console.error(`⚠️ Failed to analyze image ${imageUrl}:`, analyzeError);
+              imageAnalysis.push({ imageUrl, extractedAnswer: null });
+            }
+          }
+        }
+      } catch (aiError) {
+        console.error('⚠️ AI analysis unavailable:', aiError);
+      }
+    }
+
     // Extract text using a simple XML parsing approach
     let extractedText = '';
     try {
@@ -184,7 +243,8 @@ serve(async (req) => {
         images: extractedImages,
         text: extractedText,
         imageCount: extractedImages.length,
-        textLength: extractedText.length
+        textLength: extractedText.length,
+        imageAnalysis: imageAnalysis.length > 0 ? imageAnalysis : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
