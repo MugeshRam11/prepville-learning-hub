@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, FileText, Award } from 'lucide-react';
+import { Search, FileText, Award, Upload } from 'lucide-react';
+import UniversalFileUpload from '@/components/admin/UniversalFileUpload';
 
 const MockExamSelect = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const MockExamSelect = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
   const [loading, setLoading] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     fetchSubjectStats();
@@ -108,6 +110,28 @@ const MockExamSelect = () => {
     navigate(`/mock-exams/start/${testId}`);
   };
 
+  const handleTestParsed = (testData: any) => {
+    // Navigate to mock exam start with parsed questions
+    navigate('/mock-exams/start/upload', {
+      state: {
+        subject: testData.subject,
+        topic: testData.topic,
+        title: testData.test_name,
+        questions: testData.questions.map((q: any, index: number) => ({
+          id: `upload-q-${index}`,
+          question_text: q.question_text,
+          marks: q.marks,
+          question_image_url: q.question_image_url,
+          mock_sub_questions: q.sub_questions?.map((sq: any, sqIndex: number) => ({
+            id: `upload-sq-${index}-${sqIndex}`,
+            sub_question_text: sq.text,
+            marks: sq.marks
+          })) || []
+        }))
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -131,9 +155,17 @@ const MockExamSelect = () => {
               <h1 className="text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Mock Tests
               </h1>
-              <p className="text-xl text-muted-foreground">
-                Choose from available mock tests to practice and improve your skills.
+              <p className="text-xl text-muted-foreground mb-6">
+                Choose from available mock tests or upload your own test file
               </p>
+              <Button 
+                onClick={() => setShowUploadModal(true)}
+                size="lg"
+                className="gap-2"
+              >
+                <Upload className="w-5 h-5" />
+                Upload & Auto-Parse Test File
+              </Button>
             </div>
           </div>
         </section>
@@ -221,6 +253,12 @@ const MockExamSelect = () => {
         </section>
       </main>
       <Footer />
+      
+      <UniversalFileUpload
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onTestParsed={handleTestParsed}
+      />
     </div>
   );
 };
