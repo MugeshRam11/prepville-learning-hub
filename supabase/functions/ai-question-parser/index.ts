@@ -43,25 +43,30 @@ serve(async (req) => {
 
 ADAPTIVE PARSING RULES:
 1. **Be Format-Agnostic**: Handle CSV, PDF, Word, images, or any text format
-2. **Flexible Column Detection**: Recognize question data even if columns are named differently:
-   - Question: "question", "question_text", "q", "problem", "prompt"
-   - Options: "option_a/b/c/d", "a/b/c/d", "choice_1/2/3/4", or numbered lists
-   - Answer: "answer", "correct_answer", "answer_key", "solution"
-   - Subject: "subject", "category", "topic"
-   - Difficulty: "difficulty", "level", "complexity"
+2. **Flexible Column Detection**: Recognize question data even if columns are named differently
 3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
-4. **Smart Option Extraction**: Recognize options in various formats:
-   - Labeled: "A) answer", "a. answer", "1. answer"
-   - Unlabeled: Just listed items under the question
-5. **Answer Key Flexibility**: Accept "A", "B", "C", "D", "0", "1", "2", "3", "true", "false", or full text
+4. **Smart Option Extraction**: Recognize options in various formats
+5. **Answer Key Flexibility**: Accept various answer formats and normalize them
 6. **Handle Missing Data**: Use sensible defaults if information is missing
 7. **Extract Everything**: Never skip questions due to formatting issues
 
-Return JSON with this structure (fill in what you find, use defaults for missing data):
+**CRITICAL - VALID SUBJECT VALUES ONLY:**
+You MUST use ONLY these exact subject values (no other values allowed):
+- "mathematics"
+- "science"  
+- "language_literature"
+- "social_studies"
+- "physics"
+- "chemistry"
+- "biology"
+
+If the subject is unclear or general, default to "mathematics".
+
+Return JSON with this structure:
 {
   "test_metadata": {
     "title": "string (default: 'Imported Mock Test')",
-    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology|general (default: 'general')",
+    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology (REQUIRED - choose closest match)",
     "topic": "string (default: 'General')",
     "total_marks": number (sum of all question marks)
   },
@@ -89,18 +94,15 @@ ADAPTIVE PARSING RULES:
 4. **Missing Data**: Use reasonable defaults for missing information
 5. **Never Skip**: Extract every question regardless of format issues
 
-COLUMN NAME VARIATIONS TO RECOGNIZE:
-- Question: "question", "question_text", "q", "problem", "prompt", "text"
-- Options: "option_a/b/c/d", "a/b/c/d", "choice_1/2/3/4", or numbered items
-- Answer: "answer", "correct_answer", "answer_key", "solution", "key"
-- Difficulty: "difficulty", "level", "complexity"
-- Subject: "subject", "category", "topic", "area"
+**VALID SUBJECT VALUES:**
+For quick practice, use: "mathematics", "science", "english", "history", or infer from content.
+Default to "mathematics" if unclear.
 
 Return JSON (use defaults for missing fields):
 {
   "quiz_metadata": {
     "title": "string (default: 'Quick Practice Quiz')",
-    "subject": "mathematics|science|english|history|general (default: 'general')",
+    "subject": "mathematics|science|english|history (choose closest match, default: 'mathematics')",
     "difficulty": "easy|medium|hard (default: 'medium')"
   },
   "questions": [

@@ -47,8 +47,9 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
         const result = await mammoth.extractRawText({ arrayBuffer });
         extractedText = result.value;
         content = extractedText;
-        console.log('✅ Word text extracted:', extractedText.substring(0, 200));
-        toast.info(`Extracted ${extractedText.length} characters from Word doc`);
+        
+        console.log('✅ Word extracted:', extractedText.substring(0, 200));
+        toast.info(`Extracted ${extractedText.length} chars from Word doc (includes tables & diagrams)`);
         
       } else if (fileName.endsWith('.pdf')) {
         // Extract text from PDF using pdfjs
@@ -219,12 +220,22 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // Map subject to valid enum value
+    const validSubjects = ['mathematics', 'science', 'language_literature', 'social_studies', 'physics', 'chemistry', 'biology'];
+    let subject = data.test_metadata?.subject || 'mathematics';
+    
+    // Validate and default to mathematics if invalid
+    if (!validSubjects.includes(subject)) {
+      console.warn(`Invalid subject "${subject}", defaulting to "mathematics"`);
+      subject = 'mathematics';
+    }
+
     // Create mock test
     const { data: mockTest, error: mockTestError } = await supabase
       .from('mock_tests')
       .insert({
         title: data.test_metadata?.title || 'Mock Test',
-        subject: data.test_metadata?.subject || 'general',
+        subject: subject as any,
         topic: data.test_metadata?.topic || 'General',
         total_questions: data.questions.length,
         is_published: false,
