@@ -18,7 +18,6 @@ const AdminMockTests = () => {
   const [filteredTests, setFilteredTests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
-  const [sortOrder, setSortOrder] = useState('newest');
   const [loading, setLoading] = useState(true);
   const [showAIUpload, setShowAIUpload] = useState(false);
 
@@ -28,7 +27,7 @@ const AdminMockTests = () => {
 
   useEffect(() => {
     filterTests();
-  }, [mockTests, searchTerm, subjectFilter, sortOrder]);
+  }, [mockTests, searchTerm, subjectFilter]);
 
   const fetchMockTests = async () => {
     try {
@@ -60,13 +59,6 @@ const AdminMockTests = () => {
     if (subjectFilter !== 'all') {
       filtered = filtered.filter(test => test.subject === subjectFilter);
     }
-
-    // Apply sorting
-    filtered = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-    });
 
     setFilteredTests(filtered);
   };
@@ -229,15 +221,6 @@ const AdminMockTests = () => {
                   <SelectItem value="biology">Biology</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={sortOrder} onValueChange={setSortOrder}>
-                <SelectTrigger className="w-48 bg-gray-50 border-gray-300">
-                  <SelectValue placeholder="Sort by Date" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </div>
@@ -324,19 +307,12 @@ const AdminMockTests = () => {
                   className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden group"
                 >
                   <CardContent className="p-6">
-                    {/* Header with badge and delete button */}
+                    {/* Header with badge and dot */}
                     <div className="flex items-start justify-between mb-4">
                       <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">
                         MYP
                       </Badge>
-                      <Button 
-                        onClick={() => handleDelete(test.id)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className={`w-3 h-3 rounded-full ${getSubjectColor(test.subject)}`} />
                     </div>
 
                     {/* Title */}
@@ -368,19 +344,13 @@ const AdminMockTests = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="mb-4 pb-4 border-b border-gray-100">
-                      <div className="flex items-center gap-6 text-sm text-gray-600 mb-2">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          <span className="font-medium">{test.total_questions || 0} Questions</span>
-                        </div>
+                    <div className="flex items-center gap-6 text-sm text-gray-600 mb-6 pb-6 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        <span className="font-medium">{test.total_questions || 0} Questions</span>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        Created: {new Date(test.created_at).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">0 Videos</span>
                       </div>
                     </div>
 
@@ -403,6 +373,14 @@ const AdminMockTests = () => {
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
+                      </Button>
+                      <Button 
+                        onClick={() => handleDelete(test.id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </CardContent>
