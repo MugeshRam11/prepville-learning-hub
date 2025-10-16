@@ -170,20 +170,22 @@ export const useTestProgressSync = () => {
       )
       .subscribe();
 
-    // Listen for individual question answers for real-time progress
+    // Listen for individual question answers for real-time progress (both INSERT and UPDATE)
     const answerChannel = supabase
       .channel('answer-progress-sync')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'user_question_progress',
           filter: `user_id=eq.${user.id}`
         },
         async (payload) => {
-          const progress = payload.new;
+          const progress = payload.new as any;
           console.log('Question progress update:', progress);
+
+          if (!progress?.question_id) return;
 
           // Get question details to determine topic
           const { data: questionData } = await supabase
@@ -192,12 +194,51 @@ export const useTestProgressSync = () => {
             .eq('id', progress.question_id)
             .maybeSingle();
 
-          if (questionData && progress.is_solved) {
-            await updateTopicProgress(
-              questionData.topic || questionData.subject,
-              1,
-              true
-            );
+          if (questionData) {
+            // Create/update topic progress on any interaction
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              // If solved, increment progress
+              if (progress.is_solved === true) {
+                await updateTopicProgress(
+                  questionData.topic || questionData.subject,
+                  1,
+                  true
+                );
+              } else {
+                // Just update last_activity_at, don't increment
+                const topicMap: Record<string, string> = {
+                  'algebra': 'Algebra',
+                  'geometry': 'Geometry',
+                  'statistics': 'Statistics & Probability',
+                  'probability': 'Statistics & Probability',
+                  'number': 'Number Systems',
+                  'numbers': 'Number Systems',
+                  'calculus': 'Calculus',
+                  'trigonometry': 'Trigonometry',
+                  'measurement': 'Measurement',
+                  'data': 'Data Analysis'
+                };
+                
+                const topicName = Object.entries(topicMap).find(([key]) => 
+                  (questionData.topic || questionData.subject).toLowerCase().includes(key)
+                )?.[1] || questionData.topic || questionData.subject;
+
+                // Ensure topic exists in progress
+                await supabase
+                  .from('topic_progress')
+                  .upsert({
+                    user_id: user.id,
+                    topic_name: topicName,
+                    completed_tasks: 0,
+                    total_tasks: 50,
+                    difficulty: 'medium',
+                    last_activity_at: new Date().toISOString()
+                  }, {
+                    onConflict: 'user_id,topic_name',
+                    ignoreDuplicates: false
+                  });
+              }
+            }
           }
         }
       )
