@@ -1,345 +1,311 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { SymbolPicker } from "@/components/admin/SymbolPicker";
-import { Plus, Eye, Edit, Download, Upload, X } from "lucide-react";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { ArrowLeft, Save, Upload, Database as DatabaseIcon, ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
+import QuestionBuilder from '@/components/admin/QuestionBuilder';
+import AdminSidebar from '@/components/admin/AdminSidebar';
+import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
+import type { Database } from '@/integrations/supabase/types';
 
-interface SubQuestion {
-  id: string;
-  text: string;
-  optionA: string;
-  optionB: string;
-  optionC: string;
-  optionD: string;
-  correctAnswer: string;
-  marks: number;
-}
+type TestSubject = Database['public']['Enums']['test_subject'];
 
-export default function QuestionBuilder() {
-  const [title, setTitle] = useState("Based on the graph shown in the image, analyze the relationship between the variables and answer the following sub-questions:");
-  const [totalMarks, setTotalMarks] = useState(10);
-  const [image, setImage] = useState<string | null>(null);
-  const [instructions, setInstructions] = useState("Refer to the image above. Scroll down if the question continues...");
-  const [subQuestions, setSubQuestions] = useState<SubQuestion[]>([]);
-  const [isPreview, setIsPreview] = useState(false);
-  const [activeField, setActiveField] = useState<string | null>(null);
+export default function QuestionBuilderPage() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [testInfo, setTestInfo] = useState<{
+    title: string;
+    subject: TestSubject | '';
+    topic: string;
+    timeLimit: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+  }>({
+    title: '',
+    subject: '',
+    topic: '',
+    timeLimit: 30,
+    difficulty: 'medium'
+  });
+  const [questions, setQuestions] = useState([]);
+  const [showAIParser, setShowAIParser] = useState(false);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImage(reader.result as string);
-        toast.success("Image uploaded");
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const insertSymbol = (symbol: string) => {
-    if (!activeField) return;
-    
-    const [type, id, field] = activeField.split("-");
-    
-    if (type === "title") {
-      setTitle(prev => prev + symbol);
-    } else if (type === "instructions") {
-      setInstructions(prev => prev + symbol);
-    } else if (type === "sub" && id) {
-      setSubQuestions(prev => prev.map(sq => 
-        sq.id === id ? { ...sq, [field]: sq[field as keyof SubQuestion] + symbol } : sq
-      ));
-    }
-  };
-
-  const addSubQuestion = () => {
-    const newSub: SubQuestion = {
-      id: Date.now().toString(),
-      text: "",
-      optionA: "",
-      optionB: "",
-      optionC: "",
-      optionD: "",
-      correctAnswer: "A",
-      marks: 1,
-    };
-    setSubQuestions([...subQuestions, newSub]);
-  };
-
-  const updateSubQuestion = (id: string, field: keyof SubQuestion, value: string | number) => {
-    setSubQuestions(prev => prev.map(sq => 
-      sq.id === id ? { ...sq, [field]: value } : sq
-    ));
-  };
-
-  const removeSubQuestion = (id: string) => {
-    setSubQuestions(prev => prev.filter(sq => sq.id !== id));
-  };
-
-  const exportCSV = () => {
-    const rows = [["subject", "topic", "question", "image", "answer", "a", "b", "c", "d", "marks"]];
-    subQuestions.forEach(sq => {
-      rows.push([
-        "Math",
-        "Graph Analysis",
-        `"${title} - ${sq.text}"`,
-        image || "",
-        sq.correctAnswer,
-        `"${sq.optionA}"`,
-        `"${sq.optionB}"`,
-        `"${sq.optionC}"`,
-        `"${sq.optionD}"`,
-        sq.marks.toString(),
-      ]);
+  const handleTestParsed = (testData: any) => {
+    setTestInfo({
+      title: testData.title,
+      subject: testData.subject as TestSubject,
+      topic: testData.topic,
+      timeLimit: 30,
+      difficulty: 'medium'
     });
-    const csv = "\uFEFF" + rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "questions.csv";
-    link.click();
-    toast.success("CSV exported");
+
+    const transformedQuestions = testData.questions.map((q: any, index: number) => ({
+      id: Date.now() + index,
+      question_text: q.question_text,
+      question_image_url: q.question_image_url || '',
+      option_a: q.options?.[0]?.replace('A. ', '') || '',
+      option_b: q.options?.[1]?.replace('B. ', '') || '',
+      option_c: q.options?.[2]?.replace('C. ', '') || '',
+      option_d: q.options?.[3]?.replace('D. ', '') || '',
+      correct_answer: q.correct_answer || 'A',
+      explanation: q.explanation || '',
+      difficulty_level: q.difficulty || 'medium'
+    }));
+
+    setQuestions(transformedQuestions);
+  };
+
+  const handleSave = async (publish = false) => {
+    if (!testInfo.title.trim()) {
+      toast.error('Please enter a test title');
+      return;
+    }
+
+    if (!testInfo.subject) {
+      toast.error('Please select a subject');
+      return;
+    }
+
+    if (questions.length === 0) {
+      toast.error('Please add at least one question');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from('tests')
+        .insert({
+          title: testInfo.title,
+          test_type: 'quick_test',
+          difficulty_level: testInfo.difficulty,
+          time_limit_minutes: testInfo.timeLimit,
+          is_active: publish,
+          total_questions: questions.length
+        })
+        .select()
+        .single();
+
+      if (testError) throw testError;
+
+      const questionsToInsert = questions.map((q: any) => ({
+        test_id: testData.id,
+        question_text: q.question_text,
+        question_image_url: q.question_image_url,
+        option_a: q.option_a,
+        option_b: q.option_b,
+        option_c: q.option_c,
+        option_d: q.option_d,
+        correct_answer: q.correct_answer,
+        explanation: q.explanation,
+        difficulty_level: q.difficulty_level
+      }));
+
+      const { error: questionsError } = await supabase
+        .from('questions')
+        .insert(questionsToInsert);
+
+      if (questionsError) throw questionsError;
+
+      toast.success(publish ? 'Test published successfully!' : 'Test saved as draft!');
+      navigate('/admin/tests');
+    } catch (error) {
+      console.error('Error saving test:', error);
+      toast.error('Failed to save test');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-muted/20 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Question Builder</h1>
-            <p className="text-muted-foreground">Create graph-based questions with Unicode</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant={isPreview ? "outline" : "default"} onClick={() => setIsPreview(!isPreview)}>
-              {isPreview ? <><Edit className="mr-2 h-4 w-4" />Edit</> : <><Eye className="mr-2 h-4 w-4" />Preview</>}
-            </Button>
-            <Button variant="outline" onClick={exportCSV}>
-              <Download className="mr-2 h-4 w-4" />Export
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      <AdminSidebar activeTab="tests" onTabChange={() => {}} />
+      
+      <div className="flex-1 ml-64">
+        <div className="bg-white border-b border-gray-200 px-8 py-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/admin/tests')}
+            className="mb-4 -ml-2"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Quick Tests
+          </Button>
+          <h1 className="text-3xl font-bold text-gray-900">Create New Quick Test</h1>
+          <p className="text-gray-600 mt-1">Design and upload a comprehensive quick practice test</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Symbol Picker */}
-          {!isPreview && (
-            <div className="lg:col-span-1">
-              <SymbolPicker onSelect={insertSymbol} />
-            </div>
-          )}
+        <div className="p-8 max-w-5xl">
+          <Card className="mb-8 border-gray-200">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Test Information</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Test Title <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={testInfo.title}
+                    onChange={(e) => setTestInfo({ ...testInfo, title: e.target.value })}
+                    placeholder="e.g., Mathematics Quick Test - Algebra Fundamentals"
+                    className="border-gray-300"
+                  />
+                </div>
 
-          {/* Main Content */}
-          <div className={isPreview ? "lg:col-span-4" : "lg:col-span-3"}>
-            {!isPreview ? (
-              /* Edit Mode */
-              <Card className="p-6">
-                <div className="space-y-6">
-                  {/* Title */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Question Title</Label>
-                    <Textarea
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      onFocus={() => setActiveField("title")}
-                      className="mt-2"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject <span className="text-red-500">*</span>
+                    </label>
+                    <Select value={testInfo.subject} onValueChange={(value) => setTestInfo({ ...testInfo, subject: value as TestSubject })}>
+                      <SelectTrigger className="border-gray-300 bg-white">
+                        <SelectValue placeholder="Select Subject" />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-white">
+                        <SelectItem value="mathematics">Mathematics</SelectItem>
+                        <SelectItem value="science">Science</SelectItem>
+                        <SelectItem value="language_literature">Language & Literature</SelectItem>
+                        <SelectItem value="social_studies">Social Studies</SelectItem>
+                        <SelectItem value="physics">Physics</SelectItem>
+                        <SelectItem value="chemistry">Chemistry</SelectItem>
+                        <SelectItem value="biology">Biology</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  {/* Marks */}
                   <div>
-                    <Label>Total Marks</Label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Topic <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={testInfo.topic}
+                      onChange={(e) => setTestInfo({ ...testInfo, topic: e.target.value })}
+                      placeholder="e.g., Algebra, Force & Motion, etc."
+                      className="border-gray-300"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time Limit (minutes)
+                    </label>
                     <Input
                       type="number"
-                      value={totalMarks}
-                      onChange={(e) => setTotalMarks(parseInt(e.target.value) || 0)}
-                      className="mt-2 max-w-[200px]"
+                      value={testInfo.timeLimit}
+                      onChange={(e) => setTestInfo({ ...testInfo, timeLimit: parseInt(e.target.value) || 30 })}
+                      className="border-gray-300"
                     />
                   </div>
 
-                  {/* Image */}
                   <div>
-                    <Label>Graph/Image</Label>
-                    <div className="mt-2">
-                      {image ? (
-                        <div className="relative inline-block">
-                          <img src={image} alt="Graph" className="max-w-[300px] rounded-lg" />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={() => setImage(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
-                          <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                          <span className="text-sm text-muted-foreground">Click to upload image</span>
-                          <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                        </label>
-                      )}
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Difficulty
+                    </label>
+                    <Select value={testInfo.difficulty} onValueChange={(value: any) => setTestInfo({ ...testInfo, difficulty: value })}>
+                      <SelectTrigger className="border-gray-300 bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-white">
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                  {/* Instructions */}
-                  <div>
-                    <Label>Instructions</Label>
-                    <Textarea
-                      value={instructions}
-                      onChange={(e) => setInstructions(e.target.value)}
-                      onFocus={() => setActiveField("instructions")}
-                      className="mt-2"
-                    />
-                  </div>
-
-                  {/* Sub-Questions */}
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <Label>Sub-Questions</Label>
-                      <Button onClick={addSubQuestion} size="sm">
-                        <Plus className="mr-2 h-4 w-4" />Add
+          <Card className="border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Question Builder</h2>
+                <div className="flex gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="border-gray-300">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload
+                        <ChevronDown className="w-4 h-4 ml-2" />
                       </Button>
-                    </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-white">
+                      <DropdownMenuItem onClick={() => setShowAIParser(true)}>
+                        <Upload className="w-4 h-4 mr-2" />
+                        AI Document Parser
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
-                    <div className="space-y-4">
-                      {subQuestions.map((sq, idx) => (
-                        <Card key={sq.id} className="p-4 bg-muted/30">
-                          <div className="flex justify-between mb-3">
-                            <Label>Sub-Question {idx + 1}</Label>
-                            <Button variant="ghost" size="icon" onClick={() => removeSubQuestion(sq.id)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-
-                          <div className="space-y-3">
-                            <Textarea
-                              value={sq.text}
-                              onChange={(e) => updateSubQuestion(sq.id, "text", e.target.value)}
-                              onFocus={() => setActiveField(`sub-${sq.id}-text`)}
-                              placeholder="Question text..."
-                            />
-
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <Label className="text-xs">Option A</Label>
-                                <Input
-                                  value={sq.optionA}
-                                  onChange={(e) => updateSubQuestion(sq.id, "optionA", e.target.value)}
-                                  onFocus={() => setActiveField(`sub-${sq.id}-optionA`)}
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-xs">Option B</Label>
-                                <Input
-                                  value={sq.optionB}
-                                  onChange={(e) => updateSubQuestion(sq.id, "optionB", e.target.value)}
-                                  onFocus={() => setActiveField(`sub-${sq.id}-optionB`)}
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-xs">Option C</Label>
-                                <Input
-                                  value={sq.optionC}
-                                  onChange={(e) => updateSubQuestion(sq.id, "optionC", e.target.value)}
-                                  onFocus={() => setActiveField(`sub-${sq.id}-optionC`)}
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-xs">Option D</Label>
-                                <Input
-                                  value={sq.optionD}
-                                  onChange={(e) => updateSubQuestion(sq.id, "optionD", e.target.value)}
-                                  onFocus={() => setActiveField(`sub-${sq.id}-optionD`)}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <Label className="text-xs">Correct Answer</Label>
-                                <select
-                                  value={sq.correctAnswer}
-                                  onChange={(e) => updateSubQuestion(sq.id, "correctAnswer", e.target.value)}
-                                  className="w-full rounded-md border border-input bg-background px-3 py-2"
-                                >
-                                  <option value="A">A</option>
-                                  <option value="B">B</option>
-                                  <option value="C">C</option>
-                                  <option value="D">D</option>
-                                </select>
-                              </div>
-                              <div>
-                                <Label className="text-xs">Marks</Label>
-                                <Input
-                                  type="number"
-                                  value={sq.marks}
-                                  onChange={(e) => updateSubQuestion(sq.id, "marks", parseInt(e.target.value) || 1)}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="border-gray-300"
+                    onClick={() => toast.info('Question bank coming soon!')}
+                  >
+                    <DatabaseIcon className="w-4 h-4 mr-2" />
+                    Load from Bank
+                  </Button>
                 </div>
-              </Card>
-            ) : (
-              /* Preview Mode */
-              <Card className="p-8">
-                <div className="flex justify-between items-start mb-6">
-                  <p className="text-lg font-medium flex-1">{title}</p>
-                  <Badge className="ml-4">{totalMarks} marks</Badge>
-                </div>
+              </div>
 
-                {image && (
-                  <div className="my-6 text-center">
-                    <img src={image} alt="Graph" className="max-w-[300px] mx-auto rounded-xl" />
-                    <p className="text-sm text-muted-foreground mt-2">Click to view in full size</p>
-                  </div>
-                )}
+              <QuestionBuilder 
+                questions={questions} 
+                setQuestions={setQuestions}
+              />
+            </CardContent>
+          </Card>
 
-                {instructions && (
-                  <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-                    <p className="text-muted-foreground">{instructions}</p>
-                  </div>
-                )}
-
-                <div className="space-y-6">
-                  {subQuestions.map((sq, idx) => (
-                    <Card key={sq.id} className="p-6 border-2">
-                      <div className="flex justify-between items-start mb-4">
-                        <p className="font-semibold">{idx + 1}. {sq.text}</p>
-                        <Badge variant="outline">{sq.marks} marks</Badge>
-                      </div>
-
-                      <div className="space-y-2 ml-4">
-                        {["A", "B", "C", "D"].map((opt) => (
-                          <div
-                            key={opt}
-                            className={`p-3 rounded-lg border-2 ${
-                              sq.correctAnswer === opt ? "border-primary bg-primary/5" : "border-border"
-                            }`}
-                          >
-                            <span className="font-semibold mr-2">{opt}.</span>
-                            <span>{sq[`option${opt}` as keyof SubQuestion]}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </Card>
-            )}
+          <div className="flex justify-end gap-3 mt-8">
+            <Button
+              variant="outline"
+              onClick={() => handleSave(false)}
+              disabled={loading}
+              className="border-gray-300"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save as Draft
+            </Button>
+            <Button
+              onClick={() => handleSave(true)}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Publish Test
+            </Button>
           </div>
         </div>
       </div>
+
+      {showAIParser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">AI Document Parser</h3>
+                <Button variant="ghost" onClick={() => setShowAIParser(false)}>
+                  ✕
+                </Button>
+              </div>
+              <QuestionUploadCard 
+                mode="quick" 
+                onSuccess={(data) => {
+                  handleTestParsed(data);
+                  setShowAIParser(false);
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
