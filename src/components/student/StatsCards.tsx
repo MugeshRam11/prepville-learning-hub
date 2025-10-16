@@ -28,24 +28,23 @@ const StatsCards = ({
   quickTestSolved = 0,
   totalSolved = 0
 }: StatsCardsProps) => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [isResetting, setIsResetting] = useState(false);
-
   const handleReset = async () => {
     if (!user) return;
-    
     if (!confirm('Are you sure you want to reset all your progress? This will clear solved questions, streaks, weekly goals, and accuracy data.')) {
       return;
     }
-
     setIsResetting(true);
     try {
-      const { error } = await supabase.rpc('reset_user_progress_data', {
+      const {
+        error
+      } = await supabase.rpc('reset_user_progress_data', {
         user_uuid: user.id
       });
-
       if (error) throw error;
-
       toast.success('Progress reset successfully! Refresh the page to see updates.');
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
@@ -91,15 +90,7 @@ const StatsCards = ({
   return <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Your Stats</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleReset}
-          disabled={isResetting}
-        >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Reset Progress
-        </Button>
+        
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-6 animate-fade-in">
         <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-pink))]/10 to-[hsl(var(--adsavvy-pink))]/5 border-[hsl(var(--adsavvy-pink))]/20 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
