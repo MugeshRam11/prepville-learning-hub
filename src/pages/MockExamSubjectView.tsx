@@ -157,8 +157,6 @@ const MockExamSubjectView = () => {
                             </Badge>}
                         </div>
 
-                        {/* Answer Key */}
-                        {question.answer_key}
 
                         {/* Image Preview */}
                         {question.question_image_url && <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
