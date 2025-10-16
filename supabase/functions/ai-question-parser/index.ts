@@ -114,12 +114,15 @@ serve(async (req) => {
         );
       }
       
-      // Auto-solve questions without answer keys
+      // Auto-solve questions and sub-questions without answer keys
       console.log(`🔍 Checking for missing answer keys...`);
       const questionsNeedingSolving = questions.filter((q: any) => !q.correct_answer || q.correct_answer.trim() === '');
       
+      let totalSubQuestionsSolved = 0;
+      
+      // Solve main questions
       if (questionsNeedingSolving.length > 0) {
-        console.log(`🤖 ${questionsNeedingSolving.length} questions need AI solving...`);
+        console.log(`🤖 ${questionsNeedingSolving.length} main questions need AI solving...`);
         
         for (const question of questionsNeedingSolving) {
           try {
@@ -180,7 +183,78 @@ Return ONLY the answer, nothing else.`;
         }
       }
       
-      console.log(`✅ Successfully parsed ${questions.length} questions (${questionsNeedingSolving.length} auto-solved)`);
+      // Solve sub-questions that are missing answers
+      for (const question of questions) {
+        if (question.sub_questions && Array.isArray(question.sub_questions)) {
+          const subQuestionsNeedingSolving = question.sub_questions.filter((sq: any) => !sq.answer || sq.answer.trim() === '');
+          
+          if (subQuestionsNeedingSolving.length > 0) {
+            console.log(`🤖 Question ${question.question_number}: ${subQuestionsNeedingSolving.length} sub-questions need AI solving...`);
+            
+            for (const subQuestion of subQuestionsNeedingSolving) {
+              try {
+                const subSolvePrompt = `You are a mathematics and science expert. Solve this sub-question and provide ONLY the answer.
+
+Main Question Context: ${question.question_text}
+${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
+
+Sub-Question ${subQuestion.label}: ${subQuestion.text}
+${subQuestion.marks ? `Marks: ${subQuestion.marks}` : ''}
+
+Instructions:
+- Consider the main question context
+- If there's an image, analyze it to understand the problem
+- Solve this specific sub-question
+- Provide ONLY the final answer
+- For numerical answers, provide the exact number
+- For text answers, provide the complete answer text
+- Keep answers concise but complete
+
+Return ONLY the answer, nothing else.`;
+
+                const subMessages: any[] = [
+                  { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
+                  { role: 'user', content: question.question_image_url 
+                    ? [
+                        { type: 'text', text: subSolvePrompt },
+                        { type: 'image_url', image_url: { url: question.question_image_url } }
+                      ]
+                    : subSolvePrompt
+                  }
+                ];
+
+                const subSolveResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    model: 'google/gemini-2.5-flash',
+                    messages: subMessages,
+                    max_tokens: 500
+                  }),
+                });
+
+                if (subSolveResponse.ok) {
+                  const subSolveData = await subSolveResponse.json();
+                  const answer = subSolveData.choices[0].message.content.trim();
+                  subQuestion.answer = answer;
+                  subQuestion.ai_generated_answer = true;
+                  totalSubQuestionsSolved++;
+                  console.log(`✅ Solved Q${question.question_number}${subQuestion.label}: "${answer}"`);
+                } else {
+                  console.warn(`⚠️ Failed to solve sub-question ${question.question_number}${subQuestion.label}`);
+                }
+              } catch (subSolveError) {
+                console.error(`❌ Error solving sub-question:`, subSolveError);
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`✅ Successfully parsed ${questions.length} questions (${questionsNeedingSolving.length} main + ${totalSubQuestionsSolved} sub auto-solved)`);
     } else {
       console.log(`✅ Successfully completed ${actionMode} action`);
     }
