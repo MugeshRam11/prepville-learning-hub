@@ -90,11 +90,23 @@ export default function EquationEditor({ value, onChange, placeholder, className
       setKatexHtml('');
       return;
     }
+    
+    // Check if content contains LaTeX syntax
+    const hasLatex = tex.includes('\\') || tex.includes('^') || tex.includes('_') || tex.includes('{');
+    
+    if (!hasLatex) {
+      // Plain text - display as-is
+      setKatexHtml(`<div style="padding: 8px; font-size: 1.1rem;">${tex.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
+      return;
+    }
+    
     try {
       const html = renderToString(tex, { throwOnError: false, displayMode: true });
       setKatexHtml(html);
     } catch (e) {
-      setKatexHtml('<span style="color: red">KaTeX render error</span>');
+      // Show the error but also display the raw content
+      console.error('KaTeX render error:', e);
+      setKatexHtml(`<div style="color: red; font-size: 0.9rem;">Unable to render: ${tex.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
     }
   }
 
