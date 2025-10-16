@@ -240,6 +240,14 @@ const AdminMockTests = () => {
                     Publish All ({mockTests.filter(t => !t.is_published).length})
                   </Button>
                 )}
+                <Button 
+                  onClick={() => setShowAIUpload(!showAIUpload)}
+                  variant="outline"
+                  className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {showAIUpload ? 'Hide AI Upload' : 'Upload with AI'}
+                </Button>
                 <Button
                   onClick={() => navigate('/admin/mock-tests/create')}
                   className="bg-blue-600 hover:bg-blue-700"
