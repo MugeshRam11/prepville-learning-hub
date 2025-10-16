@@ -29,75 +29,80 @@ serve(async (req) => {
       );
     }
 
-    // Build adaptive prompt based on mode
+    // Enhanced adaptive prompt based on mode with flexible parsing
     const systemPrompt = parseMode === 'mock' 
-      ? `You are an expert test parser for educational mock exams. Parse the provided content and extract ALL questions with their complete details.
+      ? `You are an expert document parser specialized in educational content. Your task is to extract ALL questions from ANY document format, regardless of structure.
 
-CRITICAL RULES:
-1. Extract EVERY question from the document - do not skip any
-2. Detect question type automatically (MCQ, True/False, Short Answer, Essay, Fill-in-blank)
-3. For MCQs: Extract all options (A, B, C, D, etc.) and identify the correct answer
-4. For True/False: Identify correct answer
-5. For descriptive questions: Extract full question text and any marking criteria
-6. Preserve question numbers and structure
-7. Extract marks/points for each question
-8. Identify subject, topic, and difficulty if mentioned
-9. Handle sub-questions properly
+ADAPTIVE PARSING RULES:
+1. **Be Format-Agnostic**: Handle CSV, PDF, Word, images, or any text format
+2. **Flexible Column Detection**: Recognize question data even if columns are named differently:
+   - Question: "question", "question_text", "q", "problem", "prompt"
+   - Options: "option_a/b/c/d", "a/b/c/d", "choice_1/2/3/4", or numbered lists
+   - Answer: "answer", "correct_answer", "answer_key", "solution"
+   - Subject: "subject", "category", "topic"
+   - Difficulty: "difficulty", "level", "complexity"
+3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
+4. **Smart Option Extraction**: Recognize options in various formats:
+   - Labeled: "A) answer", "a. answer", "1. answer"
+   - Unlabeled: Just listed items under the question
+5. **Answer Key Flexibility**: Accept "A", "B", "C", "D", "0", "1", "2", "3", "true", "false", or full text
+6. **Handle Missing Data**: Use sensible defaults if information is missing
+7. **Extract Everything**: Never skip questions due to formatting issues
 
-Return a valid JSON object with this structure:
+Return JSON with this structure (fill in what you find, use defaults for missing data):
 {
   "test_metadata": {
-    "title": "string",
-    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology|general",
-    "topic": "string",
-    "total_marks": number
+    "title": "string (default: 'Imported Mock Test')",
+    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology|general (default: 'general')",
+    "topic": "string (default: 'General')",
+    "total_marks": number (sum of all question marks)
   },
   "questions": [
     {
-      "question_number": number,
+      "question_number": number (auto-increment if missing),
       "question_text": "string",
-      "question_type": "mcq|true_false|short_answer|essay|fill_blank",
-      "marks": number,
-      "difficulty": "easy|medium|hard",
-      "options": ["A. text", "B. text", "C. text", "D. text"], // for MCQ only
-      "correct_answer": "A|B|C|D|true|false|text", // based on type
+      "question_type": "mcq|true_false|short_answer|essay|fill_blank (auto-detect)",
+      "marks": number (default: 1),
+      "difficulty": "easy|medium|hard (default: 'medium')",
+      "options": ["A. text", "B. text", "C. text", "D. text"] (for MCQ, create labels if missing),
+      "correct_answer": "A|B|C|D|true|false|text (normalize to standard format)",
       "explanation": "string (optional)",
-      "has_sub_questions": boolean,
-      "sub_questions": [
-        {
-          "label": "a|b|i|ii",
-          "text": "string",
-          "marks": number,
-          "answer": "string"
-        }
-      ]
+      "has_sub_questions": boolean (default: false),
+      "sub_questions": []
     }
   ]
 }`
-      : `You are an expert quiz question parser. Parse the provided content and extract ALL questions with their details.
+      : `You are an expert document parser specialized in educational content. Extract ALL questions from ANY document format with maximum flexibility.
 
-RULES:
-1. Extract every question - do not skip any
-2. Auto-detect question type (MCQ, True/False, Short Answer)
-3. For MCQ: Extract all options and correct answer
-4. For True/False: Extract correct answer
-5. Preserve question structure
-6. Identify subject and difficulty
+ADAPTIVE PARSING RULES:
+1. **Format-Agnostic**: Parse CSV, PDF, Word, images, or plain text
+2. **Flexible Recognition**: Identify questions even with varying column names or formats
+3. **Smart Detection**: Auto-detect question types and extract options intelligently
+4. **Missing Data**: Use reasonable defaults for missing information
+5. **Never Skip**: Extract every question regardless of format issues
 
-Return valid JSON:
+COLUMN NAME VARIATIONS TO RECOGNIZE:
+- Question: "question", "question_text", "q", "problem", "prompt", "text"
+- Options: "option_a/b/c/d", "a/b/c/d", "choice_1/2/3/4", or numbered items
+- Answer: "answer", "correct_answer", "answer_key", "solution", "key"
+- Difficulty: "difficulty", "level", "complexity"
+- Subject: "subject", "category", "topic", "area"
+
+Return JSON (use defaults for missing fields):
 {
   "quiz_metadata": {
-    "title": "string",
-    "subject": "mathematics|science|english|history|general",
-    "difficulty": "easy|medium|hard"
+    "title": "string (default: 'Quick Practice Quiz')",
+    "subject": "mathematics|science|english|history|general (default: 'general')",
+    "difficulty": "easy|medium|hard (default: 'medium')"
   },
   "questions": [
     {
       "question_text": "string",
-      "question_type": "mcq|true_false|short_answer",
-      "options": ["A", "B", "C", "D"], // for MCQ
-      "correct_answer": "A|B|C|D|true|false|text",
-      "explanation": "optional"
+      "question_type": "mcq|true_false|short_answer (auto-detect)",
+      "options": ["text", "text", "text", "text"] (create if MCQ),
+      "correct_answer": "A|B|C|D|true|false|text (normalize)",
+      "explanation": "string (optional)",
+      "difficulty": "easy|medium|hard (use from data or default: 'medium')"
     }
   ]
 }`;
