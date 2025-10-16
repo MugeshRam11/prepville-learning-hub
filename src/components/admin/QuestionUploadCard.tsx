@@ -183,7 +183,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({ mode, onSuccess
       .from('tests')
       .insert({
         title: data.quiz_metadata?.title || 'Quick Practice Test',
-        test_type: data.quiz_metadata?.subject || 'general',
+        description: `Quick test imported from ${data.quiz_metadata?.subject || 'general'} questions`,
+        test_type: 'quick_test',
         difficulty_level: data.quiz_metadata?.difficulty || 'medium',
         total_questions: data.questions.length,
         is_active: true,
