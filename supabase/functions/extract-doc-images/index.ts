@@ -48,53 +48,69 @@ serve(async (req) => {
       if (mediaFolder) {
         const mediaFiles = Object.keys(zip.files).filter(name => name.startsWith('word/media/'));
         
-        console.log(`Found ${mediaFiles.length} media files in Word document`);
+        console.log(`📸 Found ${mediaFiles.length} media files in Word document:`, mediaFiles);
         
         for (const fileName of mediaFiles) {
           const file = zip.files[fileName];
           if (!file.dir) {
-            // Extract image data
-            const imageData = await file.async('uint8array');
-            
-            // Determine content type from file extension
-            const ext = fileName.split('.').pop()?.toLowerCase();
-            const contentTypeMap: Record<string, string> = {
-              'png': 'image/png',
-              'jpg': 'image/jpeg',
-              'jpeg': 'image/jpeg',
-              'gif': 'image/gif',
-              'bmp': 'image/bmp',
-              'webp': 'image/webp'
-            };
-            const contentType = contentTypeMap[ext || 'png'] || 'image/png';
-            
-            // Generate unique filename
-            const timestamp = Date.now();
-            const random = Math.random().toString(36).substring(7);
-            const storageName = `word-img-${timestamp}-${random}.${ext || 'png'}`;
-            
-            // Upload to Supabase storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('question-images')
-              .upload(storageName, imageData, {
-                contentType,
-                cacheControl: '3600',
-                upsert: false
-              });
-            
-            if (uploadError) {
-              console.error('Image upload error:', uploadError);
+            try {
+              // Extract image data
+              const imageData = await file.async('uint8array');
+              
+              // Skip if empty
+              if (imageData.length === 0) {
+                console.log(`⚠️ Skipping empty file: ${fileName}`);
+                continue;
+              }
+              
+              // Determine content type from file extension
+              const ext = fileName.split('.').pop()?.toLowerCase();
+              const contentTypeMap: Record<string, string> = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'gif': 'image/gif',
+                'bmp': 'image/bmp',
+                'webp': 'image/webp',
+                'emf': 'image/x-emf',
+                'wmf': 'image/x-wmf',
+                'svg': 'image/svg+xml'
+              };
+              const contentType = contentTypeMap[ext || 'png'] || 'image/png';
+              
+              // Generate unique filename
+              const timestamp = Date.now();
+              const random = Math.random().toString(36).substring(7);
+              const storageName = `word-img-${timestamp}-${random}.${ext || 'png'}`;
+              
+              console.log(`📤 Uploading image: ${fileName} (${imageData.length} bytes) as ${storageName}`);
+              
+              // Upload to Supabase storage
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('question-images')
+                .upload(storageName, imageData, {
+                  contentType,
+                  cacheControl: '3600',
+                  upsert: false
+                });
+              
+              if (uploadError) {
+                console.error(`❌ Image upload error for ${fileName}:`, uploadError);
+                continue;
+              }
+              
+              // Get public URL
+              const { data: urlData } = supabase.storage
+                .from('question-images')
+                .getPublicUrl(storageName);
+              
+              if (urlData.publicUrl) {
+                extractedImages.push(urlData.publicUrl);
+                console.log(`✅ Image uploaded successfully: ${storageName} → ${urlData.publicUrl}`);
+              }
+            } catch (fileError) {
+              console.error(`❌ Error processing file ${fileName}:`, fileError);
               continue;
-            }
-            
-            // Get public URL
-            const { data: urlData } = supabase.storage
-              .from('question-images')
-              .getPublicUrl(storageName);
-            
-            if (urlData.publicUrl) {
-              extractedImages.push(urlData.publicUrl);
-              console.log('✅ Image uploaded:', storageName);
             }
           }
         }
