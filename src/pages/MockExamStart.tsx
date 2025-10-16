@@ -230,28 +230,23 @@ const MockExamStart = () => {
     }
   };
 
-  // Check if we have valid session data
-  const hasValidSession = 
-    (testId && subject) || 
-    (subjectKey && subject) || 
-    (passedQuestions && passedQuestions.length > 0) ||
-    (questions.length > 0); // Allow if questions are loaded
+  // Check if we have either testId+subject+topic OR subjectKey+subject
+  const hasValidSession = (testId && subject && topic) || (subjectKey && subject) || (passedQuestions && passedQuestions.length > 0);
 
-  if (!hasValidSession && !isLoading) {
+  if (!hasValidSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-accent">
-        <div className="text-center p-8 bg-card rounded-2xl shadow-xl border border-border max-w-md">
-          <div className="w-16 h-16 mx-auto mb-4 bg-destructive/10 rounded-full flex items-center justify-center">
-            <span className="text-destructive text-2xl">⚠️</span>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-xl border border-purple-200">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-red-400 to-pink-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-2xl">⚠️</span>
           </div>
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Session Error</h2>
-          <p className="text-muted-foreground mb-6">
-            No exam session found. Please start a test from the selection page.
-          </p>
+          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Session Error</h2>
+          <p className="text-gray-600 mb-4">No exam session found.</p>
           <Button 
             onClick={() => navigate('/mock-exams/select')}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
           >
-            Back to Mock Tests
+            Back to Selection
           </Button>
         </div>
       </div>

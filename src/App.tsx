@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -112,7 +112,7 @@ const App = () => (
               <MockExamSubjectView />
             </ProtectedRoute>
           } />
-          <Route path="/mock-exams/start/:testId" element={
+          <Route path="/mock-exams/start" element={
             <ProtectedRoute requiresSubscription>
               <MockExamStart />
             </ProtectedRoute>

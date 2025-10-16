@@ -5,13 +5,10 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, FileText, Award, Upload } from 'lucide-react';
-import UniversalFileUpload from '@/components/admin/UniversalFileUpload';
+import { Search } from 'lucide-react';
+import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
 
 const MockExamSelect = () => {
   const navigate = useNavigate();
@@ -19,7 +16,6 @@ const MockExamSelect = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
   const [loading, setLoading] = useState(true);
-  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     fetchSubjectStats();
@@ -27,27 +23,32 @@ const MockExamSelect = () => {
 
   const fetchSubjectStats = async () => {
     try {
-      // Get all published tests with their topics
+      // Get aggregated stats per subject
       const { data: tests, error } = await supabase
         .from('mock_tests')
-        .select('id, subject, title, topic, total_questions')
+        .select('subject, total_questions')
         .eq('is_published', true);
 
       if (error) throw error;
 
-      // Map tests to display format
-      const testsList = tests.map(test => ({
-        id: test.id,
-        subject: test.subject,
-        title: test.title,
-        topic: test.topic,
-        totalQuestions: test.total_questions || 0
-      }));
+      // Aggregate by subject
+      const statsMap = tests.reduce((acc, test) => {
+        if (!acc[test.subject]) {
+          acc[test.subject] = {
+            subject: test.subject,
+            totalQuestions: 0,
+            totalTests: 0
+          };
+        }
+        acc[test.subject].totalQuestions += test.total_questions || 0;
+        acc[test.subject].totalTests += 1;
+        return acc;
+      }, {} as Record<string, any>);
 
-      setSubjectStats(testsList);
+      setSubjectStats(Object.values(statsMap));
     } catch (error) {
-      console.error('Error fetching tests:', error);
-      toast.error('Failed to load tests');
+      console.error('Error fetching subject stats:', error);
+      toast.error('Failed to load subjects');
     } finally {
       setLoading(false);
     }
@@ -66,7 +67,7 @@ const MockExamSelect = () => {
     return labels[subject] || subject;
   };
 
-  // Filter tests
+  // Filter subjects
   const filteredSubjects = useMemo(() => {
     let filtered = subjectStats;
 
@@ -89,47 +90,21 @@ const MockExamSelect = () => {
     if (searchTerm) {
       const query = searchTerm.toLowerCase();
       filtered = filtered.filter(stat =>
-        getSubjectLabel(stat.subject).toLowerCase().includes(query) ||
-        stat.title?.toLowerCase().includes(query) ||
-        stat.topic?.toLowerCase().includes(query)
+        getSubjectLabel(stat.subject).toLowerCase().includes(query)
       );
     }
 
-    // Sort by subject then title
+    // Sort subjects in specific order
     const subjectOrder = ['mathematics', 'science', 'language_literature', 'social_studies', 'physics', 'chemistry', 'biology'];
     return filtered.sort((a, b) => {
       const indexA = subjectOrder.indexOf(a.subject);
       const indexB = subjectOrder.indexOf(b.subject);
-      const subjectComparison = (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-      if (subjectComparison !== 0) return subjectComparison;
-      return (a.title || '').localeCompare(b.title || '');
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
     });
   }, [subjectStats, searchTerm, selectedSubject]);
 
-  const handleStartTest = (testId: string) => {
-    navigate(`/mock-exams/start/${testId}`);
-  };
-
-  const handleTestParsed = (testData: any) => {
-    // Navigate to mock exam start with parsed questions
-    navigate('/mock-exams/start/upload', {
-      state: {
-        subject: testData.subject,
-        topic: testData.topic,
-        title: testData.test_name,
-        questions: testData.questions.map((q: any, index: number) => ({
-          id: `upload-q-${index}`,
-          question_text: q.question_text,
-          marks: q.marks,
-          question_image_url: q.question_image_url,
-          mock_sub_questions: q.sub_questions?.map((sq: any, sqIndex: number) => ({
-            id: `upload-sq-${index}-${sqIndex}`,
-            sub_question_text: sq.text,
-            marks: sq.marks
-          })) || []
-        }))
-      }
-    });
+  const handleStartSubject = (subjectKey: string) => {
+    navigate(`/mock-exams/subject/${subjectKey}`);
   };
 
   if (loading) {
@@ -153,19 +128,11 @@ const MockExamSelect = () => {
           <div className="container">
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Mock Tests
+                Mock Exam Selection
               </h1>
-              <p className="text-xl text-muted-foreground mb-6">
-                Choose from available mock tests or upload your own test file
+              <p className="text-xl text-muted-foreground">
+                Choose from our collection of comprehensive mock examinations to test your knowledge and improve your skills.
               </p>
-              <Button 
-                onClick={() => setShowUploadModal(true)}
-                size="lg"
-                className="gap-2"
-              >
-                <Upload className="w-5 h-5" />
-                Upload & Auto-Parse Test File
-              </Button>
             </div>
           </div>
         </section>
@@ -177,7 +144,7 @@ const MockExamSelect = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search tests by subject, title, or topic..."
+                  placeholder="Search subjects..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -202,50 +169,25 @@ const MockExamSelect = () => {
           </div>
         </section>
 
-        {/* Test Cards */}
+        {/* Subject Cards */}
         <section className="py-8">
           <div className="container">
             {filteredSubjects.length === 0 ? (
               <div className="text-center py-12 space-y-4">
-                <p className="text-muted-foreground text-lg">No tests available.</p>
+                <p className="text-muted-foreground text-lg">No subjects available.</p>
                 <p className="text-sm text-muted-foreground">Tests must be published by an administrator to appear here.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredSubjects.map((test) => (
-                  <Card key={test.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        <div>
-                          <Badge variant="secondary" className="mb-2">
-                            {getSubjectLabel(test.subject)}
-                          </Badge>
-                          <h3 className="text-xl font-bold">{test.title}</h3>
-                          {test.topic && (
-                            <p className="text-sm text-muted-foreground mt-1">{test.topic}</p>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            <span>{test.totalQuestions} questions</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Award className="w-4 h-4" />
-                            <span>{Math.ceil(test.totalQuestions * 1.5)} minutes</span>
-                          </div>
-                        </div>
-
-                        <Button 
-                          onClick={() => handleStartTest(test.id)}
-                          className="w-full"
-                        >
-                          Start Test
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {filteredSubjects.map((stat) => (
+                  <SubjectTestCard
+                    key={stat.subject}
+                    subject={getSubjectLabel(stat.subject)}
+                    subjectKey={stat.subject}
+                    totalQuestions={stat.totalQuestions}
+                    totalTests={stat.totalTests}
+                    onStart={handleStartSubject}
+                  />
                 ))}
               </div>
             )}
@@ -253,12 +195,6 @@ const MockExamSelect = () => {
         </section>
       </main>
       <Footer />
-      
-      <UniversalFileUpload
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        onTestParsed={handleTestParsed}
-      />
     </div>
   );
 };
