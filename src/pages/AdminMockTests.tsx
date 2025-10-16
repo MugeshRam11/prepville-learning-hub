@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles, ChevronDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
 
 const AdminMockTests = () => {
@@ -219,22 +220,28 @@ const AdminMockTests = () => {
                     Publish All ({mockTests.filter(t => !t.is_published).length})
                   </Button>
                 )}
-                <Button 
-                  onClick={() => setShowAIUpload(!showAIUpload)} 
-                  variant="outline"
-                  className="border-purple-600 text-purple-600 hover:bg-purple-50"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  {showAIUpload ? 'Hide AI Upload' : 'AI Upload'}
-                </Button>
-                <Button 
-                  onClick={() => navigate('/admin/mock-test-bulk-upload')} 
-                  variant="outline"
-                  className="border-gray-300"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Bulk Upload CSV
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      className="border-gray-300"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => setShowAIUpload(!showAIUpload)}>
+                      <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                      {showAIUpload ? 'Hide AI Upload' : 'AI Upload'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/admin/mock-test-bulk-upload')}>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Bulk Upload CSV
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button 
                   onClick={() => navigate('/admin/mock-tests/create')}
                   className="bg-blue-600 hover:bg-blue-700"
