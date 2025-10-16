@@ -32,14 +32,29 @@ export default function EquationEditor({ value, onChange, placeholder, className
   // Initialize MathLive when component mounts
   useEffect(() => {
     if (mathfieldRef.current) {
-      // Set properties directly instead of using deprecated setOptions
+      // Set properties for optimal text and math input
       mathfieldRef.current.smartFence = true;
-      mathfieldRef.current.smartMode = true;
+      mathfieldRef.current.smartMode = false;
       mathfieldRef.current.smartSuperscript = true;
       mathfieldRef.current.mathVirtualKeyboardPolicy = "manual";
       mathfieldRef.current.defaultMode = "text";
       mathfieldRef.current.letterShapeStyle = "auto";
       mathfieldRef.current.removeExtraneousParentheses = false;
+      
+      // Allow space bar to work in both text and math mode
+      mathfieldRef.current.keybindings = [
+        ...mathfieldRef.current.keybindings,
+        {
+          key: 'Space',
+          ifMode: 'text',
+          command: ['insert', ' ']
+        },
+        {
+          key: 'Space',
+          ifMode: 'math',
+          command: ['insert', ' ']
+        }
+      ];
       
       // Set initial value
       if (value) {
