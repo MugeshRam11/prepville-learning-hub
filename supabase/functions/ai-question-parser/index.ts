@@ -113,7 +113,74 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      console.log(`✅ Successfully parsed ${questions.length} questions`);
+      
+      // Auto-solve questions without answer keys
+      console.log(`🔍 Checking for missing answer keys...`);
+      const questionsNeedingSolving = questions.filter((q: any) => !q.correct_answer || q.correct_answer.trim() === '');
+      
+      if (questionsNeedingSolving.length > 0) {
+        console.log(`🤖 ${questionsNeedingSolving.length} questions need AI solving...`);
+        
+        for (const question of questionsNeedingSolving) {
+          try {
+            const solvePrompt = `You are a mathematics and science expert. Solve this question and provide ONLY the answer.
+
+Question: ${question.question_text}
+${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
+${question.marks ? `Marks: ${question.marks}` : ''}
+${question.difficulty ? `Difficulty: ${question.difficulty}` : ''}
+
+Instructions:
+- Analyze the question carefully
+- If there's an image, analyze it to understand the problem
+- Solve the problem step by step
+- Provide ONLY the final answer in your response
+- For numerical answers, provide the exact number
+- For text answers, provide the complete answer text
+- Keep answers concise but complete
+
+Return ONLY the answer, nothing else.`;
+
+            const messages: any[] = [
+              { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
+              { role: 'user', content: question.question_image_url 
+                ? [
+                    { type: 'text', text: solvePrompt },
+                    { type: 'image_url', image_url: { url: question.question_image_url } }
+                  ]
+                : solvePrompt
+              }
+            ];
+
+            const solveResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash',
+                messages,
+                max_tokens: 500
+              }),
+            });
+
+            if (solveResponse.ok) {
+              const solveData = await solveResponse.json();
+              const answer = solveData.choices[0].message.content.trim();
+              question.correct_answer = answer;
+              question.ai_generated_answer = true;
+              console.log(`✅ Solved Q${question.question_number || ''}: "${answer}"`);
+            } else {
+              console.warn(`⚠️ Failed to solve question ${question.question_number || ''}`);
+            }
+          } catch (solveError) {
+            console.error(`❌ Error solving question:`, solveError);
+          }
+        }
+      }
+      
+      console.log(`✅ Successfully parsed ${questions.length} questions (${questionsNeedingSolving.length} auto-solved)`);
     } else {
       console.log(`✅ Successfully completed ${actionMode} action`);
     }
