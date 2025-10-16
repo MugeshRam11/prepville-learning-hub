@@ -57,7 +57,12 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
 
   const isActive = (item: any) => {
     if (item.path) {
-      return location.pathname.startsWith(item.path);
+      // Use exact match for most routes to prevent incorrect highlighting
+      // Allow startsWith only for the dashboard route to match child pages
+      if (item.id === 'dashboard') {
+        return location.pathname === item.path || location.pathname === '/admin';
+      }
+      return location.pathname === item.path;
     }
     return activeTab === item.id;
   };
