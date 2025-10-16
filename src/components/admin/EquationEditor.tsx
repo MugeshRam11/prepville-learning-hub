@@ -34,6 +34,8 @@ export default function EquationEditor({ value, onChange, placeholder, className
   const [isExpanded, setIsExpanded] = useState(false);
   const [mathml, setMathml] = useState('');
   const [katexHtml, setKatexHtml] = useState('');
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const previewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -88,25 +90,41 @@ export default function EquationEditor({ value, onChange, placeholder, className
   function renderKaTeX(tex: string) {
     if (!tex) {
       setKatexHtml('');
-      return;
-    }
-    
-    // Check if content contains LaTeX syntax
-    const hasLatex = tex.includes('\\') || tex.includes('^') || tex.includes('_') || tex.includes('{');
-    
-    if (!hasLatex) {
-      // Plain text - display as-is
-      setKatexHtml(`<div style="padding: 8px; font-size: 1.1rem;">${tex.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
+      setHasError(false);
+      setErrorMessage('');
       return;
     }
     
     try {
-      const html = renderToString(tex, { throwOnError: false, displayMode: true });
-      setKatexHtml(html);
+      // KaTeX with error tolerance
+      const html = renderToString(tex, {
+        throwOnError: false,
+        displayMode: true,
+        errorColor: "#ff4d4f",
+        strict: "ignore",
+        trust: false
+      });
+      
+      // Check if KaTeX rendered an error
+      if (html.includes('katex-error') || html.includes('ParseError')) {
+        setHasError(true);
+        setErrorMessage('Invalid equation syntax — please check brackets or use \\text{} for plain text.');
+        setKatexHtml(html); // Still show the error render
+      } else {
+        setHasError(false);
+        setErrorMessage('');
+        setKatexHtml(html);
+      }
     } catch (e) {
-      // Show the error but also display the raw content
+      // Fallback for complete render failure
       console.error('KaTeX render error:', e);
-      setKatexHtml(`<div style="color: red; font-size: 0.9rem;">Unable to render: ${tex.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
+      setHasError(true);
+      setErrorMessage('Invalid equation syntax — please check brackets or use \\text{} for plain text.');
+      const escapedTex = tex.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      setKatexHtml(`<div style="color: #ff4d4f; font-size: 0.95rem; padding: 8px; background: #fff1f0; border-radius: 4px;">
+        <strong>⚠️ Render Error</strong><br/>
+        Raw input: <code>${escapedTex}</code>
+      </div>`);
     }
   }
 
@@ -301,12 +319,19 @@ export default function EquationEditor({ value, onChange, placeholder, className
           >
             {value}
           </math-field>
-          {!value && (
-            <div className="absolute top-3 left-3 text-muted-foreground pointer-events-none text-sm">
-              {placeholder || "Type equations like Word - click buttons below or type directly..."}
-            </div>
-          )}
-        </div>
+            {!value && (
+              <div className="absolute top-3 left-3 text-muted-foreground pointer-events-none text-sm">
+                {placeholder || "Type equations - supports LaTeX syntax like \\frac{a}{b}, x^2, \\sqrt{x}..."}
+              </div>
+            )}
+            
+            {/* Error Tooltip */}
+            {hasError && errorMessage && (
+              <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 animate-in fade-in slide-in-from-top-1 z-10">
+                <span className="font-medium">⚠️ {errorMessage}</span>
+              </div>
+            )}
+          </div>
         
         <Card className="border-dashed">
           <CardContent className="p-3 space-y-3">
@@ -406,17 +431,28 @@ export default function EquationEditor({ value, onChange, placeholder, className
               {/* Preview */}
               {katexHtml && (
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Rendered Preview:</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-muted-foreground">Live Rendered Preview:</label>
+                    {hasError && (
+                      <Badge variant="destructive" className="text-xs">Invalid Syntax</Badge>
+                    )}
+                    {!hasError && value && (
+                      <Badge variant="secondary" className="text-xs">✓ Valid</Badge>
+                    )}
+                  </div>
                   <div 
                     ref={previewRef} 
-                    className="p-3 border rounded-md bg-background/50 min-h-[48px] overflow-x-auto" 
+                    className={`p-3 border rounded-md bg-background/50 min-h-[48px] overflow-x-auto ${hasError ? 'border-red-200 bg-red-50/30' : 'border-border'}`}
                     dangerouslySetInnerHTML={{ __html: katexHtml }} 
                   />
                 </div>
               )}
               
-              <div className="text-xs text-muted-foreground">
-                <strong>Tip for Word:</strong> Use "Copy PNG" to paste as image into Word, or use "Copy MathML" for newer Word versions. SVG provides best quality for documents.
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div><strong>💡 Quick Tips:</strong></div>
+                <div>• Fractions: \frac{"{"} a {"}"}{"{"} b {"}"}, Powers: x^{"{"} n {"}"}, Roots: \sqrt{"{"} x {"}"}</div>
+                <div>• Plain text: \text{"{"} your text {"}"}</div>
+                <div>• <strong>For Word:</strong> Copy PNG to paste as image, or Copy MathML for newer versions</div>
               </div>
             </div>
           </CardContent>
