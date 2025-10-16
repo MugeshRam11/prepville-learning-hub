@@ -388,13 +388,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     disabled: uploading
   });
   return <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="w-5 h-5" />
-          AI Document Processor (docTR-like OCR + Gemini)
-        </CardTitle>
-        
-      </CardHeader>
+      
       <CardContent className="space-y-6">
         {/* Action Mode Selection */}
         <div className="space-y-2">
