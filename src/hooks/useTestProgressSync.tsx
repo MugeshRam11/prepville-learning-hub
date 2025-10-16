@@ -4,22 +4,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
- * Hook to automatically sync test completions with topic progress
- * Listens for new test attempts and updates topic progress accordingly
+ * Enhanced hook to automatically sync test completions with topic progress
+ * Listens for new test attempts and question completions in real-time
+ * Integrates with AI progress analysis system
  */
 export const useTestProgressSync = () => {
   const { user } = useAuth();
 
-  const updateTopicProgress = useCallback(async (testType: string, questionsCompleted: number) => {
+  const updateTopicProgress = useCallback(async (
+    testType: string, 
+    questionsCompleted: number,
+    isCorrect?: boolean
+  ) => {
     if (!user) return;
 
-    // Map test types to topic names
+    // Enhanced topic mapping with subject categorization
     const topicMap: Record<string, string> = {
       'algebra': 'Algebra',
       'geometry': 'Geometry',
       'statistics': 'Statistics & Probability',
+      'probability': 'Statistics & Probability',
       'number': 'Number Systems',
-      'numbers': 'Number Systems'
+      'numbers': 'Number Systems',
+      'calculus': 'Calculus',
+      'trigonometry': 'Trigonometry',
+      'measurement': 'Measurement',
+      'data': 'Data Analysis'
     };
 
     // Find matching topic
@@ -27,7 +37,10 @@ export const useTestProgressSync = () => {
       testType.toLowerCase().includes(key)
     )?.[1];
 
-    if (!topicName) return;
+    if (!topicName) {
+      console.log('No topic mapping found for:', testType);
+      return;
+    }
 
     try {
       // Get current topic progress
@@ -36,28 +49,33 @@ export const useTestProgressSync = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('topic_name', topicName)
-        .single();
+        .maybeSingle();
 
       if (!currentProgress) {
         // Create new topic progress if it doesn't exist
-        await supabase
+        const { error } = await supabase
           .from('topic_progress')
           .insert({
             user_id: user.id,
             topic_name: topicName,
-            completed_tasks: questionsCompleted,
+            completed_tasks: isCorrect !== false ? questionsCompleted : 0,
             total_tasks: 50,
             difficulty: 'medium',
             last_activity_at: new Date().toISOString()
           });
+
+        if (error) throw error;
+
+        console.log(`Created new topic progress for ${topicName}`);
       } else {
-        // Update existing progress
+        // Update existing progress - only increment if answer was correct
+        const increment = isCorrect !== false ? questionsCompleted : 0;
         const newCompleted = Math.min(
           currentProgress.total_tasks,
-          currentProgress.completed_tasks + questionsCompleted
+          currentProgress.completed_tasks + increment
         );
 
-        await supabase
+        const { error } = await supabase
           .from('topic_progress')
           .update({
             completed_tasks: newCompleted,
@@ -65,14 +83,35 @@ export const useTestProgressSync = () => {
           })
           .eq('id', currentProgress.id);
 
+        if (error) throw error;
+
         // Check if topic completed
         if (newCompleted === currentProgress.total_tasks && 
             currentProgress.completed_tasks < currentProgress.total_tasks) {
-          toast.success(`🎉 ${topicName} topic completed!`, {
-            description: 'Great job mastering this topic!',
+          toast.success(`🎉 ${topicName} mastered!`, {
+            description: 'Excellent work! You completed all tasks in this topic!',
             duration: 5000
           });
         }
+
+        console.log(`Updated ${topicName}: ${currentProgress.completed_tasks} → ${newCompleted}`);
+      }
+
+      // Track struggle topics for incorrect answers
+      if (isCorrect === false) {
+        await supabase
+          .from('student_struggle_topics')
+          .upsert({
+            user_id: user.id,
+            subject: testType,
+            topic: topicName,
+            difficulty_level: currentProgress?.difficulty || 'medium',
+            struggle_count: 1,
+            last_struggled_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,subject,topic',
+            ignoreDuplicates: false
+          });
       }
     } catch (error) {
       console.error('Error updating topic progress:', error);
@@ -82,8 +121,8 @@ export const useTestProgressSync = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Listen for new test attempts
-    const channel = supabase
+    // Listen for test attempts and user answers in real-time
+    const testChannel = supabase
       .channel('test-completion-sync')
       .on(
         'postgres_changes',
@@ -95,19 +134,21 @@ export const useTestProgressSync = () => {
         },
         async (payload) => {
           const attempt = payload.new;
+          console.log('New test attempt detected:', attempt);
           
           // Get test details to determine topic
           const { data: testData } = await supabase
             .from('tests')
             .select('test_type, title')
             .eq('id', attempt.test_id)
-            .single();
+            .maybeSingle();
 
           if (testData) {
             // Update topic progress based on score
             await updateTopicProgress(
               testData.test_type || testData.title,
-              attempt.score || 0
+              attempt.score || 0,
+              true
             );
           }
 
@@ -116,12 +157,46 @@ export const useTestProgressSync = () => {
             .from('mock_tests')
             .select('subject, topic')
             .eq('id', attempt.test_id)
-            .single();
+            .maybeSingle();
 
           if (mockTestData) {
             await updateTopicProgress(
               mockTestData.topic || mockTestData.subject,
-              attempt.score || 0
+              attempt.score || 0,
+              true
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Listen for individual question answers for real-time progress
+    const answerChannel = supabase
+      .channel('answer-progress-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_question_progress',
+          filter: `user_id=eq.${user.id}`
+        },
+        async (payload) => {
+          const progress = payload.new;
+          console.log('Question progress update:', progress);
+
+          // Get question details to determine topic
+          const { data: questionData } = await supabase
+            .from('subject_questions')
+            .select('topic, subject, title')
+            .eq('id', progress.question_id)
+            .maybeSingle();
+
+          if (questionData && progress.is_solved) {
+            await updateTopicProgress(
+              questionData.topic || questionData.subject,
+              1,
+              true
             );
           }
         }
@@ -129,7 +204,8 @@ export const useTestProgressSync = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(testChannel);
+      supabase.removeChannel(answerChannel);
     };
   }, [user, updateTopicProgress]);
 

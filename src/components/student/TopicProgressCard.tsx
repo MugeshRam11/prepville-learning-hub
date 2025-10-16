@@ -1,77 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Clock } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { BookOpen, Clock, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-
-interface TopicProgress {
-  id: string;
-  topic_name: string;
-  completed_tasks: number;
-  total_tasks: number;
-  difficulty: string;
-  last_activity_at: string | null;
-}
+import { useRealtimeTopicProgress } from '@/hooks/useRealtimeTopicProgress';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const TopicProgressCard = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [topics, setTopics] = useState<TopicProgress[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchTopics = async () => {
-      const { data, error } = await supabase
-        .from('topic_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('topic_name');
-
-      if (!error && data) {
-        setTopics(data);
-      }
-      setLoading(false);
-    };
-
-    fetchTopics();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('topic-progress-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'topic_progress',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.eventType === 'UPDATE') {
-            setTopics(prev => 
-              prev.map(t => t.id === payload.new.id 
-                ? { ...payload.new as TopicProgress } 
-                : t
-              )
-            );
-          } else if (payload.eventType === 'INSERT') {
-            setTopics(prev => [...prev, payload.new as TopicProgress]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
+  const { topics, loading } = useRealtimeTopicProgress();
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
@@ -97,21 +37,44 @@ const TopicProgressCard = () => {
 
   if (loading) {
     return (
-      <Card className="rounded-2xl shadow-md">
+      <Card className="rounded-2xl shadow-md border-gray-100">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[hsl(var(--adsavvy-blue))]" />
             Topic Progress
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="animate-pulse">
-                <div className="h-20 bg-gray-200 rounded-lg"></div>
-              </div>
-            ))}
-          </div>
+        <CardContent className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-2 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (topics.length === 0) {
+    return (
+      <Card className="rounded-2xl shadow-md border-gray-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-[hsl(var(--adsavvy-blue))]" />
+            Topic Progress
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8">
+          <TrendingUp className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+          <p className="text-gray-600 mb-4">Start practicing to track your progress!</p>
+          <Button 
+            onClick={() => navigate('/quick-practice')}
+            className="bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))]"
+          >
+            Start Learning
+          </Button>
         </CardContent>
       </Card>
     );

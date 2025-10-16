@@ -52,6 +52,46 @@ const PersonalizedSuggestions = () => {
     if (user) {
       fetchAnalysis();
     }
+
+    // Set up real-time listener for topic progress changes to refresh analysis
+    if (!user) return;
+
+    const channel = supabase
+      .channel('personalized-suggestions-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'topic_progress',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          console.log('Topic progress updated, clearing cache for fresh analysis');
+          // Clear cache when topic progress changes
+          localStorage.removeItem('userAnalysisCache');
+          localStorage.removeItem('userAnalysisCacheTime');
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_struggle_topics',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          console.log('Struggle topics updated, clearing cache');
+          localStorage.removeItem('userAnalysisCache');
+          localStorage.removeItem('userAnalysisCacheTime');
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchAnalysis = async () => {

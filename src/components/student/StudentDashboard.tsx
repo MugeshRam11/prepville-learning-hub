@@ -39,6 +39,7 @@ import PersonalizedSuggestions from './PersonalizedSuggestions';
 import { toast } from 'sonner';
 import StatsCards from './StatsCards';
 import { useTestProgressSync } from '@/hooks/useTestProgressSync';
+import { useRealtimeTopicProgress } from '@/hooks/useRealtimeTopicProgress';
 
 // Import avatar images
 import coolCat from '@/assets/avatars/cool-cat.png';
@@ -89,8 +90,9 @@ const StudentDashboard = () => {
     updatePerformanceCriteria
   } = useProgressTracking();
   
-  // Enable automatic progress syncing
+  // Enable automatic real-time progress syncing
   useTestProgressSync();
+  const { refreshTopics } = useRealtimeTopicProgress();
   
   // Fetch user profile data and real stats
   useEffect(() => {
