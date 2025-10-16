@@ -160,19 +160,6 @@ const MockExamQuestion = ({
             <div className="text-sm text-gray-500 mb-4">
               {question.image ? 'Refer to the image above. ' : ''}Scroll down if the question continues...
             </div>
-
-            {/* Next Question Button */}
-            {onNext && (
-              <div className="flex justify-end mt-4">
-                <Button 
-                  onClick={onNext}
-                  disabled={isLastQuestion}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {isLastQuestion ? 'Last Question' : 'Next Question'}
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -231,6 +218,20 @@ const MockExamQuestion = ({
               <Check className="w-3 h-3" />
               Auto-saved
             </div>
+
+            {/* Submit/Next Button */}
+            {onNext && (
+              <div className="flex justify-end mt-6">
+                <Button 
+                  onClick={onNext}
+                  disabled={isLastQuestion}
+                  size="lg"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isLastQuestion ? 'Submit' : 'Next Question'}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
