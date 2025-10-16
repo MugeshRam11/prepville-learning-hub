@@ -401,7 +401,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               </TabsTrigger>
               <TabsTrigger value="summarize" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">Summarize</span>
+                
               </TabsTrigger>
               <TabsTrigger value="quiz" className="flex items-center gap-2">
                 <Brain className="w-4 h-4" />
