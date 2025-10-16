@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import BulkUploadForm from '@/components/admin/BulkUploadForm';
+import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download } from 'lucide-react';
 import Papa from 'papaparse';
+import { toast } from 'sonner';
 
 const AdminBulkUpload = () => {
   const [activeTab, setActiveTab] = useState('bulk-upload');
@@ -52,6 +55,10 @@ const AdminBulkUpload = () => {
     document.body.removeChild(link);
   };
 
+  const handleAIUploadSuccess = (data: any) => {
+    toast.success('Questions uploaded successfully via AI!');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -63,7 +70,7 @@ const AdminBulkUpload = () => {
                 Subject Q/A Bulk Upload
               </h1>
               <p className="text-muted-foreground mt-3 text-lg">
-                Upload CSV files in bulk - automatically sync to The Prep Ville portal
+                Upload questions using AI or CSV - automatically sync to The Prep Ville portal
               </p>
             </div>
             <Button
@@ -77,7 +84,20 @@ const AdminBulkUpload = () => {
             </Button>
           </div>
 
-          <BulkUploadForm />
+          <Tabs defaultValue="ai" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="ai">AI Smart Upload</TabsTrigger>
+              <TabsTrigger value="csv">CSV Upload</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="ai">
+              <QuestionUploadCard mode="quick" onSuccess={handleAIUploadSuccess} />
+            </TabsContent>
+            
+            <TabsContent value="csv">
+              <BulkUploadForm />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

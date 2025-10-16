@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
 
 const AdminMockTests = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const AdminMockTests = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [showAIUpload, setShowAIUpload] = useState(false);
 
   useEffect(() => {
     fetchMockTests();
@@ -168,6 +170,14 @@ const AdminMockTests = () => {
                   </Button>
                 )}
                 <Button 
+                  onClick={() => setShowAIUpload(!showAIUpload)} 
+                  variant="outline"
+                  className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {showAIUpload ? 'Hide AI Upload' : 'AI Upload'}
+                </Button>
+                <Button 
                   onClick={() => navigate('/admin/mock-test-bulk-upload')} 
                   variant="outline"
                   className="border-gray-300"
@@ -217,6 +227,20 @@ const AdminMockTests = () => {
 
         {/* Main Content */}
         <div className="p-8">
+          {/* AI Upload Section */}
+          {showAIUpload && (
+            <div className="mb-8">
+              <QuestionUploadCard 
+                mode="mock" 
+                onSuccess={() => {
+                  toast.success('Mock test uploaded successfully!');
+                  setShowAIUpload(false);
+                  fetchMockTests();
+                }} 
+              />
+            </div>
+          )}
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
