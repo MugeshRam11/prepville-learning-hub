@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, CheckCircle, XCircle, FileText, RotateCcw, Eye, Home } from 'lucide-react';
 import type { Question, Answer } from './MockExamStart';
+import AITestEvaluation from '@/components/AITestEvaluation';
 const MockExamSummary = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -165,6 +166,20 @@ const MockExamSummary = () => {
               </Tabs>
             </CardContent>
           </Card>
+
+          {/* AI Evaluation */}
+          <div className="mt-8">
+            <AITestEvaluation
+              testType="mock"
+              subject={subject}
+              topic={topic}
+              score={attemptedCount > 0 ? Math.round((attemptedCount / totalQuestions) * 100) : 0}
+              correctAnswers={attemptedCount}
+              totalQuestions={totalQuestions}
+              questions={questions}
+              answers={answers}
+            />
+          </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 justify-center mt-8">

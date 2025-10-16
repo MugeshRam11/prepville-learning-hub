@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, subject, message, question, studentAnswer, sessionId, attemptNumber, conversationHistory } = await req.json();
+    const { mode, subject, message, question, studentAnswer, sessionId, attemptNumber, conversationHistory, testType, topic, score, correctAnswers, totalQuestions, questions, answers } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -27,6 +27,20 @@ serve(async (req) => {
         studentAnswer,
         attemptNumber,
         conversationHistory,
+        apiKey: LOVABLE_API_KEY,
+        corsHeaders
+      });
+    } else if (mode === 'evaluate_test') {
+      // Test evaluation mode
+      return await evaluateTest({
+        testType,
+        subject,
+        topic,
+        score,
+        correctAnswers,
+        totalQuestions,
+        questions,
+        answers,
         apiKey: LOVABLE_API_KEY,
         corsHeaders
       });
@@ -65,6 +79,103 @@ serve(async (req) => {
     );
   }
 });
+
+// Test Evaluation Function
+async function evaluateTest({ testType, subject, topic, score, correctAnswers, totalQuestions, questions, answers, apiKey, corsHeaders }: any) {
+  const evaluationPrompt = `You are an expert educational evaluator analyzing a student's ${testType} test performance.
+
+**Test Details:**
+- Subject: ${subject}
+- Topic: ${topic || 'General'}
+- Score: ${score}%
+- Correct Answers: ${correctAnswers} out of ${totalQuestions}
+
+${questions && questions.length > 0 ? `
+**Sample Questions:**
+${questions.map((q: any, i: number) => `${i + 1}. ${q.question || q.text || 'Question'}`).join('\n')}
+` : ''}
+
+Based on this performance, provide a comprehensive evaluation with:
+
+1. **overallFeedback**: A supportive 2-3 sentence summary of their performance
+2. **strengths**: Array of 2-3 specific strengths they demonstrated
+3. **weaknesses**: Array of 2-3 areas that need improvement
+4. **recommendations**: Array of 3-4 specific, actionable study recommendations
+5. **performanceLevel**: One of: "excellent" (90-100%), "good" (70-89%), "average" (50-69%), "needs-improvement" (<50%)
+
+Be encouraging, specific, and actionable. Focus on growth mindset.
+
+Respond ONLY with a JSON object like:
+{
+  "overallFeedback": "Great job! You showed strong understanding...",
+  "strengths": ["Strong grasp of basic concepts", "Good problem-solving approach"],
+  "weaknesses": ["Time management needs work", "Complex problems need practice"],
+  "recommendations": ["Review advanced topics", "Practice under timed conditions", "Focus on word problems"],
+  "performanceLevel": "good"
+}`;
+
+  console.log('Evaluating test performance with AI...');
+
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: 'You are an expert educational evaluator who provides constructive, encouraging feedback on student performance.' },
+        { role: 'user', content: evaluationPrompt }
+      ],
+      temperature: 0.7
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('AI API error:', response.status, errorText);
+    throw new Error(`AI evaluation failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const aiResponse = data.choices?.[0]?.message?.content;
+
+  if (!aiResponse) {
+    throw new Error('No evaluation generated');
+  }
+
+  console.log('Raw AI test evaluation response:', aiResponse);
+
+  // Parse JSON response
+  let evaluationData;
+  try {
+    const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || aiResponse.match(/\{[\s\S]*\}/);
+    const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
+    evaluationData = JSON.parse(jsonString);
+  } catch (e) {
+    console.error('Failed to parse evaluation JSON:', e);
+    // Fallback evaluation based on score
+    const level = score >= 90 ? 'excellent' : score >= 70 ? 'good' : score >= 50 ? 'average' : 'needs-improvement';
+    evaluationData = {
+      overallFeedback: `You scored ${score}% on this ${testType} test. Keep working on understanding the concepts!`,
+      strengths: ['Completed the test', 'Showed effort in attempting questions'],
+      weaknesses: ['Review incorrect answers', 'Practice similar problems'],
+      recommendations: ['Review the topics covered', 'Practice with similar questions', 'Ask for help when needed'],
+      performanceLevel: level
+    };
+  }
+
+  console.log('Test evaluation complete:', evaluationData.performanceLevel);
+
+  return new Response(
+    JSON.stringify({ evaluation: evaluationData }),
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200 
+    }
+  );
+}
 
 // Answer Evaluation Function
 async function evaluateAnswer({ question, studentAnswer, attemptNumber, conversationHistory, apiKey, corsHeaders }: any) {
