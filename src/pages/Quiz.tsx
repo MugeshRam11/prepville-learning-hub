@@ -540,6 +540,26 @@ const Quiz = () => {
     );
   }
 
+  // Check if quiz has valid questions
+  if (!quizData.questions || quizData.questions.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">No Questions Available</h1>
+            <p className="text-muted-foreground mb-4">This quiz doesn't have any questions yet.</p>
+            <Button onClick={() => navigate('/quick-practice')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Quick Practice
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   // Don't render quiz content until it's properly initialized
   if (!isInitialized) {
     return (
@@ -662,6 +682,26 @@ const Quiz = () => {
   }
 
   const currentQ = quizData.questions[currentQuestion];
+
+  // Extra safety check for current question
+  if (!currentQ) {
+    console.error('Current question is undefined. Index:', currentQuestion, 'Total:', quizData.questions.length);
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Question Not Found</h1>
+            <Button onClick={() => navigate('/quick-practice')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Quick Practice
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
