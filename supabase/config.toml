@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.chatbot]
 verify_jwt = true
+
+[functions.ai-question-parser]
+verify_jwt = true
