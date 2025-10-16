@@ -30,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import EquationEditor from '@/components/admin/EquationEditor';
-import { AITutorChat } from '@/components/AITutorChat';
+import { EnhancedAITutor } from '@/components/EnhancedAITutor';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -921,15 +921,32 @@ const SubjectLearning = () => {
         </div>
       </div>
 
-      {/* AI Tutor Chat */}
-      <AITutorChat
-        subject={selectedQuestion ? `${subjectTitle} - ${selectedQuestion.topic}` : subjectTitle}
-        isOpen={isChatOpen}
-        onClose={() => {
-          setIsChatOpen(false);
-          setSelectedQuestion(null);
-        }}
-      />
+      {/* Enhanced AI Tutor */}
+      {selectedQuestion && (
+        <EnhancedAITutor
+          question={{
+            id: selectedQuestion.id,
+            title: selectedQuestion.title,
+            content: selectedQuestion.content,
+            answerKey: selectedQuestion.answerKey,
+            topic: selectedQuestion.topic,
+            difficulty: selectedQuestion.difficulty
+          }}
+          subject={subjectTitle}
+          isOpen={isChatOpen}
+          onClose={() => {
+            setIsChatOpen(false);
+            setSelectedQuestion(null);
+          }}
+          onAnswerCorrect={() => {
+            toggleSolved(selectedQuestion.id);
+            toast({
+              title: "🎉 Correct!",
+              description: "Great job! You've mastered this concept.",
+            });
+          }}
+        />
+      )}
     </div>
   );
 };

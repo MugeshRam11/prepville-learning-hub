@@ -14,6 +14,145 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_tutoring_evaluations: {
+        Row: {
+          attempt_number: number
+          created_at: string | null
+          evaluation_result: string
+          feedback: string
+          hint_provided: string | null
+          id: string
+          session_id: string
+          similarity_score: number | null
+          student_answer: string
+        }
+        Insert: {
+          attempt_number: number
+          created_at?: string | null
+          evaluation_result: string
+          feedback: string
+          hint_provided?: string | null
+          id?: string
+          session_id: string
+          similarity_score?: number | null
+          student_answer: string
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string | null
+          evaluation_result?: string
+          feedback?: string
+          hint_provided?: string | null
+          id?: string
+          session_id?: string
+          similarity_score?: number | null
+          student_answer?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tutoring_evaluations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_tutoring_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_tutoring_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          message_type: string | null
+          role: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          message_type?: string | null
+          role: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          message_type?: string | null
+          role?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tutoring_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_tutoring_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_tutoring_sessions: {
+        Row: {
+          attempts: number | null
+          completed_at: string | null
+          correct_answer: string | null
+          created_at: string | null
+          difficulty_level: string | null
+          hints_used: number | null
+          id: string
+          is_correct: boolean | null
+          question_id: string
+          question_text: string
+          session_duration_seconds: number | null
+          started_at: string | null
+          student_answer: string | null
+          subject: string
+          topic: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          completed_at?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          hints_used?: number | null
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+          question_text: string
+          session_duration_seconds?: number | null
+          started_at?: string | null
+          student_answer?: string | null
+          subject: string
+          topic?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number | null
+          completed_at?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          hints_used?: number | null
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+          question_text?: string
+          session_duration_seconds?: number | null
+          started_at?: string | null
+          student_answer?: string | null
+          subject?: string
+          topic?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_challenges: {
         Row: {
           challenge_date: string | null
@@ -516,6 +655,39 @@ export type Database = {
           milestone_days?: number
           reward_message?: string | null
           reward_xp?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      student_struggle_topics: {
+        Row: {
+          created_at: string | null
+          difficulty_level: string
+          id: string
+          last_struggled_at: string | null
+          struggle_count: number | null
+          subject: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          difficulty_level: string
+          id?: string
+          last_struggled_at?: string | null
+          struggle_count?: number | null
+          subject: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          difficulty_level?: string
+          id?: string
+          last_struggled_at?: string | null
+          struggle_count?: number | null
+          subject?: string
+          topic?: string
           user_id?: string
         }
         Relationships: []
