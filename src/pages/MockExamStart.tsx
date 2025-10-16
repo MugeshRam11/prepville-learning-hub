@@ -21,6 +21,7 @@ export interface SubQuestion {
   id: string;
   text: string;
   marks: number;
+  label?: string;
 }
 
 export interface Answer {
@@ -59,7 +60,8 @@ const MockExamStart = () => {
           subQuestions: q.mock_sub_questions?.map(sq => ({
             id: sq.id,
             text: sq.sub_question_text,
-            marks: sq.marks
+            marks: sq.marks,
+            label: sq.sub_question_label
           })) || []
         }));
         
@@ -104,7 +106,8 @@ const MockExamStart = () => {
             subQuestions: q.mock_sub_questions?.map(sq => ({
               id: sq.id,
               text: sq.sub_question_text,
-              marks: sq.marks
+              marks: sq.marks,
+              label: sq.sub_question_label
             })) || []
           }));
           
