@@ -37,8 +37,11 @@ export default function EquationEditor({ value, onChange, placeholder, className
       mathfieldRef.current.smartMode = true;
       mathfieldRef.current.smartSuperscript = true;
       mathfieldRef.current.mathVirtualKeyboardPolicy = "manual";
-      mathfieldRef.current.defaultMode = "math";
+      mathfieldRef.current.defaultMode = "text";
       mathfieldRef.current.letterShapeStyle = "auto";
+      mathfieldRef.current.inlineShortcuts = {
+        space: ' ',
+      };
       
       // Set initial value
       if (value) {
