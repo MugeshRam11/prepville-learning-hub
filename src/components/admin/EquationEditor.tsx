@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Image as ImageIcon } from "lucide-react";
+import { Copy, Image as ImageIcon, Type } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SymbolPicker } from "./SymbolPicker";
 import "katex/dist/katex.min.css";
 import renderToString from "katex/dist/katex.mjs";
 import copy from "copy-to-clipboard";
@@ -20,6 +21,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
   const [previewHtml, setPreviewHtml] = useState("");
   const [lastValidHtml, setLastValidHtml] = useState("");
   const [hasError, setHasError] = useState(false);
+  const [showSymbolPicker, setShowSymbolPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -35,6 +37,45 @@ export default function EquationEditor({ value, onChange, placeholder, className
         node.selectionStart = selectionStart;
         node.selectionEnd = selectionEnd;
       }
+    });
+  };
+
+  // Insert symbol at cursor position
+  const insertSymbol = (symbol: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newValue = value.substring(0, start) + symbol + value.substring(end);
+    
+    onChange(newValue);
+    
+    // Restore focus and cursor position
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newPos = start + symbol.length;
+      textarea.selectionStart = newPos;
+      textarea.selectionEnd = newPos;
+    });
+  };
+
+  // Quick insert templates
+  const insertTemplate = (template: string, cursorOffset: number = 0) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newValue = value.substring(0, start) + template + value.substring(end);
+    
+    onChange(newValue);
+    
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newPos = start + template.length + cursorOffset;
+      textarea.selectionStart = newPos;
+      textarea.selectionEnd = newPos;
     });
   };
 
@@ -155,16 +196,89 @@ export default function EquationEditor({ value, onChange, placeholder, className
             )}
           </div>
 
+
+          {/* Quick Insert Templates */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Quick Insert:</label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => insertTemplate("\\frac{}{}", -1)}
+                className="h-8 px-3 text-xs"
+              >
+                Fraction
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => insertTemplate("x^{}", -1)}
+                className="h-8 px-3 text-xs"
+              >
+                Power
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => insertTemplate("\\sqrt{}", -1)}
+                className="h-8 px-3 text-xs"
+              >
+                Root
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => insertTemplate("\\int_{}", -1)}
+                className="h-8 px-3 text-xs"
+              >
+                Integral
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => insertTemplate("\\sum_{}", -1)}
+                className="h-8 px-3 text-xs"
+              >
+                Sum
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => insertTemplate("\\begin{matrix}\n\n\\end{matrix}", -12)}
+                className="h-8 px-3 text-xs"
+              >
+                Matrix
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSymbolPicker(!showSymbolPicker)}
+                className="h-8 px-3 text-xs"
+              >
+                <Type className="h-3 w-3 mr-1" />
+                Symbols
+              </Button>
+            </div>
+          </div>
+
+          {/* Symbol Picker */}
+          {showSymbolPicker && (
+            <SymbolPicker onSelect={(symbol) => {
+              insertSymbol(symbol);
+              setShowSymbolPicker(false);
+            }} />
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">Type or paste LaTeX:</label>
             <textarea
               ref={textareaRef}
               value={value}
               onChange={handleInput}
-              rows={4}
+              rows={6}
               className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
               style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace, "Segoe UI Symbol", "Apple Color Emoji", "Segoe UI Emoji"' }}
-              placeholder={placeholder || "e.g. \\frac{a}{b}, x^2, \\sqrt{x}, α, β, ∫, ∑"}
+              placeholder={placeholder || "e.g. \\frac{a}{b}, x^2, \\sqrt{x}, α, β, ∫, ∑, or use buttons above"}
             />
           </div>
 
@@ -202,10 +316,11 @@ export default function EquationEditor({ value, onChange, placeholder, className
 
           <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
             <div><strong>💡 Quick Tips:</strong></div>
-            <div>• Fractions: \frac{"{"} a {"}"}{"{"} b {"}"}, Powers: x^{"{"} n {"}"}, Roots: \sqrt{"{"} x {"}"}</div>
+            <div>• Use buttons above to insert templates, then fill in the blanks</div>
+            <div>• Matrix example: \begin{"{"}matrix{"}"} a & b \\ c & d \end{"{"}matrix{"}"}</div>
+            <div>• Click "Symbols" to insert Greek letters (α, β, γ) and math symbols (∫, ∑, √)</div>
             <div>• Plain text: \text{"{"} your text {"}"}</div>
             <div>• <strong>For Word:</strong> Copy PNG to paste as image</div>
-            <div>• If input is invalid, last valid render stays visible</div>
           </div>
         </CardContent>
       </Card>
