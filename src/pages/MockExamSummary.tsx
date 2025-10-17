@@ -41,14 +41,22 @@ const MockExamSummary = () => {
     const question = questions.find((q: Question) => q.id === answer.questionId);
     if (!question) return correct;
     
+    // Helper function to normalize answers for comparison
+    const normalizeAnswer = (text: string) => {
+      return text
+        .trim()
+        .toLowerCase()
+        .replace(/[.,!?;:]/g, '') // Remove punctuation
+        .replace(/\s+/g, ' '); // Normalize whitespace
+    };
+    
     // For sub-questions
     if (answer.subQuestionId) {
       const subQuestion = question.subQuestions?.find(sq => sq.id === answer.subQuestionId);
       if (!subQuestion?.answerKey) return correct;
       
-      // Normalize both answers for comparison (trim, lowercase)
-      const studentAns = answer.content.trim().toLowerCase();
-      const correctAns = subQuestion.answerKey.trim().toLowerCase();
+      const studentAns = normalizeAnswer(answer.content);
+      const correctAns = normalizeAnswer(subQuestion.answerKey);
       
       // Check if student answer matches or is very similar to correct answer
       if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
@@ -58,8 +66,8 @@ const MockExamSummary = () => {
       // For main questions
       if (!question.answerKey) return correct;
       
-      const studentAns = answer.content.trim().toLowerCase();
-      const correctAns = question.answerKey.trim().toLowerCase();
+      const studentAns = normalizeAnswer(answer.content);
+      const correctAns = normalizeAnswer(question.answerKey);
       
       if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
         return correct + 1;
