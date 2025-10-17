@@ -472,14 +472,14 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
 
   // Expanded tutoring window
   return (
-    <div className="fixed bottom-4 right-4 w-[450px] max-h-[85vh] bg-background border-2 border-primary/20 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden">
+    <div className="fixed bottom-4 right-4 w-[500px] max-h-[90vh] bg-background border border-border rounded-lg shadow-xl flex flex-col z-50">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 shrink-0">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <MessageSquare className="w-6 h-6 text-white shrink-0" />
-          <div className="min-w-0">
-            <h3 className="font-bold text-white text-sm truncate">{question.title}</h3>
-            <p className="text-xs text-white/90">{subject} · {question.topic}</p>
+      <div className="flex items-center justify-between p-3 border-b border-border bg-primary text-primary-foreground shrink-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <MessageSquare className="w-5 h-5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-sm truncate">{question.title}</h3>
+            <p className="text-xs opacity-90">{subject} · {question.topic}</p>
           </div>
         </div>
         <Button
@@ -489,22 +489,22 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
             setIsExpanded(false);
             setShowMathEditor(false);
           }}
-          className="text-white hover:bg-white/20 shrink-0"
+          className="shrink-0 hover:bg-primary-foreground/20"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </Button>
       </div>
 
       {/* Progress Stats */}
       {session && (
-        <Card className="m-3 p-3 bg-muted/50">
-          <div className="flex items-center justify-between text-xs mb-2">
+        <div className="px-3 pt-3 pb-2 border-b border-border bg-muted/30">
+          <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-yellow-500" />
+              <Lightbulb className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
               <span className="font-medium">Hints: {session.hintsUsed}</span>
             </div>
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-500" />
+              <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span className="font-medium">Attempts: {session.attempts}</span>
             </div>
             {getEvaluationBadge()}
@@ -512,17 +512,17 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
           {session.attempts > 0 && (
             <Progress 
               value={evaluationResult === 'correct' ? 100 : evaluationResult === 'partially_correct' ? 60 : 30} 
-              className="h-2"
+              className="h-1.5 mt-2"
             />
           )}
-        </Card>
+        </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0 bg-muted/10">
         {messages.length === 0 && !isLoading && (
-          <div className="text-center text-muted-foreground text-sm mt-8">
-            Start chatting below or ask for guidance!
+          <div className="text-center text-muted-foreground text-xs mt-4 p-4 bg-muted/50 rounded-lg">
+            👋 Start chatting below or ask for guidance!
           </div>
         )}
         {messages.map((msg, idx) => {
@@ -533,29 +533,29 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] rounded-2xl p-3 ${
+              className={`max-w-[80%] rounded-lg p-2.5 text-sm ${
                 msg.role === 'user'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                  ? 'bg-primary text-primary-foreground ml-auto'
                   : msg.messageType === 'hint'
-                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 text-foreground'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
                   : msg.messageType === 'evaluation'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 text-foreground'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                   : msg.messageType === 'encouragement'
-                  ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 text-foreground'
-                  : 'bg-muted text-foreground'
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                  : 'bg-muted'
               }`}
             >
-              {msg.role === 'assistant' && msg.messageType && (
-                <div className="flex items-center gap-2 mb-2 text-xs font-semibold opacity-70">
+              {msg.role === 'assistant' && msg.messageType && msg.messageType !== 'chat' && (
+                <div className="flex items-center gap-1.5 mb-1.5 text-xs font-semibold opacity-70">
                   {getMessageIcon(msg.messageType)}
-                  <span className="uppercase tracking-wide">
+                  <span className="uppercase tracking-wide text-[10px]">
                     {msg.messageType === 'hint' ? 'Hint' : 
                      msg.messageType === 'evaluation' ? 'Evaluation' : 
                      msg.messageType === 'encouragement' ? 'Great Job' : 'AI Tutor'}
                   </span>
                 </div>
               )}
-              <div className="text-sm whitespace-pre-wrap leading-relaxed">
+              <div className="text-xs leading-relaxed">
                 {renderMathText(msg.content)}
               </div>
             </div>
@@ -565,9 +565,9 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
         
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-muted rounded-2xl p-3 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm text-muted-foreground">Tutor is analyzing...</span>
+            <div className="bg-muted rounded-lg p-2.5 flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="text-xs text-muted-foreground">Tutor is analyzing...</span>
             </div>
           </div>
         )}
@@ -576,7 +576,7 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
       </div>
 
       {/* Input Area */}
-      <div className={`border-t-2 border-border bg-background shrink-0 transition-all duration-300 ${showMathEditor ? 'p-3' : 'p-4'}`}>
+      <div className={`border-t border-border bg-background shrink-0 ${showMathEditor ? 'p-2' : 'p-3'}`}>
         {!showMathEditor ? (
           <div className="space-y-2">
             <div className="flex gap-2 items-end">
@@ -585,43 +585,43 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your answer or ask for guidance..."
-                className="flex-1 min-h-[80px] max-h-[150px] resize-none text-sm"
+                className="flex-1 min-h-[60px] max-h-[100px] resize-none text-xs"
                 disabled={session?.isCorrect}
               />
               <div className="flex flex-col gap-1">
                 <Button
                   variant="outline"
-                  size="icon"
+                  size="sm"
                   onClick={() => setShowMathEditor(true)}
-                  className="shrink-0"
+                  className="h-7 w-7 p-0 shrink-0"
                   title="Open Math Editor"
                   disabled={session?.isCorrect}
                 >
-                  <Menu className="w-4 h-4" />
+                  <Menu className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading || session?.isCorrect}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shrink-0"
-                  size="icon"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground h-7 w-7 p-0 shrink-0"
+                  size="sm"
                   title="Send Message"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5" />
+                    <Send className="w-3.5 h-3.5" />
                   )}
                 </Button>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-[10px] text-muted-foreground">
                 Press Enter to chat • Shift+Enter for new line
               </p>
               <Button
                 onClick={handleSubmitAnswer}
                 disabled={!input.trim() || isLoading || session?.isCorrect}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-xs px-3 py-1 h-7"
+                className="bg-green-600 hover:bg-green-700 text-white text-[10px] px-2 py-1 h-6"
               >
                 Submit Answer
               </Button>
