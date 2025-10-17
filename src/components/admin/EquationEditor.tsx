@@ -130,10 +130,10 @@ export default function EquationEditor({ value, onChange, placeholder, className
   // Template insertions
   const insertFraction = () => {
     insertAtCursor(`
-      <span class="inline-block border-2 border-gray-800 rounded-lg p-3 mx-1 bg-white" style="vertical-align: middle;">
+      <span class="inline-block mx-1 bg-transparent" style="vertical-align: middle;">
         <span class="math-fraction flex flex-col items-center gap-0">
-          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg" style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px;">□</span>
-          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg">□</span>
+          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg px-2" style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px;">□</span>
+          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg px-2">□</span>
         </span>
       </span>&nbsp;
     `);
