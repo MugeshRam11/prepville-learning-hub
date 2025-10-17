@@ -82,18 +82,21 @@ export default function EquationEditor({ value, onChange, placeholder, className
 
   // Handle keyboard in editable fields
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    const target = e.target as HTMLElement;
+    
     if (e.key === 'Tab') {
       e.preventDefault();
       const editor = editorRef.current;
       if (!editor) return;
 
       // Find all editable elements
-      const editables = editor.querySelectorAll('[contenteditable="true"]');
-      const currentElement = document.activeElement;
-      const currentIndex = Array.from(editables).indexOf(currentElement as Element);
+      const editables = Array.from(editor.querySelectorAll('[contenteditable="true"]'));
+      const currentIndex = editables.indexOf(target);
 
-      if (currentIndex !== -1 && currentIndex < editables.length - 1) {
-        const nextElement = editables[currentIndex + 1] as HTMLElement;
+      if (currentIndex !== -1) {
+        // Move to next field, or loop back to first
+        const nextIndex = (currentIndex + 1) % editables.length;
+        const nextElement = editables[nextIndex] as HTMLElement;
         nextElement.focus();
         
         // Select all content in the next field
@@ -104,31 +107,55 @@ export default function EquationEditor({ value, onChange, placeholder, className
         selection?.addRange(range);
       }
     } else if (e.key === ' ') {
-      // Check if we're inside a fraction or special element
-      const target = e.target as HTMLElement;
-      if (target.getAttribute('contenteditable') === 'true' && target.parentElement?.classList.contains('math-fraction')) {
-        e.preventDefault();
-        const editor = editorRef.current;
-        if (!editor) return;
-        
-        // Move cursor outside the fraction element
-        const selection = window.getSelection();
-        const range = document.createRange();
-        const fractionContainer = target.closest('.inline-block');
-        if (fractionContainer && fractionContainer.nextSibling) {
-          range.setStartAfter(fractionContainer);
-          range.collapse(true);
-        } else if (fractionContainer) {
-          // Add a text node after the fraction if none exists
-          const textNode = document.createTextNode('\u00A0');
-          fractionContainer.parentNode?.insertBefore(textNode, fractionContainer.nextSibling);
-          range.setStartAfter(fractionContainer);
-          range.collapse(true);
+      // Check if we're inside a math element
+      if (target.getAttribute('contenteditable') === 'true' && target.closest('.math-fraction, .inline-block, span[class*="mx-"]')) {
+        const text = target.textContent || '';
+        // Only exit on space if field is filled
+        if (text && text !== '□') {
+          e.preventDefault();
+          const editor = editorRef.current;
+          if (!editor) return;
+          
+          // Move cursor outside the math element
+          const mathContainer = target.closest('.inline-block, span[class*="mx-"]');
+          if (mathContainer) {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            
+            if (mathContainer.nextSibling) {
+              range.setStartAfter(mathContainer);
+            } else {
+              const textNode = document.createTextNode('\u00A0');
+              mathContainer.parentNode?.appendChild(textNode);
+              range.setStartAfter(mathContainer);
+            }
+            range.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            editor.focus();
+          }
         }
+      }
+    }
+  };
+
+  // Handle focus on editable fields - clear □ placeholder
+  const handleFocus = (e: React.FocusEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.getAttribute('contenteditable') === 'true') {
+      const text = target.textContent || '';
+      if (text === '□') {
+        // Clear the placeholder
+        target.textContent = '';
+      }
+      // Select all content
+      setTimeout(() => {
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        const selection = window.getSelection();
         selection?.removeAllRanges();
         selection?.addRange(range);
-        editor.focus();
-      }
+      }, 0);
     }
   };
 
@@ -526,6 +553,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
               contentEditable
               onInput={handleInput}
               onKeyDown={handleKeyDown}
+              onFocus={handleFocus}
               className="w-full min-h-[120px] p-4 border-2 border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-lg empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
               data-placeholder=""
               style={{ 
