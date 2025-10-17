@@ -104,9 +104,11 @@ export default function EquationEditor({ value, onChange, placeholder, className
   // Template insertions
   const insertFraction = () => {
     insertAtCursor(`
-      <span class="inline-flex flex-col items-center mx-1" style="vertical-align: middle;">
-        <span contenteditable="true" class="px-2 text-center min-w-[20px] focus:outline-none focus:bg-blue-50" style="border-bottom: 1.5px solid currentColor; padding-bottom: 2px;">1</span>
-        <span contenteditable="true" class="px-2 text-center min-w-[20px] focus:outline-none focus:bg-blue-50" style="padding-top: 2px;">9</span>
+      <span class="inline-block border-2 border-gray-800 rounded-lg p-3 mx-1 bg-white" style="vertical-align: middle;">
+        <span class="flex flex-col items-center gap-0">
+          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg" style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px;">1</span>
+          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg">9</span>
+        </span>
       </span>
     `);
   };
