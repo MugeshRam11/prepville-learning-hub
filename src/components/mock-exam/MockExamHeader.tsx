@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Maximize, Minimize, LogOut, Clock, Trophy, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ interface MockExamHeaderProps {
   onSubmit: () => void;
   onToggleFullscreen: () => void;
   isFullscreen: boolean;
+  timeLimit?: number; // in minutes
 }
 
 const MockExamHeader = ({ 
@@ -18,9 +19,36 @@ const MockExamHeader = ({
   topic, 
   onSubmit, 
   onToggleFullscreen, 
-  isFullscreen 
+  isFullscreen,
+  timeLimit = 135 // default 2h 15min (135 minutes)
 }: MockExamHeaderProps) => {
   const navigate = useNavigate();
+  const [timeRemaining, setTimeRemaining] = useState(timeLimit * 60); // convert to seconds
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 0) {
+          clearInterval(timer);
+          onSubmit(); // Auto-submit when time runs out
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [onSubmit]);
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const timeColor = timeRemaining < 600 ? 'text-red-200' : 'text-white'; // Red when < 10 minutes
+
   return (
     <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 shadow-lg px-3 sm:px-4 md:px-6 py-3 md:py-4 flex items-center justify-between flex-wrap gap-3 md:gap-0">
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
@@ -51,9 +79,9 @@ const MockExamHeader = ({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-        <div className="hidden lg:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-white">
+        <div className={`hidden lg:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 ${timeColor}`}>
           <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm font-medium">Time: 02:15:30</span>
+          <span className="text-xs sm:text-sm font-medium">Time: {formatTime(timeRemaining)}</span>
         </div>
         
         <Button
