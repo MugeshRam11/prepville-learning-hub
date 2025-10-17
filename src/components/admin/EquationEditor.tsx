@@ -1,9 +1,15 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Image as ImageIcon } from "lucide-react";
+import { Copy, Image as ImageIcon, Menu, Undo, Redo, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import copy from "copy-to-clipboard";
 import html2canvas from "html2canvas";
 
@@ -16,7 +22,26 @@ interface EquationEditorProps {
 
 export default function EquationEditor({ value, onChange, placeholder, className }: EquationEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
+
+  // Common symbols
+  const symbols = [
+    { label: 'α', value: 'α' },
+    { label: 'β', value: 'β' },
+    { label: 'γ', value: 'γ' },
+    { label: 'π', value: 'π' },
+    { label: '∞', value: '∞' },
+    { label: '∂', value: '∂' },
+    { label: '∇', value: '∇' },
+    { label: '≤', value: '≤' },
+    { label: '≥', value: '≥' },
+    { label: '≠', value: '≠' },
+    { label: '±', value: '±' },
+    { label: '÷', value: '÷' },
+    { label: '×', value: '×' },
+    { label: '·', value: '·' },
+  ];
   
   // Handle input in contentEditable div
   const handleInput = () => {
@@ -145,6 +170,18 @@ export default function EquationEditor({ value, onChange, placeholder, className
     });
   };
 
+  const handleCopyLatex = () => {
+    copy(value);
+    toast({
+      title: "LaTeX copied",
+      description: "LaTeX code copied to clipboard",
+    });
+  };
+
+  const insertSymbol = (symbol: string) => {
+    insertAtCursor(symbol);
+  };
+
   const handleCopyPNG = () => {
     if (!editorRef.current) {
       toast({
@@ -187,9 +224,39 @@ export default function EquationEditor({ value, onChange, placeholder, className
   return (
     <div className={className}>
       <Card className="border-dashed">
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs">Word-like Math Editor</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">Word-like Math Editor</Badge>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                <Undo className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                <Redo className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={insertMatrix}>
+                  Insert Matrix
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyText}>
+                  Copy
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyLatex}>
+                  Copy LaTeX
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyPNG}>
+                  Copy as PNG
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Math Templates */}
@@ -288,33 +355,81 @@ export default function EquationEditor({ value, onChange, placeholder, className
             />
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyText}
-              className="h-8 px-3 text-xs"
-            >
-              <Copy className="h-3 w-3 mr-1" />
-              Copy Text
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyPNG}
-              className="h-8 px-3 text-xs"
-            >
-              <ImageIcon className="h-3 w-3 mr-1" />
-              Copy PNG
-            </Button>
+          {/* Symbols Section */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Symbols</label>
+            <div className="flex flex-wrap gap-2">
+              {symbols.map((symbol) => (
+                <Button
+                  key={symbol.value}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => insertSymbol(symbol.value)}
+                  className="h-9 w-9 p-0 text-base"
+                >
+                  {symbol.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyText}
+                className="h-8 px-3 text-xs"
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                Copy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyLatex}
+                className="h-8 px-3 text-xs"
+              >
+                LaTeX
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyPNG}
+                className="h-8 px-3 text-xs"
+              >
+                Unicode
+              </Button>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPreview(!showPreview)}
+                className="h-8 px-3 text-xs"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                {showPreview ? 'Hide' : 'Show'} Preview
+              </Button>
+            </div>
+          </div>
+
+          {showPreview && (
+            <div className="p-3 border rounded-lg bg-muted/30">
+              <div className="text-xs text-muted-foreground mb-2">Preview:</div>
+              <div className="p-2 bg-background rounded border">
+                {editorRef.current?.innerHTML || 'No content'}
+              </div>
+            </div>
+          )}
+
           <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
-            <div><strong>💡 How to use:</strong></div>
-            <div>• Click template buttons to insert formatted math - fractions display vertically like 1/9</div>
-            <div>• Press Tab key to move between editable fields</div>
-            <div>• Type naturally with unicode: α, β, π, ∫, ∑, √, ∞</div>
-            <div>• Copy PNG to paste as image in Word or Google Docs</div>
+            <div className="flex items-start gap-1">
+              <span className="text-orange-500">✨</span>
+              <span>Copy equations from Word or type directly. Fractions, powers, roots work visually.</span>
+            </div>
           </div>
         </CardContent>
       </Card>
