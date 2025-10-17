@@ -100,79 +100,89 @@ const DailyMotivationPopup = ({ userName }: DailyMotivationPopupProps) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-2 border-primary/20 gap-0">
-        {/* Compact Header */}
-        <div className="relative bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] px-5 py-3">
-          <DialogTitle className="flex items-center gap-2 text-white text-base font-bold">
-            <Sparkles className="w-4 h-4" />
+      <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden border-2 border-primary/20 gap-0">
+        {/* Header */}
+        <div className="relative bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] px-6 py-4">
+          <DialogTitle className="flex items-center gap-2 text-white text-lg font-bold">
+            <Sparkles className="w-5 h-5" />
             Daily Inspiration
           </DialogTitle>
           <button
             onClick={handleClose}
-            className="absolute top-2.5 right-3 text-white/80 hover:text-white transition-colors"
+            className="absolute top-3 right-4 text-white/80 hover:text-white transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Compact Content */}
-        <div className="px-5 py-4 space-y-3">
-          {/* Quote - Smaller */}
+        {/* Content */}
+        <div className="px-6 py-5 space-y-4">
+          {/* Quote */}
           {quote && (
-            <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-md p-2.5 border-l-3 border-primary">
-              <p className="text-xs italic text-gray-700 leading-relaxed">"{quote}"</p>
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border-l-4 border-primary shadow-sm">
+              <p className="text-sm italic text-gray-700 leading-relaxed font-medium">"{quote}"</p>
             </div>
           )}
 
-          {/* Compact AI Image */}
-          {loadingImage ? (
-            <Skeleton className="w-full h-28 rounded-lg" />
-          ) : imageUrl ? (
-            <div className="relative rounded-lg overflow-hidden shadow-sm">
-              <img 
-                src={imageUrl} 
-                alt="Daily motivation" 
-                className="w-full h-28 object-cover"
-              />
-            </div>
-          ) : null}
-
-          {/* Compact Greeting & Message */}
-          <div className="space-y-2">
+          {/* Greeting & Date */}
+          <div className="space-y-1">
             {userName && (
-              <p className="text-sm font-semibold text-gray-900">
+              <h3 className="text-lg font-bold text-gray-900">
                 Good morning, {userName}! ✨
-              </p>
+              </h3>
             )}
             
-            <p className="text-xs text-gray-600">
+            <p className="text-sm text-gray-500 font-medium">
               {new Date().toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 month: 'long', 
                 day: 'numeric' 
               })}
             </p>
-
-            {/* AI Message - Condensed */}
-            {loadingMessage ? (
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-4/5" />
-              </div>
-            ) : message ? (
-              <p className="text-sm text-gray-700 leading-relaxed line-clamp-2">
-                {message}
-              </p>
-            ) : null}
           </div>
 
-          {/* Compact Action Button */}
+          {/* AI Image */}
+          {loadingImage ? (
+            <Skeleton className="w-full h-32 rounded-lg" />
+          ) : imageUrl ? (
+            <div className="relative rounded-lg overflow-hidden shadow-md">
+              <img 
+                src={imageUrl} 
+                alt="Daily motivation" 
+                className="w-full h-32 object-cover"
+              />
+            </div>
+          ) : null}
+
+          {/* AI Message */}
+          {loadingMessage ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-4/5" />
+            </div>
+          ) : message ? (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                {message}
+              </p>
+            </div>
+          ) : null}
+
+          {/* Action Button */}
           <Button
             onClick={handleClose}
-            className="w-full bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] hover:opacity-90 transition-all shadow-md font-semibold h-9 text-sm"
+            className="w-full bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] hover:opacity-90 transition-all shadow-lg font-bold h-11 text-base"
             disabled={loadingMessage}
           >
-            {loadingMessage ? 'Loading...' : "Let's Get Started! 🚀"}
+            {loadingMessage ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Loading...
+              </span>
+            ) : (
+              "Let's Get Started! 🚀"
+            )}
           </Button>
         </div>
 
