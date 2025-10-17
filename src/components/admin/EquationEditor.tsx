@@ -9,6 +9,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import copy from "copy-to-clipboard";
 import html2canvas from "html2canvas";
@@ -168,6 +173,42 @@ export default function EquationEditor({ value, onChange, placeholder, className
     insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sub></span>&nbsp;');
   };
 
+  const insertAbsoluteValue = () => {
+    insertAtCursor('|<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">x</span>|&nbsp;');
+  };
+
+  const insertLogarithm = () => {
+    insertAtCursor('<span class="mx-1">log<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">a</sub>(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">x</span>)</span>&nbsp;');
+  };
+
+  const insertDerivative = () => {
+    insertAtCursor('<span class="mx-1"><span class="inline-flex flex-col items-center" style="vertical-align: middle;"><span style="border-bottom: 1px solid #000; padding-bottom: 2px;">d</span><span>dx</span></span> f(x)</span>&nbsp;');
+  };
+
+  const insertProduct = () => {
+    insertAtCursor('<span class="text-2xl mx-1">∏</span>&nbsp;');
+  };
+
+  const insertModulus = () => {
+    insertAtCursor('|<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>|&nbsp;');
+  };
+
+  const insertArgument = () => {
+    insertAtCursor('arg(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>)&nbsp;');
+  };
+
+  const insertRealPart = () => {
+    insertAtCursor('ℜ(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>)&nbsp;');
+  };
+
+  const insertImaginaryPart = () => {
+    insertAtCursor('ℑ(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>)&nbsp;');
+  };
+
+  const insertConjugate = () => {
+    insertAtCursor('<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">z</span>&nbsp;');
+  };
+
 
   // Update editor content when value changes externally
   useEffect(() => {
@@ -260,15 +301,148 @@ export default function EquationEditor({ value, onChange, placeholder, className
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleCopyText}>
-                  Copy
+              <DropdownMenuContent align="end" className="w-64 max-h-[80vh] overflow-y-auto bg-background">
+                {/* Math Functions */}
+                <DropdownMenuLabel className="text-muted-foreground text-xs">Math Functions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={insertAbsoluteValue} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">|x|</span>
+                    <span className="text-sm">Absolute Value</span>
+                  </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopyLatex}>
-                  Copy LaTeX
+                <DropdownMenuItem onClick={insertNthRoot} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">ⁿ√x</span>
+                    <span className="text-sm">nᵗʰ Root</span>
+                  </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopyPNG}>
-                  Copy as PNG
+                <DropdownMenuItem onClick={insertLogarithm} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm">log<sub>a</sub>(x)</span>
+                    <span className="text-sm">Logarithm base a</span>
+                  </span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Calculus */}
+                <DropdownMenuLabel className="text-muted-foreground text-xs">Calculus</DropdownMenuLabel>
+                <DropdownMenuItem onClick={insertDerivative} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm">d/dx f(x)</span>
+                    <span className="text-sm">Derivative</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertDerivative} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm">dⁿ/dxⁿ f(x)</span>
+                    <span className="text-sm">nᵗʰ derivative</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertIntegral} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">∫</span>
+                    <span className="text-sm">Integral</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertSum} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">∑</span>
+                    <span className="text-sm">Sum</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertProduct} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">∏</span>
+                    <span className="text-sm">Product</span>
+                  </span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Complex Numbers */}
+                <DropdownMenuLabel className="text-muted-foreground text-xs">Complex Numbers</DropdownMenuLabel>
+                <DropdownMenuItem onClick={insertModulus} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">|z|</span>
+                    <span className="text-sm">Modulus</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertArgument} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm">arg(z)</span>
+                    <span className="text-sm">Argument</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertRealPart} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">ℜ(z)</span>
+                    <span className="text-sm">Real Part</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertImaginaryPart} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg">ℑ(z)</span>
+                    <span className="text-sm">Imaginary Part</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={insertConjugate} className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm" style={{textDecoration: 'overline'}}>z</span>
+                    <span className="text-sm">Conjugate</span>
+                  </span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Insert Menu */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <span>Insert</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={insertFraction}>Fraction</DropdownMenuItem>
+                    <DropdownMenuItem onClick={insertPower}>Power</DropdownMenuItem>
+                    <DropdownMenuItem onClick={insertSubscript}>Subscript</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                
+                {/* Formatting */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <span>Font Style</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem>Bold</DropdownMenuItem>
+                    <DropdownMenuItem>Italic</DropdownMenuItem>
+                    <DropdownMenuItem>Normal</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Edit Actions */}
+                <DropdownMenuItem className="flex justify-between">
+                  <span>Cut</span>
+                  <span className="text-xs text-muted-foreground">Ctrl+X</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyText} className="flex justify-between">
+                  <span>Copy</span>
+                  <span className="text-xs text-muted-foreground">Ctrl+C</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex justify-between">
+                  <span>Paste</span>
+                  <span className="text-xs text-muted-foreground">Ctrl+V</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex justify-between">
+                  <span>Select All</span>
+                  <span className="text-xs text-muted-foreground">Ctrl+A</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem>
+                  Save Draft
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
