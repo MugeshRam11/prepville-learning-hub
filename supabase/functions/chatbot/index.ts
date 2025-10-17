@@ -394,20 +394,14 @@ Format your response as JSON:
     throw new Error('No tutoring response generated');
   }
 
-  // Parse JSON response
-  let tutoringData;
-  try {
-    const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || aiResponse.match(/\{[\s\S]*\}/);
-    const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
-    tutoringData = JSON.parse(jsonString);
-  } catch (e) {
-    console.error('Failed to parse tutoring JSON:', e);
-    // Fallback to raw response
-    tutoringData = {
-      response: aiResponse,
-      messageType: 'chat'
-    };
-  }
+  console.log('Raw AI response:', aiResponse);
+
+  // Simply return the response text directly, don't try to parse as JSON
+  // The AI should return a conversational response, not JSON
+  const tutoringData = {
+    response: aiResponse.trim(),
+    messageType: 'chat'
+  };
 
   console.log('Generated tutoring response with personalization');
 
