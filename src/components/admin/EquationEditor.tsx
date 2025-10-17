@@ -75,7 +75,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
     handleInput();
   };
 
-  // Handle keyboard navigation
+  // Handle keyboard in editable fields
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -98,6 +98,32 @@ export default function EquationEditor({ value, onChange, placeholder, className
         selection?.removeAllRanges();
         selection?.addRange(range);
       }
+    } else if (e.key === ' ') {
+      // Check if we're inside a fraction or special element
+      const target = e.target as HTMLElement;
+      if (target.getAttribute('contenteditable') === 'true' && target.parentElement?.classList.contains('math-fraction')) {
+        e.preventDefault();
+        const editor = editorRef.current;
+        if (!editor) return;
+        
+        // Move cursor outside the fraction element
+        const selection = window.getSelection();
+        const range = document.createRange();
+        const fractionContainer = target.closest('.inline-block');
+        if (fractionContainer && fractionContainer.nextSibling) {
+          range.setStartAfter(fractionContainer);
+          range.collapse(true);
+        } else if (fractionContainer) {
+          // Add a text node after the fraction if none exists
+          const textNode = document.createTextNode('\u00A0');
+          fractionContainer.parentNode?.insertBefore(textNode, fractionContainer.nextSibling);
+          range.setStartAfter(fractionContainer);
+          range.collapse(true);
+        }
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        editor.focus();
+      }
     }
   };
 
@@ -105,29 +131,29 @@ export default function EquationEditor({ value, onChange, placeholder, className
   const insertFraction = () => {
     insertAtCursor(`
       <span class="inline-block border-2 border-gray-800 rounded-lg p-3 mx-1 bg-white" style="vertical-align: middle;">
-        <span class="flex flex-col items-center gap-0">
-          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg" style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px;">1</span>
-          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg">9</span>
+        <span class="math-fraction flex flex-col items-center gap-0">
+          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg" style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px;">□</span>
+          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg">□</span>
         </span>
-      </span>
+      </span>&nbsp;
     `);
   };
 
 
   const insertPower = () => {
-    insertAtCursor('<sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">2</sup>');
+    insertAtCursor('<sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sup>&nbsp;');
   };
 
   const insertSubscript = () => {
-    insertAtCursor('<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">n</sub>');
+    insertAtCursor('<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sub>&nbsp;');
   };
 
   const insertSquareRoot = () => {
-    insertAtCursor('<span class="mx-1">√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">x</span></span>');
+    insertAtCursor('<span class="mx-1">√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">□</span></span>&nbsp;');
   };
 
   const insertNthRoot = () => {
-    insertAtCursor('<span class="mx-1"><sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">n</sup>√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">x</span></span>');
+    insertAtCursor('<span class="mx-1"><sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sup>√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">□</span></span>&nbsp;');
   };
 
   const insertSum = () => {
@@ -139,17 +165,17 @@ export default function EquationEditor({ value, onChange, placeholder, className
   };
 
   const insertLimit = () => {
-    insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">x→0</sub></span>');
+    insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sub></span>&nbsp;');
   };
 
   const insertMatrix = () => {
     insertAtCursor(`
       <span class="inline-grid grid-cols-2 gap-3 p-3 border-2 border-current rounded mx-1">
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">a</span>
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">b</span>
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">c</span>
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">d</span>
-      </span>
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
+      </span>&nbsp;
     `);
   };
 
@@ -347,14 +373,15 @@ export default function EquationEditor({ value, onChange, placeholder, className
               contentEditable
               onInput={handleInput}
               onKeyDown={handleKeyDown}
-              className="w-full min-h-[120px] p-4 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-lg"
+              className="w-full min-h-[120px] p-4 border-2 border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-lg"
               style={{ 
                 fontFamily: '"Segoe UI", Arial, sans-serif, "Segoe UI Symbol", "Apple Color Emoji"',
                 lineHeight: '2.2'
               }}
               suppressContentEditableWarning
-              dangerouslySetInnerHTML={{ __html: value || '<span class="text-muted-foreground">Type here or click buttons above...</span>' }}
-            />
+            >
+              {!value && <span className="text-muted-foreground">Type here or click buttons above...</span>}
+            </div>
           </div>
 
           {/* Symbols Section */}
