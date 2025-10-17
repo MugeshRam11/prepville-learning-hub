@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Maximize, Minimize, LogOut, Clock, Trophy, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import prepVilleLogo from '@/assets/prep-ville-logo.svg';
 
 interface MockExamHeaderProps {
   subject: string;
@@ -34,8 +35,8 @@ const MockExamHeader = ({
         </Button>
         
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-blue-600 font-bold text-lg">SH</span>
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg p-1.5">
+            <img src={prepVilleLogo} alt="Prep Ville" className="w-full h-full object-contain" />
           </div>
           <div>
             <span className="font-bold text-white text-lg">The Prep Ville</span>
