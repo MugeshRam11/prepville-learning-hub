@@ -333,13 +333,20 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
 
       if (error) throw error;
 
+      console.log('AI Response received:', data);
+      
       const assistantMsg: Message = {
         role: 'assistant',
         content: data.response,
         messageType: data.messageType || 'chat'
       };
 
-      setMessages(prev => [...prev, assistantMsg]);
+      console.log('Adding assistant message to state:', assistantMsg);
+      setMessages(prev => {
+        const newMessages = [...prev, assistantMsg];
+        console.log('New messages array:', newMessages);
+        return newMessages;
+      });
 
       // Store assistant message
       await supabase.from('ai_tutoring_messages').insert({
@@ -513,7 +520,14 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-        {messages.map((msg, idx) => (
+        {messages.length === 0 && !isLoading && (
+          <div className="text-center text-muted-foreground text-sm mt-8">
+            Start chatting below or ask for guidance!
+          </div>
+        )}
+        {messages.map((msg, idx) => {
+          console.log(`Rendering message ${idx}:`, msg);
+          return (
           <div
             key={idx}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -546,7 +560,8 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
         
         {isLoading && (
           <div className="flex justify-start">
