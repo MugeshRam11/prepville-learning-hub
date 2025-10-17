@@ -100,94 +100,76 @@ const DailyMotivationPopup = ({ userName }: DailyMotivationPopupProps) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden border-2 border-primary/20 gap-0">
-        {/* Header */}
-        <div className="relative bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] px-6 py-4">
-          <DialogTitle className="flex items-center gap-2 text-white text-lg font-bold">
-            <Sparkles className="w-5 h-5" />
+      <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden gap-0">
+        {/* Simple Header */}
+        <div className="relative bg-gradient-to-r from-blue-500 to-pink-500 px-4 py-2.5">
+          <DialogTitle className="flex items-center gap-2 text-white text-sm font-semibold">
+            <Sparkles className="w-4 h-4" />
             Daily Inspiration
           </DialogTitle>
           <button
             onClick={handleClose}
-            className="absolute top-3 right-4 text-white/80 hover:text-white transition-colors"
+            className="absolute top-2 right-3 text-white/90 hover:text-white"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="px-6 py-5 space-y-4">
+        {/* Compact Content */}
+        <div className="p-4 space-y-3">
           {/* Quote */}
           {quote && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border-l-4 border-primary shadow-sm">
-              <p className="text-sm italic text-gray-700 leading-relaxed font-medium">"{quote}"</p>
+            <div className="bg-blue-50 rounded-md p-2.5 border-l-4 border-blue-400">
+              <p className="text-xs italic text-gray-700">"{quote}"</p>
             </div>
           )}
 
-          {/* Greeting & Date */}
-          <div className="space-y-1">
-            {userName && (
-              <h3 className="text-lg font-bold text-gray-900">
-                Good morning, {userName}! ✨
-              </h3>
-            )}
-            
-            <p className="text-sm text-gray-500 font-medium">
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+          {/* Greeting */}
+          <div>
+            <h3 className="text-base font-bold text-gray-900">
+              Good morning, {userName || 'Student'}! ✨
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
 
-          {/* AI Image */}
+          {/* Image */}
           {loadingImage ? (
             <Skeleton className="w-full h-32 rounded-lg" />
           ) : imageUrl ? (
-            <div className="relative rounded-lg overflow-hidden shadow-md">
-              <img 
-                src={imageUrl} 
-                alt="Daily motivation" 
-                className="w-full h-32 object-cover"
-              />
-            </div>
+            <img 
+              src={imageUrl} 
+              alt="Daily motivation" 
+              className="w-full h-32 object-cover rounded-lg"
+            />
           ) : null}
 
-          {/* AI Message */}
+          {/* Message */}
           {loadingMessage ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-4/5" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-5/6" />
+              <Skeleton className="h-3 w-4/5" />
             </div>
           ) : message ? (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {message}
-              </p>
-            </div>
+            <p className="text-xs text-gray-700 leading-relaxed">
+              {message}
+            </p>
           ) : null}
 
-          {/* Action Button */}
+          {/* Button */}
           <Button
             onClick={handleClose}
-            className="w-full bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] hover:opacity-90 transition-all shadow-lg font-bold h-11 text-base"
+            className="w-full bg-gradient-to-r from-blue-500 to-pink-500 hover:opacity-90 h-9 text-sm font-semibold"
             disabled={loadingMessage}
           >
-            {loadingMessage ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Loading...
-              </span>
-            ) : (
-              "Let's Get Started! 🚀"
-            )}
+            {loadingMessage ? 'Loading...' : "Let's Get Started! 🚀"}
           </Button>
         </div>
 
         <DialogDescription className="sr-only">
-          Daily motivational message to inspire your learning journey
+          Daily motivational message
         </DialogDescription>
       </DialogContent>
     </Dialog>
