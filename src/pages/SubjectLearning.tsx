@@ -7,24 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  ArrowLeft, 
-  Search, 
-  Filter, 
-  BookOpen, 
-  CheckCircle, 
-  Circle, 
-  Eye, 
-  EyeOff, 
-  Bookmark, 
-  Play, 
-  BarChart3,
-  Trophy,
-  Target,
-  Send,
-  RotateCcw,
-  MessageSquare
-} from 'lucide-react';
+import { ArrowLeft, Search, Filter, BookOpen, CheckCircle, Circle, Eye, EyeOff, Bookmark, Play, BarChart3, Trophy, Target, Send, RotateCcw, MessageSquare } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +16,6 @@ import EquationEditor from '@/components/admin/EquationEditor';
 import { EnhancedAITutor } from '@/components/EnhancedAITutor';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-
 interface Question {
   id: string;
   title: string;
@@ -44,7 +26,6 @@ interface Question {
   isSolved: boolean;
   isBookmarked: boolean;
 }
-
 interface Video {
   id: string;
   title: string;
@@ -52,18 +33,21 @@ interface Video {
   duration: string;
   thumbnail: string;
 }
-
 const SubjectLearning = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user } = useAuth();
-  
+  const {
+    toast
+  } = useToast();
+  const {
+    user
+  } = useAuth();
+
   // Get subject details from URL params
   const subjectTitle = searchParams.get('title') || 'Mathematics';
   const subjectLevel = searchParams.get('level') || 'MYP';
   const totalQuestions = parseInt(searchParams.get('questions') || '1200');
-  
+
   // State management
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,49 +55,46 @@ const SubjectLearning = () => {
   const [selectedTopic, setSelectedTopic] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
-  const [showAnswers, setShowAnswers] = useState<{ [key: string]: boolean }>({});
-  const [userAnswers, setUserAnswers] = useState<{ [key: string]: string }>({});
-  const [submittedAnswers, setSubmittedAnswers] = useState<{ [key: string]: boolean }>({});
+  const [showAnswers, setShowAnswers] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [userAnswers, setUserAnswers] = useState<{
+    [key: string]: string;
+  }>({});
+  const [submittedAnswers, setSubmittedAnswers] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [incorrectAnswers, setIncorrectAnswers] = useState<string[]>([]);
-  const [isTyping, setIsTyping] = useState<{ [key: string]: boolean }>({});
+  const [isTyping, setIsTyping] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-
   useEffect(() => {
     if (user) {
       fetchQuestionsFromDB();
     }
   }, [subjectTitle, subjectLevel, user]);
-
   const fetchQuestionsFromDB = async () => {
     if (!user) return;
-    
     try {
       setLoading(true);
-      
-      // Convert subject title to database format
-      const subjectKey = subjectTitle.toLowerCase().includes('math') ? 'mathematics' : 
-                        subjectTitle.toLowerCase().includes('physics') ? 'physics' :
-                        subjectTitle.toLowerCase().includes('chemistry') ? 'chemistry' :
-                        subjectTitle.toLowerCase().includes('biology') ? 'biology' :
-                        'mathematics';
-      
-      // Fetch questions
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('subject_questions')
-        .select('*')
-        .eq('subject', subjectKey)
-        .eq('level', subjectLevel)
-        .eq('is_published', true);
 
+      // Convert subject title to database format
+      const subjectKey = subjectTitle.toLowerCase().includes('math') ? 'mathematics' : subjectTitle.toLowerCase().includes('physics') ? 'physics' : subjectTitle.toLowerCase().includes('chemistry') ? 'chemistry' : subjectTitle.toLowerCase().includes('biology') ? 'biology' : 'mathematics';
+
+      // Fetch questions
+      const {
+        data: questionsData,
+        error: questionsError
+      } = await supabase.from('subject_questions').select('*').eq('subject', subjectKey).eq('level', subjectLevel).eq('is_published', true);
       if (questionsError) throw questionsError;
 
       // Fetch user progress
-      const { data: progressData, error: progressError } = await supabase
-        .from('user_question_progress')
-        .select('*')
-        .eq('user_id', user.id);
-
+      const {
+        data: progressData,
+        error: progressError
+      } = await supabase.from('user_question_progress').select('*').eq('user_id', user.id);
       if (progressError) throw progressError;
 
       // Create a map of progress by question_id
@@ -133,75 +114,72 @@ const SubjectLearning = () => {
           isBookmarked: progress?.is_bookmarked || false
         };
       }) || [];
-
       setQuestions(formattedQuestions);
-      
+
       // Load user answers for questions with progress
-      const answersMap: { [key: string]: string } = {};
+      const answersMap: {
+        [key: string]: string;
+      } = {};
       progressData?.forEach(p => {
         if (p.user_answer) {
           answersMap[p.question_id] = p.user_answer;
-          setSubmittedAnswers(prev => ({ ...prev, [p.question_id]: true }));
+          setSubmittedAnswers(prev => ({
+            ...prev,
+            [p.question_id]: true
+          }));
         }
       });
       setUserAnswers(answersMap);
     } catch (error) {
       console.error('Error fetching questions:', error);
       // Fall back to mock data if database fetch fails
-      setQuestions([
-        {
-          id: '1',
-          title: 'Linear Equations and Graphing',
-          topic: 'Algebra',
-          difficulty: 'Easy',
-          content: 'Solve for x: 2x + 5 = 17',
-          answerKey: 'x = 6. First, subtract 5 from both sides: 2x = 12. Then divide by 2: x = 6.',
-          isSolved: true,
-          isBookmarked: false
-        },
-        {
-          id: '2',
-          title: 'Quadratic Formula Application',
-          topic: 'Algebra',
-          difficulty: 'Medium',
-          content: 'Find the roots of x² - 5x + 6 = 0 using the quadratic formula.',
-          answerKey: 'x = 2 or x = 3. Using the quadratic formula: x = (5 ± √(25-24))/2 = (5 ± 1)/2.',
-          isSolved: false,
-          isBookmarked: true
-        }
-      ]);
+      setQuestions([{
+        id: '1',
+        title: 'Linear Equations and Graphing',
+        topic: 'Algebra',
+        difficulty: 'Easy',
+        content: 'Solve for x: 2x + 5 = 17',
+        answerKey: 'x = 6. First, subtract 5 from both sides: 2x = 12. Then divide by 2: x = 6.',
+        isSolved: true,
+        isBookmarked: false
+      }, {
+        id: '2',
+        title: 'Quadratic Formula Application',
+        topic: 'Algebra',
+        difficulty: 'Medium',
+        content: 'Find the roots of x² - 5x + 6 = 0 using the quadratic formula.',
+        answerKey: 'x = 2 or x = 3. Using the quadratic formula: x = (5 ± √(25-24))/2 = (5 ± 1)/2.',
+        isSolved: false,
+        isBookmarked: true
+      }]);
     } finally {
       setLoading(false);
     }
   };
   // Calculate progress
   const solvedQuestions = questions.filter(q => q.isSolved).length;
-  const progressPercentage = totalQuestions > 0 ? Math.round((solvedQuestions / totalQuestions) * 100) : 0;
+  const progressPercentage = totalQuestions > 0 ? Math.round(solvedQuestions / totalQuestions * 100) : 0;
 
   // Mock videos data
-  const mockVideos = [
-    {
-      id: '1',
-      title: 'Linear Equations Basics',
-      topic: 'Algebra',
-      duration: '15:30',
-      thumbnail: '/placeholder.svg'
-    },
-    {
-      id: '2',
-      title: 'Quadratic Functions',
-      topic: 'Algebra',
-      duration: '22:45',
-      thumbnail: '/placeholder.svg'
-    },
-    {
-      id: '3',
-      title: 'Graphing Techniques',
-      topic: 'Algebra',
-      duration: '18:20',
-      thumbnail: '/placeholder.svg'
-    }
-  ];
+  const mockVideos = [{
+    id: '1',
+    title: 'Linear Equations Basics',
+    topic: 'Algebra',
+    duration: '15:30',
+    thumbnail: '/placeholder.svg'
+  }, {
+    id: '2',
+    title: 'Quadratic Functions',
+    topic: 'Algebra',
+    duration: '22:45',
+    thumbnail: '/placeholder.svg'
+  }, {
+    id: '3',
+    title: 'Graphing Techniques',
+    topic: 'Algebra',
+    duration: '18:20',
+    thumbnail: '/placeholder.svg'
+  }];
 
   // Get unique topics from questions
   const topics = useMemo(() => {
@@ -224,11 +202,7 @@ const SubjectLearning = () => {
 
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(q => 
-        q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.content.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.filter(q => q.title.toLowerCase().includes(searchQuery.toLowerCase()) || q.topic.toLowerCase().includes(searchQuery.toLowerCase()) || q.content.toLowerCase().includes(searchQuery.toLowerCase()));
     }
 
     // Filter by topic
@@ -240,50 +214,46 @@ const SubjectLearning = () => {
     if (selectedDifficulty !== 'all') {
       filtered = filtered.filter(q => q.difficulty === selectedDifficulty);
     }
-
     return filtered;
   }, [questions, activeTab, searchQuery, selectedTopic, selectedDifficulty]);
 
   // Handle question actions
   const toggleSolved = async (questionId: string) => {
     if (!user) return;
-    
     const question = questions.find(q => q.id === questionId);
     if (!question) return;
-    
     const newSolvedState = !question.isSolved;
-    
+
     // Optimistically update UI
-    setQuestions(prev => prev.map(q => 
-      q.id === questionId ? { ...q, isSolved: newSolvedState } : q
-    ));
-    
+    setQuestions(prev => prev.map(q => q.id === questionId ? {
+      ...q,
+      isSolved: newSolvedState
+    } : q));
     try {
       // Update or insert progress in database
-      const { error } = await supabase
-        .from('user_question_progress')
-        .upsert({
-          user_id: user.id,
-          question_id: questionId,
-          is_solved: newSolvedState,
-          solved_at: newSolvedState ? new Date().toISOString() : null,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,question_id'
-        });
-      
+      const {
+        error
+      } = await supabase.from('user_question_progress').upsert({
+        user_id: user.id,
+        question_id: questionId,
+        is_solved: newSolvedState,
+        solved_at: newSolvedState ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,question_id'
+      });
       if (error) throw error;
-      
       toast({
         title: "Question Updated",
-        description: "Question status has been updated successfully.",
+        description: "Question status has been updated successfully."
       });
     } catch (error) {
       console.error('Error updating question status:', error);
       // Revert optimistic update on error
-      setQuestions(prev => prev.map(q => 
-        q.id === questionId ? { ...q, isSolved: !newSolvedState } : q
-      ));
+      setQuestions(prev => prev.map(q => q.id === questionId ? {
+        ...q,
+        isSolved: !newSolvedState
+      } : q));
       toast({
         title: "Error",
         description: "Failed to update question status.",
@@ -291,40 +261,37 @@ const SubjectLearning = () => {
       });
     }
   };
-
   const toggleBookmark = async (questionId: string) => {
     if (!user) return;
-    
     const question = questions.find(q => q.id === questionId);
     if (!question) return;
-    
     const newBookmarkedState = !question.isBookmarked;
-    
+
     // Optimistically update UI
-    setQuestions(prev => prev.map(q => 
-      q.id === questionId ? { ...q, isBookmarked: newBookmarkedState } : q
-    ));
-    
+    setQuestions(prev => prev.map(q => q.id === questionId ? {
+      ...q,
+      isBookmarked: newBookmarkedState
+    } : q));
     try {
       // Update or insert progress in database
-      const { error } = await supabase
-        .from('user_question_progress')
-        .upsert({
-          user_id: user.id,
-          question_id: questionId,
-          is_bookmarked: newBookmarkedState,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,question_id'
-        });
-      
+      const {
+        error
+      } = await supabase.from('user_question_progress').upsert({
+        user_id: user.id,
+        question_id: questionId,
+        is_bookmarked: newBookmarkedState,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,question_id'
+      });
       if (error) throw error;
     } catch (error) {
       console.error('Error updating bookmark:', error);
       // Revert optimistic update on error
-      setQuestions(prev => prev.map(q => 
-        q.id === questionId ? { ...q, isBookmarked: !newBookmarkedState } : q
-      ));
+      setQuestions(prev => prev.map(q => q.id === questionId ? {
+        ...q,
+        isBookmarked: !newBookmarkedState
+      } : q));
       toast({
         title: "Error",
         description: "Failed to update bookmark.",
@@ -332,59 +299,49 @@ const SubjectLearning = () => {
       });
     }
   };
-
   const handleAnswerSubmit = async (questionId: string) => {
     if (!user) return;
-    
     const question = questions.find(q => q.id === questionId);
     const userAnswer = userAnswers[questionId]?.trim();
-    
     if (!question || !userAnswer) return;
-    
     const isCorrect = question.answerKey.toLowerCase().includes(userAnswer.toLowerCase());
-    
     setSubmittedAnswers(prev => ({
       ...prev,
       [questionId]: true
     }));
-    
     try {
       // Get current progress to increment attempts
-      const { data: currentProgress } = await supabase
-        .from('user_question_progress')
-        .select('attempts')
-        .eq('user_id', user.id)
-        .eq('question_id', questionId)
-        .single();
-      
+      const {
+        data: currentProgress
+      } = await supabase.from('user_question_progress').select('attempts').eq('user_id', user.id).eq('question_id', questionId).single();
       const currentAttempts = currentProgress?.attempts || 0;
-      
+
       // Save answer and update progress
-      const { error } = await supabase
-        .from('user_question_progress')
-        .upsert({
-          user_id: user.id,
-          question_id: questionId,
-          is_solved: isCorrect,
-          user_answer: userAnswer,
-          attempts: currentAttempts + 1,
-          last_attempted_at: new Date().toISOString(),
-          solved_at: isCorrect ? new Date().toISOString() : null,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,question_id'
-        });
-      
+      const {
+        error
+      } = await supabase.from('user_question_progress').upsert({
+        user_id: user.id,
+        question_id: questionId,
+        is_solved: isCorrect,
+        user_answer: userAnswer,
+        attempts: currentAttempts + 1,
+        last_attempted_at: new Date().toISOString(),
+        solved_at: isCorrect ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,question_id'
+      });
       if (error) throw error;
-      
+
       // Automatically mark as solved if answer is correct
       if (isCorrect) {
-        setQuestions(prev => prev.map(q => 
-          q.id === questionId ? { ...q, isSolved: true } : q
-        ));
+        setQuestions(prev => prev.map(q => q.id === questionId ? {
+          ...q,
+          isSolved: true
+        } : q));
         toast({
           title: "Correct Answer!",
-          description: "Question marked as solved automatically.",
+          description: "Question marked as solved automatically."
         });
       } else {
         // Add to incorrect answers for review
@@ -396,7 +353,7 @@ const SubjectLearning = () => {
         });
         toast({
           title: "Answer Submitted",
-          description: "Check the Review tab to see the correct answer.",
+          description: "Check the Review tab to see the correct answer."
         });
       }
     } catch (error) {
@@ -408,7 +365,6 @@ const SubjectLearning = () => {
       });
     }
   };
-
   const handleRetryAnswer = (questionId: string) => {
     setSubmittedAnswers(prev => ({
       ...prev,
@@ -423,7 +379,6 @@ const SubjectLearning = () => {
       [questionId]: ''
     }));
   };
-
   const handleAnswerChange = (questionId: string, value: string) => {
     setUserAnswers(prev => ({
       ...prev,
@@ -434,7 +389,6 @@ const SubjectLearning = () => {
       [questionId]: true
     }));
   };
-
   const handleAnswerBlur = (questionId: string) => {
     // Wait a moment before marking as not typing (to avoid flickering)
     setTimeout(() => {
@@ -444,11 +398,9 @@ const SubjectLearning = () => {
       }));
     }, 300);
   };
-
   const renderMathText = (text: string) => {
     // Check if the text contains LaTeX commands (starts with backslash)
     const hasLatex = /\\[a-zA-Z]+/.test(text);
-    
     if (hasLatex) {
       // If it's mostly LaTeX (no $ delimiters), render the entire text as LaTeX
       try {
@@ -458,7 +410,9 @@ const SubjectLearning = () => {
           errorColor: '#cc0000',
           strict: false
         });
-        return <span dangerouslySetInnerHTML={{ __html: html }} />;
+        return <span dangerouslySetInnerHTML={{
+          __html: html
+        }} />;
       } catch (error) {
         console.error('LaTeX rendering error:', error);
         return <span className="text-red-500">LaTeX Error: {text}</span>;
@@ -466,7 +420,6 @@ const SubjectLearning = () => {
     } else {
       // Split text by $...$ patterns to find LaTeX equations in regular text
       const parts = text.split(/(\$[^$]+\$)/g);
-      
       return parts.map((part, index) => {
         if (part.startsWith('$') && part.endsWith('$')) {
           // This is a LaTeX equation
@@ -478,7 +431,9 @@ const SubjectLearning = () => {
               errorColor: '#cc0000',
               strict: false
             });
-            return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+            return <span key={index} dangerouslySetInnerHTML={{
+              __html: html
+            }} />;
           } catch (error) {
             return <span key={index} className="text-red-500">Error: {equation}</span>;
           }
@@ -489,29 +444,25 @@ const SubjectLearning = () => {
       });
     }
   };
-
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy': return 'text-green-600 bg-green-50 border-green-200';
-      case 'Medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'Hard': return 'text-red-600 bg-red-50 border-red-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'Easy':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'Medium':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'Hard':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate('/subjects')}
-                className="flex items-center gap-2"
-              >
+              <Button variant="ghost" size="sm" onClick={() => navigate('/subjects')} className="flex items-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Back to Subjects
               </Button>
@@ -570,16 +521,10 @@ const SubjectLearning = () => {
 
             {/* Videos Section */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Play className="w-5 h-5" />
-                  Related Videos
-                </CardTitle>
-              </CardHeader>
+              
               <CardContent>
                 <div className="space-y-3">
-                  {mockVideos.map(video => (
-                    <div key={video.id} className="flex gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors">
+                  {mockVideos.map(video => <div key={video.id} className="flex gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors">
                       <div className="w-16 h-12 bg-muted rounded flex items-center justify-center">
                         <Play className="w-4 h-4" />
                       </div>
@@ -587,8 +532,7 @@ const SubjectLearning = () => {
                         <p className="font-medium text-sm truncate">{video.title}</p>
                         <p className="text-xs text-muted-foreground">{video.topic} • {video.duration}</p>
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </CardContent>
             </Card>
@@ -634,12 +578,7 @@ const SubjectLearning = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder="Search questions..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
+                    <Input placeholder="Search questions..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
                   </div>
                   
                   <Select value={selectedTopic} onValueChange={setSelectedTopic}>
@@ -648,9 +587,7 @@ const SubjectLearning = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Topics</SelectItem>
-                      {topics.map(topic => (
-                        <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                      ))}
+                      {topics.map(topic => <SelectItem key={topic} value={topic}>{topic}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   
@@ -681,27 +618,19 @@ const SubjectLearning = () => {
 
               <TabsContent value="all" className="mt-6">
                 <div className="space-y-4">
-                  {filteredQuestions.length === 0 ? (
-                    <Card>
+                  {filteredQuestions.length === 0 ? <Card>
                       <CardContent className="py-12 text-center">
                         <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No questions found matching your criteria.</p>
                       </CardContent>
-                    </Card>
-                  ) : (
-                    filteredQuestions.map(question => (
-                      <Card key={question.id} className="hover:shadow-md transition-shadow">
+                    </Card> : filteredQuestions.map(question => <Card key={question.id} className="hover:shadow-md transition-shadow">
                         <Collapsible>
                           <CollapsibleTrigger asChild>
                             <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <CardTitle className="text-lg flex items-center gap-3">
-                                    {question.isSolved ? (
-                                      <CheckCircle className="w-5 h-5 text-green-500" />
-                                    ) : (
-                                      <Circle className="w-5 h-5 text-muted-foreground" />
-                                    )}
+                                    {question.isSolved ? <CheckCircle className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5 text-muted-foreground" />}
                                     {question.title}
                                   </CardTitle>
                                   <div className="flex items-center gap-2 mt-2">
@@ -711,14 +640,10 @@ const SubjectLearning = () => {
                                     </Badge>
                                   </div>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleBookmark(question.id);
-                                  }}
-                                >
+                                <Button variant="ghost" size="sm" onClick={e => {
+                            e.stopPropagation();
+                            toggleBookmark(question.id);
+                          }}>
                                   <Bookmark className={`w-4 h-4 ${question.isBookmarked ? 'fill-current text-yellow-500' : ''}`} />
                                 </Button>
                               </div>
@@ -733,143 +658,96 @@ const SubjectLearning = () => {
                                 </div>
                                 
                                 {/* Answer Input Section */}
-                                {!submittedAnswers[question.id] ? (
-                                  <div className="space-y-3">
+                                {!submittedAnswers[question.id] ? <div className="space-y-3">
                                     <label className="text-sm font-medium">Your Answer:</label>
                                     <div onBlur={() => handleAnswerBlur(question.id)}>
-                                      <EquationEditor
-                                        value={userAnswers[question.id] || ''}
-                                        onChange={(value) => handleAnswerChange(question.id, value)}
-                                        placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly."
-                                        className="min-h-[120px]"
-                                      />
+                                      <EquationEditor value={userAnswers[question.id] || ''} onChange={value => handleAnswerChange(question.id, value)} placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly." className="min-h-[120px]" />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      {!isTyping[question.id] && userAnswers[question.id]?.trim() && (
-                                        <Button
-                                          onClick={() => handleAnswerSubmit(question.id)}
-                                          className="flex items-center gap-2"
-                                        >
+                                      {!isTyping[question.id] && userAnswers[question.id]?.trim() && <Button onClick={() => handleAnswerSubmit(question.id)} className="flex items-center gap-2">
                                           <Send className="w-4 h-4" />
                                           Submit Answer
-                                        </Button>
-                                      )}
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                          setSelectedQuestion(question);
-                                          setIsChatOpen(true);
-                                        }}
-                                        className="flex items-center gap-2"
-                                      >
+                                        </Button>}
+                                      <Button variant="outline" onClick={() => {
+                                setSelectedQuestion(question);
+                                setIsChatOpen(true);
+                              }} className="flex items-center gap-2">
                                         <MessageSquare className="w-4 h-4" />
                                         Ask AI Tutor
                                       </Button>
                                     </div>
-                                  </div>
-                                 ) : (
-                                   <div className="space-y-3">
+                                  </div> : <div className="space-y-3">
                                      <div className="p-3 bg-muted rounded-lg">
                                        <p className="text-sm font-medium mb-2">Your Answer:</p>
                                        <div className="text-base">{renderMathText(userAnswers[question.id])}</div>
                                      </div>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleRetryAnswer(question.id)}
-                                      className="flex items-center gap-2"
-                                    >
+                                    <Button variant="outline" size="sm" onClick={() => handleRetryAnswer(question.id)} className="flex items-center gap-2">
                                       <RotateCcw className="w-4 h-4" />
                                       Try Again
                                      </Button>
-                                  </div>
-                                 )}
+                                  </div>}
                               </div>
                             </CardContent>
                           </CollapsibleContent>
                         </Collapsible>
-                      </Card>
-                    ))
-                  )}
+                      </Card>)}
                 </div>
               </TabsContent>
 
               <TabsContent value="solved" className="mt-6">
                 <div className="space-y-4">
-                  {filteredQuestions.length === 0 ? (
-                    <Card>
+                  {filteredQuestions.length === 0 ? <Card>
                       <CardContent className="py-12 text-center">
                         <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No solved questions found.</p>
                       </CardContent>
-                    </Card>
-                  ) : (
-                    filteredQuestions.map(question => (
-                      <Card key={question.id}>
+                    </Card> : filteredQuestions.map(question => <Card key={question.id}>
                         <CardHeader>
                           <CardTitle className="text-lg">{question.title}</CardTitle>
                         </CardHeader>
-                      </Card>
-                    ))
-                  )}
+                      </Card>)}
                 </div>
               </TabsContent>
 
               <TabsContent value="unsolved" className="mt-6">
                 <div className="space-y-4">
-                  {filteredQuestions.length === 0 ? (
-                    <Card>
+                  {filteredQuestions.length === 0 ? <Card>
                       <CardContent className="py-12 text-center">
                         <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No unsolved questions found.</p>
                       </CardContent>
-                    </Card>
-                  ) : (
-                    filteredQuestions.map(question => (
-                      <Card key={question.id}>
+                    </Card> : filteredQuestions.map(question => <Card key={question.id}>
                         <CardHeader>
                           <CardTitle className="text-lg">{question.title}</CardTitle>
                         </CardHeader>
-                      </Card>
-                    ))
-                  )}
+                      </Card>)}
                 </div>
               </TabsContent>
 
               <TabsContent value="bookmarked" className="mt-6">
                 <div className="space-y-4">
-                  {filteredQuestions.length === 0 ? (
-                    <Card>
+                  {filteredQuestions.length === 0 ? <Card>
                       <CardContent className="py-12 text-center">
                         <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No bookmarked questions found.</p>
                       </CardContent>
-                    </Card>
-                  ) : (
-                    filteredQuestions.map(question => (
-                      <Card key={question.id}>
+                    </Card> : filteredQuestions.map(question => <Card key={question.id}>
                         <CardHeader>
                           <CardTitle className="text-lg">{question.title}</CardTitle>
                         </CardHeader>
-                      </Card>
-                    ))
-                  )}
+                      </Card>)}
                 </div>
               </TabsContent>
 
               <TabsContent value="review" className="mt-6">
                 <div className="space-y-4">
-                  {incorrectAnswers.length === 0 ? (
-                    <Card>
+                  {incorrectAnswers.length === 0 ? <Card>
                       <CardContent className="py-12 text-center">
                         <Target className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No incorrect answers to review yet.</p>
                         <p className="text-sm text-muted-foreground mt-2">Submit answers to questions to see them here.</p>
                       </CardContent>
-                    </Card>
-                  ) : (
-                    questions.filter(q => incorrectAnswers.includes(q.id)).map(question => (
-                      <Card key={question.id} className="border-red-200">
+                    </Card> : questions.filter(q => incorrectAnswers.includes(q.id)).map(question => <Card key={question.id} className="border-red-200">
                         <CardHeader className="bg-red-50">
                           <CardTitle className="text-lg text-red-800">
                             {question.title}
@@ -897,23 +775,16 @@ const SubjectLearning = () => {
                             <div className="text-base text-green-700">{renderMathText(question.answerKey)}</div>
                           </div>
                           
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              handleRetryAnswer(question.id);
-                              setIncorrectAnswers(prev => prev.filter(id => id !== question.id));
-                              setActiveTab('all');
-                            }}
-                            className="flex items-center gap-2"
-                          >
+                          <Button variant="outline" size="sm" onClick={() => {
+                      handleRetryAnswer(question.id);
+                      setIncorrectAnswers(prev => prev.filter(id => id !== question.id));
+                      setActiveTab('all');
+                    }} className="flex items-center gap-2">
                             <RotateCcw className="w-4 h-4" />
                             Try Again
                           </Button>
                         </CardContent>
-                      </Card>
-                    ))
-                  )}
+                      </Card>)}
                 </div>
               </TabsContent>
             </Tabs>
@@ -922,33 +793,23 @@ const SubjectLearning = () => {
       </div>
 
       {/* Enhanced AI Tutor */}
-      {selectedQuestion && (
-        <EnhancedAITutor
-          question={{
-            id: selectedQuestion.id,
-            title: selectedQuestion.title,
-            content: selectedQuestion.content,
-            answerKey: selectedQuestion.answerKey,
-            topic: selectedQuestion.topic,
-            difficulty: selectedQuestion.difficulty
-          }}
-          subject={subjectTitle}
-          isOpen={isChatOpen}
-          onClose={() => {
-            setIsChatOpen(false);
-            setSelectedQuestion(null);
-          }}
-          onAnswerCorrect={() => {
-            toggleSolved(selectedQuestion.id);
-            toast({
-              title: "🎉 Correct!",
-              description: "Great job! You've mastered this concept.",
-            });
-          }}
-        />
-      )}
-    </div>
-  );
+      {selectedQuestion && <EnhancedAITutor question={{
+      id: selectedQuestion.id,
+      title: selectedQuestion.title,
+      content: selectedQuestion.content,
+      answerKey: selectedQuestion.answerKey,
+      topic: selectedQuestion.topic,
+      difficulty: selectedQuestion.difficulty
+    }} subject={subjectTitle} isOpen={isChatOpen} onClose={() => {
+      setIsChatOpen(false);
+      setSelectedQuestion(null);
+    }} onAnswerCorrect={() => {
+      toggleSolved(selectedQuestion.id);
+      toast({
+        title: "🎉 Correct!",
+        description: "Great job! You've mastered this concept."
+      });
+    }} />}
+    </div>;
 };
-
 export default SubjectLearning;
