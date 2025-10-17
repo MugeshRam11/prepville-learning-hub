@@ -50,25 +50,57 @@ export default function EquationEditor({ value, onChange, placeholder, className
     handleInput();
   };
 
-  // Template insertions
-  const insertFraction = () => {
-    insertAtCursor('<span class="inline-flex flex-col items-center text-sm"><span contenteditable="true" class="border-b border-current px-1">1</span><span contenteditable="true" class="px-1">9</span></span>');
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      // Find all editable elements
+      const editables = editor.querySelectorAll('[contenteditable="true"]');
+      const currentElement = document.activeElement;
+      const currentIndex = Array.from(editables).indexOf(currentElement as Element);
+
+      if (currentIndex !== -1 && currentIndex < editables.length - 1) {
+        const nextElement = editables[currentIndex + 1] as HTMLElement;
+        nextElement.focus();
+        
+        // Select all content in the next field
+        const range = document.createRange();
+        range.selectNodeContents(nextElement);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+    }
   };
 
+  // Template insertions
+  const insertFraction = () => {
+    insertAtCursor(`
+      <span class="inline-flex flex-col items-center mx-1" style="vertical-align: middle;">
+        <span contenteditable="true" class="px-2 text-center min-w-[20px] focus:outline-none focus:bg-blue-50" style="border-bottom: 2px solid currentColor;">1</span>
+        <span contenteditable="true" class="px-2 text-center min-w-[20px] focus:outline-none focus:bg-blue-50">9</span>
+      </span>
+    `);
+  };
+
+
   const insertPower = () => {
-    insertAtCursor('<sup contenteditable="true" class="text-xs">2</sup>');
+    insertAtCursor('<sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">2</sup>');
   };
 
   const insertSubscript = () => {
-    insertAtCursor('<sub contenteditable="true" class="text-xs">n</sub>');
+    insertAtCursor('<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">n</sub>');
   };
 
   const insertSquareRoot = () => {
-    insertAtCursor('<span>√<span contenteditable="true" class="underline">x</span></span>');
+    insertAtCursor('<span class="mx-1">√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">x</span></span>');
   };
 
   const insertNthRoot = () => {
-    insertAtCursor('<span><sup contenteditable="true" class="text-xs">n</sup>√<span contenteditable="true" class="underline">x</span></span>');
+    insertAtCursor('<span class="mx-1"><sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">n</sup>√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">x</span></span>');
   };
 
   const insertSum = () => {
@@ -80,11 +112,18 @@ export default function EquationEditor({ value, onChange, placeholder, className
   };
 
   const insertLimit = () => {
-    insertAtCursor('<span>lim<sub contenteditable="true" class="text-xs">x→0</sub></span>');
+    insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">x→0</sub></span>');
   };
 
   const insertMatrix = () => {
-    insertAtCursor('<span class="inline-grid grid-cols-2 gap-2 p-2 border border-current rounded">  <span contenteditable="true">a</span>  <span contenteditable="true">b</span>  <span contenteditable="true">c</span>  <span contenteditable="true">d</span></span>');
+    insertAtCursor(`
+      <span class="inline-grid grid-cols-2 gap-3 p-3 border-2 border-current rounded mx-1">
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">a</span>
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">b</span>
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">c</span>
+        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">d</span>
+      </span>
+    `);
   };
 
   // Update editor content when value changes externally
@@ -238,10 +277,11 @@ export default function EquationEditor({ value, onChange, placeholder, className
               ref={editorRef}
               contentEditable
               onInput={handleInput}
+              onKeyDown={handleKeyDown}
               className="w-full min-h-[120px] p-4 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-lg"
               style={{ 
                 fontFamily: '"Segoe UI", Arial, sans-serif, "Segoe UI Symbol", "Apple Color Emoji"',
-                lineHeight: '1.8'
+                lineHeight: '2.2'
               }}
               suppressContentEditableWarning
               dangerouslySetInnerHTML={{ __html: value || '<span class="text-muted-foreground">Type here or click buttons above...</span>' }}
@@ -271,9 +311,9 @@ export default function EquationEditor({ value, onChange, placeholder, className
 
           <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
             <div><strong>💡 How to use:</strong></div>
-            <div>• Click template buttons to insert formatted math (fractions, powers, roots)</div>
+            <div>• Click template buttons to insert formatted math - fractions display vertically like 1/9</div>
+            <div>• Press Tab key to move between editable fields</div>
             <div>• Type naturally with unicode: α, β, π, ∫, ∑, √, ∞</div>
-            <div>• Click in the blue boxes to edit values</div>
             <div>• Copy PNG to paste as image in Word or Google Docs</div>
           </div>
         </CardContent>
