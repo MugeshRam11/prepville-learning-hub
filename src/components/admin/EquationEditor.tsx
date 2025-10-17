@@ -168,16 +168,6 @@ export default function EquationEditor({ value, onChange, placeholder, className
     insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sub></span>&nbsp;');
   };
 
-  const insertMatrix = () => {
-    insertAtCursor(`
-      <span class="inline-grid grid-cols-2 gap-3 p-3 border-2 border-current rounded mx-1">
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
-        <span contenteditable="true" class="focus:outline-none focus:bg-blue-50 text-center">□</span>
-      </span>&nbsp;
-    `);
-  };
 
   // Update editor content when value changes externally
   useEffect(() => {
@@ -271,9 +261,6 @@ export default function EquationEditor({ value, onChange, placeholder, className
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={insertMatrix}>
-                  Insert Matrix
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleCopyText}>
                   Copy
                 </DropdownMenuItem>
@@ -355,14 +342,6 @@ export default function EquationEditor({ value, onChange, placeholder, className
               >
                 Limit
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertMatrix}
-                className="h-9 px-4 text-sm"
-              >
-                Matrix
-              </Button>
             </div>
           </div>
 
@@ -373,15 +352,14 @@ export default function EquationEditor({ value, onChange, placeholder, className
               contentEditable
               onInput={handleInput}
               onKeyDown={handleKeyDown}
-              className="w-full min-h-[120px] p-4 border-2 border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-lg"
+              className="w-full min-h-[120px] p-4 border-2 border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-lg empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
+              data-placeholder=""
               style={{ 
                 fontFamily: '"Segoe UI", Arial, sans-serif, "Segoe UI Symbol", "Apple Color Emoji"',
                 lineHeight: '2.2'
               }}
               suppressContentEditableWarning
-            >
-              {!value && <span className="text-muted-foreground">Type here or click buttons above...</span>}
-            </div>
+            />
           </div>
 
           {/* Symbols Section */}
