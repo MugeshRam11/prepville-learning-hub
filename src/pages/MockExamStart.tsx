@@ -43,6 +43,7 @@ const MockExamStart = () => {
   const [startTime] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState(180 * 60); // 3 hours in seconds
 
   // Load questions from database or use passed questions
   useEffect(() => {
@@ -148,6 +149,28 @@ const MockExamStart = () => {
     }
   }, []);
 
+  // Timer countdown with auto-submit
+  useEffect(() => {
+    if (timeRemaining <= 0) {
+      // Auto-submit when time runs out
+      toast.info('Time is up! Submitting your test...');
+      handleSubmitTest();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining]);
+
   const handleQuestionSelect = (questionIndex: number, subQuestionIndex?: number) => {
     setCurrentQuestionIndex(questionIndex);
     setCurrentSubQuestionIndex(subQuestionIndex ?? null);
@@ -187,17 +210,25 @@ const MockExamStart = () => {
         wordCount
       };
 
+      let updatedAnswers;
       if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = newAnswer;
-        return updated;
+        updatedAnswers = [...prev];
+        updatedAnswers[existingIndex] = newAnswer;
       } else {
-        return [...prev, newAnswer];
+        updatedAnswers = [...prev, newAnswer];
       }
+
+      // Save to localStorage immediately
+      localStorage.setItem('mockExamAnswers', JSON.stringify(updatedAnswers));
+      
+      return updatedAnswers;
     });
   };
 
   const handleSubmitTest = () => {
+    // Clear saved answers from localStorage
+    localStorage.removeItem('mockExamAnswers');
+    
     const timeSpent = new Date().getTime() - startTime.getTime();
     const totalTimeMinutes = Math.floor(timeSpent / (1000 * 60));
     

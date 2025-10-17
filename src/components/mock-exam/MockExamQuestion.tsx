@@ -28,18 +28,20 @@ const MockExamQuestion = ({
   onNext,
   isLastQuestion
 }: MockExamQuestionProps) => {
-  const [currentAnswer, setCurrentAnswer] = useState(answer);
+  const [currentAnswer, setCurrentAnswer] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
+  // Sync with parent answer prop
   React.useEffect(() => {
     setCurrentAnswer(answer);
-  }, [answer]);
+  }, [answer, question.id, subQuestionIndex]);
 
   const handleAnswerChange = (content: string) => {
     setCurrentAnswer(content);
     const subQuestionId = subQuestionIndex !== null 
       ? question.subQuestions?.[subQuestionIndex]?.id 
       : undefined;
+    // Immediately save to parent state
     onAnswerChange(question.id, content, subQuestionId);
   };
 
@@ -221,16 +223,15 @@ const MockExamQuestion = ({
               Auto-saved
             </div>
 
-            {/* Submit/Next Button */}
+            {/* Submit/Next Button - Always enabled */}
             {onNext && (
               <div className="flex justify-end mt-6">
                 <Button 
                   onClick={onNext}
-                  disabled={!currentAnswer || currentAnswer.trim().length === 0 || isLastQuestion}
                   size="lg"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  {isLastQuestion ? 'Submit' : 'Next Question'}
+                  {isLastQuestion ? 'Submit Test' : 'Next Question'}
                 </Button>
               </div>
             )}
