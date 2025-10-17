@@ -1,12 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Image as ImageIcon, Type } from "lucide-react";
+import { Copy, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SymbolPicker } from "./SymbolPicker";
-import "katex/dist/katex.min.css";
-import renderToString from "katex/dist/katex.mjs";
 import copy from "copy-to-clipboard";
 import html2canvas from "html2canvas";
 
@@ -18,142 +15,108 @@ interface EquationEditorProps {
 }
 
 export default function EquationEditor({ value, onChange, placeholder, className }: EquationEditorProps) {
-  const [previewHtml, setPreviewHtml] = useState("");
-  const [lastValidHtml, setLastValidHtml] = useState("");
-  const [hasError, setHasError] = useState(false);
-  const [showSymbolPicker, setShowSymbolPicker] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  // Auto-convert simple math to LaTeX
-  const autoConvertToLatex = (input: string): string => {
-    let converted = input;
+  
+  // Handle input in contentEditable div
+  const handleInput = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
     
-    // Convert simple fractions like 2/3 to \frac{2}{3}
-    converted = converted.replace(/(\d+)\/(\d+)/g, '\\frac{$1}{$2}');
-    
-    // Convert square root sqrt(x) to \sqrt{x}
-    converted = converted.replace(/sqrt\(([^)]+)\)/g, '\\sqrt{$1}');
-    
-    // Convert pi to \pi
-    converted = converted.replace(/\bpi\b/g, '\\pi');
-    
-    // Convert infinity to \infty
-    converted = converted.replace(/\binfinity\b/g, '\\infty');
-    
-    return converted;
+    const content = editor.innerHTML || "";
+    onChange(content);
   };
 
-  // Preserve caret position to fix "auto selecting" issue
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const { selectionStart, selectionEnd, value: newValue } = e.target;
-    onChange(newValue);
+  // Insert formatted content at cursor
+  const insertAtCursor = (html: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
 
-    requestAnimationFrame(() => {
-      const node = textareaRef.current;
-      if (node) {
-        node.selectionStart = selectionStart;
-        node.selectionEnd = selectionEnd;
-      }
-    });
-  };
-
-  // Insert symbol at cursor position
-  const insertSymbol = (symbol: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const newValue = value.substring(0, start) + symbol + value.substring(end);
-    
-    onChange(newValue);
-    
-    // Restore focus and cursor position
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newPos = start + symbol.length;
-      textarea.selectionStart = newPos;
-      textarea.selectionEnd = newPos;
-    });
-  };
-
-  // Quick insert templates
-  const insertTemplate = (template: string, cursorOffset: number = 0) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const newValue = value.substring(0, start) + template + value.substring(end);
-    
-    onChange(newValue);
-    
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newPos = start + template.length + cursorOffset;
-      textarea.selectionStart = newPos;
-      textarea.selectionEnd = newPos;
-    });
-  };
-
-  const renderKaTeX = (tex: string) => {
-    if (!tex) {
-      setPreviewHtml("");
-      setHasError(false);
-      return;
+    editor.focus();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      editor.innerHTML += html;
+    } else {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      const fragment = range.createContextualFragment(html);
+      range.insertNode(fragment);
+      
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
-
-    // Auto-convert simple math notation to LaTeX
-    const convertedTex = autoConvertToLatex(tex);
-
-    try {
-      const html = renderToString(convertedTex, {
-        throwOnError: false,
-        displayMode: true,
-        strict: "ignore",
-        errorColor: "#ff4d4f",
-      });
-
-      // Check if KaTeX rendered an error
-      if (html.includes('katex-error') || html.includes('ParseError')) {
-        setHasError(true);
-        setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid syntax – showing last valid preview</div>`);
-      } else {
-        setHasError(false);
-        setPreviewHtml(html);
-        setLastValidHtml(html);
-      }
-    } catch (err) {
-      setHasError(true);
-      setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid syntax</div>`);
-    }
+    
+    handleInput();
   };
 
+  // Template insertions
+  const insertFraction = () => {
+    insertAtCursor('<span class="inline-flex flex-col items-center text-sm"><span contenteditable="true" class="border-b border-current px-1">1</span><span contenteditable="true" class="px-1">9</span></span>');
+  };
+
+  const insertPower = () => {
+    insertAtCursor('<sup contenteditable="true" class="text-xs">2</sup>');
+  };
+
+  const insertSubscript = () => {
+    insertAtCursor('<sub contenteditable="true" class="text-xs">n</sub>');
+  };
+
+  const insertSquareRoot = () => {
+    insertAtCursor('<span>√<span contenteditable="true" class="underline">x</span></span>');
+  };
+
+  const insertNthRoot = () => {
+    insertAtCursor('<span><sup contenteditable="true" class="text-xs">n</sup>√<span contenteditable="true" class="underline">x</span></span>');
+  };
+
+  const insertSum = () => {
+    insertAtCursor('<span class="text-2xl">∑</span>');
+  };
+
+  const insertIntegral = () => {
+    insertAtCursor('<span class="text-2xl">∫</span>');
+  };
+
+  const insertLimit = () => {
+    insertAtCursor('<span>lim<sub contenteditable="true" class="text-xs">x→0</sub></span>');
+  };
+
+  const insertMatrix = () => {
+    insertAtCursor('<span class="inline-grid grid-cols-2 gap-2 p-2 border border-current rounded">  <span contenteditable="true">a</span>  <span contenteditable="true">b</span>  <span contenteditable="true">c</span>  <span contenteditable="true">d</span></span>');
+  };
+
+  // Update editor content when value changes externally
   useEffect(() => {
-    renderKaTeX(value);
+    const editor = editorRef.current;
+    if (editor && editor.innerHTML !== value) {
+      editor.innerHTML = value;
+    }
   }, [value]);
 
-  const handleCopyLatex = () => {
-    copy(value);
+  const handleCopyText = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    
+    copy(editor.textContent || "");
     toast({
-      title: "LaTeX copied",
-      description: "Content has been copied to clipboard",
+      title: "Copied",
+      description: "Text copied to clipboard",
     });
   };
 
   const handleCopyPNG = () => {
-    if (!previewRef.current || !previewHtml) {
+    if (!editorRef.current) {
       toast({
-        title: "No preview available",
-        description: "Enter some math content first",
+        title: "No content",
+        description: "Enter some content first",
         variant: "destructive"
       });
       return;
     }
 
-    html2canvas(previewRef.current, { backgroundColor: null, scale: 2 }).then((canvas) => {
+    html2canvas(editorRef.current, { backgroundColor: "#ffffff", scale: 2 }).then((canvas) => {
       canvas.toBlob((blob) => {
         if (!blob) return;
         if (navigator.clipboard && typeof (navigator.clipboard as any).write === 'function') {
@@ -161,10 +124,9 @@ export default function EquationEditor({ value, onChange, placeholder, className
           (navigator.clipboard as any).write([item]).then(() => {
             toast({
               title: "PNG copied",
-              description: "Image has been copied to clipboard",
+              description: "Image copied to clipboard",
             });
           }).catch(() => {
-            // Fallback: download
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -175,31 +137,10 @@ export default function EquationEditor({ value, onChange, placeholder, className
             URL.revokeObjectURL(url);
             toast({
               title: "PNG downloaded",
-              description: "Clipboard not available, file downloaded instead",
+              description: "File downloaded",
             });
           });
-        } else {
-          // Fallback: download
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'equation.png';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-          toast({
-            title: "PNG downloaded",
-            description: "File has been downloaded",
-          });
         }
-      });
-    }).catch((e) => {
-      console.error(e);
-      toast({
-        title: "Error",
-        description: "Failed to generate PNG",
-        variant: "destructive"
       });
     });
   };
@@ -209,98 +150,101 @@ export default function EquationEditor({ value, onChange, placeholder, className
       <Card className="border-dashed">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs">Math Editor with Export Options</Badge>
-            {hasError && (
-              <Badge variant="destructive" className="text-xs">Invalid Syntax</Badge>
-            )}
-            {!hasError && value && (
-              <Badge variant="secondary" className="text-xs">✓ Valid</Badge>
-            )}
+            <Badge variant="secondary" className="text-xs">Word-like Math Editor</Badge>
           </div>
 
-
-          {/* Quick Insert Templates */}
+          {/* Math Templates */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Quick Insert:</label>
+            <label className="text-sm font-medium text-muted-foreground">Math Templates</label>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => insertTemplate("\\frac{}{}", -1)}
-                className="h-8 px-3 text-xs"
+                onClick={insertFraction}
+                className="h-9 px-4 text-sm"
               >
                 Fraction
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => insertTemplate("x^{}", -1)}
-                className="h-8 px-3 text-xs"
+                onClick={insertPower}
+                className="h-9 px-4 text-sm"
               >
                 Power
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => insertTemplate("\\sqrt{}", -1)}
-                className="h-8 px-3 text-xs"
+                onClick={insertSubscript}
+                className="h-9 px-4 text-sm"
               >
-                Root
+                Subscript
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => insertTemplate("\\int_{}", -1)}
-                className="h-8 px-3 text-xs"
+                onClick={insertSquareRoot}
+                className="h-9 px-4 text-sm"
               >
-                Integral
+                Square Root
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => insertTemplate("\\sum_{}", -1)}
-                className="h-8 px-3 text-xs"
+                onClick={insertNthRoot}
+                className="h-9 px-4 text-sm"
+              >
+                Nth Root
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={insertSum}
+                className="h-9 px-4 text-sm"
               >
                 Sum
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => insertTemplate("\\begin{matrix}\n\n\\end{matrix}", -12)}
-                className="h-8 px-3 text-xs"
+                onClick={insertIntegral}
+                className="h-9 px-4 text-sm"
               >
-                Matrix
+                Integral
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowSymbolPicker(!showSymbolPicker)}
-                className="h-8 px-3 text-xs"
+                onClick={insertLimit}
+                className="h-9 px-4 text-sm"
               >
-                <Type className="h-3 w-3 mr-1" />
-                Symbols
+                Limit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={insertMatrix}
+                className="h-9 px-4 text-sm"
+              >
+                Matrix
               </Button>
             </div>
           </div>
 
-          {/* Symbol Picker */}
-          {showSymbolPicker && (
-            <SymbolPicker onSelect={(symbol) => {
-              insertSymbol(symbol);
-              setShowSymbolPicker(false);
-            }} />
-          )}
-
+          {/* WYSIWYG Editor */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Type or paste LaTeX:</label>
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={handleInput}
-              rows={6}
-              className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
-              style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace, "Segoe UI Symbol", "Apple Color Emoji", "Segoe UI Emoji"' }}
-              placeholder="Type naturally: 2/3, x^2, sqrt(5), pi, or use LaTeX syntax"
+            <div
+              ref={editorRef}
+              contentEditable
+              onInput={handleInput}
+              className="w-full min-h-[120px] p-4 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-lg"
+              style={{ 
+                fontFamily: '"Segoe UI", Arial, sans-serif, "Segoe UI Symbol", "Apple Color Emoji"',
+                lineHeight: '1.8'
+              }}
+              suppressContentEditableWarning
+              dangerouslySetInnerHTML={{ __html: value || '<span class="text-muted-foreground">Type here or click buttons above...</span>' }}
             />
           </div>
 
@@ -308,11 +252,11 @@ export default function EquationEditor({ value, onChange, placeholder, className
             <Button
               variant="outline"
               size="sm"
-              onClick={handleCopyLatex}
+              onClick={handleCopyText}
               className="h-8 px-3 text-xs"
             >
               <Copy className="h-3 w-3 mr-1" />
-              Copy LaTeX
+              Copy Text
             </Button>
             <Button
               variant="outline"
@@ -325,24 +269,12 @@ export default function EquationEditor({ value, onChange, placeholder, className
             </Button>
           </div>
 
-          {previewHtml && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Rendered Preview:</label>
-              <div
-                ref={previewRef}
-                className={`p-4 border rounded-md bg-background min-h-[64px] overflow-x-auto ${hasError ? 'border-red-200 bg-red-50/30' : 'border-border'}`}
-                dangerouslySetInnerHTML={{ __html: previewHtml }}
-              />
-            </div>
-          )}
-
           <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
-            <div><strong>💡 You can type naturally!</strong></div>
-            <div>• <strong>Fractions:</strong> Just type 2/3 (auto-converts to LaTeX)</div>
-            <div>• <strong>Powers:</strong> x^2, x^{10}</div>
-            <div>• <strong>Roots:</strong> sqrt(5) or \sqrt{"{"}x{"}"}</div>
-            <div>• <strong>Special:</strong> pi, infinity</div>
-            <div>• Or click buttons above to insert templates</div>
+            <div><strong>💡 How to use:</strong></div>
+            <div>• Click template buttons to insert formatted math (fractions, powers, roots)</div>
+            <div>• Type naturally with unicode: α, β, π, ∫, ∑, √, ∞</div>
+            <div>• Click in the blue boxes to edit values</div>
+            <div>• Copy PNG to paste as image in Word or Google Docs</div>
           </div>
         </CardContent>
       </Card>
