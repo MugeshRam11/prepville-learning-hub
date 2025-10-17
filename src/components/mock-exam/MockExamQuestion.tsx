@@ -226,9 +226,9 @@ const MockExamQuestion = ({
               <div className="flex justify-end mt-6">
                 <Button 
                   onClick={onNext}
-                  disabled={isLastQuestion}
+                  disabled={!currentAnswer || currentAnswer.trim().length === 0 || isLastQuestion}
                   size="lg"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLastQuestion ? 'Submit' : 'Next Question'}
                 </Button>
