@@ -282,6 +282,7 @@ Respond ONLY with a JSON object like:
 async function guideTutoring({ question, message, conversationHistory, subject, apiKey, corsHeaders, userId, supabaseClient }: any) {
   // Fetch user context for personalized tutoring
   let userContext = '';
+  let knowledgeContext = '';
   
   if (userId && supabaseClient) {
     try {
@@ -323,6 +324,29 @@ ${struggleTopics?.length ? `- Known Struggle Topics: ${struggleTopics.map((t: an
 - Be extra patient with topics they've struggled with before
 - Build on their existing knowledge
 `;
+
+      // Search knowledge base for relevant examples
+      const { data: knowledgeItems, error: kbError } = await supabaseClient
+        .rpc('search_knowledge_base', {
+          search_query: `${question.content} ${question.topic}`,
+          subject_filter: subject,
+          topic_filter: question.topic,
+          limit_count: 3
+        });
+
+      if (!kbError && knowledgeItems?.length > 0) {
+        knowledgeContext = `\n**Related Examples from Knowledge Base:**\n`;
+        knowledgeItems.forEach((item: any, idx: number) => {
+          knowledgeContext += `
+${idx + 1}. **Example:** ${item.question_text}
+   **Answer:** ${item.correct_answer}
+   **Explanation:** ${item.explanation}
+   **Common Mistakes:** ${JSON.parse(item.common_mistakes || '[]').join(', ')}
+   **Hints:** ${JSON.parse(item.hints || '[]').join(', ')}
+`;
+        });
+        console.log(`Found ${knowledgeItems.length} relevant knowledge base items`);
+      }
     } catch (error) {
       console.error('Failed to fetch user context:', error);
     }
@@ -331,6 +355,7 @@ ${struggleTopics?.length ? `- Known Struggle Topics: ${struggleTopics.map((t: an
   const tutoringPrompt = `You are a patient, encouraging AI tutor helping a student with ${subject}.
 
 ${userContext}
+${knowledgeContext}
 
 **Question Context:**
 - Topic: ${question.topic}
@@ -343,25 +368,18 @@ ${userContext}
 ${conversationHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n')}
 
 **Your role:**
+- Use the examples from the knowledge base to inform your teaching approach
+- Learn from common mistakes students make (shown in examples)
 - Guide the student step-by-step toward understanding
 - Ask leading questions to help them think
-- Provide hints and strategies, NOT direct answers
+- Provide hints and strategies similar to those in the knowledge base, but DON'T give away the direct answer
 - Be encouraging and supportive
 - Break down complex concepts into simpler parts
 - Use analogies and examples when helpful
 - NEVER reveal the final answer directly
 - Consider their level and past struggles when explaining
 
-Respond with:
-1. A conversational response (3-5 sentences)
-2. A leading question or next step
-3. Encouragement
-
-Format your response as JSON:
-{
-  "response": "Your conversational guidance here...",
-  "messageType": "chat"
-}`;
+CRITICAL: Respond ONLY with plain conversational text. DO NOT use JSON format. DO NOT include any JSON structure, curly braces, or field names like "response" or "messageType". Just write your tutoring response directly as if you're talking to the student.`;
 
   console.log('Generating tutoring guidance with user context...');
 
@@ -394,16 +412,32 @@ Format your response as JSON:
     throw new Error('No tutoring response generated');
   }
 
-  console.log('Raw AI response:', aiResponse);
+  console.log('Raw AI response (first 200 chars):', aiResponse.substring(0, 200));
 
-  // Simply return the response text directly, don't try to parse as JSON
-  // The AI should return a conversational response, not JSON
+  // Clean up any JSON artifacts that might still appear
+  let cleanedResponse = aiResponse.trim();
+  
+  // Remove JSON code blocks if present
+  cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+  
+  // Remove JSON object wrapper if present
+  const jsonMatch = cleanedResponse.match(/\{\s*"response"\s*:\s*"(.+)"\s*,?\s*"messageType"\s*:\s*"chat"\s*\}/s);
+  if (jsonMatch) {
+    cleanedResponse = jsonMatch[1];
+  }
+  
+  // Unescape any escaped characters
+  cleanedResponse = cleanedResponse
+    .replace(/\\n/g, '\n')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\');
+
   const tutoringData = {
-    response: aiResponse.trim(),
+    response: cleanedResponse,
     messageType: 'chat'
   };
 
-  console.log('Generated tutoring response with personalization');
+  console.log('Generated tutoring response with knowledge base (cleaned)');
 
   return new Response(
     JSON.stringify(tutoringData),

@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_knowledge_base: {
+        Row: {
+          common_mistakes: Json | null
+          correct_answer: string
+          created_at: string | null
+          difficulty_level: string
+          explanation: string
+          hints: Json | null
+          id: string
+          question_text: string
+          related_concepts: string[] | null
+          search_vector: unknown | null
+          subject: string
+          topic: string
+          updated_at: string | null
+        }
+        Insert: {
+          common_mistakes?: Json | null
+          correct_answer: string
+          created_at?: string | null
+          difficulty_level: string
+          explanation: string
+          hints?: Json | null
+          id?: string
+          question_text: string
+          related_concepts?: string[] | null
+          search_vector?: unknown | null
+          subject: string
+          topic: string
+          updated_at?: string | null
+        }
+        Update: {
+          common_mistakes?: Json | null
+          correct_answer?: string
+          created_at?: string | null
+          difficulty_level?: string
+          explanation?: string
+          hints?: Json | null
+          id?: string
+          question_text?: string
+          related_concepts?: string[] | null
+          search_vector?: unknown | null
+          subject?: string
+          topic?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ai_tutoring_evaluations: {
         Row: {
           attempt_number: number
@@ -1662,6 +1710,25 @@ export type Database = {
       reset_user_progress_data: {
         Args: { user_uuid: string }
         Returns: Json
+      }
+      search_knowledge_base: {
+        Args: {
+          limit_count?: number
+          search_query: string
+          subject_filter?: string
+          topic_filter?: string
+        }
+        Returns: {
+          common_mistakes: Json
+          correct_answer: string
+          explanation: string
+          hints: Json
+          id: string
+          question_text: string
+          relevance_score: number
+          subject: string
+          topic: string
+        }[]
       }
       update_user_streak: {
         Args: { user_uuid: string }
