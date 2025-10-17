@@ -522,19 +522,7 @@ const SubjectLearning = () => {
             {/* Videos Section */}
             <Card>
               
-              <CardContent>
-                <div className="space-y-3">
-                  {mockVideos.map(video => <div key={video.id} className="flex gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                      <div className="w-16 h-12 bg-muted rounded flex items-center justify-center">
-                        <Play className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{video.title}</p>
-                        <p className="text-xs text-muted-foreground">{video.topic} • {video.duration}</p>
-                      </div>
-                    </div>)}
-                </div>
-              </CardContent>
+              
             </Card>
 
             {/* Achievement */}
