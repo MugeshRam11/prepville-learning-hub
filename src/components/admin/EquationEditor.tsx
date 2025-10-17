@@ -169,11 +169,11 @@ export default function EquationEditor({ value, onChange, placeholder, className
 
 
   const insertPower = () => {
-    insertAtCursor('<sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sup>&nbsp;');
+    insertAtCursor('<sup contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: super; line-height: 0;">□</sup>&nbsp;');
   };
 
   const insertSubscript = () => {
-    insertAtCursor('<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sub>&nbsp;');
+    insertAtCursor('<sub contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: sub; line-height: 0;">□</sub>&nbsp;');
   };
 
   const insertSquareRoot = () => {
@@ -181,7 +181,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
   };
 
   const insertNthRoot = () => {
-    insertAtCursor('<span class="mx-1"><sup contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sup>√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">□</span></span>&nbsp;');
+    insertAtCursor('<span class="mx-1"><sup contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: super;">□</sup>√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">□</span></span>&nbsp;');
   };
 
   const insertSum = () => {
@@ -193,7 +193,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
   };
 
   const insertLimit = () => {
-    insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">□</sub></span>&nbsp;');
+    insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: sub;">□</sub></span>&nbsp;');
   };
 
   const insertAbsoluteValue = () => {
@@ -201,7 +201,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
   };
 
   const insertLogarithm = () => {
-    insertAtCursor('<span class="mx-1">log<sub contenteditable="true" class="text-sm focus:outline-none focus:bg-blue-50 px-1">a</sub>(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">x</span>)</span>&nbsp;');
+    insertAtCursor('<span class="mx-1">log<sub contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: sub;">a</sub>(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">x</span>)</span>&nbsp;');
   };
 
   const insertDerivative = () => {
