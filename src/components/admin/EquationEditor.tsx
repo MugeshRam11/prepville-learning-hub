@@ -162,8 +162,9 @@ export default function EquationEditor({ value, onChange, placeholder, className
               value={value}
               onChange={handleInput}
               rows={4}
-              className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono text-sm"
-              placeholder={placeholder || "e.g. \\frac{a}{b}, x^2, \\sqrt{x}"}
+              className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
+              style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace, "Segoe UI Symbol", "Apple Color Emoji", "Segoe UI Emoji"' }}
+              placeholder={placeholder || "e.g. \\frac{a}{b}, x^2, \\sqrt{x}, α, β, ∫, ∑"}
             />
           </div>
 
