@@ -113,25 +113,25 @@ ${questions && questions.length > 0 ? `
 ${questions.map((q: any, i: number) => `${i + 1}. ${q.question || q.text || 'Question'}`).join('\n')}
 ` : ''}
 
-Based on this performance, provide a comprehensive evaluation with:
+Based on this performance, analyze what went wrong and how to improve:
 
-1. **overallFeedback**: A supportive 2-3 sentence summary of their performance
-2. **strengths**: Array of 2-3 specific strengths they demonstrated
-3. **weaknesses**: Array of 2-3 areas that need improvement
-4. **recommendations**: Array of 3-4 specific, actionable study recommendations
-5. **performanceLevel**: One of: "excellent" (90-100%), "good" (70-89%), "average" (50-69%), "needs-improvement" (<50%)
+1. **overallFeedback**: A brief, honest assessment of their performance (1-2 sentences)
+2. **weaknesses**: Array of 3-5 SPECIFIC topics/concepts they got wrong or struggled with
+3. **recommendations**: Array of 4-6 ACTIONABLE steps to improve in those specific areas
+4. **performanceLevel**: One of: "excellent" (90-100%), "good" (70-89%), "average" (50-69%), "needs-improvement" (<50%)
 
-Be encouraging, specific, and actionable. Focus on growth mindset.
+IMPORTANT: 
+- Base evaluation ONLY on actual score (${validScore}%)
+- Focus on WHAT was incorrect, not generic statements
+- Provide SPECIFIC improvement actions, not vague advice
+- Be direct and helpful
 
-IMPORTANT: Base your evaluation ONLY on the actual score percentage (${validScore}%). Do not make assumptions about performance that don't match the score.
-
-Respond ONLY with a JSON object like:
+Respond ONLY with a JSON object (no strengths field):
 {
-  "overallFeedback": "Great job! You showed strong understanding...",
-  "strengths": ["Strong grasp of basic concepts", "Good problem-solving approach"],
-  "weaknesses": ["Time management needs work", "Complex problems need practice"],
-  "recommendations": ["Review advanced topics", "Practice under timed conditions", "Focus on word problems"],
-  "performanceLevel": "good"
+  "overallFeedback": "You scored ${validScore}% - there are specific areas that need focused attention.",
+  "weaknesses": ["Probability calculations were incorrect", "Tree diagram completion had errors", "Conditional probability misunderstood"],
+  "recommendations": ["Review basic probability formulas", "Practice tree diagram problems", "Study conditional probability examples", "Work through similar practice problems"],
+  "performanceLevel": "needs-improvement"
 }`;
 
   console.log('Evaluating test performance with AI...');
@@ -178,11 +178,19 @@ Respond ONLY with a JSON object like:
     // Fallback evaluation based on actual score
     const validScore = Math.max(0, Math.min(100, score));
     const level = validScore >= 90 ? 'excellent' : validScore >= 70 ? 'good' : validScore >= 50 ? 'average' : 'needs-improvement';
+    const wrongAnswers = totalQuestions - correctAnswers;
     evaluationData = {
-      overallFeedback: `You scored ${validScore}% on this ${testType} test, getting ${correctAnswers} out of ${totalQuestions} questions correct. ${validScore >= 70 ? 'Good work!' : 'Keep practicing to improve!'}`,
-      strengths: validScore >= 70 ? ['Completed the test', 'Demonstrated understanding of key concepts'] : ['Completed the test', 'Showed effort in attempting questions'],
-      weaknesses: validScore < 70 ? ['Review incorrect answers carefully', 'Practice more problems in weak areas', 'Work on understanding core concepts'] : ['Minor areas need attention', 'Continue practicing'],
-      recommendations: ['Review the topics covered in detail', 'Practice with similar questions', 'Focus on understanding concepts, not just memorizing', 'Ask for help on challenging topics'],
+      overallFeedback: `You scored ${validScore}% (${correctAnswers}/${totalQuestions} correct, ${wrongAnswers} incorrect). ${validScore >= 70 ? 'Good performance with room for refinement.' : 'This indicates areas needing focused improvement.'}`,
+      weaknesses: validScore < 70 
+        ? [`Got ${wrongAnswers} questions wrong`, 'Core concepts need reinforcement', 'Problem-solving approach needs practice', 'Time management may need work']
+        : [`${wrongAnswers} incorrect answers to review`, 'Some advanced concepts need clarification', 'Continue strengthening understanding'],
+      recommendations: [
+        `Review the ${wrongAnswers} incorrect questions carefully`,
+        'Identify patterns in mistakes',
+        'Practice similar problems until mastery',
+        'Focus on understanding WHY answers are correct',
+        'Ask for help on challenging topics'
+      ],
       performanceLevel: level
     };
   }

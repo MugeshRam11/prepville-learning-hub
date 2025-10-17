@@ -143,10 +143,18 @@ const AITestEvaluation: React.FC<AITestEvaluationProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Brain className="w-6 h-6 text-purple-600" />
-          AI Test Evaluation
+          Test Performance Analysis
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Score Display */}
+        <div className="text-center p-6 bg-white rounded-lg border-2 border-purple-200">
+          <div className="text-5xl font-bold text-purple-600 mb-2">{score}%</div>
+          <div className="text-sm text-gray-600">
+            {correctAnswers} correct out of {totalQuestions} questions
+          </div>
+        </div>
+
         {/* Performance Level */}
         <div className={`p-4 rounded-lg border-2 ${getPerformanceColor(evaluation.performanceLevel)}`}>
           <div className="flex items-center gap-3 mb-2">
@@ -158,47 +166,30 @@ const AITestEvaluation: React.FC<AITestEvaluationProps> = ({
           <p className="text-sm">{evaluation.overallFeedback}</p>
         </div>
 
-        {/* Strengths */}
-        {evaluation.strengths.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <h3 className="font-semibold text-green-600">Strengths</h3>
-            </div>
-            <div className="space-y-2">
-              {evaluation.strengths.map((strength, index) => (
-                <Badge key={index} variant="outline" className="bg-green-50 text-green-700 border-green-200 mr-2 mb-2">
-                  {strength}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Areas for Improvement */}
+        {/* Wrong Answers & Areas for Improvement */}
         {evaluation.weaknesses.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-5 h-5 text-orange-600" />
-              <h3 className="font-semibold text-orange-600">Areas for Improvement</h3>
+              <XCircle className="w-5 h-5 text-red-600" />
+              <h3 className="font-semibold text-red-600">Areas That Need Attention</h3>
             </div>
             <div className="space-y-2">
               {evaluation.weaknesses.map((weakness, index) => (
-                <div key={index} className="flex items-start gap-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <span className="text-orange-600 font-medium">•</span>
-                  <span className="text-sm text-orange-800">{weakness}</span>
+                <div key={index} className="flex items-start gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                  <span className="text-red-600 font-medium">•</span>
+                  <span className="text-sm text-red-800">{weakness}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Recommendations */}
+        {/* Improvement Suggestions */}
         {evaluation.recommendations.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Lightbulb className="w-5 h-5 text-blue-600" />
-              <h3 className="font-semibold text-blue-600">Recommendations</h3>
+              <h3 className="font-semibold text-blue-600">How to Improve</h3>
             </div>
             <div className="space-y-2">
               {evaluation.recommendations.map((recommendation, index) => (
