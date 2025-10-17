@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Brain, CheckCircle, XCircle, Lightbulb, TrendingUp } from 'lucide-react';
+import { Loader2, Sparkles, CheckCircle, XCircle, Lightbulb, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -94,7 +94,7 @@ const AITestEvaluation: React.FC<AITestEvaluationProps> = ({
       case 'good': return <TrendingUp className="w-6 h-6 text-blue-600" />;
       case 'average': return <Lightbulb className="w-6 h-6 text-yellow-600" />;
       case 'needs-improvement': return <XCircle className="w-6 h-6 text-red-600" />;
-      default: return <Brain className="w-6 h-6" />;
+      default: return <Sparkles className="w-6 h-6" />;
     }
   };
 
@@ -103,8 +103,8 @@ const AITestEvaluation: React.FC<AITestEvaluationProps> = ({
       <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Brain className="w-6 h-6 text-purple-600" />
-            AI Test Evaluation
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            Test Performance Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -141,10 +141,10 @@ const AITestEvaluation: React.FC<AITestEvaluationProps> = ({
   return (
     <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="w-6 h-6 text-purple-600" />
-          Test Performance Analysis
-        </CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            Test Performance Analysis
+          </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Score Display */}
