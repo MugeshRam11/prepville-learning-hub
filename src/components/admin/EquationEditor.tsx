@@ -26,6 +26,25 @@ export default function EquationEditor({ value, onChange, placeholder, className
   const previewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Auto-convert simple math to LaTeX
+  const autoConvertToLatex = (input: string): string => {
+    let converted = input;
+    
+    // Convert simple fractions like 2/3 to \frac{2}{3}
+    converted = converted.replace(/(\d+)\/(\d+)/g, '\\frac{$1}{$2}');
+    
+    // Convert square root sqrt(x) to \sqrt{x}
+    converted = converted.replace(/sqrt\(([^)]+)\)/g, '\\sqrt{$1}');
+    
+    // Convert pi to \pi
+    converted = converted.replace(/\bpi\b/g, '\\pi');
+    
+    // Convert infinity to \infty
+    converted = converted.replace(/\binfinity\b/g, '\\infty');
+    
+    return converted;
+  };
+
   // Preserve caret position to fix "auto selecting" issue
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { selectionStart, selectionEnd, value: newValue } = e.target;
@@ -86,8 +105,11 @@ export default function EquationEditor({ value, onChange, placeholder, className
       return;
     }
 
+    // Auto-convert simple math notation to LaTeX
+    const convertedTex = autoConvertToLatex(tex);
+
     try {
-      const html = renderToString(tex, {
+      const html = renderToString(convertedTex, {
         throwOnError: false,
         displayMode: true,
         strict: "ignore",
@@ -97,7 +119,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
       // Check if KaTeX rendered an error
       if (html.includes('katex-error') || html.includes('ParseError')) {
         setHasError(true);
-        setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid LaTeX syntax – showing last valid preview</div>`);
+        setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid syntax – showing last valid preview</div>`);
       } else {
         setHasError(false);
         setPreviewHtml(html);
@@ -105,7 +127,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
       }
     } catch (err) {
       setHasError(true);
-      setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid LaTeX syntax</div>`);
+      setPreviewHtml(lastValidHtml || `<div style="color:#ff4d4f;">Invalid syntax</div>`);
     }
   };
 
@@ -278,7 +300,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
               rows={6}
               className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
               style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace, "Segoe UI Symbol", "Apple Color Emoji", "Segoe UI Emoji"' }}
-              placeholder={placeholder || "e.g. \\frac{a}{b}, x^2, \\sqrt{x}, α, β, ∫, ∑, or use buttons above"}
+              placeholder="Type naturally: 2/3, x^2, sqrt(5), pi, or use LaTeX syntax"
             />
           </div>
 
@@ -315,12 +337,12 @@ export default function EquationEditor({ value, onChange, placeholder, className
           )}
 
           <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
-            <div><strong>💡 Quick Tips:</strong></div>
-            <div>• Use buttons above to insert templates, then fill in the blanks</div>
-            <div>• Matrix example: \begin{"{"}matrix{"}"} a & b \\ c & d \end{"{"}matrix{"}"}</div>
-            <div>• Click "Symbols" to insert Greek letters (α, β, γ) and math symbols (∫, ∑, √)</div>
-            <div>• Plain text: \text{"{"} your text {"}"}</div>
-            <div>• <strong>For Word:</strong> Copy PNG to paste as image</div>
+            <div><strong>💡 You can type naturally!</strong></div>
+            <div>• <strong>Fractions:</strong> Just type 2/3 (auto-converts to LaTeX)</div>
+            <div>• <strong>Powers:</strong> x^2, x^{10}</div>
+            <div>• <strong>Roots:</strong> sqrt(5) or \sqrt{"{"}x{"}"}</div>
+            <div>• <strong>Special:</strong> pi, infinity</div>
+            <div>• Or click buttons above to insert templates</div>
           </div>
         </CardContent>
       </Card>
