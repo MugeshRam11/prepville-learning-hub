@@ -32,8 +32,45 @@ const MockExamSummary = () => {
   const totalQuestions = questions.reduce((total: number, q: Question) => {
     return total + (q.subQuestions ? q.subQuestions.length : 1);
   }, 0);
+  
   const attemptedCount = answers.length;
   const unattemptedCount = totalQuestions - attemptedCount;
+  
+  // Calculate actual correct answers by comparing with answer keys
+  const correctAnswers = answers.reduce((correct: number, answer: Answer) => {
+    const question = questions.find((q: Question) => q.id === answer.questionId);
+    if (!question) return correct;
+    
+    // For sub-questions
+    if (answer.subQuestionId) {
+      const subQuestion = question.subQuestions?.find(sq => sq.id === answer.subQuestionId);
+      if (!subQuestion?.answerKey) return correct;
+      
+      // Normalize both answers for comparison (trim, lowercase)
+      const studentAns = answer.content.trim().toLowerCase();
+      const correctAns = subQuestion.answerKey.trim().toLowerCase();
+      
+      // Check if student answer matches or is very similar to correct answer
+      if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
+        return correct + 1;
+      }
+    } else {
+      // For main questions
+      if (!question.answerKey) return correct;
+      
+      const studentAns = answer.content.trim().toLowerCase();
+      const correctAns = question.answerKey.trim().toLowerCase();
+      
+      if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
+        return correct + 1;
+      }
+    }
+    
+    return correct;
+  }, 0);
+  
+  // Calculate percentage score based on correct answers
+  const scorePercentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -173,8 +210,8 @@ const MockExamSummary = () => {
               testType="mock"
               subject={subject}
               topic={topic}
-              score={attemptedCount > 0 ? Math.round((attemptedCount / totalQuestions) * 100) : 0}
-              correctAnswers={attemptedCount}
+              score={scorePercentage}
+              correctAnswers={correctAnswers}
               totalQuestions={totalQuestions}
               questions={questions}
               answers={answers}

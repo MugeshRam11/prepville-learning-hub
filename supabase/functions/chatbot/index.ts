@@ -93,13 +93,20 @@ serve(async (req) => {
 
 // Test Evaluation Function
 async function evaluateTest({ testType, subject, topic, score, correctAnswers, totalQuestions, questions, answers, apiKey, corsHeaders }: any) {
+  console.log('Evaluating test - Input data:', { testType, subject, score, correctAnswers, totalQuestions });
+  
+  // Ensure score is within valid range
+  const validScore = Math.max(0, Math.min(100, score));
+  const validCorrectAnswers = Math.max(0, Math.min(totalQuestions, correctAnswers));
+  
   const evaluationPrompt = `You are an expert educational evaluator analyzing a student's ${testType} test performance.
 
 **Test Details:**
 - Subject: ${subject}
 - Topic: ${topic || 'General'}
-- Score: ${score}%
-- Correct Answers: ${correctAnswers} out of ${totalQuestions}
+- Score: ${validScore}%
+- Correct Answers: ${validCorrectAnswers} out of ${totalQuestions}
+- Accuracy: ${totalQuestions > 0 ? Math.round((validCorrectAnswers / totalQuestions) * 100) : 0}%
 
 ${questions && questions.length > 0 ? `
 **Sample Questions:**
@@ -115,6 +122,8 @@ Based on this performance, provide a comprehensive evaluation with:
 5. **performanceLevel**: One of: "excellent" (90-100%), "good" (70-89%), "average" (50-69%), "needs-improvement" (<50%)
 
 Be encouraging, specific, and actionable. Focus on growth mindset.
+
+IMPORTANT: Base your evaluation ONLY on the actual score percentage (${validScore}%). Do not make assumptions about performance that don't match the score.
 
 Respond ONLY with a JSON object like:
 {
@@ -166,13 +175,14 @@ Respond ONLY with a JSON object like:
     evaluationData = JSON.parse(jsonString);
   } catch (e) {
     console.error('Failed to parse evaluation JSON:', e);
-    // Fallback evaluation based on score
-    const level = score >= 90 ? 'excellent' : score >= 70 ? 'good' : score >= 50 ? 'average' : 'needs-improvement';
+    // Fallback evaluation based on actual score
+    const validScore = Math.max(0, Math.min(100, score));
+    const level = validScore >= 90 ? 'excellent' : validScore >= 70 ? 'good' : validScore >= 50 ? 'average' : 'needs-improvement';
     evaluationData = {
-      overallFeedback: `You scored ${score}% on this ${testType} test. Keep working on understanding the concepts!`,
-      strengths: ['Completed the test', 'Showed effort in attempting questions'],
-      weaknesses: ['Review incorrect answers', 'Practice similar problems'],
-      recommendations: ['Review the topics covered', 'Practice with similar questions', 'Ask for help when needed'],
+      overallFeedback: `You scored ${validScore}% on this ${testType} test, getting ${correctAnswers} out of ${totalQuestions} questions correct. ${validScore >= 70 ? 'Good work!' : 'Keep practicing to improve!'}`,
+      strengths: validScore >= 70 ? ['Completed the test', 'Demonstrated understanding of key concepts'] : ['Completed the test', 'Showed effort in attempting questions'],
+      weaknesses: validScore < 70 ? ['Review incorrect answers carefully', 'Practice more problems in weak areas', 'Work on understanding core concepts'] : ['Minor areas need attention', 'Continue practicing'],
+      recommendations: ['Review the topics covered in detail', 'Practice with similar questions', 'Focus on understanding concepts, not just memorizing', 'Ask for help on challenging topics'],
       performanceLevel: level
     };
   }
