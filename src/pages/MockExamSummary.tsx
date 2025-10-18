@@ -58,6 +58,13 @@ const MockExamSummary = () => {
       const studentAns = normalizeAnswer(answer.content);
       const correctAns = normalizeAnswer(subQuestion.answerKey);
       
+      console.log('Comparing answers:');
+      console.log('  Student answer (original):', answer.content);
+      console.log('  Student answer (normalized):', studentAns);
+      console.log('  Correct answer (original):', subQuestion.answerKey);
+      console.log('  Correct answer (normalized):', correctAns);
+      console.log('  Match result:', studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns));
+      
       // Check if student answer matches or is very similar to correct answer
       if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
         return correct + 1;
@@ -68,6 +75,13 @@ const MockExamSummary = () => {
       
       const studentAns = normalizeAnswer(answer.content);
       const correctAns = normalizeAnswer(question.answerKey);
+      
+      console.log('Comparing answers:');
+      console.log('  Student answer (original):', answer.content);
+      console.log('  Student answer (normalized):', studentAns);
+      console.log('  Correct answer (original):', question.answerKey);
+      console.log('  Correct answer (normalized):', correctAns);
+      console.log('  Match result:', studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns));
       
       if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
         return correct + 1;
