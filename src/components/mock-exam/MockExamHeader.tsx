@@ -79,9 +79,9 @@ const MockExamHeader = ({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-        <div className={`hidden lg:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 ${timeColor}`}>
+        <div className={`flex items-center gap-1 sm:gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 ${timeColor}`}>
           <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm font-medium">Time: {formatTime(timeRemaining)}</span>
+          <span className="text-xs sm:text-sm font-medium">{formatTime(timeRemaining)}</span>
         </div>
         
         <Button
