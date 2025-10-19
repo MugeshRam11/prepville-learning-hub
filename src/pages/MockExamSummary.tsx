@@ -101,7 +101,7 @@ const MockExamSummary = () => {
       </div>;
   }
   const totalQuestions = questions.reduce((total: number, q: Question) => {
-    return total + (q.subQuestions ? q.subQuestions.length : 1);
+    return total + 1 + (q.subQuestions?.length || 0);
   }, 0);
   
   const attemptedCount = answers.length;
