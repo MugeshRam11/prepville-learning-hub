@@ -82,13 +82,33 @@ const MockExamSummary = () => {
         body: { questions: questionsForEvaluation }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        
+        // Check if it's a payment/credits error (402)
+        if (error.message?.includes('402') || error.message?.includes('credits')) {
+          toast.error('Out of AI credits. Please add credits in Settings → Workspace → Usage', {
+            duration: 8000,
+          });
+        } else {
+          toast.error('Failed to evaluate answers: ' + (error.message || 'Unknown error'));
+        }
+        throw error;
+      }
 
       console.log('Evaluation results:', data);
       setEvaluations(data.evaluations || []);
     } catch (error: any) {
       console.error('Evaluation error:', error);
-      toast.error('Failed to evaluate answers');
+      
+      // More specific error messages
+      if (error.message?.includes('402') || error.message?.includes('credits')) {
+        toast.error('Out of AI credits. Go to Settings → Workspace → Usage to add more credits', {
+          duration: 10000,
+        });
+      } else {
+        toast.error('Failed to evaluate answers: ' + (error.message || 'Unknown error'));
+      }
     } finally {
       setIsEvaluating(false);
     }

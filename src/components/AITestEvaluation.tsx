@@ -62,7 +62,21 @@ const AITestEvaluation: React.FC<AITestEvaluationProps> = ({
         }
       });
 
-      if (functionError) throw functionError;
+      if (functionError) {
+        console.error('Error calling chatbot function:', functionError);
+        
+        // Check for payment/credits error
+        if (functionError.message?.includes('402') || functionError.message?.includes('credits')) {
+          const creditsMsg = 'Out of AI credits. Please add credits in Settings → Workspace → Usage to continue.';
+          setError(creditsMsg);
+          toast.error(creditsMsg, { duration: 8000 });
+        } else {
+          setError(functionError.message || 'Failed to generate evaluation');
+          toast.error('Failed to generate AI evaluation');
+        }
+        setIsLoading(false);
+        return;
+      }
 
       if (data?.evaluation) {
         setEvaluation(data.evaluation);
@@ -71,8 +85,16 @@ const AITestEvaluation: React.FC<AITestEvaluationProps> = ({
       }
     } catch (err: any) {
       console.error('AI Evaluation error:', err);
-      setError(err.message || 'Failed to generate evaluation');
-      toast.error('Failed to generate AI evaluation');
+      
+      // More specific error messages
+      if (err.message?.includes('402') || err.message?.includes('credits')) {
+        const creditsMsg = 'Out of AI credits. Go to Settings → Workspace → Usage to add more.';
+        setError(creditsMsg);
+        toast.error(creditsMsg, { duration: 8000 });
+      } else {
+        setError(err.message || 'Failed to generate evaluation');
+        toast.error('Failed to generate AI evaluation');
+      }
     } finally {
       setIsLoading(false);
     }
