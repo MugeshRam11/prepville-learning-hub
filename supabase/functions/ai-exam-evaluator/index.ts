@@ -14,6 +14,7 @@ interface EvaluationRequest {
   marks: number;
   subject: string;
   topic?: string;
+  questionImageUrl?: string;
 }
 
 interface EvaluationResponse {
@@ -45,42 +46,66 @@ serve(async (req) => {
     const evaluations: EvaluationResponse[] = [];
 
     for (const question of questions) {
-      const evaluationPrompt = `You are an AI evaluator with the following roles:
+      const evaluationPrompt = `You are an AI examiner evaluating student exam answers. Follow this process:
 
-1. Retriever: Fetch the question and reference answer.
-2. Evaluator: Compare the student's input answer with the reference answer.
-3. Scorer: Assign marks according to correctness. If the student's answer is fully correct, give 100% of marks. Partial correctness should reduce marks proportionally.
-4. Reporter: Summarize the evaluation in a structured format for analysis.
+**STEP 1: ANALYZE THE QUESTION**
+First, carefully analyze the question and solve it yourself to determine the correct answer.
+${question.questionImageUrl ? 'The question includes an image (graph/diagram) that you must analyze.' : ''}
+
+**STEP 2: COMPARE WITH STUDENT ANSWER**
+Compare your solution with the student's answer to evaluate correctness.
+
+**STEP 3: ASSIGN MARKS FAIRLY**
+Assign marks based on correctness:
+- Fully correct = ${question.marks} marks (100%)
+- Partially correct = ${Math.round(question.marks * 0.5)} to ${question.marks - 1} marks
+- Incorrect = 0 to ${Math.round(question.marks * 0.4)} marks
 
 **Question:** ${question.questionText}
-**Reference Answer:** ${question.referenceAnswer}
+**Reference Answer (for guidance):** ${question.referenceAnswer}
 **Student Answer:** ${question.studentAnswer}
-**Total Marks Available:** ${question.marks}
+**Total Marks:** ${question.marks}
 **Subject:** ${question.subject}
 ${question.topic ? `**Topic:** ${question.topic}` : ''}
-
-Task:
-1. Compare the student's answer with the reference answer.
-2. Determine if the answer is fully correct, partially correct, or incorrect.
-3. Assign marks out of ${question.marks}:
-   - Fully correct = ${question.marks} marks (100%)
-   - Partially correct = ${Math.round(question.marks * 0.5)} to ${question.marks - 1} marks depending on coverage
-   - Incorrect = 0 to ${Math.round(question.marks * 0.4)} marks
-
-4. Generate a realistic comment highlighting strengths and mistakes.
-5. Suggest a feedback label (Excellent, Above Average, Average, Needs Improvement).
-6. Assign an evaluation type (Strict, Moderate, Lenient, AI-assisted).
 
 Respond ONLY with a JSON object:
 {
   "marksAwarded": <number>,
   "evaluationType": "Strict|Moderate|Lenient|AI-assisted",
-  "comment": "Detailed examiner-style comment",
+  "comment": "Detailed examiner comment on correctness and mistakes",
   "feedback": "Excellent|Above Average|Average|Needs Improvement",
   "biasLevel": <number between 0.0 and 1.0>
 }`;
 
       console.log(`Evaluating question ${question.questionId}...`);
+
+      const messages: any[] = [
+        { 
+          role: 'system', 
+          content: 'You are an expert examiner. First solve the question yourself, then evaluate the student answer by comparing it with your solution and the reference answer.' 
+        }
+      ];
+
+      // If question has an image, include it in the message
+      if (question.questionImageUrl) {
+        messages.push({
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: evaluationPrompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: question.questionImageUrl
+              }
+            }
+          ]
+        });
+      } else {
+        messages.push({ role: 'user', content: evaluationPrompt });
+      }
 
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -90,13 +115,7 @@ Respond ONLY with a JSON object:
         },
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are an expert examiner who evaluates student answers fairly and provides constructive feedback. You assign marks based on correctness and understanding.' 
-            },
-            { role: 'user', content: evaluationPrompt }
-          ],
+          messages,
           temperature: 0.3
         }),
       });

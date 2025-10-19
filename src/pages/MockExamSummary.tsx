@@ -50,6 +50,7 @@ const MockExamSummary = () => {
         let questionText = question.text;
         let referenceAnswer = question.answerKey || '';
         let marks = question.marks;
+        let questionImageUrl = question.imageUrl;
 
         // Handle sub-questions
         if (answer.subQuestionId) {
@@ -58,6 +59,8 @@ const MockExamSummary = () => {
             questionText = `${question.text}\n${subQuestion.text}`;
             referenceAnswer = subQuestion.answerKey || '';
             marks = subQuestion.marks;
+            // Use sub-question image if available, otherwise use main question image
+            questionImageUrl = subQuestion.imageUrl || question.imageUrl;
           }
         }
 
@@ -68,7 +71,8 @@ const MockExamSummary = () => {
           studentAnswer: answer.content,
           marks,
           subject,
-          topic
+          topic,
+          questionImageUrl
         };
       }).filter(Boolean);
 
