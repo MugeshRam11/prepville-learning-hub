@@ -48,6 +48,10 @@ const MockExamQuestion = ({
 
   const saveDraft = () => {
     console.log('Draft saved');
+    // Auto-advance to next question after saving
+    if (onNext) {
+      onNext();
+    }
   };
 
   const renderLatexContent = (text: string) => {
