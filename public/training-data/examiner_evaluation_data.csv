@@ -1,0 +1,1001 @@
+Student_ID,Examiner_ID,Subject,Marks,Evaluation_Type,Comment,Result,Division,Bias_Level,Feedback
+S060,E122,Math,58,AI-assisted,AI-assisted: needs minor corrections,Pass,2,0.61,Excellent
+S253,E129,English,67,Strict,Needs improvement in concepts,Pass,1,0.28,Average
+S283,E113,History,91,Lenient,Well done,Pass,1,0.97,Needs improvement
+S232,E111,Science,71,Lenient,Good attempt,Pass,1,0.06,Needs improvement
+S103,E150,Science,87,Moderate,Some errors but acceptable,Pass,1,0.74,Excellent
+S057,E136,History,77,Strict,Errors in methodology,Pass,1,0.65,Excellent
+S086,E126,Science,79,Strict,Work is below standard,Pass,1,0.27,Above average
+S159,E107,Science,62,Moderate,Some errors but acceptable,Pass,1,0.05,Needs improvement
+S077,E112,English,75,Strict,Focus on basics,Pass,1,0.4,Average
+S290,E147,Computer Science,70,Strict,Work is below standard,Pass,1,0.18,Above average
+S025,E130,English,71,Moderate,Decent understanding,Pass,1,0.27,Excellent
+S098,E127,English,47,Strict,Focus on basics,Pass,3,0.74,Excellent
+S186,E108,Math,97,Lenient,Excellent effort,Pass,1,0.02,Excellent
+S003,E115,Science,90,Moderate,Satisfactory work,Pass,1,0.26,Needs improvement
+S044,E109,Science,68,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.18,Excellent
+S200,E108,Math,64,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.75,Needs improvement
+S010,E111,Computer Science,74,Strict,Focus on basics,Pass,1,0.88,Excellent
+S065,E101,Computer Science,75,Strict,Work is below standard,Pass,1,0.26,Excellent
+S063,E115,Science,52,Moderate,Decent understanding,Pass,2,0.62,Needs improvement
+S043,E101,Science,89,Moderate,Satisfactory work,Pass,1,0.87,Above average
+S114,E150,History,89,Lenient,Good attempt,Pass,1,0.0,Excellent
+S076,E149,Science,83,Strict,Work is below standard,Pass,1,0.95,Needs improvement
+S283,E119,History,79,Lenient,Creative approach,Pass,1,0.35,Average
+S145,E120,Computer Science,67,Moderate,Some errors but acceptable,Pass,1,0.43,Excellent
+S082,E127,Computer Science,61,Moderate,Decent understanding,Pass,1,0.62,Needs improvement
+S082,E125,Computer Science,64,Strict,Focus on basics,Pass,1,0.63,Excellent
+S093,E141,English,59,AI-assisted,AI-assisted: well-structured,Pass,2,0.96,Average
+S184,E116,Geography,70,Moderate,Some errors but acceptable,Pass,1,0.16,Average
+S191,E126,Geography,70,Moderate,Decent understanding,Pass,1,0.15,Above average
+S094,E124,Science,95,Lenient,Well done,Pass,1,0.28,Needs improvement
+S039,E102,Math,74,Moderate,Keep practicing,Pass,1,0.76,Average
+S038,E127,Math,92,Lenient,Creative approach,Pass,1,0.5,Above average
+S197,E106,Computer Science,73,AI-assisted,AI-assisted: well-structured,Pass,1,0.81,Above average
+S277,E132,Computer Science,75,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.76,Above average
+S123,E105,Computer Science,85,Lenient,Creative approach,Pass,1,0.04,Above average
+S022,E132,Math,89,AI-assisted,AI-assisted: well-structured,Pass,1,0.79,Average
+S096,E131,English,87,AI-assisted,AI-assisted: well-structured,Pass,1,0.72,Excellent
+S275,E118,Math,56,Strict,Work is below standard,Pass,2,0.89,Above average
+S188,E149,History,43,Strict,Focus on basics,Pass,3,0.17,Average
+S196,E118,Science,73,Lenient,Good attempt,Pass,1,0.19,Needs improvement
+S038,E122,English,56,Moderate,Keep practicing,Pass,2,0.54,Excellent
+S157,E149,English,59,AI-assisted,AI-assisted: well-structured,Pass,2,0.95,Average
+S091,E117,English,58,Moderate,Decent understanding,Pass,2,0.66,Needs improvement
+S152,E141,Geography,75,Strict,Needs improvement in concepts,Pass,1,0.61,Average
+S212,E124,English,77,Moderate,Keep practicing,Pass,1,0.04,Average
+S271,E101,History,89,AI-assisted,AI-assisted: well-structured,Pass,1,0.1,Average
+S174,E134,Math,90,Lenient,Good attempt,Pass,1,0.86,Above average
+S003,E132,Science,90,Moderate,Some errors but acceptable,Pass,1,0.96,Excellent
+S095,E114,History,41,Strict,Errors in methodology,Pass,3,0.45,Excellent
+S022,E133,English,69,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.47,Above average
+S267,E106,Geography,69,Moderate,Keep practicing,Pass,1,0.22,Above average
+S280,E138,English,69,Moderate,Satisfactory work,Pass,1,0.05,Excellent
+S099,E149,English,83,Moderate,Satisfactory work,Pass,1,0.89,Above average
+S043,E130,English,85,Lenient,Well done,Pass,1,0.13,Needs improvement
+S202,E123,Geography,80,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.92,Needs improvement
+S104,E128,Computer Science,79,AI-assisted,AI-assisted: well-structured,Pass,1,0.35,Above average
+S089,E102,Computer Science,73,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.93,Needs improvement
+S167,E119,Geography,42,Strict,Errors in methodology,Pass,3,0.59,Excellent
+S172,E121,History,63,Lenient,Well done,Pass,1,0.6,Above average
+S072,E117,Math,94,AI-assisted,AI-assisted: well-structured,Pass,1,0.42,Excellent
+S064,E109,Science,51,Strict,Needs improvement in concepts,Pass,2,0.24,Excellent
+S009,E131,Science,71,Moderate,Decent understanding,Pass,1,0.36,Average
+S281,E131,Geography,76,Lenient,Well done,Pass,1,0.04,Needs improvement
+S297,E145,English,66,Lenient,Good attempt,Pass,1,0.6,Needs improvement
+S146,E142,English,82,Lenient,Excellent effort,Pass,1,0.63,Excellent
+S022,E128,History,79,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.69,Average
+S110,E117,Geography,78,Strict,Errors in methodology,Pass,1,0.59,Needs improvement
+S289,E135,Math,83,Lenient,Excellent effort,Pass,1,0.29,Above average
+S032,E134,Math,70,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.01,Average
+S190,E131,Science,66,Moderate,Satisfactory work,Pass,1,0.6,Average
+S247,E118,Math,69,Lenient,Creative approach,Pass,1,0.78,Above average
+S029,E118,Computer Science,48,Strict,Errors in methodology,Pass,3,0.76,Average
+S207,E136,Math,80,Moderate,Keep practicing,Pass,1,0.66,Excellent
+S207,E109,History,91,Lenient,Well done,Pass,1,0.66,Needs improvement
+S142,E106,Math,60,Strict,Needs improvement in concepts,Pass,1,0.04,Needs improvement
+S022,E124,Science,70,Lenient,Excellent effort,Pass,1,0.75,Needs improvement
+S170,E118,English,66,Strict,Focus on basics,Pass,1,1.0,Excellent
+S057,E106,English,66,Moderate,Keep practicing,Pass,1,0.81,Above average
+S073,E112,Geography,43,Strict,Work is below standard,Pass,3,0.44,Average
+S244,E144,English,86,Moderate,Satisfactory work,Pass,1,0.04,Above average
+S192,E124,Science,99,Lenient,Excellent effort,Pass,1,0.99,Above average
+S128,E145,Science,68,AI-assisted,AI-assisted: well-structured,Pass,1,0.32,Above average
+S017,E125,Math,96,Lenient,Well done,Pass,1,0.54,Needs improvement
+S203,E113,Math,50,Moderate,Satisfactory work,Pass,2,0.99,Excellent
+S040,E126,English,56,AI-assisted,AI-assisted: minor mistakes,Pass,2,0.15,Above average
+S051,E125,Science,82,Lenient,Good attempt,Pass,1,0.63,Needs improvement
+S178,E139,Geography,83,Moderate,Satisfactory work,Pass,1,0.11,Excellent
+S133,E143,English,85,Strict,Needs improvement in concepts,Pass,1,0.89,Above average
+S164,E101,History,97,Lenient,Creative approach,Pass,1,0.59,Excellent
+S255,E146,Geography,88,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.4,Average
+S170,E133,English,76,Lenient,Well done,Pass,1,0.06,Above average
+S236,E101,Geography,55,Strict,Focus on basics,Pass,2,0.11,Above average
+S150,E141,History,82,Strict,Needs improvement in concepts,Pass,1,0.06,Above average
+S194,E144,Math,98,Lenient,Well done,Pass,1,0.22,Average
+S259,E147,History,61,Lenient,Well done,Pass,1,0.07,Excellent
+S240,E122,Science,60,AI-assisted,AI-assisted: well-structured,Pass,1,0.63,Above average
+S223,E120,Computer Science,71,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.72,Excellent
+S207,E113,History,85,Moderate,Keep practicing,Pass,1,0.52,Excellent
+S076,E146,Computer Science,53,Moderate,Satisfactory work,Pass,2,0.81,Above average
+S168,E104,English,75,Lenient,Excellent effort,Pass,1,0.98,Excellent
+S238,E131,Geography,72,Strict,Errors in methodology,Pass,1,0.62,Excellent
+S113,E134,Math,75,Strict,Work is below standard,Pass,1,0.72,Above average
+S197,E102,English,88,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.25,Average
+S047,E132,Computer Science,55,Strict,Errors in methodology,Pass,2,0.78,Excellent
+S173,E127,History,73,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.13,Excellent
+S178,E109,Math,90,Moderate,Keep practicing,Pass,1,0.87,Above average
+S164,E135,Geography,83,Lenient,Well done,Pass,1,0.08,Average
+S181,E121,Computer Science,65,Moderate,Keep practicing,Pass,1,0.25,Excellent
+S280,E141,Math,43,Strict,Errors in methodology,Pass,3,0.18,Excellent
+S074,E131,Science,59,Moderate,Some errors but acceptable,Pass,2,0.64,Average
+S171,E121,Math,63,Moderate,Satisfactory work,Pass,1,0.85,Needs improvement
+S227,E130,Computer Science,84,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.3,Average
+S071,E137,History,83,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.87,Above average
+S076,E143,Geography,63,Strict,Focus on basics,Pass,1,0.35,Average
+S245,E105,Geography,66,Lenient,Good attempt,Pass,1,0.46,Average
+S249,E132,English,79,Lenient,Creative approach,Pass,1,0.84,Excellent
+S285,E126,Science,91,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.67,Excellent
+S295,E144,Science,77,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.96,Excellent
+S060,E107,English,69,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.24,Above average
+S142,E136,History,60,Moderate,Decent understanding,Pass,1,0.5,Needs improvement
+S028,E143,History,64,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.21,Above average
+S032,E127,Computer Science,70,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.54,Above average
+S122,E149,Science,50,Moderate,Some errors but acceptable,Pass,2,0.87,Average
+S240,E122,Computer Science,60,Moderate,Keep practicing,Pass,1,0.23,Excellent
+S079,E107,History,79,Moderate,Keep practicing,Pass,1,0.31,Needs improvement
+S196,E117,Geography,74,Moderate,Some errors but acceptable,Pass,1,0.35,Excellent
+S057,E137,Math,81,Lenient,Excellent effort,Pass,1,0.65,Needs improvement
+S047,E114,English,43,Strict,Focus on basics,Pass,3,0.11,Average
+S259,E127,Geography,62,Moderate,Satisfactory work,Pass,1,0.14,Needs improvement
+S203,E110,Science,68,Moderate,Keep practicing,Pass,1,0.37,Average
+S167,E140,Math,81,Strict,Work is below standard,Pass,1,0.46,Average
+S230,E136,Geography,40,Strict,Focus on basics,Pass,3,0.06,Above average
+S211,E129,Computer Science,95,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.28,Above average
+S228,E102,Math,97,Lenient,Well done,Pass,1,0.12,Excellent
+S228,E137,English,79,Lenient,Good attempt,Pass,1,0.29,Above average
+S004,E132,Math,78,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.33,Needs improvement
+S271,E137,Computer Science,65,Moderate,Some errors but acceptable,Pass,1,0.72,Needs improvement
+S080,E133,Geography,61,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.29,Above average
+S299,E148,Math,87,Lenient,Well done,Pass,1,0.97,Excellent
+S290,E119,Math,60,Lenient,Good attempt,Pass,1,0.26,Excellent
+S049,E141,Computer Science,60,Lenient,Creative approach,Pass,1,0.1,Needs improvement
+S297,E138,English,76,Strict,Work is below standard,Pass,1,0.56,Excellent
+S169,E109,History,79,Lenient,Good attempt,Pass,1,0.55,Needs improvement
+S169,E120,Math,88,Moderate,Satisfactory work,Pass,1,0.93,Average
+S289,E132,Math,66,AI-assisted,AI-assisted: well-structured,Pass,1,0.22,Average
+S274,E126,Geography,90,Moderate,Satisfactory work,Pass,1,0.2,Needs improvement
+S046,E122,Computer Science,66,Lenient,Well done,Pass,1,0.96,Needs improvement
+S013,E105,English,53,Moderate,Decent understanding,Pass,2,0.26,Average
+S157,E129,Math,59,Moderate,Satisfactory work,Pass,2,0.95,Excellent
+S206,E113,English,84,Strict,Work is below standard,Pass,1,0.52,Average
+S072,E118,History,65,Moderate,Decent understanding,Pass,1,0.33,Above average
+S232,E138,Math,65,Lenient,Excellent effort,Pass,1,0.48,Average
+S142,E128,Science,83,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.87,Excellent
+S221,E137,English,80,Lenient,Well done,Pass,1,0.03,Needs improvement
+S089,E138,Computer Science,91,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.97,Average
+S062,E133,Math,92,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.46,Average
+S024,E149,Geography,85,Strict,Work is below standard,Pass,1,0.23,Needs improvement
+S085,E128,History,76,Strict,Focus on basics,Pass,1,0.74,Excellent
+S223,E147,Computer Science,83,Moderate,Satisfactory work,Pass,1,0.06,Average
+S259,E139,Computer Science,59,AI-assisted,AI-assisted: needs minor corrections,Pass,2,0.23,Excellent
+S039,E114,Geography,92,Lenient,Creative approach,Pass,1,0.56,Excellent
+S105,E115,Geography,71,Lenient,Excellent effort,Pass,1,0.99,Excellent
+S109,E117,Science,76,Lenient,Excellent effort,Pass,1,0.61,Average
+S012,E108,Math,85,Strict,Errors in methodology,Pass,1,0.64,Needs improvement
+S059,E141,English,76,Lenient,Excellent effort,Pass,1,0.67,Excellent
+S232,E119,Science,43,Strict,Focus on basics,Pass,3,0.54,Excellent
+S058,E101,History,55,AI-assisted,AI-assisted: well-structured,Pass,2,0.11,Needs improvement
+S239,E124,Computer Science,45,Strict,Work is below standard,Pass,3,0.07,Above average
+S066,E134,Math,82,Moderate,Satisfactory work,Pass,1,0.67,Excellent
+S042,E128,Computer Science,68,AI-assisted,AI-assisted: well-structured,Pass,1,0.11,Above average
+S087,E141,Geography,86,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.27,Average
+S019,E119,Geography,81,Lenient,Excellent effort,Pass,1,0.44,Needs improvement
+S208,E131,Science,80,Lenient,Well done,Pass,1,0.74,Excellent
+S210,E134,Math,86,Lenient,Creative approach,Pass,1,0.05,Above average
+S084,E126,Geography,68,Strict,Needs improvement in concepts,Pass,1,0.73,Above average
+S060,E119,English,63,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.46,Excellent
+S039,E143,Science,68,Strict,Needs improvement in concepts,Pass,1,0.23,Needs improvement
+S207,E110,Geography,72,Lenient,Excellent effort,Pass,1,0.72,Above average
+S273,E128,Math,79,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.64,Above average
+S136,E119,Computer Science,56,Strict,Errors in methodology,Pass,2,0.62,Needs improvement
+S089,E118,Math,52,Moderate,Keep practicing,Pass,2,0.43,Needs improvement
+S084,E135,English,50,Moderate,Keep practicing,Pass,2,0.97,Excellent
+S021,E106,Geography,63,Moderate,Decent understanding,Pass,1,0.11,Needs improvement
+S259,E123,Geography,54,Strict,Focus on basics,Pass,2,0.45,Excellent
+S037,E146,History,72,Strict,Work is below standard,Pass,1,0.15,Average
+S105,E102,Science,69,Lenient,Good attempt,Pass,1,0.6,Excellent
+S246,E111,English,77,Lenient,Creative approach,Pass,1,0.26,Needs improvement
+S264,E121,History,82,Strict,Work is below standard,Pass,1,0.84,Needs improvement
+S164,E114,English,67,Lenient,Good attempt,Pass,1,0.1,Excellent
+S087,E118,Computer Science,72,Strict,Errors in methodology,Pass,1,0.09,Needs improvement
+S252,E119,Computer Science,81,Moderate,Keep practicing,Pass,1,0.48,Above average
+S162,E144,Geography,67,Moderate,Some errors but acceptable,Pass,1,0.67,Excellent
+S003,E107,Math,91,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.69,Excellent
+S193,E126,History,76,Moderate,Satisfactory work,Pass,1,0.72,Excellent
+S185,E115,Math,83,Moderate,Decent understanding,Pass,1,0.41,Needs improvement
+S169,E135,Math,43,Strict,Work is below standard,Pass,3,0.84,Needs improvement
+S295,E142,Science,76,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.52,Above average
+S001,E116,Computer Science,74,AI-assisted,AI-assisted: well-structured,Pass,1,0.51,Needs improvement
+S036,E136,Science,64,Lenient,Good attempt,Pass,1,0.73,Above average
+S043,E133,English,83,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.66,Needs improvement
+S195,E142,Computer Science,79,Strict,Focus on basics,Pass,1,0.81,Average
+S274,E133,Geography,74,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.03,Average
+S291,E131,Science,63,Moderate,Some errors but acceptable,Pass,1,0.16,Above average
+S273,E129,English,77,Moderate,Decent understanding,Pass,1,0.66,Needs improvement
+S105,E131,Science,57,Strict,Work is below standard,Pass,2,0.45,Needs improvement
+S265,E131,History,61,Moderate,Decent understanding,Pass,1,0.76,Average
+S116,E129,Geography,78,Moderate,Keep practicing,Pass,1,0.4,Needs improvement
+S134,E140,Math,74,Lenient,Excellent effort,Pass,1,0.71,Needs improvement
+S275,E106,Science,76,Lenient,Well done,Pass,1,0.67,Excellent
+S256,E148,History,82,Lenient,Well done,Pass,1,0.92,Needs improvement
+S011,E106,Math,79,Moderate,Keep practicing,Pass,1,0.27,Needs improvement
+S068,E101,Math,77,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.41,Average
+S253,E110,History,59,Moderate,Satisfactory work,Pass,2,0.02,Above average
+S155,E141,Computer Science,82,Lenient,Creative approach,Pass,1,0.17,Average
+S071,E126,Geography,74,Lenient,Creative approach,Pass,1,0.83,Above average
+S292,E113,Science,58,Strict,Errors in methodology,Pass,2,0.62,Needs improvement
+S129,E121,Computer Science,96,Lenient,Creative approach,Pass,1,0.94,Excellent
+S013,E139,English,62,Lenient,Creative approach,Pass,1,0.49,Average
+S263,E131,Geography,91,Lenient,Good attempt,Pass,1,0.72,Average
+S198,E144,English,83,Moderate,Satisfactory work,Pass,1,0.69,Needs improvement
+S124,E129,English,53,Strict,Focus on basics,Pass,2,0.99,Excellent
+S232,E107,History,48,Strict,Needs improvement in concepts,Pass,3,0.03,Excellent
+S076,E104,Geography,67,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.51,Average
+S105,E146,English,61,Lenient,Creative approach,Pass,1,0.65,Needs improvement
+S113,E107,Geography,93,AI-assisted,AI-assisted: well-structured,Pass,1,0.92,Excellent
+S012,E138,History,66,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.45,Above average
+S091,E119,Math,77,Strict,Errors in methodology,Pass,1,0.07,Above average
+S039,E122,Geography,55,Strict,Focus on basics,Pass,2,0.96,Average
+S247,E124,Science,58,Strict,Needs improvement in concepts,Pass,2,0.05,Above average
+S242,E137,Computer Science,84,Moderate,Some errors but acceptable,Pass,1,0.96,Average
+S191,E150,Geography,89,Lenient,Well done,Pass,1,0.02,Above average
+S222,E143,Computer Science,70,Moderate,Decent understanding,Pass,1,0.49,Excellent
+S159,E136,Math,67,Strict,Work is below standard,Pass,1,0.92,Needs improvement
+S030,E142,Math,74,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.8,Needs improvement
+S180,E136,Computer Science,81,Lenient,Well done,Pass,1,0.83,Needs improvement
+S206,E104,English,81,Strict,Errors in methodology,Pass,1,0.3,Average
+S179,E126,Computer Science,64,Strict,Focus on basics,Pass,1,0.89,Above average
+S278,E139,English,73,Strict,Work is below standard,Pass,1,0.56,Above average
+S196,E150,Computer Science,79,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.07,Excellent
+S158,E133,Math,54,Moderate,Satisfactory work,Pass,2,0.01,Excellent
+S181,E124,Math,57,AI-assisted,AI-assisted: needs minor corrections,Pass,2,0.3,Excellent
+S027,E126,Math,77,Moderate,Keep practicing,Pass,1,0.08,Above average
+S226,E144,History,59,Strict,Focus on basics,Pass,2,0.73,Needs improvement
+S053,E145,History,87,Moderate,Some errors but acceptable,Pass,1,0.98,Average
+S153,E148,Math,57,AI-assisted,AI-assisted: well-structured,Pass,2,0.23,Average
+S260,E135,Geography,65,Moderate,Some errors but acceptable,Pass,1,0.44,Above average
+S140,E124,Computer Science,58,AI-assisted,AI-assisted: well-structured,Pass,2,0.01,Excellent
+S140,E143,Geography,55,Strict,Errors in methodology,Pass,2,0.27,Needs improvement
+S287,E109,Science,63,Strict,Work is below standard,Pass,1,0.46,Needs improvement
+S006,E101,Geography,65,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.45,Excellent
+S054,E150,Computer Science,91,Lenient,Good attempt,Pass,1,0.29,Average
+S103,E148,Computer Science,63,Moderate,Keep practicing,Pass,1,0.15,Above average
+S227,E119,Geography,79,Strict,Needs improvement in concepts,Pass,1,0.44,Needs improvement
+S269,E119,Computer Science,84,AI-assisted,AI-assisted: well-structured,Pass,1,0.66,Average
+S072,E145,Computer Science,76,Moderate,Keep practicing,Pass,1,0.1,Average
+S083,E123,English,89,Moderate,Some errors but acceptable,Pass,1,0.84,Needs improvement
+S035,E138,Computer Science,84,Moderate,Some errors but acceptable,Pass,1,0.24,Average
+S093,E146,Math,87,AI-assisted,AI-assisted: well-structured,Pass,1,0.8,Needs improvement
+S112,E138,History,61,Lenient,Creative approach,Pass,1,0.51,Excellent
+S219,E133,Math,85,Lenient,Creative approach,Pass,1,0.84,Needs improvement
+S180,E136,English,65,AI-assisted,AI-assisted: well-structured,Pass,1,0.72,Above average
+S274,E132,Geography,81,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.06,Average
+S045,E118,English,87,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.41,Average
+S201,E110,Computer Science,50,Moderate,Some errors but acceptable,Pass,2,0.15,Needs improvement
+S128,E125,English,79,Strict,Work is below standard,Pass,1,0.58,Average
+S135,E133,Computer Science,81,Moderate,Some errors but acceptable,Pass,1,0.16,Excellent
+S140,E136,History,76,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.51,Needs improvement
+S174,E133,Geography,74,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.43,Excellent
+S077,E131,Geography,67,Lenient,Excellent effort,Pass,1,0.3,Excellent
+S186,E116,Science,79,Moderate,Keep practicing,Pass,1,0.79,Needs improvement
+S259,E133,Computer Science,90,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.49,Average
+S115,E149,Computer Science,49,Strict,Errors in methodology,Pass,3,0.09,Average
+S067,E145,English,72,Lenient,Excellent effort,Pass,1,0.02,Excellent
+S081,E133,History,50,Strict,Errors in methodology,Pass,2,0.7,Above average
+S161,E117,History,54,Strict,Work is below standard,Pass,2,0.45,Above average
+S071,E109,Computer Science,72,Strict,Work is below standard,Pass,1,0.95,Average
+S202,E129,Math,61,AI-assisted,AI-assisted: well-structured,Pass,1,0.31,Above average
+S239,E126,History,56,Moderate,Decent understanding,Pass,2,0.41,Above average
+S020,E106,History,66,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.12,Needs improvement
+S095,E112,History,82,Lenient,Creative approach,Pass,1,0.84,Excellent
+S111,E146,Science,63,Moderate,Keep practicing,Pass,1,0.59,Needs improvement
+S148,E121,Geography,76,Strict,Errors in methodology,Pass,1,0.91,Excellent
+S101,E139,Computer Science,100,Lenient,Good attempt,Pass,1,0.28,Average
+S276,E105,Computer Science,62,Moderate,Some errors but acceptable,Pass,1,0.71,Needs improvement
+S185,E118,Computer Science,57,Moderate,Some errors but acceptable,Pass,2,0.85,Needs improvement
+S101,E130,Geography,73,Strict,Work is below standard,Pass,1,0.78,Average
+S071,E121,Math,58,AI-assisted,AI-assisted evaluation: good clarity,Pass,2,0.22,Average
+S296,E111,Computer Science,81,Moderate,Decent understanding,Pass,1,0.98,Above average
+S043,E137,Geography,59,Moderate,Decent understanding,Pass,2,0.74,Needs improvement
+S030,E132,History,81,Lenient,Creative approach,Pass,1,0.07,Needs improvement
+S017,E136,History,89,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.64,Excellent
+S197,E136,English,82,Moderate,Decent understanding,Pass,1,0.65,Excellent
+S137,E120,English,78,Lenient,Creative approach,Pass,1,0.91,Needs improvement
+S133,E104,Geography,69,Moderate,Satisfactory work,Pass,1,0.88,Above average
+S037,E118,History,53,Strict,Focus on basics,Pass,2,0.19,Above average
+S225,E123,Math,91,AI-assisted,AI-assisted: well-structured,Pass,1,0.28,Average
+S202,E144,English,70,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.59,Average
+S091,E134,Math,47,Strict,Focus on basics,Pass,3,0.09,Above average
+S130,E103,Geography,51,Moderate,Decent understanding,Pass,2,0.15,Excellent
+S126,E105,Computer Science,43,Strict,Focus on basics,Pass,3,0.24,Average
+S077,E142,History,71,Moderate,Decent understanding,Pass,1,0.56,Excellent
+S262,E102,History,90,Lenient,Well done,Pass,1,0.72,Average
+S058,E138,Science,82,AI-assisted,AI-assisted: well-structured,Pass,1,0.05,Excellent
+S220,E143,Computer Science,80,Moderate,Satisfactory work,Pass,1,1.0,Excellent
+S277,E150,History,53,Strict,Work is below standard,Pass,2,0.03,Needs improvement
+S071,E147,Computer Science,88,Moderate,Some errors but acceptable,Pass,1,0.46,Needs improvement
+S106,E144,History,40,Strict,Focus on basics,Pass,3,0.14,Needs improvement
+S139,E104,Science,57,AI-assisted,AI-assisted evaluation: good clarity,Pass,2,0.9,Average
+S066,E119,Geography,65,Strict,Work is below standard,Pass,1,0.0,Above average
+S194,E150,Computer Science,91,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.05,Above average
+S167,E135,Computer Science,70,AI-assisted,AI-assisted: well-structured,Pass,1,0.84,Needs improvement
+S221,E121,English,82,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.26,Excellent
+S019,E108,Computer Science,55,Strict,Work is below standard,Pass,2,0.25,Needs improvement
+S131,E127,History,68,Moderate,Satisfactory work,Pass,1,0.98,Needs improvement
+S172,E123,Computer Science,78,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.73,Excellent
+S061,E136,Computer Science,64,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.36,Average
+S076,E148,Geography,85,Strict,Focus on basics,Pass,1,0.13,Needs improvement
+S039,E130,Science,92,Lenient,Well done,Pass,1,0.37,Average
+S153,E112,English,66,Lenient,Good attempt,Pass,1,0.35,Above average
+S116,E142,Computer Science,89,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.14,Needs improvement
+S255,E103,Math,62,Moderate,Satisfactory work,Pass,1,0.35,Needs improvement
+S037,E108,Science,86,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.46,Average
+S185,E145,History,56,AI-assisted,AI-assisted: needs minor corrections,Pass,2,0.9,Needs improvement
+S148,E128,Computer Science,84,Strict,Errors in methodology,Pass,1,0.75,Average
+S003,E141,Science,87,Lenient,Well done,Pass,1,0.37,Average
+S121,E131,English,64,Moderate,Decent understanding,Pass,1,0.68,Excellent
+S158,E114,Geography,62,Strict,Needs improvement in concepts,Pass,1,0.64,Needs improvement
+S026,E140,History,81,AI-assisted,AI-assisted: well-structured,Pass,1,0.41,Needs improvement
+S126,E139,Math,50,Strict,Work is below standard,Pass,2,0.02,Average
+S286,E145,Math,49,Strict,Needs improvement in concepts,Pass,3,0.13,Needs improvement
+S009,E121,History,73,Moderate,Decent understanding,Pass,1,0.67,Needs improvement
+S071,E111,English,60,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.39,Needs improvement
+S127,E149,Computer Science,59,Moderate,Keep practicing,Pass,2,0.69,Excellent
+S282,E104,Geography,86,Lenient,Well done,Pass,1,0.49,Needs improvement
+S244,E104,Math,85,Moderate,Satisfactory work,Pass,1,0.56,Needs improvement
+S074,E119,Science,76,Moderate,Some errors but acceptable,Pass,1,0.39,Excellent
+S137,E125,Computer Science,77,Moderate,Satisfactory work,Pass,1,0.87,Average
+S250,E109,Math,90,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.02,Above average
+S067,E114,History,85,Lenient,Good attempt,Pass,1,0.39,Needs improvement
+S032,E124,Science,78,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.97,Excellent
+S115,E128,History,74,Strict,Focus on basics,Pass,1,0.87,Excellent
+S031,E148,Science,75,Moderate,Some errors but acceptable,Pass,1,0.39,Above average
+S131,E141,Computer Science,80,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.2,Average
+S123,E102,Math,92,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.23,Above average
+S267,E107,History,68,Lenient,Good attempt,Pass,1,0.33,Needs improvement
+S131,E107,English,84,Lenient,Well done,Pass,1,0.35,Needs improvement
+S260,E101,Math,46,Strict,Errors in methodology,Pass,3,0.94,Average
+S193,E128,Science,93,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.59,Excellent
+S108,E113,Math,68,Moderate,Keep practicing,Pass,1,0.81,Average
+S149,E145,English,85,Strict,Errors in methodology,Pass,1,0.21,Excellent
+S122,E135,Math,88,Lenient,Good attempt,Pass,1,0.22,Needs improvement
+S228,E143,Science,95,Lenient,Creative approach,Pass,1,0.88,Excellent
+S294,E105,Math,88,Lenient,Good attempt,Pass,1,0.74,Above average
+S080,E102,English,82,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.83,Needs improvement
+S001,E128,Science,52,Strict,Needs improvement in concepts,Pass,2,0.19,Needs improvement
+S167,E126,Science,88,Moderate,Some errors but acceptable,Pass,1,0.87,Average
+S299,E108,Geography,87,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.38,Needs improvement
+S271,E128,History,79,Lenient,Well done,Pass,1,0.82,Needs improvement
+S137,E126,Computer Science,62,Moderate,Decent understanding,Pass,1,0.19,Needs improvement
+S209,E103,Science,70,Moderate,Satisfactory work,Pass,1,0.72,Excellent
+S131,E111,English,75,Lenient,Good attempt,Pass,1,0.13,Excellent
+S116,E128,Science,51,Strict,Errors in methodology,Pass,2,0.65,Excellent
+S155,E129,Math,88,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.92,Needs improvement
+S215,E108,English,72,Strict,Needs improvement in concepts,Pass,1,0.04,Needs improvement
+S004,E150,Math,54,Strict,Errors in methodology,Pass,2,0.0,Above average
+S103,E128,Math,79,Lenient,Excellent effort,Pass,1,0.9,Excellent
+S184,E148,Computer Science,61,Lenient,Creative approach,Pass,1,0.12,Above average
+S003,E126,Science,63,Lenient,Well done,Pass,1,0.86,Average
+S025,E150,Science,78,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.34,Excellent
+S049,E121,Science,70,Moderate,Some errors but acceptable,Pass,1,0.7,Above average
+S067,E127,Science,53,Moderate,Satisfactory work,Pass,2,0.81,Needs improvement
+S072,E130,English,76,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.27,Average
+S280,E119,Science,67,Lenient,Creative approach,Pass,1,0.62,Excellent
+S174,E143,History,94,Lenient,Creative approach,Pass,1,0.21,Needs improvement
+S092,E124,Math,88,Moderate,Decent understanding,Pass,1,0.73,Excellent
+S172,E112,Computer Science,78,Moderate,Some errors but acceptable,Pass,1,0.39,Average
+S256,E104,Science,83,Moderate,Satisfactory work,Pass,1,0.17,Excellent
+S051,E108,English,97,Lenient,Creative approach,Pass,1,0.19,Needs improvement
+S126,E130,Geography,66,Lenient,Well done,Pass,1,0.02,Average
+S013,E121,English,79,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.8,Needs improvement
+S223,E108,Math,55,AI-assisted,AI-assisted: well-structured,Pass,2,0.92,Average
+S091,E150,English,87,Moderate,Decent understanding,Pass,1,0.91,Excellent
+S281,E129,Geography,63,Strict,Focus on basics,Pass,1,0.78,Excellent
+S189,E147,English,89,Moderate,Some errors but acceptable,Pass,1,0.74,Above average
+S158,E147,Science,75,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.36,Average
+S227,E147,Computer Science,53,Moderate,Decent understanding,Pass,2,0.74,Excellent
+S021,E137,Science,80,Strict,Needs improvement in concepts,Pass,1,0.55,Above average
+S286,E115,History,48,Strict,Work is below standard,Pass,3,0.82,Above average
+S261,E115,Geography,40,Strict,Work is below standard,Pass,3,0.72,Average
+S212,E145,Geography,84,Strict,Work is below standard,Pass,1,0.04,Average
+S160,E101,History,68,Strict,Errors in methodology,Pass,1,0.39,Average
+S057,E108,Science,59,AI-assisted,AI-assisted: well-structured,Pass,2,0.49,Needs improvement
+S179,E127,Math,62,Moderate,Keep practicing,Pass,1,0.81,Above average
+S139,E142,English,77,Moderate,Satisfactory work,Pass,1,0.73,Above average
+S165,E115,English,71,Strict,Needs improvement in concepts,Pass,1,0.96,Above average
+S248,E106,Science,66,Moderate,Some errors but acceptable,Pass,1,0.67,Excellent
+S059,E116,English,89,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.97,Needs improvement
+S124,E142,Math,60,Moderate,Some errors but acceptable,Pass,1,0.02,Excellent
+S037,E130,English,78,Strict,Errors in methodology,Pass,1,0.21,Average
+S218,E118,History,92,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.64,Excellent
+S079,E120,History,59,Moderate,Keep practicing,Pass,2,0.08,Average
+S076,E134,Geography,82,Moderate,Some errors but acceptable,Pass,1,0.03,Needs improvement
+S237,E137,Science,70,Moderate,Satisfactory work,Pass,1,0.33,Above average
+S029,E147,Math,55,AI-assisted,AI-assisted: minor mistakes,Pass,2,0.71,Excellent
+S038,E117,History,59,AI-assisted,AI-assisted: minor mistakes,Pass,2,0.03,Needs improvement
+S151,E113,History,97,Lenient,Well done,Pass,1,0.82,Needs improvement
+S132,E124,English,99,Lenient,Good attempt,Pass,1,0.07,Excellent
+S141,E147,Geography,79,Lenient,Good attempt,Pass,1,0.51,Excellent
+S180,E148,Geography,55,Strict,Errors in methodology,Pass,2,0.27,Average
+S256,E146,English,83,Lenient,Good attempt,Pass,1,0.38,Average
+S273,E139,History,58,AI-assisted,AI-assisted: well-structured,Pass,2,0.66,Above average
+S276,E102,Geography,93,Lenient,Well done,Pass,1,0.52,Above average
+S027,E147,Computer Science,63,Moderate,Some errors but acceptable,Pass,1,0.08,Above average
+S127,E106,Geography,84,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.97,Excellent
+S034,E129,Geography,90,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.92,Average
+S105,E132,English,87,Moderate,Some errors but acceptable,Pass,1,0.52,Needs improvement
+S045,E148,English,93,Lenient,Excellent effort,Pass,1,0.96,Excellent
+S225,E144,English,47,Strict,Errors in methodology,Pass,3,0.38,Average
+S189,E139,Computer Science,71,Moderate,Some errors but acceptable,Pass,1,0.71,Above average
+S151,E150,English,67,Moderate,Keep practicing,Pass,1,0.88,Needs improvement
+S218,E107,English,78,Strict,Errors in methodology,Pass,1,0.99,Excellent
+S198,E129,Geography,56,Moderate,Keep practicing,Pass,2,0.31,Excellent
+S185,E112,English,84,AI-assisted,AI-assisted: well-structured,Pass,1,0.52,Needs improvement
+S246,E108,Geography,91,Lenient,Creative approach,Pass,1,0.82,Average
+S041,E109,Math,86,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.64,Excellent
+S180,E140,Science,90,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.48,Above average
+S286,E131,Science,74,Moderate,Keep practicing,Pass,1,0.32,Above average
+S189,E133,Math,70,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.76,Above average
+S202,E143,Math,100,Lenient,Well done,Pass,1,0.96,Excellent
+S028,E125,Math,65,Lenient,Well done,Pass,1,0.36,Excellent
+S095,E150,Math,93,Lenient,Well done,Pass,1,0.76,Excellent
+S197,E125,History,95,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.4,Excellent
+S078,E138,Math,43,Strict,Errors in methodology,Pass,3,0.31,Needs improvement
+S025,E105,History,90,AI-assisted,AI-assisted: well-structured,Pass,1,0.84,Excellent
+S241,E117,Computer Science,60,Strict,Errors in methodology,Pass,1,0.88,Above average
+S085,E136,Math,72,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.29,Excellent
+S058,E145,Geography,95,Lenient,Well done,Pass,1,0.49,Needs improvement
+S234,E101,English,100,Lenient,Well done,Pass,1,0.95,Above average
+S161,E121,Computer Science,84,Strict,Needs improvement in concepts,Pass,1,0.14,Above average
+S200,E121,English,64,Lenient,Creative approach,Pass,1,0.89,Average
+S089,E115,English,92,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.83,Average
+S232,E143,Math,61,Strict,Work is below standard,Pass,1,0.48,Average
+S098,E140,History,87,AI-assisted,AI-assisted: well-structured,Pass,1,0.06,Excellent
+S038,E146,Math,97,Lenient,Excellent effort,Pass,1,0.42,Average
+S135,E120,History,61,Strict,Errors in methodology,Pass,1,0.25,Above average
+S109,E106,History,90,Moderate,Satisfactory work,Pass,1,0.3,Average
+S099,E129,Geography,52,Strict,Errors in methodology,Pass,2,0.06,Average
+S105,E101,Geography,67,Strict,Work is below standard,Pass,1,0.9,Average
+S149,E127,Computer Science,56,Strict,Needs improvement in concepts,Pass,2,0.75,Needs improvement
+S040,E149,Geography,64,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.88,Above average
+S296,E113,Science,55,AI-assisted,AI-assisted: well-structured,Pass,2,0.34,Needs improvement
+S095,E149,Computer Science,54,Strict,Work is below standard,Pass,2,0.61,Excellent
+S085,E125,Computer Science,78,Moderate,Decent understanding,Pass,1,0.1,Excellent
+S014,E117,History,68,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.97,Needs improvement
+S140,E104,Computer Science,64,Moderate,Keep practicing,Pass,1,0.1,Excellent
+S101,E103,Math,79,Moderate,Keep practicing,Pass,1,0.13,Average
+S030,E140,Computer Science,62,Lenient,Good attempt,Pass,1,0.18,Above average
+S094,E126,Science,66,Lenient,Well done,Pass,1,0.45,Above average
+S173,E120,Computer Science,74,Moderate,Some errors but acceptable,Pass,1,0.83,Needs improvement
+S129,E145,Computer Science,77,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.13,Average
+S151,E115,Math,58,Moderate,Decent understanding,Pass,2,0.62,Average
+S122,E146,Science,87,Moderate,Some errors but acceptable,Pass,1,0.49,Excellent
+S201,E134,English,89,Moderate,Satisfactory work,Pass,1,0.01,Excellent
+S247,E124,Geography,85,Strict,Needs improvement in concepts,Pass,1,0.24,Average
+S151,E136,Math,87,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.72,Average
+S100,E142,Computer Science,60,Lenient,Creative approach,Pass,1,0.6,Above average
+S175,E125,Math,56,AI-assisted,AI-assisted: well-structured,Pass,2,0.72,Average
+S138,E138,Math,69,Strict,Needs improvement in concepts,Pass,1,0.49,Excellent
+S071,E143,Science,84,Moderate,Some errors but acceptable,Pass,1,0.81,Above average
+S148,E102,English,84,Moderate,Satisfactory work,Pass,1,0.12,Excellent
+S191,E114,History,69,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.12,Average
+S201,E119,English,77,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.54,Average
+S068,E125,Computer Science,57,Moderate,Some errors but acceptable,Pass,2,0.31,Above average
+S209,E146,Computer Science,70,Strict,Work is below standard,Pass,1,0.41,Excellent
+S092,E129,Science,73,Moderate,Keep practicing,Pass,1,0.54,Excellent
+S167,E140,Geography,73,Strict,Needs improvement in concepts,Pass,1,0.36,Above average
+S286,E136,Computer Science,50,Moderate,Decent understanding,Pass,2,0.03,Needs improvement
+S136,E137,English,84,Lenient,Excellent effort,Pass,1,0.32,Needs improvement
+S233,E143,Math,70,Lenient,Good attempt,Pass,1,0.7,Needs improvement
+S006,E107,History,74,Strict,Needs improvement in concepts,Pass,1,0.04,Needs improvement
+S280,E107,Geography,86,Lenient,Well done,Pass,1,0.49,Needs improvement
+S280,E143,English,89,Moderate,Keep practicing,Pass,1,0.05,Excellent
+S148,E130,Geography,94,Lenient,Well done,Pass,1,0.49,Average
+S289,E131,Geography,42,Strict,Errors in methodology,Pass,3,0.15,Excellent
+S106,E135,History,64,Moderate,Keep practicing,Pass,1,0.31,Excellent
+S145,E138,Math,90,Moderate,Satisfactory work,Pass,1,0.49,Needs improvement
+S238,E124,Computer Science,57,Moderate,Keep practicing,Pass,2,1.0,Excellent
+S263,E118,Computer Science,75,Lenient,Creative approach,Pass,1,0.06,Needs improvement
+S115,E101,Computer Science,88,Lenient,Well done,Pass,1,0.74,Excellent
+S011,E122,Math,65,Moderate,Decent understanding,Pass,1,0.23,Above average
+S185,E142,Math,55,Moderate,Keep practicing,Pass,2,0.26,Needs improvement
+S168,E120,English,47,Strict,Focus on basics,Pass,3,0.79,Above average
+S096,E147,Geography,56,Strict,Work is below standard,Pass,2,0.33,Needs improvement
+S291,E109,Science,82,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.3,Excellent
+S170,E114,English,65,Lenient,Well done,Pass,1,0.02,Above average
+S206,E118,English,74,Lenient,Excellent effort,Pass,1,0.55,Needs improvement
+S105,E145,Science,56,AI-assisted,AI-assisted: well-structured,Pass,2,0.05,Average
+S054,E147,Math,82,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.0,Above average
+S218,E110,Computer Science,81,Strict,Needs improvement in concepts,Pass,1,0.32,Excellent
+S198,E144,Science,87,Moderate,Satisfactory work,Pass,1,0.44,Needs improvement
+S068,E115,Science,87,Lenient,Creative approach,Pass,1,0.65,Needs improvement
+S149,E146,English,90,AI-assisted,AI-assisted: well-structured,Pass,1,0.24,Excellent
+S281,E119,Computer Science,66,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.6,Excellent
+S004,E101,History,90,Lenient,Excellent effort,Pass,1,0.19,Needs improvement
+S012,E134,Science,62,Moderate,Keep practicing,Pass,1,0.8,Average
+S076,E144,Computer Science,71,Moderate,Some errors but acceptable,Pass,1,0.39,Excellent
+S025,E125,English,64,Lenient,Creative approach,Pass,1,0.51,Above average
+S002,E103,Science,51,Moderate,Satisfactory work,Pass,2,0.97,Above average
+S079,E127,Computer Science,71,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.01,Excellent
+S248,E140,English,77,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.03,Needs improvement
+S133,E102,Science,60,Strict,Work is below standard,Pass,1,0.71,Above average
+S170,E148,Math,70,Moderate,Decent understanding,Pass,1,0.02,Excellent
+S082,E105,English,79,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.34,Needs improvement
+S125,E138,Computer Science,83,Moderate,Satisfactory work,Pass,1,0.12,Needs improvement
+S028,E117,Computer Science,88,Moderate,Some errors but acceptable,Pass,1,0.86,Needs improvement
+S282,E131,Math,72,Moderate,Some errors but acceptable,Pass,1,0.74,Average
+S286,E128,Geography,72,Strict,Needs improvement in concepts,Pass,1,0.48,Excellent
+S221,E109,Science,61,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.68,Average
+S275,E126,Geography,60,Moderate,Satisfactory work,Pass,1,0.24,Excellent
+S119,E130,Geography,60,Lenient,Good attempt,Pass,1,0.72,Excellent
+S001,E104,Math,89,Lenient,Well done,Pass,1,0.09,Excellent
+S044,E113,Computer Science,58,Moderate,Satisfactory work,Pass,2,0.02,Above average
+S034,E131,English,69,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.71,Average
+S262,E120,History,80,Lenient,Well done,Pass,1,0.48,Needs improvement
+S214,E112,Math,64,Moderate,Decent understanding,Pass,1,0.57,Needs improvement
+S139,E112,History,58,Moderate,Decent understanding,Pass,2,0.37,Excellent
+S114,E104,Geography,47,Strict,Needs improvement in concepts,Pass,3,0.12,Excellent
+S129,E123,English,79,Strict,Needs improvement in concepts,Pass,1,0.4,Average
+S211,E133,Science,97,Lenient,Creative approach,Pass,1,0.22,Needs improvement
+S204,E149,Geography,74,Moderate,Satisfactory work,Pass,1,0.13,Excellent
+S021,E147,English,70,Moderate,Decent understanding,Pass,1,0.51,Above average
+S121,E126,Math,60,Lenient,Well done,Pass,1,0.55,Excellent
+S157,E108,Math,72,Lenient,Excellent effort,Pass,1,0.98,Needs improvement
+S157,E127,History,74,Moderate,Satisfactory work,Pass,1,0.51,Average
+S024,E115,English,51,Strict,Work is below standard,Pass,2,0.91,Needs improvement
+S253,E135,Science,57,Strict,Needs improvement in concepts,Pass,2,0.07,Excellent
+S135,E135,Math,78,Moderate,Satisfactory work,Pass,1,0.77,Above average
+S187,E102,Math,80,Moderate,Some errors but acceptable,Pass,1,0.14,Needs improvement
+S238,E101,Computer Science,80,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.75,Needs improvement
+S224,E111,History,59,Moderate,Satisfactory work,Pass,2,0.7,Average
+S076,E109,Science,59,Moderate,Satisfactory work,Pass,2,0.34,Above average
+S128,E114,Computer Science,74,Strict,Needs improvement in concepts,Pass,1,0.93,Average
+S295,E136,Math,71,Lenient,Excellent effort,Pass,1,0.35,Above average
+S267,E146,Geography,81,Moderate,Decent understanding,Pass,1,0.99,Above average
+S031,E103,History,70,Lenient,Well done,Pass,1,0.12,Needs improvement
+S171,E104,Science,40,Strict,Needs improvement in concepts,Pass,3,0.53,Excellent
+S151,E143,Math,85,Moderate,Decent understanding,Pass,1,0.48,Needs improvement
+S235,E147,Science,75,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.97,Average
+S062,E111,Science,65,Moderate,Decent understanding,Pass,1,0.7,Needs improvement
+S140,E115,English,90,Lenient,Good attempt,Pass,1,0.25,Needs improvement
+S277,E139,Geography,97,Lenient,Good attempt,Pass,1,0.81,Above average
+S296,E122,Geography,78,AI-assisted,AI-assisted: well-structured,Pass,1,0.8,Average
+S064,E116,Science,53,Moderate,Some errors but acceptable,Pass,2,0.52,Above average
+S098,E140,English,45,Strict,Errors in methodology,Pass,3,0.17,Above average
+S054,E105,Geography,50,Moderate,Decent understanding,Pass,2,0.82,Needs improvement
+S059,E118,History,89,Lenient,Good attempt,Pass,1,0.25,Average
+S217,E115,English,56,Moderate,Some errors but acceptable,Pass,2,0.17,Average
+S294,E109,Math,51,Moderate,Decent understanding,Pass,2,0.99,Needs improvement
+S212,E137,Science,79,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.19,Average
+S218,E143,Geography,48,Strict,Focus on basics,Pass,3,0.93,Excellent
+S063,E136,Computer Science,43,Strict,Work is below standard,Pass,3,0.38,Average
+S029,E127,History,92,Lenient,Good attempt,Pass,1,0.06,Average
+S107,E134,History,69,Strict,Needs improvement in concepts,Pass,1,0.83,Average
+S270,E138,Math,77,Moderate,Decent understanding,Pass,1,0.18,Needs improvement
+S175,E150,Math,50,Strict,Needs improvement in concepts,Pass,2,0.96,Above average
+S282,E105,English,100,Lenient,Good attempt,Pass,1,0.87,Average
+S274,E121,English,61,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.82,Excellent
+S135,E129,History,73,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.01,Needs improvement
+S002,E108,Math,91,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.76,Above average
+S103,E108,Computer Science,92,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.71,Above average
+S060,E131,English,73,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.55,Needs improvement
+S186,E133,History,83,Strict,Errors in methodology,Pass,1,0.82,Above average
+S121,E106,History,94,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.77,Excellent
+S089,E125,History,48,Strict,Focus on basics,Pass,3,0.25,Above average
+S025,E125,Science,73,AI-assisted,AI-assisted: well-structured,Pass,1,0.24,Needs improvement
+S003,E109,Geography,87,Lenient,Good attempt,Pass,1,0.52,Excellent
+S063,E122,Computer Science,71,Moderate,Decent understanding,Pass,1,0.74,Average
+S048,E104,Math,66,Moderate,Some errors but acceptable,Pass,1,0.53,Needs improvement
+S241,E120,English,73,Lenient,Creative approach,Pass,1,0.46,Average
+S259,E121,Math,42,Strict,Needs improvement in concepts,Pass,3,0.67,Above average
+S130,E130,Computer Science,60,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.3,Average
+S168,E129,Math,75,Lenient,Excellent effort,Pass,1,0.57,Average
+S265,E128,English,72,Lenient,Good attempt,Pass,1,0.08,Above average
+S278,E125,Math,98,Lenient,Good attempt,Pass,1,0.44,Average
+S070,E103,History,52,Strict,Errors in methodology,Pass,2,0.61,Excellent
+S195,E125,History,57,AI-assisted,AI-assisted: minor mistakes,Pass,2,0.29,Excellent
+S063,E146,English,78,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.93,Needs improvement
+S173,E101,History,74,Lenient,Well done,Pass,1,0.75,Needs improvement
+S036,E147,Science,68,Lenient,Well done,Pass,1,0.46,Needs improvement
+S261,E123,History,86,Moderate,Keep practicing,Pass,1,0.15,Above average
+S252,E148,Computer Science,97,Lenient,Creative approach,Pass,1,0.78,Needs improvement
+S017,E120,Computer Science,86,AI-assisted,AI-assisted: well-structured,Pass,1,0.69,Above average
+S245,E144,Math,74,Lenient,Good attempt,Pass,1,0.97,Above average
+S129,E145,Computer Science,69,Strict,Needs improvement in concepts,Pass,1,0.82,Above average
+S084,E129,Computer Science,74,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.01,Average
+S076,E130,Geography,57,Strict,Errors in methodology,Pass,2,0.98,Above average
+S271,E147,Science,84,Lenient,Good attempt,Pass,1,0.71,Above average
+S038,E128,Computer Science,49,Strict,Needs improvement in concepts,Pass,3,0.06,Excellent
+S274,E113,Geography,86,Moderate,Some errors but acceptable,Pass,1,0.57,Average
+S142,E139,Computer Science,41,Strict,Focus on basics,Pass,3,0.08,Average
+S186,E143,Science,85,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.4,Needs improvement
+S182,E124,Science,71,Lenient,Creative approach,Pass,1,0.13,Needs improvement
+S275,E120,English,83,Moderate,Satisfactory work,Pass,1,0.86,Average
+S023,E124,Computer Science,73,Lenient,Excellent effort,Pass,1,1.0,Average
+S009,E149,English,65,Strict,Work is below standard,Pass,1,0.89,Excellent
+S173,E109,Math,58,AI-assisted,AI-assisted: well-structured,Pass,2,0.95,Above average
+S248,E135,English,89,Moderate,Keep practicing,Pass,1,0.02,Excellent
+S169,E131,History,50,Moderate,Some errors but acceptable,Pass,2,0.74,Average
+S023,E106,Math,94,Lenient,Well done,Pass,1,0.52,Above average
+S216,E143,Math,65,Lenient,Good attempt,Pass,1,0.6,Needs improvement
+S141,E126,Computer Science,62,Lenient,Well done,Pass,1,0.23,Needs improvement
+S180,E126,Geography,59,Moderate,Decent understanding,Pass,2,0.59,Above average
+S155,E138,Computer Science,65,Lenient,Well done,Pass,1,0.39,Excellent
+S278,E123,Science,83,Lenient,Well done,Pass,1,0.09,Average
+S224,E150,Math,76,Strict,Errors in methodology,Pass,1,0.88,Average
+S154,E146,Geography,83,Moderate,Some errors but acceptable,Pass,1,0.94,Above average
+S073,E117,English,61,Moderate,Some errors but acceptable,Pass,1,0.36,Average
+S248,E137,Geography,57,Moderate,Satisfactory work,Pass,2,0.96,Excellent
+S104,E112,Science,81,Strict,Errors in methodology,Pass,1,0.72,Average
+S190,E117,Computer Science,85,Moderate,Satisfactory work,Pass,1,0.65,Needs improvement
+S295,E140,Math,80,Moderate,Keep practicing,Pass,1,0.12,Average
+S061,E135,Math,69,Moderate,Satisfactory work,Pass,1,0.3,Average
+S233,E121,Math,77,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.0,Excellent
+S077,E123,Geography,79,Moderate,Keep practicing,Pass,1,0.45,Excellent
+S097,E121,History,69,Moderate,Decent understanding,Pass,1,0.67,Needs improvement
+S186,E111,Science,73,Moderate,Decent understanding,Pass,1,0.47,Needs improvement
+S261,E109,History,70,Strict,Errors in methodology,Pass,1,0.14,Average
+S208,E149,Science,44,Strict,Needs improvement in concepts,Pass,3,0.82,Average
+S019,E129,English,56,Strict,Needs improvement in concepts,Pass,2,0.57,Average
+S153,E118,English,68,AI-assisted,AI-assisted: well-structured,Pass,1,0.24,Average
+S158,E143,Math,92,Lenient,Creative approach,Pass,1,0.24,Needs improvement
+S052,E131,Computer Science,74,Lenient,Good attempt,Pass,1,0.66,Above average
+S009,E116,Geography,83,Strict,Errors in methodology,Pass,1,0.0,Needs improvement
+S016,E104,Science,57,Moderate,Satisfactory work,Pass,2,0.87,Excellent
+S222,E117,Math,58,Strict,Work is below standard,Pass,2,0.61,Above average
+S264,E118,Math,83,Moderate,Keep practicing,Pass,1,0.79,Excellent
+S230,E134,Math,71,Moderate,Keep practicing,Pass,1,0.25,Above average
+S226,E123,Science,86,Moderate,Some errors but acceptable,Pass,1,0.15,Needs improvement
+S047,E124,Geography,65,Moderate,Some errors but acceptable,Pass,1,0.49,Above average
+S225,E122,English,89,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.73,Excellent
+S265,E128,Computer Science,44,Strict,Focus on basics,Pass,3,0.98,Average
+S084,E128,History,72,Moderate,Satisfactory work,Pass,1,0.05,Above average
+S184,E142,History,56,Moderate,Keep practicing,Pass,2,0.86,Above average
+S063,E138,Math,53,Strict,Work is below standard,Pass,2,0.37,Above average
+S271,E102,Geography,88,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.82,Needs improvement
+S041,E134,History,82,Lenient,Creative approach,Pass,1,0.37,Average
+S064,E116,Computer Science,99,Lenient,Good attempt,Pass,1,0.32,Above average
+S137,E142,History,84,Lenient,Creative approach,Pass,1,0.38,Excellent
+S004,E129,History,90,AI-assisted,AI-assisted: well-structured,Pass,1,0.72,Needs improvement
+S258,E122,Science,79,Moderate,Decent understanding,Pass,1,0.48,Needs improvement
+S230,E106,History,63,Moderate,Decent understanding,Pass,1,0.87,Needs improvement
+S105,E140,Geography,66,Lenient,Well done,Pass,1,0.58,Average
+S189,E135,Math,68,AI-assisted,AI-assisted: well-structured,Pass,1,0.91,Above average
+S003,E136,Geography,69,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.02,Needs improvement
+S041,E145,Geography,62,Moderate,Some errors but acceptable,Pass,1,0.3,Excellent
+S091,E112,Computer Science,80,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.89,Excellent
+S225,E108,Math,95,Lenient,Excellent effort,Pass,1,0.31,Above average
+S201,E127,English,41,Strict,Needs improvement in concepts,Pass,3,0.16,Excellent
+S294,E131,History,73,Strict,Errors in methodology,Pass,1,0.57,Average
+S290,E127,History,75,Lenient,Creative approach,Pass,1,0.14,Above average
+S240,E112,Geography,72,AI-assisted,AI-assisted: well-structured,Pass,1,0.39,Average
+S028,E141,Computer Science,79,Strict,Focus on basics,Pass,1,0.34,Above average
+S072,E105,History,64,Moderate,Decent understanding,Pass,1,0.82,Above average
+S113,E128,History,69,Moderate,Keep practicing,Pass,1,0.65,Excellent
+S292,E138,Science,83,Lenient,Good attempt,Pass,1,0.88,Average
+S197,E115,Science,78,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.58,Above average
+S019,E123,History,66,Moderate,Some errors but acceptable,Pass,1,0.26,Excellent
+S085,E107,Science,77,Moderate,Some errors but acceptable,Pass,1,0.66,Excellent
+S005,E134,Geography,63,Strict,Work is below standard,Pass,1,0.38,Average
+S253,E108,Science,47,Strict,Needs improvement in concepts,Pass,3,0.14,Excellent
+S207,E126,Math,64,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.94,Needs improvement
+S081,E124,Geography,51,Strict,Errors in methodology,Pass,2,0.77,Excellent
+S268,E144,Math,74,Lenient,Excellent effort,Pass,1,0.02,Above average
+S068,E115,Geography,80,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.8,Needs improvement
+S066,E139,Computer Science,59,Moderate,Keep practicing,Pass,2,0.04,Needs improvement
+S270,E149,Science,78,Lenient,Well done,Pass,1,0.78,Above average
+S071,E117,English,88,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.95,Needs improvement
+S004,E135,Math,81,AI-assisted,AI-assisted: well-structured,Pass,1,0.56,Needs improvement
+S239,E118,Geography,57,Strict,Errors in methodology,Pass,2,0.42,Above average
+S267,E111,English,42,Strict,Errors in methodology,Pass,3,0.23,Average
+S186,E144,Math,52,Strict,Errors in methodology,Pass,2,0.93,Average
+S007,E112,Science,75,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.9,Needs improvement
+S004,E140,Geography,53,Strict,Work is below standard,Pass,2,0.87,Excellent
+S091,E126,Geography,67,AI-assisted,AI-assisted: well-structured,Pass,1,0.53,Needs improvement
+S096,E129,Math,80,Strict,Needs improvement in concepts,Pass,1,0.04,Excellent
+S072,E148,History,78,Strict,Errors in methodology,Pass,1,0.99,Average
+S222,E115,English,89,Moderate,Keep practicing,Pass,1,0.21,Needs improvement
+S259,E133,Science,73,AI-assisted,AI-assisted: well-structured,Pass,1,0.9,Above average
+S026,E116,History,65,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.21,Needs improvement
+S226,E128,Computer Science,71,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.18,Needs improvement
+S071,E137,History,82,Lenient,Well done,Pass,1,0.45,Needs improvement
+S228,E134,Geography,64,Strict,Errors in methodology,Pass,1,0.99,Needs improvement
+S200,E125,History,77,Lenient,Well done,Pass,1,0.11,Average
+S143,E139,History,91,Lenient,Good attempt,Pass,1,0.84,Above average
+S174,E109,History,59,Strict,Needs improvement in concepts,Pass,2,0.27,Average
+S115,E112,Geography,60,AI-assisted,AI-assisted: minor mistakes,Pass,1,1.0,Needs improvement
+S052,E136,Math,95,AI-assisted,AI-assisted: well-structured,Pass,1,0.13,Excellent
+S199,E146,History,77,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.04,Above average
+S236,E147,Science,85,Moderate,Some errors but acceptable,Pass,1,0.53,Above average
+S179,E103,Computer Science,55,AI-assisted,AI-assisted: well-structured,Pass,2,0.46,Average
+S166,E120,History,57,Strict,Errors in methodology,Pass,2,0.4,Needs improvement
+S014,E126,Geography,69,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.53,Average
+S173,E102,Math,82,Strict,Work is below standard,Pass,1,0.95,Excellent
+S109,E130,Geography,41,Strict,Errors in methodology,Pass,3,0.79,Average
+S252,E143,English,61,Strict,Needs improvement in concepts,Pass,1,0.52,Needs improvement
+S149,E134,Math,78,Lenient,Excellent effort,Pass,1,0.71,Average
+S173,E134,English,62,Strict,Work is below standard,Pass,1,0.86,Above average
+S155,E114,Math,68,Moderate,Some errors but acceptable,Pass,1,0.81,Needs improvement
+S157,E138,Geography,62,Moderate,Some errors but acceptable,Pass,1,0.27,Excellent
+S263,E118,Science,76,AI-assisted,AI-assisted: well-structured,Pass,1,0.28,Above average
+S143,E129,Computer Science,53,Strict,Work is below standard,Pass,2,0.63,Average
+S055,E146,Science,84,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.47,Average
+S164,E122,Computer Science,82,Strict,Errors in methodology,Pass,1,0.07,Average
+S242,E130,Math,83,Strict,Errors in methodology,Pass,1,0.16,Needs improvement
+S203,E117,English,76,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.11,Above average
+S002,E150,History,43,Strict,Work is below standard,Pass,3,0.02,Above average
+S002,E125,Math,67,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.52,Average
+S149,E135,Science,73,AI-assisted,AI-assisted: well-structured,Pass,1,0.09,Excellent
+S070,E126,Geography,71,Lenient,Excellent effort,Pass,1,0.1,Needs improvement
+S127,E112,English,45,Strict,Focus on basics,Pass,3,0.55,Above average
+S109,E122,Computer Science,65,Lenient,Well done,Pass,1,0.84,Excellent
+S297,E139,Math,87,Moderate,Some errors but acceptable,Pass,1,0.64,Above average
+S225,E108,History,46,Strict,Needs improvement in concepts,Pass,3,0.2,Excellent
+S216,E125,Geography,71,Strict,Errors in methodology,Pass,1,0.05,Above average
+S254,E125,Computer Science,91,Lenient,Excellent effort,Pass,1,0.8,Needs improvement
+S066,E142,Computer Science,58,AI-assisted,AI-assisted: needs minor corrections,Pass,2,0.16,Above average
+S176,E134,English,69,Lenient,Well done,Pass,1,0.61,Average
+S297,E126,History,71,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.84,Needs improvement
+S126,E118,History,65,AI-assisted,AI-assisted: well-structured,Pass,1,0.31,Excellent
+S046,E124,Science,62,Lenient,Well done,Pass,1,0.63,Excellent
+S292,E147,English,78,Lenient,Creative approach,Pass,1,0.25,Above average
+S198,E134,Math,93,Lenient,Excellent effort,Pass,1,0.4,Above average
+S260,E119,Geography,82,Strict,Errors in methodology,Pass,1,0.63,Above average
+S102,E131,Computer Science,58,AI-assisted,AI-assisted: needs minor corrections,Pass,2,0.09,Average
+S269,E101,History,79,AI-assisted,AI-assisted: well-structured,Pass,1,0.54,Excellent
+S288,E133,History,67,Lenient,Good attempt,Pass,1,0.47,Needs improvement
+S141,E136,Geography,91,AI-assisted,AI-assisted: well-structured,Pass,1,0.07,Average
+S037,E129,English,87,Moderate,Satisfactory work,Pass,1,0.88,Average
+S192,E134,Geography,86,Moderate,Keep practicing,Pass,1,0.78,Excellent
+S021,E124,Math,95,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.26,Needs improvement
+S132,E118,Math,43,Strict,Work is below standard,Pass,3,0.57,Needs improvement
+S186,E136,Computer Science,65,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.91,Above average
+S060,E136,Math,78,Moderate,Keep practicing,Pass,1,0.01,Needs improvement
+S285,E123,History,43,Strict,Work is below standard,Pass,3,0.66,Average
+S213,E126,English,77,Lenient,Well done,Pass,1,0.05,Excellent
+S154,E140,Computer Science,72,Strict,Focus on basics,Pass,1,0.63,Needs improvement
+S293,E133,Geography,80,Strict,Needs improvement in concepts,Pass,1,0.73,Needs improvement
+S274,E104,Math,60,Strict,Needs improvement in concepts,Pass,1,0.25,Excellent
+S249,E136,History,62,Strict,Errors in methodology,Pass,1,0.86,Excellent
+S268,E140,English,92,AI-assisted,AI-assisted: well-structured,Pass,1,0.63,Needs improvement
+S295,E137,Math,67,Lenient,Creative approach,Pass,1,0.65,Excellent
+S295,E112,English,91,AI-assisted,AI-assisted: well-structured,Pass,1,0.54,Above average
+S058,E113,Science,60,Moderate,Some errors but acceptable,Pass,1,0.21,Excellent
+S216,E102,Science,87,Moderate,Some errors but acceptable,Pass,1,0.29,Needs improvement
+S282,E111,Science,60,Lenient,Good attempt,Pass,1,0.15,Excellent
+S287,E103,Computer Science,99,Lenient,Creative approach,Pass,1,0.47,Excellent
+S244,E132,Geography,85,Strict,Errors in methodology,Pass,1,0.67,Excellent
+S276,E115,Geography,100,Lenient,Excellent effort,Pass,1,0.08,Average
+S058,E114,English,66,Lenient,Well done,Pass,1,0.89,Average
+S271,E108,History,87,Lenient,Excellent effort,Pass,1,0.45,Needs improvement
+S069,E111,English,66,Strict,Errors in methodology,Pass,1,0.25,Excellent
+S226,E113,Geography,61,Moderate,Satisfactory work,Pass,1,0.2,Above average
+S130,E106,History,71,AI-assisted,AI-assisted: well-structured,Pass,1,0.01,Above average
+S197,E127,Computer Science,89,Moderate,Keep practicing,Pass,1,0.39,Needs improvement
+S269,E126,History,52,Strict,Work is below standard,Pass,2,0.87,Excellent
+S200,E126,Math,75,Strict,Focus on basics,Pass,1,0.98,Excellent
+S201,E114,Science,40,Strict,Work is below standard,Pass,3,0.88,Above average
+S293,E120,Geography,88,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.42,Above average
+S177,E147,Geography,50,Strict,Needs improvement in concepts,Pass,2,0.6,Excellent
+S161,E118,History,57,Strict,Work is below standard,Pass,2,0.85,Needs improvement
+S035,E131,Geography,91,Lenient,Good attempt,Pass,1,0.44,Needs improvement
+S128,E120,Math,81,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.71,Above average
+S215,E110,Science,75,Moderate,Keep practicing,Pass,1,0.89,Needs improvement
+S028,E113,Computer Science,57,Moderate,Satisfactory work,Pass,2,0.15,Above average
+S206,E131,English,78,Lenient,Well done,Pass,1,0.4,Excellent
+S039,E122,English,83,Strict,Work is below standard,Pass,1,0.19,Needs improvement
+S234,E148,Science,40,Strict,Focus on basics,Pass,3,0.49,Above average
+S076,E113,History,87,Moderate,Satisfactory work,Pass,1,0.79,Above average
+S200,E139,Math,62,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.87,Excellent
+S221,E102,English,85,Strict,Needs improvement in concepts,Pass,1,0.61,Average
+S032,E120,English,84,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.64,Needs improvement
+S180,E124,History,55,Moderate,Keep practicing,Pass,2,0.24,Above average
+S161,E139,Science,73,Moderate,Decent understanding,Pass,1,0.36,Above average
+S298,E149,Science,69,Lenient,Good attempt,Pass,1,0.01,Average
+S030,E128,Geography,88,Lenient,Excellent effort,Pass,1,0.52,Above average
+S045,E142,English,68,Strict,Needs improvement in concepts,Pass,1,0.21,Average
+S015,E116,Math,44,Strict,Errors in methodology,Pass,3,0.96,Needs improvement
+S060,E108,English,68,Strict,Needs improvement in concepts,Pass,1,0.25,Excellent
+S023,E101,English,64,Strict,Needs improvement in concepts,Pass,1,0.09,Needs improvement
+S228,E138,Math,60,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.01,Needs improvement
+S169,E114,History,51,Moderate,Some errors but acceptable,Pass,2,0.95,Above average
+S013,E101,English,80,Strict,Needs improvement in concepts,Pass,1,0.2,Above average
+S103,E118,History,59,Moderate,Satisfactory work,Pass,2,0.51,Average
+S192,E135,Computer Science,80,Lenient,Good attempt,Pass,1,0.44,Above average
+S162,E147,English,73,Lenient,Well done,Pass,1,0.75,Needs improvement
+S216,E128,Math,51,Moderate,Satisfactory work,Pass,2,0.33,Average
+S105,E146,History,57,Strict,Work is below standard,Pass,2,0.36,Needs improvement
+S261,E105,Geography,69,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.94,Excellent
+S093,E131,Computer Science,80,Strict,Work is below standard,Pass,1,0.25,Above average
+S277,E146,Math,43,Strict,Focus on basics,Pass,3,0.02,Average
+S073,E103,History,68,Strict,Needs improvement in concepts,Pass,1,0.33,Excellent
+S112,E144,History,63,Strict,Work is below standard,Pass,1,0.76,Average
+S277,E143,History,50,Moderate,Decent understanding,Pass,2,0.42,Needs improvement
+S214,E138,Math,73,Strict,Errors in methodology,Pass,1,0.26,Average
+S149,E107,Geography,43,Strict,Needs improvement in concepts,Pass,3,0.61,Average
+S142,E125,Geography,56,AI-assisted,AI-assisted: needs minor corrections,Pass,2,0.95,Excellent
+S281,E120,Math,62,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.85,Needs improvement
+S106,E141,English,58,Moderate,Satisfactory work,Pass,2,0.31,Needs improvement
+S241,E142,Science,87,Lenient,Well done,Pass,1,0.74,Average
+S014,E141,Science,53,Strict,Needs improvement in concepts,Pass,2,0.55,Excellent
+S210,E142,Computer Science,56,AI-assisted,AI-assisted: well-structured,Pass,2,0.46,Needs improvement
+S184,E122,Science,79,Strict,Work is below standard,Pass,1,0.58,Needs improvement
+S245,E135,Computer Science,72,Moderate,Satisfactory work,Pass,1,0.06,Needs improvement
+S014,E118,History,72,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.95,Needs improvement
+S198,E125,Math,82,Strict,Errors in methodology,Pass,1,0.58,Average
+S208,E128,Math,63,Strict,Work is below standard,Pass,1,0.2,Needs improvement
+S085,E105,Geography,53,Moderate,Satisfactory work,Pass,2,0.41,Average
+S255,E119,Computer Science,55,Moderate,Some errors but acceptable,Pass,2,0.5,Above average
+S084,E132,Science,84,Strict,Errors in methodology,Pass,1,0.73,Above average
+S238,E145,Math,84,Strict,Work is below standard,Pass,1,0.37,Needs improvement
+S026,E125,History,80,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.4,Above average
+S232,E127,Geography,83,Lenient,Excellent effort,Pass,1,0.25,Above average
+S139,E105,Computer Science,59,Strict,Focus on basics,Pass,2,0.65,Above average
+S015,E149,Math,61,Lenient,Creative approach,Pass,1,0.34,Excellent
+S127,E141,History,83,Lenient,Well done,Pass,1,0.58,Above average
+S037,E129,History,65,Lenient,Good attempt,Pass,1,0.94,Above average
+S295,E115,History,82,Lenient,Good attempt,Pass,1,0.27,Above average
+S026,E118,Math,88,Lenient,Excellent effort,Pass,1,0.51,Needs improvement
+S021,E135,Computer Science,68,Moderate,Satisfactory work,Pass,1,0.76,Above average
+S174,E125,Science,96,Lenient,Excellent effort,Pass,1,0.22,Needs improvement
+S084,E112,Science,84,Lenient,Good attempt,Pass,1,0.93,Needs improvement
+S163,E127,Geography,54,Moderate,Satisfactory work,Pass,2,0.3,Excellent
+S287,E146,Math,76,Lenient,Well done,Pass,1,0.81,Average
+S299,E147,English,95,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.33,Above average
+S298,E110,Math,65,Moderate,Some errors but acceptable,Pass,1,0.03,Excellent
+S167,E148,Geography,56,Moderate,Some errors but acceptable,Pass,2,0.42,Average
+S297,E137,English,63,Strict,Needs improvement in concepts,Pass,1,0.74,Excellent
+S205,E144,Geography,72,Strict,Focus on basics,Pass,1,0.31,Needs improvement
+S298,E146,Geography,73,Strict,Focus on basics,Pass,1,0.88,Above average
+S032,E132,History,69,AI-assisted,AI-assisted: well-structured,Pass,1,0.69,Needs improvement
+S049,E113,Geography,71,Lenient,Well done,Pass,1,0.57,Excellent
+S248,E136,Computer Science,80,Lenient,Creative approach,Pass,1,0.75,Needs improvement
+S267,E133,Geography,79,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.34,Excellent
+S223,E139,Science,74,Strict,Work is below standard,Pass,1,0.66,Average
+S080,E107,Computer Science,88,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.3,Average
+S189,E123,History,83,Moderate,Satisfactory work,Pass,1,0.9,Excellent
+S022,E117,History,56,Moderate,Satisfactory work,Pass,2,0.35,Excellent
+S299,E102,History,67,Lenient,Excellent effort,Pass,1,0.94,Above average
+S144,E104,Computer Science,87,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.39,Above average
+S231,E106,Math,91,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.03,Needs improvement
+S020,E113,Science,61,Lenient,Well done,Pass,1,0.94,Excellent
+S250,E140,Science,74,Lenient,Excellent effort,Pass,1,0.28,Average
+S101,E139,Math,65,Lenient,Well done,Pass,1,0.31,Above average
+S109,E147,Computer Science,62,Strict,Needs improvement in concepts,Pass,1,0.12,Needs improvement
+S091,E110,Computer Science,83,Strict,Work is below standard,Pass,1,0.79,Excellent
+S103,E133,Science,73,Moderate,Some errors but acceptable,Pass,1,0.14,Needs improvement
+S152,E120,English,78,Moderate,Some errors but acceptable,Pass,1,0.5,Excellent
+S016,E107,Science,58,Moderate,Satisfactory work,Pass,2,0.33,Needs improvement
+S208,E132,Computer Science,100,Lenient,Excellent effort,Pass,1,0.77,Excellent
+S221,E135,Geography,55,Strict,Errors in methodology,Pass,2,0.41,Needs improvement
+S230,E104,Science,54,Strict,Work is below standard,Pass,2,0.54,Excellent
+S147,E143,Computer Science,65,Lenient,Creative approach,Pass,1,0.35,Excellent
+S294,E121,History,61,Lenient,Creative approach,Pass,1,0.36,Average
+S209,E136,History,54,Strict,Work is below standard,Pass,2,0.32,Above average
+S233,E113,Math,66,Lenient,Creative approach,Pass,1,0.04,Excellent
+S119,E115,History,50,Moderate,Keep practicing,Pass,2,0.16,Average
+S030,E122,Computer Science,85,Strict,Needs improvement in concepts,Pass,1,0.9,Above average
+S006,E132,Computer Science,61,Moderate,Satisfactory work,Pass,1,0.56,Average
+S193,E138,History,61,Lenient,Good attempt,Pass,1,0.37,Needs improvement
+S089,E104,History,62,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.03,Excellent
+S153,E118,Geography,65,Moderate,Decent understanding,Pass,1,0.83,Needs improvement
+S262,E139,Science,63,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.16,Excellent
+S051,E140,History,85,Moderate,Keep practicing,Pass,1,0.95,Needs improvement
+S182,E146,Math,81,Moderate,Decent understanding,Pass,1,0.27,Above average
+S126,E124,English,55,Moderate,Keep practicing,Pass,2,0.99,Excellent
+S055,E104,Computer Science,85,Moderate,Some errors but acceptable,Pass,1,0.25,Above average
+S278,E115,English,63,Lenient,Creative approach,Pass,1,0.7,Needs improvement
+S108,E129,Geography,63,Lenient,Excellent effort,Pass,1,0.66,Above average
+S297,E111,Geography,85,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.7,Excellent
+S078,E138,Geography,65,Lenient,Excellent effort,Pass,1,0.48,Average
+S066,E125,Computer Science,72,Lenient,Creative approach,Pass,1,0.42,Above average
+S171,E134,English,58,AI-assisted,AI-assisted: well-structured,Pass,2,0.36,Average
+S207,E122,Computer Science,44,Strict,Work is below standard,Pass,3,0.69,Average
+S213,E109,Science,76,Lenient,Good attempt,Pass,1,0.81,Needs improvement
+S083,E105,Computer Science,85,Moderate,Keep practicing,Pass,1,0.36,Excellent
+S080,E131,Geography,67,Lenient,Excellent effort,Pass,1,0.83,Needs improvement
+S257,E141,Math,66,Lenient,Good attempt,Pass,1,0.61,Above average
+S095,E106,History,63,Strict,Work is below standard,Pass,1,0.89,Above average
+S092,E137,Computer Science,61,AI-assisted,AI-assisted: well-structured,Pass,1,0.02,Excellent
+S178,E117,Math,90,Lenient,Creative approach,Pass,1,0.46,Excellent
+S228,E133,Science,59,AI-assisted,AI-assisted: well-structured,Pass,2,0.59,Average
+S150,E137,English,47,Strict,Needs improvement in concepts,Pass,3,0.65,Excellent
+S271,E102,Computer Science,65,Moderate,Some errors but acceptable,Pass,1,0.81,Excellent
+S065,E143,English,79,Lenient,Good attempt,Pass,1,0.98,Needs improvement
+S253,E113,English,82,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.34,Excellent
+S036,E126,History,60,Lenient,Good attempt,Pass,1,0.61,Needs improvement
+S189,E149,Computer Science,83,Moderate,Satisfactory work,Pass,1,0.08,Needs improvement
+S186,E126,Computer Science,83,AI-assisted,AI-assisted: well-structured,Pass,1,0.83,Above average
+S119,E109,Science,90,Lenient,Excellent effort,Pass,1,0.61,Above average
+S146,E123,Computer Science,90,Lenient,Creative approach,Pass,1,0.56,Excellent
+S177,E129,Computer Science,67,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.54,Above average
+S134,E135,Science,60,Strict,Work is below standard,Pass,1,0.78,Above average
+S121,E107,English,80,Strict,Needs improvement in concepts,Pass,1,0.3,Needs improvement
+S243,E112,Geography,71,Strict,Work is below standard,Pass,1,0.97,Above average
+S061,E108,Science,62,Strict,Needs improvement in concepts,Pass,1,0.39,Needs improvement
+S172,E110,English,57,AI-assisted,AI-assisted: well-structured,Pass,2,0.4,Needs improvement
+S226,E147,English,85,Strict,Needs improvement in concepts,Pass,1,0.32,Above average
+S028,E133,Geography,64,Strict,Errors in methodology,Pass,1,0.28,Excellent
+S100,E126,Computer Science,83,Moderate,Decent understanding,Pass,1,0.1,Above average
+S300,E137,English,78,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.81,Average
+S106,E119,English,61,Moderate,Some errors but acceptable,Pass,1,0.95,Average
+S020,E122,Science,48,Strict,Focus on basics,Pass,3,0.42,Excellent
+S157,E137,History,63,Lenient,Well done,Pass,1,0.63,Excellent
+S192,E133,English,69,Moderate,Satisfactory work,Pass,1,0.09,Above average
+S210,E120,Geography,61,Strict,Focus on basics,Pass,1,0.86,Excellent
+S228,E121,Geography,78,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.98,Needs improvement
+S244,E120,Computer Science,51,Moderate,Keep practicing,Pass,2,0.86,Excellent
+S196,E131,Science,74,Strict,Errors in methodology,Pass,1,0.27,Excellent
+S039,E137,Science,71,Moderate,Satisfactory work,Pass,1,0.15,Above average
+S280,E128,Geography,62,Lenient,Well done,Pass,1,0.67,Average
+S300,E139,Computer Science,56,Moderate,Satisfactory work,Pass,2,0.45,Needs improvement
+S272,E125,Geography,52,Strict,Errors in methodology,Pass,2,0.36,Needs improvement
+S217,E103,Geography,76,Moderate,Keep practicing,Pass,1,0.29,Above average
+S183,E121,Science,55,Moderate,Decent understanding,Pass,2,0.37,Above average
+S025,E143,History,87,Moderate,Keep practicing,Pass,1,0.1,Excellent
+S260,E142,English,75,AI-assisted,AI-assisted: well-structured,Pass,1,0.24,Excellent
+S150,E132,History,89,Lenient,Well done,Pass,1,0.27,Average
+S277,E104,History,68,Moderate,Some errors but acceptable,Pass,1,0.28,Needs improvement
+S070,E116,Science,75,Strict,Needs improvement in concepts,Pass,1,0.52,Excellent
+S256,E111,Science,76,Lenient,Good attempt,Pass,1,0.1,Above average
+S095,E125,English,72,Strict,Focus on basics,Pass,1,0.74,Excellent
+S207,E120,English,87,Moderate,Some errors but acceptable,Pass,1,0.97,Needs improvement
+S023,E105,Computer Science,62,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.79,Average
+S070,E138,Math,74,Moderate,Some errors but acceptable,Pass,1,0.47,Average
+S225,E129,Math,61,Moderate,Keep practicing,Pass,1,0.02,Needs improvement
+S238,E121,Science,48,Strict,Errors in methodology,Pass,3,0.51,Above average
+S042,E139,History,70,Strict,Needs improvement in concepts,Pass,1,0.37,Above average
+S220,E114,English,85,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.8,Needs improvement
+S254,E138,Math,66,Moderate,Some errors but acceptable,Pass,1,0.37,Needs improvement
+S002,E104,History,44,Strict,Focus on basics,Pass,3,0.4,Average
+S100,E110,English,43,Strict,Focus on basics,Pass,3,0.48,Average
+S025,E132,History,61,Lenient,Excellent effort,Pass,1,0.32,Needs improvement
+S245,E123,Science,80,AI-assisted,AI-assisted: well-structured,Pass,1,0.02,Above average
+S217,E115,History,87,Moderate,Keep practicing,Pass,1,0.2,Average
+S095,E111,History,49,Strict,Errors in methodology,Pass,3,0.03,Excellent
+S153,E118,Science,58,Moderate,Satisfactory work,Pass,2,0.35,Excellent
+S233,E115,History,62,AI-assisted,AI-assisted: well-structured,Pass,1,0.44,Excellent
+S099,E121,Science,50,Strict,Focus on basics,Pass,2,0.55,Excellent
+S028,E128,Science,58,Moderate,Keep practicing,Pass,2,0.28,Above average
+S291,E125,Science,75,Strict,Work is below standard,Pass,1,0.55,Average
+S111,E110,Math,78,Moderate,Some errors but acceptable,Pass,1,0.43,Average
+S212,E131,Math,69,Strict,Needs improvement in concepts,Pass,1,0.54,Needs improvement
+S209,E143,History,47,Strict,Errors in methodology,Pass,3,0.33,Needs improvement
+S038,E149,Computer Science,84,Lenient,Good attempt,Pass,1,0.86,Needs improvement
+S237,E128,Math,95,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.22,Average
+S072,E113,Computer Science,96,Lenient,Good attempt,Pass,1,0.13,Needs improvement
+S235,E112,Geography,79,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.54,Average
+S289,E116,Science,80,Lenient,Good attempt,Pass,1,0.96,Excellent
+S092,E111,Geography,52,Strict,Focus on basics,Pass,2,0.21,Excellent
+S122,E116,History,83,AI-assisted,AI-assisted: well-structured,Pass,1,0.96,Needs improvement
+S192,E104,Computer Science,60,Lenient,Well done,Pass,1,0.2,Above average
+S297,E131,Math,92,Lenient,Well done,Pass,1,0.84,Needs improvement
+S285,E130,Science,90,Moderate,Keep practicing,Pass,1,0.71,Above average
+S073,E149,Math,70,Strict,Focus on basics,Pass,1,0.02,Average
+S027,E132,Geography,69,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.65,Needs improvement
+S062,E142,Computer Science,85,Strict,Needs improvement in concepts,Pass,1,0.06,Excellent
+S240,E119,Science,69,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.83,Above average
+S206,E126,Math,69,Moderate,Satisfactory work,Pass,1,0.27,Average
+S139,E129,Geography,48,Strict,Work is below standard,Pass,3,0.92,Average
+S211,E117,Geography,62,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.64,Above average
+S061,E140,Science,93,Lenient,Good attempt,Pass,1,0.53,Needs improvement
+S198,E118,Science,65,Strict,Errors in methodology,Pass,1,0.62,Excellent
+S026,E117,Geography,65,Strict,Needs improvement in concepts,Pass,1,0.33,Excellent
+S049,E122,History,75,Strict,Errors in methodology,Pass,1,0.93,Needs improvement
+S244,E110,Geography,60,Strict,Needs improvement in concepts,Pass,1,0.28,Above average
+S008,E130,Math,65,Strict,Focus on basics,Pass,1,0.49,Needs improvement
+S061,E102,Computer Science,63,Moderate,Keep practicing,Pass,1,0.28,Above average
+S298,E119,History,62,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.9,Needs improvement
+S179,E133,Geography,81,Moderate,Satisfactory work,Pass,1,0.22,Average
+S109,E106,Science,49,Strict,Errors in methodology,Pass,3,0.35,Average
+S019,E127,Geography,85,Lenient,Well done,Pass,1,0.66,Excellent
+S215,E138,English,76,AI-assisted,AI-assisted: minor mistakes,Pass,1,0.35,Needs improvement
+S015,E117,Geography,68,Moderate,Decent understanding,Pass,1,0.32,Excellent
+S072,E108,Computer Science,79,Lenient,Excellent effort,Pass,1,0.29,Above average
+S087,E109,Science,63,Moderate,Decent understanding,Pass,1,0.78,Average
+S170,E140,Geography,82,Moderate,Keep practicing,Pass,1,0.76,Average
+S090,E131,History,52,Strict,Needs improvement in concepts,Pass,2,0.97,Average
+S246,E149,Computer Science,61,Strict,Focus on basics,Pass,1,0.36,Excellent
+S076,E111,English,75,Moderate,Keep practicing,Pass,1,0.81,Needs improvement
+S262,E124,Geography,65,Strict,Needs improvement in concepts,Pass,1,0.57,Needs improvement
+S242,E148,Math,79,Lenient,Creative approach,Pass,1,0.54,Above average
+S184,E101,Math,71,Lenient,Good attempt,Pass,1,0.42,Excellent
+S280,E115,History,60,AI-assisted,AI-assisted evaluation: good clarity,Pass,1,0.16,Excellent
+S129,E142,Math,81,Moderate,Decent understanding,Pass,1,0.94,Excellent
+S042,E130,Computer Science,65,AI-assisted,AI-assisted: well-structured,Pass,1,0.98,Above average
+S202,E102,Science,41,Strict,Needs improvement in concepts,Pass,3,0.6,Excellent
+S188,E138,Geography,82,AI-assisted,AI-assisted: needs minor corrections,Pass,1,0.24,Above average
+S172,E149,Math,99,Lenient,Creative approach,Pass,1,0.8,Needs improvement
+S199,E105,Geography,61,AI-assisted,AI-assisted: well-structured,Pass,1,0.94,Average
+S046,E120,English,76,Lenient,Good attempt,Pass,1,0.5,Excellent

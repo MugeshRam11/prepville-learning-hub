@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.analyze-user-progress]
 verify_jwt = false
+
+[functions.ai-exam-evaluator]
+verify_jwt = true

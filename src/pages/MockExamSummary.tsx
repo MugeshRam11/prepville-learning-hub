@@ -37,18 +37,20 @@ const MockExamSummary = () => {
   const unattemptedCount = totalQuestions - attemptedCount;
   
   // Calculate actual correct answers by comparing with answer keys
+  // Helper function to normalize answers for comparison
+  const normalizeAnswer = (text: string) => {
+    if (!text) return '';
+    return text
+      .trim()
+      .toLowerCase()
+      .replace(/[.,!?;:\s]+/g, ' ') // Remove punctuation and normalize whitespace
+      .trim();
+  };
+
+  // Calculate correct answers by comparing student answers with answer keys
   const correctAnswers = answers.reduce((correct: number, answer: Answer) => {
     const question = questions.find((q: Question) => q.id === answer.questionId);
     if (!question) return correct;
-    
-    // Helper function to normalize answers for comparison
-    const normalizeAnswer = (text: string) => {
-      return text
-        .trim()
-        .toLowerCase()
-        .replace(/[.,!?;:]/g, '') // Remove punctuation
-        .replace(/\s+/g, ' '); // Normalize whitespace
-    };
     
     // For sub-questions
     if (answer.subQuestionId) {
@@ -58,17 +60,21 @@ const MockExamSummary = () => {
       const studentAns = normalizeAnswer(answer.content);
       const correctAns = normalizeAnswer(subQuestion.answerKey);
       
-      console.log('Comparing answers:');
-      console.log('  Student answer (original):', answer.content);
-      console.log('  Student answer (normalized):', studentAns);
-      console.log('  Correct answer (original):', subQuestion.answerKey);
-      console.log('  Correct answer (normalized):', correctAns);
-      console.log('  Match result:', studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns));
+      // Check for exact match or contains
+      const isCorrect = studentAns === correctAns || 
+                       studentAns.includes(correctAns) || 
+                       correctAns.includes(studentAns);
       
-      // Check if student answer matches or is very similar to correct answer
-      if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
-        return correct + 1;
-      }
+      console.log('Sub-question comparison:', {
+        questionId: question.id,
+        subQuestionId: answer.subQuestionId,
+        studentAnswer: answer.content,
+        correctAnswer: subQuestion.answerKey,
+        normalized: { student: studentAns, correct: correctAns },
+        isCorrect
+      });
+      
+      return isCorrect ? correct + 1 : correct;
     } else {
       // For main questions
       if (!question.answerKey) return correct;
@@ -76,19 +82,20 @@ const MockExamSummary = () => {
       const studentAns = normalizeAnswer(answer.content);
       const correctAns = normalizeAnswer(question.answerKey);
       
-      console.log('Comparing answers:');
-      console.log('  Student answer (original):', answer.content);
-      console.log('  Student answer (normalized):', studentAns);
-      console.log('  Correct answer (original):', question.answerKey);
-      console.log('  Correct answer (normalized):', correctAns);
-      console.log('  Match result:', studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns));
+      const isCorrect = studentAns === correctAns || 
+                       studentAns.includes(correctAns) || 
+                       correctAns.includes(studentAns);
       
-      if (studentAns === correctAns || studentAns.includes(correctAns) || correctAns.includes(studentAns)) {
-        return correct + 1;
-      }
+      console.log('Main question comparison:', {
+        questionId: question.id,
+        studentAnswer: answer.content,
+        correctAnswer: question.answerKey,
+        normalized: { student: studentAns, correct: correctAns },
+        isCorrect
+      });
+      
+      return isCorrect ? correct + 1 : correct;
     }
-    
-    return correct;
   }, 0);
   
   // Calculate percentage score based on correct answers
