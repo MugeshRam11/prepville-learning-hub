@@ -270,9 +270,9 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-2.5-flash-lite',
             messages: ocrMessages,
-            max_tokens: 4096
+            max_tokens: 2048
           }),
         });
         
@@ -313,7 +313,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-flash-lite',
           messages: [
             { role: 'system', content: ocrSystemPrompt },
             { role: 'user', content: ocrUserPrompt }
@@ -372,7 +372,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-2.5-flash-lite',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: chunkUserPrompt }
@@ -402,7 +402,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-flash-lite',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
@@ -456,147 +456,8 @@ serve(async (req) => {
         );
       }
       
-      // Auto-solve questions and sub-questions without answer keys
-      console.log(`🔍 Checking for missing answer keys...`);
-      const questionsNeedingSolving = questions.filter((q: any) => !q.correct_answer || q.correct_answer.trim() === '');
-      
-      let totalSubQuestionsSolved = 0;
-      
-      // Solve main questions
-      if (questionsNeedingSolving.length > 0) {
-        console.log(`🤖 ${questionsNeedingSolving.length} main questions need AI solving...`);
-        
-        for (const question of questionsNeedingSolving) {
-          try {
-            const solvePrompt = `You are a mathematics and science expert. Solve this question and provide ONLY the answer.
-
-Question: ${question.question_text}
-${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
-${question.marks ? `Marks: ${question.marks}` : ''}
-${question.difficulty ? `Difficulty: ${question.difficulty}` : ''}
-
-Instructions:
-- Analyze the question carefully
-- If there's an image, analyze it to understand the problem
-- Solve the problem step by step
-- Provide ONLY the final answer in your response
-- For numerical answers, provide the exact number
-- For text answers, provide the complete answer text
-- Keep answers concise but complete
-
-Return ONLY the answer, nothing else.`;
-
-            const messages: any[] = [
-              { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
-              { role: 'user', content: question.question_image_url 
-                ? [
-                    { type: 'text', text: solvePrompt },
-                    { type: 'image_url', image_url: { url: question.question_image_url } }
-                  ]
-                : solvePrompt
-              }
-            ];
-
-            const solveResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'google/gemini-2.5-flash',
-                messages,
-                max_tokens: 500
-              }),
-            });
-
-            if (solveResponse.ok) {
-              const solveData = await solveResponse.json();
-              const answer = solveData.choices[0].message.content.trim();
-              question.correct_answer = answer;
-              question.ai_generated_answer = true;
-              console.log(`✅ Solved Q${question.question_number || ''}: "${answer}"`);
-            } else {
-              console.warn(`⚠️ Failed to solve question ${question.question_number || ''}`);
-            }
-          } catch (solveError) {
-            console.error(`❌ Error solving question:`, solveError);
-          }
-        }
-      }
-      
-      // Solve sub-questions that are missing answers
-      for (const question of questions) {
-        if (question.sub_questions && Array.isArray(question.sub_questions)) {
-          const subQuestionsNeedingSolving = question.sub_questions.filter((sq: any) => !sq.answer || sq.answer.trim() === '');
-          
-          if (subQuestionsNeedingSolving.length > 0) {
-            console.log(`🤖 Question ${question.question_number}: ${subQuestionsNeedingSolving.length} sub-questions need AI solving...`);
-            
-            for (const subQuestion of subQuestionsNeedingSolving) {
-              try {
-                const subSolvePrompt = `You are a mathematics and science expert. Solve this sub-question and provide ONLY the answer.
-
-Main Question Context: ${question.question_text}
-${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
-
-Sub-Question ${subQuestion.label}: ${subQuestion.text}
-${subQuestion.marks ? `Marks: ${subQuestion.marks}` : ''}
-
-Instructions:
-- Consider the main question context
-- If there's an image, analyze it to understand the problem
-- Solve this specific sub-question
-- Provide ONLY the final answer
-- For numerical answers, provide the exact number
-- For text answers, provide the complete answer text
-- Keep answers concise but complete
-
-Return ONLY the answer, nothing else.`;
-
-                const subMessages: any[] = [
-                  { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
-                  { role: 'user', content: question.question_image_url 
-                    ? [
-                        { type: 'text', text: subSolvePrompt },
-                        { type: 'image_url', image_url: { url: question.question_image_url } }
-                      ]
-                    : subSolvePrompt
-                  }
-                ];
-
-                const subSolveResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    model: 'google/gemini-2.5-flash',
-                    messages: subMessages,
-                    max_tokens: 500
-                  }),
-                });
-
-                if (subSolveResponse.ok) {
-                  const subSolveData = await subSolveResponse.json();
-                  const answer = subSolveData.choices[0].message.content.trim();
-                  subQuestion.answer = answer;
-                  subQuestion.ai_generated_answer = true;
-                  totalSubQuestionsSolved++;
-                  console.log(`✅ Solved Q${question.question_number}${subQuestion.label}: "${answer}"`);
-                } else {
-                  console.warn(`⚠️ Failed to solve sub-question ${question.question_number}${subQuestion.label}`);
-                }
-              } catch (subSolveError) {
-                console.error(`❌ Error solving sub-question:`, subSolveError);
-              }
-            }
-          }
-        }
-      }
-      
-      console.log(`✅ Successfully parsed ${questions.length} questions (${questionsNeedingSolving.length} main + ${totalSubQuestionsSolved} sub auto-solved)`);
+      // Skip auto-solving for faster parsing - answers can be added later
+      console.log(`✅ Successfully parsed ${questions.length} questions`);
     } else {
       console.log(`✅ Successfully completed ${actionMode} action`);
     }
@@ -784,73 +645,19 @@ Return JSON:
   }
 
   // Default: parse mode
-  const mockPrompt = `You are an ADVANCED educational document parser with ENHANCED OCR-like capabilities and intelligent text processing. Parse ANY document format and extract ALL questions with complete structure.
+  const mockPrompt = `Extract questions from the document. Parse ALL questions with complete structure.${imageContext}${structureContext}
 
-**🚀 ENHANCED PARSING CAPABILITIES:**
-- **Advanced PDF Processing**: Extract from complex layouts, multi-column formats, scanned documents
-- **Intelligent OCR**: Recognize handwritten/printed text with error correction
-- **Structure-Aware**: Understand document sections, headers, and hierarchy
-- **Smart Text Cleaning**: Auto-correct common OCR errors (l→1, O→0, spacing issues)
-- **Large Document Support**: Handle documents of any size with intelligent chunking
-- **Table & Diagram Extraction**: Advanced parsing of complex tables and diagrams
+**IMAGE HANDLING:**
+- Assign images with "-diagram-" to questions mentioning diagrams/tables/graphs
+- Use "-fullpage" images only as fallback
+- Look for: "tree diagram", "table", "graph", "see figure", "shown below"
 
-**MULTI-FORMAT PARSING (docTR-like OCR + AI):**
-- **PDF**: Extract from formatted text, tables, and layouts (including scanned PDFs)
-- **Images**: Perform intelligent OCR - recognize handwritten/printed text
-- **Word (.docx)**: Parse formatted documents, tables, diagrams WITH IMAGE SUPPORT
-- **CSV**: Intelligently map columns to question components
-- **Text**: Handle numbered lists, bullets, paragraphs
+**SUB-QUESTIONS:**
+- Detect sub-parts: a), b), c) OR i), ii), iii) OR (a), (b)
+- Extract label, text, marks for each sub-part
+- Sum sub-question marks for main question total
 
-**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}${structureContext}
-When images are provided, you MUST analyze and assign them intelligently:
-1. **Direct References**: Look for "diagram below", "tree diagram", "table shown", "graph", "figure"
-2. **Contextual Matching**: Match images to questions by content (e.g., probability tree image → probability question)
-3. **Sequential Assignment**: If unsure, assign images in order they appear to questions in order
-4. **Visual Elements**: ALL diagrams, tables, graphs, charts, figures MUST have corresponding image URLs
-5. **Sub-questions with shared images**: If sub-questions a), b), c) all refer to same diagram, assign image to main question
-6. **Multiple images per question**: If one question has multiple diagrams/tables, assign the most relevant primary image
-
-**ADAPTIVE PARSING RULES:**
-1. **Format-Agnostic**: Handle any document structure
-2. **Flexible Column Detection**: Recognize data even with different column names
-3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
-4. **Smart Option Extraction**: Handle options in any format (1/2/3/4, A/B/C/D, bullets)
-5. **Answer Normalization**: Convert all answer formats to A/B/C/D standard
-6. **Missing Data Handling**: Use sensible defaults, never skip questions
-7. **Sub-question Support**: Detect and structure multi-part questions
-8. **Image Association**: Link images to questions intelligently
-9. **OCR Error Correction**: Fix common scanning errors automatically
-
-**CRITICAL SUB-QUESTION DETECTION:**
-- Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c) OR Part a:, Part b:
-- Each sub-question should have its own text and marks allocation  
-- COUNT MARKS CAREFULLY: Sum ALL individual sub-question marks to get the main question total
-- If a question has sub-parts, set "has_sub_questions": true
-- Extract each sub-question with: label (e.g., "a"), text, marks, and answer (if provided)
-- The main question_text should contain the context/setup text ONLY
-- Sub_questions array contains ALL the actual questions to be answered
-- Example: "Question 1" with parts a) [3 marks], b) [2 marks], c) [4 marks] → main question marks = 9
-
-**TABLE, GRAPH & DIAGRAM EXTRACTION (CRITICAL):**
-- **Tree diagrams**: If question mentions "tree diagram", "complete the tree diagram", "probability tree" → MUST assign tree diagram image
-- **Tables**: If question contains table data OR mentions "table" → assign table image if available
-- **Graphs/Charts**: If mentions "graph", "chart", "plot" → assign relevant graph image
-- **Diagrams**: If mentions "diagram", "figure", "illustration" → assign diagram image
-- **Visual References**: Look for phrases like "shown below", "diagram above", "see figure" → these need images
-- ALL extracted images should be assigned to their corresponding questions
-- If question text includes table/diagram data, still assign the image URL - images complement text
-
-**CRITICAL - VALID SUBJECT VALUES ONLY:**
-You MUST use ONLY these exact values:
-- "mathematics"
-- "science"
-- "language_literature"
-- "social_studies"
-- "physics"
-- "chemistry"
-- "biology"
-
-If unclear, default to "mathematics".
+**VALID SUBJECTS:** "mathematics", "science", "language_literature", "social_studies", "physics", "chemistry", "biology"
 
 Return JSON with this exact structure:
 {
