@@ -48,29 +48,39 @@ serve(async (req) => {
       );
     }
 
-    // Handle PDF OCR with Lovable AI Vision
+    // Enhanced PDF processing with comprehensive extraction
     let finalContent = content;
     let finalExtractedText = extractedText;
+    let finalExtractedImages = [...extractedImages];
     const isPDF = fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf');
+    const isPDFDataUrl = content?.startsWith('data:application/pdf;base64,');
     
-    if (isPDF && !extractedText && content) {
-      console.log('🤖 Using Lovable AI Vision for PDF OCR...');
+    if ((isPDF || isPDFDataUrl) && !extractedText) {
+      console.log('🤖 Processing PDF with Lovable AI Vision (Comprehensive Extraction)...');
       try {
-        // Convert base64 PDF to data URL for vision model
-        const pdfDataUrl = `data:application/pdf;base64,${content}`;
+        // Ensure content is in data URL format
+        const pdfDataUrl = isPDFDataUrl ? content : `data:application/pdf;base64,${content}`;
         
-        const ocrPrompt = `Extract ALL text from this PDF document. 
-        
-**OCR EXTRACTION RULES:**
-- Extract every visible text element
-- Preserve structure (headings, questions, options, answers)
-- Include all numbers, letters, symbols
-- Maintain question numbering and formatting
-- Extract text from tables and diagrams
-- Capture mathematical notation and formulas
-- Preserve sub-question labels (a, b, c, i, ii, iii)
+        // Step 1: Extract ALL text content with structure preservation
+        const ocrPrompt = `Analyze this PDF and extract ALL content in a structured format.
 
-Return the complete extracted text maintaining the original structure.`;
+**COMPREHENSIVE EXTRACTION:**
+1. **Main Questions**: Extract question numbers and main question text
+2. **Sub-Questions**: Identify ALL sub-parts (a, b, c, d) OR (i, ii, iii) with their marks
+3. **Tables & Data**: Extract any tables, probability trees, or data structures
+4. **Marks Allocation**: Extract marks for each question/sub-question (e.g., [3 marks])
+5. **Mathematical Content**: Preserve formulas, equations, probability values
+6. **Diagrams**: Note any tree diagrams, tables, or visual elements present
+7. **Structure**: Maintain question hierarchy and formatting
+
+**FORMAT REQUIREMENTS:**
+- Clearly separate main questions and sub-questions
+- Keep mark allocations with each part
+- Preserve probability values and mathematical notation
+- Note references to diagrams/tables (e.g., "tree diagram below")
+- Maintain original question numbering
+
+Extract EVERYTHING visible in the document maintaining structure.`;
 
         const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -89,20 +99,71 @@ Return the complete extracted text maintaining the original structure.`;
                 ]
               }
             ],
-            max_tokens: 4000
+            max_tokens: 6000
           }),
         });
 
         if (ocrResponse.ok) {
           const ocrData = await ocrResponse.json();
           finalExtractedText = ocrData.choices[0].message.content;
-          console.log(`✅ PDF OCR complete: ${finalExtractedText?.length || 0} characters extracted`);
+          console.log(`✅ PDF Text Extraction: ${finalExtractedText?.length || 0} characters extracted`);
+          
+          // Step 2: Extract visual elements (diagrams, tables, graphs)
+          console.log('🖼️ Extracting visual elements from PDF...');
+          const imagePrompt = `Identify and describe ALL visual elements in this PDF:
+          
+1. **Tree Diagrams**: Probability trees, decision trees
+2. **Tables**: Data tables with rows/columns  
+3. **Graphs**: Charts, plots, visual data
+4. **Diagrams**: Any other visual elements
+
+For each visual element, describe:
+- Type (tree/table/graph/diagram)
+- Content/purpose
+- Which question it relates to
+- Key data it contains
+
+List ALL visual elements found.`;
+
+          const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: imagePrompt },
+                    { type: 'image_url', image_url: { url: pdfDataUrl } }
+                  ]
+                }
+              ],
+              max_tokens: 2000
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            const imageDescription = imageData.choices[0].message.content;
+            console.log(`✅ Visual Elements Identified:\n${imageDescription}`);
+            
+            // Append image descriptions to extracted text for better context
+            finalExtractedText += `\n\n**VISUAL ELEMENTS IN DOCUMENT:**\n${imageDescription}`;
+          }
         } else {
-          console.warn('⚠️ PDF OCR failed, using raw content');
+          const errorText = await ocrResponse.text();
+          console.error('⚠️ PDF OCR failed:', ocrResponse.status, errorText);
+          console.log('⚠️ Using raw content');
+          finalExtractedText = '[PDF content - please process with base64]';
         }
       } catch (ocrError) {
-        console.error('❌ PDF OCR error:', ocrError);
-        console.log('⚠️ Falling back to raw content');
+        console.error('❌ PDF processing error:', ocrError);
+        console.log('⚠️ Falling back to raw content processing');
+        finalExtractedText = '[PDF content - error during extraction]';
       }
     }
 
@@ -471,25 +532,44 @@ When images are provided, you MUST analyze and assign them intelligently:
 5. **Sub-questions with shared images**: If sub-questions a), b), c) all refer to same diagram, assign image to main question
 6. **Multiple images per question**: If one question has multiple diagrams/tables, assign the most relevant primary image
 
-**ADAPTIVE PARSING RULES:**
-1. **Format-Agnostic**: Handle any document structure
-2. **Flexible Column Detection**: Recognize data even with different column names
-3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
-4. **Smart Option Extraction**: Handle options in any format (1/2/3/4, A/B/C/D, bullets)
-5. **Answer Normalization**: Convert all answer formats to A/B/C/D standard
-6. **Missing Data Handling**: Use sensible defaults, never skip questions
-7. **Sub-question Support**: Detect and structure multi-part questions
-8. **Image Association**: Link images to questions intelligently
+**ADAPTIVE PARSING (CSV/DOC/PDF Support):**
+- **CSV Files**: 
+  - Parse headers intelligently (question, answer, options, marks, etc.)
+  - Handle any column names/order (flexible mapping)
+  - Extract question_text, correct_answer, difficulty, marks
+  - Generate MCQ options if only answer provided
+  - Support both comma and semicolon delimiters
+- **Word Documents**: 
+  - Extract from structured/unstructured text
+  - Parse tables and embedded images
+  - Flatten sub-questions into separate items (Quick mode)
+  - Preserve sub-question structure (Mock mode)
+- **PDF Files**: 
+  - Use extracted OCR text with visual context
+  - Identify tables, tree diagrams, graphs from descriptions
+  - Match questions to visual elements
+  - Extract marks from notation like [3 marks], (2m), etc.
 
-**CRITICAL SUB-QUESTION DETECTION:**
-- Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c) OR Part a:, Part b:
-- Each sub-question should have its own text and marks allocation  
-- COUNT MARKS CAREFULLY: Sum ALL individual sub-question marks to get the main question total
-- If a question has sub-parts, set "has_sub_questions": true
-- Extract each sub-question with: label (e.g., "a"), text, marks, and answer (if provided)
-- The main question_text should contain the context/setup text ONLY
-- Sub_questions array contains ALL the actual questions to be answered
-- Example: "Question 1" with parts a) [3 marks], b) [2 marks], c) [4 marks] → main question marks = 9
+**CRITICAL SUB-QUESTION DETECTION & MARKS CALCULATION:**
+- **Sub-Question Formats**: Look for a), b), c), d) OR i), ii), iii) OR (a), (b), (c) OR Part a:, Part b:
+- **Marks Extraction**: Each sub-question has marks like [3 marks], [2 marks], (3 marks), (2m)
+- **Main Question Marks**: SUM of ALL sub-question marks = main question total_marks
+- **Example**: Question 1 with:
+  - a) [3 marks]
+  - b) [2 marks]  
+  - c) [4 marks]
+  - d) [3 marks]
+  → Main question marks = 3+2+4+3 = 12 marks total
+- **Set has_sub_questions: true** when sub-parts exist
+- **Main question_text**: Context/setup ONLY (not the actual questions to answer)
+- **sub_questions array**: Contains ALL actual question parts with {label, text, marks, answer}
+- **Each sub-question needs**: label ("a", "b", "c"), text (the actual question), marks (integer), answer (if provided)
+
+**TREE DIAGRAM & VISUAL ELEMENT HANDLING:**
+- **Tree Diagrams**: Questions with "tree diagram", "complete the tree", "probability tree" MUST reference diagram
+- **Shared Visuals**: If multiple sub-questions (a,b,c,d) reference same diagram, note it in main question
+- **Visual Context**: Include visual element descriptions in question context for AI understanding
+- **Marks Validation**: Verify marks sum correctly - don't guess, extract from document
 
 **TABLE, GRAPH & DIAGRAM EXTRACTION (CRITICAL):**
 - **Tree diagrams**: If question mentions "tree diagram", "complete the tree diagram", "probability tree" → MUST assign tree diagram image
@@ -576,13 +656,24 @@ YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to question
 - **Images**: Perform OCR to recognize text + extract visual elements
 - **Word**: Parse structured documents and FLATTEN all sub-questions + extract embedded images
 
-**PARSING RULES:**
-1. **Flatten Sub-questions**: Convert "Question 1: [context] a) [sub-q] b) [sub-q]" into separate standalone questions
-2. **Standalone Context**: Include necessary context from parent question in each flattened question
-3. **Force MCQ Format**: ALWAYS create 4 options even if original is short answer/essay
-4. **Complete Questions**: Each question_text must be fully self-contained
-5. **Never Skip**: Extract every question/sub-question as a separate item
-6. **Assign All Images**: Every extracted image must appear in question_image_url field
+**CSV PARSING INTELLIGENCE:**
+- **Flexible Headers**: Recognize these column variations:
+  - Question: "question", "question_text", "q", "problem", "item"
+  - Answer: "answer", "correct_answer", "key", "solution", "correct"  
+  - Options: "options", "choices", "option_a/b/c/d", "a/b/c/d"
+  - Marks: "marks", "points", "score", "weight"
+  - Difficulty: "difficulty", "level", "diff"
+  - Type: "type", "question_type", "category"
+- **Auto-Generate**: If answer exists but no options, create 4 MCQ options
+- **Delimiters**: Support comma, semicolon, tab separators
+- **Quote Handling**: Parse quoted fields with internal commas
+- **Empty Rows**: Skip empty rows, don't count as questions
+- **Example CSV Format**:
+  ```
+  question,answer,marks,difficulty
+  "What is 2+2?","4",1,"easy"
+  "Calculate probability","0.75",3,"medium"
+  ```
 
 **FLATTENING EXAMPLE:**
 Original: "Question 1: A survey shows... a) Find missing values [answer: 94, 29, 150] b) Calculate probability [answer: 0.82]"

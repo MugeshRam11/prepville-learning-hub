@@ -129,19 +129,24 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-        // Use Lovable AI OCR - send PDF as base64 for backend processing
-        console.log('📄 Processing PDF with Lovable AI OCR...');
+        // Enhanced PDF processing with full OCR + image extraction
+        console.log('📄 Processing PDF with comprehensive extraction...');
         setProgress(25);
-        toast.info('🤖 AI is extracting text and images from PDF...');
+        toast.info('🤖 Extracting text, images, and structure from PDF...');
         
+        // Convert PDF to base64 for transmission
         const arrayBuffer = await file.arrayBuffer();
         const base64 = btoa(
           new Uint8Array(arrayBuffer)
             .reduce((data, byte) => data + String.fromCharCode(byte), '')
         );
-        content = base64;
-        extractedText = undefined; // Let backend handle OCR
-        console.log('✅ PDF prepared for Lovable AI OCR processing');
+        
+        // Store PDF as data URL for AI vision processing
+        content = `data:application/pdf;base64,${base64}`;
+        extractedText = undefined; // Backend will perform comprehensive OCR
+        
+        console.log('✅ PDF prepared for AI processing (Vision + OCR)');
+        toast.info('AI will extract all content including diagrams and tables...');
         setProgress(35);
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
@@ -196,13 +201,25 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       if (!data || !data.success) {
         const errorMsg = data?.error || 'Failed to process document';
         console.error('❌ AI parser returned error:', errorMsg);
-        throw new Error(errorMsg);
+        
+        // Provide helpful error context
+        let helpText = 'Please try again or use Manual JSON Input.';
+        if (errorMsg.includes('Rate limit')) {
+          helpText = 'AI service is rate limited. Wait a moment and try again.';
+        } else if (errorMsg.includes('credits')) {
+          helpText = 'AI credits exhausted. Please add credits to continue.';
+        } else if (errorMsg.includes('No questions found')) {
+          helpText = 'Could not detect questions in the document. Ensure the file contains properly formatted questions.';
+        }
+        
+        throw new Error(`${errorMsg}\n\n${helpText}`);
       }
       
       console.log('✅ AI parsing successful:', {
         actionMode: data.actionMode,
         count: data.parsed_count,
-        hasData: !!data.data
+        hasData: !!data.data,
+        questionsFound: data.data?.questions?.length || 0
       });
       setProgress(90);
 
@@ -550,7 +567,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           </p>
         </div>
 
-        <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+          <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
             ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
           <input {...getInputProps()} />
@@ -564,7 +581,10 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 {isDragActive ? 'Drop file here' : 'Drag & drop or click to upload'}
               </p>
               <p className="text-xs text-muted-foreground">
-                PDF, Word (with images), CSV, Images (OCR), Text | Max 20MB
+                ✅ PDF (Vision OCR) | ✅ Word (with images) | ✅ CSV | ✅ Images (OCR) | ✅ Text
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Max 20MB | Auto-extracts text, images, sub-questions & marks
               </p>
             </>}
         </div>
