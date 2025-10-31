@@ -167,65 +167,126 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             let pageHasEmbeddedImages = false;
             
             try {
-              // First: Try to extract embedded images/diagrams
+              // First: Render page to ensure all objects are loaded
+              const tempScale = 2.0;
+              const tempViewport = page.getViewport({ scale: tempScale });
+              const tempCanvas = document.createElement('canvas');
+              const tempContext = tempCanvas.getContext('2d');
+              tempCanvas.width = tempViewport.width;
+              tempCanvas.height = tempViewport.height;
+              
+              if (tempContext) {
+                await page.render({
+                  canvasContext: tempContext,
+                  viewport: tempViewport
+                } as any).promise;
+              }
+              
+              // Now extract embedded images/diagrams
               const operatorList = await page.getOperatorList();
+              const imageOps: number[] = [];
               
               for (let i = 0; i < operatorList.fnArray.length; i++) {
                 if (operatorList.fnArray[i] === pdfjsLib.OPS.paintImageXObject) {
-                  try {
-                    const imageName = operatorList.argsArray[i][0];
-                    const image = page.objs.get(imageName);
+                  imageOps.push(i);
+                }
+              }
+              
+              if (imageOps.length > 0) {
+                console.log(`🔍 Found ${imageOps.length} image operations on page ${pageNum}`);
+              }
+              
+              for (let i = 0; i < imageOps.length; i++) {
+                try {
+                  const imageName = operatorList.argsArray[imageOps[i]][0];
+                  
+                  // Wait for image to be available
+                  let image = page.objs.get(imageName);
+                  if (!image) {
+                    await new Promise<void>((resolve) => {
+                      const maxAttempts = 10;
+                      let attempts = 0;
+                      const checkImage = () => {
+                        if (page.objs.has(imageName)) {
+                          resolve();
+                        } else if (attempts++ < maxAttempts) {
+                          setTimeout(checkImage, 100);
+                        } else {
+                          resolve(); // Give up after max attempts
+                        }
+                      };
+                      checkImage();
+                    });
+                    image = page.objs.get(imageName);
+                  }
+                  
+                  if (image && image.data && image.width && image.height) {
+                    // Skip tiny images (likely icons or artifacts)
+                    if (image.width < 50 || image.height < 50) {
+                      console.log(`⏭️ Skipping small image (${image.width}x${image.height})`);
+                      continue;
+                    }
                     
-                    if (image && image.data) {
-                      // Create canvas for the embedded image
-                      const imgCanvas = document.createElement('canvas');
-                      imgCanvas.width = image.width;
-                      imgCanvas.height = image.height;
-                      const imgContext = imgCanvas.getContext('2d');
+                    console.log(`📊 Processing image ${i}: ${image.width}x${image.height}`);
+                    
+                    const imgCanvas = document.createElement('canvas');
+                    imgCanvas.width = image.width;
+                    imgCanvas.height = image.height;
+                    const imgContext = imgCanvas.getContext('2d');
+                    
+                    if (imgContext) {
+                      const imageData = imgContext.createImageData(image.width, image.height);
+                      const bytesPerPixel = image.data.length / (image.width * image.height);
                       
-                      if (imgContext && image.data) {
-                        // Create ImageData from the raw image data
-                        const imageData = imgContext.createImageData(image.width, image.height);
-                        
-                        // Handle different image formats
-                        if (image.data.length === image.width * image.height * 4) {
-                          // RGBA format
-                          imageData.data.set(image.data);
-                        } else if (image.data.length === image.width * image.height * 3) {
-                          // RGB format - convert to RGBA
-                          for (let j = 0; j < image.width * image.height; j++) {
-                            imageData.data[j * 4] = image.data[j * 3];
-                            imageData.data[j * 4 + 1] = image.data[j * 3 + 1];
-                            imageData.data[j * 4 + 2] = image.data[j * 3 + 2];
-                            imageData.data[j * 4 + 3] = 255; // Alpha
-                          }
+                      if (bytesPerPixel === 4) {
+                        // RGBA format
+                        imageData.data.set(image.data);
+                      } else if (bytesPerPixel === 3) {
+                        // RGB format - convert to RGBA
+                        for (let j = 0; j < image.width * image.height; j++) {
+                          imageData.data[j * 4] = image.data[j * 3];
+                          imageData.data[j * 4 + 1] = image.data[j * 3 + 1];
+                          imageData.data[j * 4 + 2] = image.data[j * 3 + 2];
+                          imageData.data[j * 4 + 3] = 255;
                         }
-                        
-                        imgContext.putImageData(imageData, 0, 0);
-                        const embeddedImageData = imgCanvas.toDataURL('image/png');
-                        const embeddedBase64 = embeddedImageData.split(',')[1];
-                        
-                        const embeddedImageUrl = await uploadImageToStorage(
-                          embeddedBase64,
-                          'image/png',
-                          `${fileName}-page${pageNum}-diagram-${i}`
-                        );
-                        
-                        if (embeddedImageUrl) {
-                          pdfImages.unshift(embeddedImageUrl); // Add to front (higher priority)
-                          pageHasEmbeddedImages = true;
-                          diagramCount++;
-                          console.log(`✅ Extracted embedded diagram ${i} from page ${pageNum}`);
+                      } else if (bytesPerPixel === 1) {
+                        // Grayscale - convert to RGBA
+                        for (let j = 0; j < image.width * image.height; j++) {
+                          const gray = image.data[j];
+                          imageData.data[j * 4] = gray;
+                          imageData.data[j * 4 + 1] = gray;
+                          imageData.data[j * 4 + 2] = gray;
+                          imageData.data[j * 4 + 3] = 255;
                         }
+                      } else {
+                        console.warn(`⚠️ Unsupported format: ${bytesPerPixel} bytes/pixel`);
+                        continue;
+                      }
+                      
+                      imgContext.putImageData(imageData, 0, 0);
+                      const embeddedImageData = imgCanvas.toDataURL('image/png');
+                      const embeddedBase64 = embeddedImageData.split(',')[1];
+                      
+                      const embeddedImageUrl = await uploadImageToStorage(
+                        embeddedBase64,
+                        'image/png',
+                        `${fileName}-page${pageNum}-diagram-${i}`
+                      );
+                      
+                      if (embeddedImageUrl) {
+                        pdfImages.unshift(embeddedImageUrl);
+                        pageHasEmbeddedImages = true;
+                        diagramCount++;
+                        console.log(`✅ Extracted diagram ${i} from page ${pageNum} (${image.width}x${image.height})`);
                       }
                     }
-                  } catch (imgError) {
-                    console.warn(`Failed to extract embedded image from page ${pageNum}:`, imgError);
                   }
+                } catch (imgError) {
+                  console.warn(`❌ Failed to extract image ${i} from page ${pageNum}:`, imgError);
                 }
               }
             } catch (opError) {
-              console.warn(`Failed to get operator list for page ${pageNum}:`, opError);
+              console.warn(`⚠️ Failed to process page ${pageNum}:`, opError);
             }
             
             // Fallback: If no embedded images found, render full page
