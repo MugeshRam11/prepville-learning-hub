@@ -131,8 +131,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         setProgress(25);
         
         try {
-          // Use unpkg CDN for better compatibility with ES modules
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+          // Set worker using Mozilla's CDN - most reliable option
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://mozilla.github.io/pdf.js/build/pdf.worker.mjs`;
           
           const arrayBuffer = await file.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({
