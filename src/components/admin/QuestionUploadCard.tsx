@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
+
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
   onSuccess?: (data: any) => void;
@@ -126,39 +126,18 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-        // Extract text from PDF using pdfjs
-        console.log('📄 Processing PDF file...');
-        setProgress(25);
-        
-        try {
-          // Use cdnjs with exact version match to avoid version mismatch errors
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-          
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({
-            data: arrayBuffer
-          }).promise;
-          const numPages = pdf.numPages;
-          let pdfText = '';
-          
-          console.log(`📄 PDF has ${numPages} pages`);
-          
-          for (let i = 1; i <= numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(' ');
-            pdfText += `\n--- Page ${i} ---\n${pageText}`;
-            setProgress(25 + (i / numPages) * 15);
-          }
-          
-          extractedText = pdfText;
-          content = pdfText;
-          console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
-          toast.success(`Extracted text from ${numPages} PDF pages`);
-        } catch (pdfError: any) {
-          console.error('❌ PDF parsing error:', pdfError);
-          throw new Error(`Failed to read PDF: ${pdfError.message}`);
-        }
+        // For PDFs, let the backend handle parsing to avoid worker issues
+        console.log('📄 Processing PDF file - sending to backend...');
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer)
+            .reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+        content = base64;
+        extractedText = '[PDF - Backend will extract text]';
+        console.log('✅ PDF prepared for backend processing');
+        toast.info('PDF uploaded - AI will extract content');
+        setProgress(35);
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
         const base64 = await fileToBase64(file);
