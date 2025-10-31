@@ -13,6 +13,95 @@ serve(async (req) => {
   }
 
   try {
+    const contentType = req.headers.get('content-type');
+    
+    // Handle JSON request for PDF diagram detection
+    if (contentType?.includes('application/json')) {
+      const { mode, pageImageUrl, pageNumber } = await req.json();
+      
+      if (mode === 'pdf-diagram-detection' && pageImageUrl) {
+        console.log(`🤖 AI analyzing PDF page ${pageNumber} for diagrams...`);
+        
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        if (!LOVABLE_API_KEY) {
+          return new Response(
+            JSON.stringify({ error: 'AI service not configured' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        try {
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [{
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: `Analyze this PDF page image and detect if it contains diagrams, charts, graphs, illustrations, or mathematical figures (not just plain text).
+
+If diagrams are present, provide bounding boxes for each diagram in the format:
+{
+  "hasDiagram": true,
+  "diagrams": [
+    {
+      "description": "brief description",
+      "boundingBox": { "x": pixels, "y": pixels, "width": pixels, "height": pixels }
+    }
+  ]
+}
+
+If it's mostly plain text with no visual diagrams, return:
+{ "hasDiagram": false }
+
+Be precise with bounding boxes to capture complete diagrams without excessive whitespace.`
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: { url: pageImageUrl }
+                  }
+                ]
+              }],
+              max_tokens: 1000,
+              response_format: { type: "json_object" }
+            })
+          });
+          
+          if (response.ok) {
+            const aiData = await response.json();
+            const content = aiData.choices?.[0]?.message?.content || '{"hasDiagram": false}';
+            const result = JSON.parse(content);
+            
+            console.log(`✅ AI detection result for page ${pageNumber}:`, result);
+            
+            return new Response(
+              JSON.stringify(result),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          } else {
+            console.error('AI analysis failed:', response.status, await response.text());
+            return new Response(
+              JSON.stringify({ hasDiagram: true, diagrams: [] }), // Fallback: assume diagram present
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        } catch (aiError) {
+          console.error('AI analysis error:', aiError);
+          return new Response(
+            JSON.stringify({ hasDiagram: true, diagrams: [] }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+    
+    // Handle FormData request for Word document processing
     const formData = await req.formData();
     const file = formData.get('file') as File;
     

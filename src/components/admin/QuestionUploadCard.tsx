@@ -156,202 +156,14 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           const cleanText = pdfText.replace(/\s+/g, '').trim();
           const isScannedPDF = cleanText.length < 100 * numPages; // Less than 100 chars per page
           
-          // Always extract images from PDFs (for both scanned and regular PDFs)
-          toast.info('🔍 Extracting images from PDF...');
-          
-          let diagramCount = 0;
-          let fullPageCount = 0;
+          // AI-powered diagram extraction
+          toast.info('🤖 Using AI vision to detect and extract diagrams...');
           
           for (let pageNum = 1; pageNum <= numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
-            let pageHasEmbeddedImages = false;
             
             try {
-              // Render the page at high resolution for diagram detection (grayscale approach)
-              const scale = 3.0; // High resolution for better diagram detection
-              const viewport = page.getViewport({ scale });
-              const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d', { willReadFrequently: true });
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-              
-              if (!context) continue;
-              
-              console.log(`🎨 Rendering page ${pageNum} at ${scale}x resolution for diagram detection...`);
-              
-              // Render the page
-              await page.render({
-                canvasContext: context,
-                viewport: viewport,
-              } as any).promise;
-              
-              // Get image data for processing
-              const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-              const data = imageData.data;
-              
-              // Convert to grayscale for better contour detection
-              console.log(`🔍 Converting page ${pageNum} to grayscale...`);
-              for (let i = 0; i < data.length; i += 4) {
-                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                data[i] = data[i + 1] = data[i + 2] = gray;
-              }
-              context.putImageData(imageData, 0, 0);
-              
-              // Detect content regions (simplified contour detection)
-              const regions: { x: number; y: number; width: number; height: number }[] = [];
-              const threshold = 250; // Pixels darker than this are considered content
-              const minWidth = 150; // Minimum width for a diagram (in pixels at 3x scale)
-              const minHeight = 150; // Minimum height for a diagram
-              const padding = 30; // Padding around detected regions
-              
-              // Scan for content regions
-              const visited = new Set<string>();
-              const scanStep = 10; // Scan every 10 pixels for efficiency
-              
-              for (let y = 0; y < canvas.height; y += scanStep) {
-                for (let x = 0; x < canvas.width; x += scanStep) {
-                  const idx = (y * canvas.width + x) * 4;
-                  if (data[idx] < threshold && !visited.has(`${x},${y}`)) {
-                    // Found a dark pixel, find the bounding box
-                    const bounds = findBoundingBox(
-                      data, 
-                      canvas.width, 
-                      canvas.height, 
-                      x, 
-                      y, 
-                      threshold, 
-                      visited,
-                      scanStep
-                    );
-                    
-                    if (bounds.width >= minWidth && bounds.height >= minHeight) {
-                      // Add padding
-                      const paddedRegion = {
-                        x: Math.max(0, bounds.x - padding),
-                        y: Math.max(0, bounds.y - padding),
-                        width: Math.min(canvas.width - (bounds.x - padding), bounds.width + padding * 2),
-                        height: Math.min(canvas.height - (bounds.y - padding), bounds.height + padding * 2)
-                      };
-                      
-                      // Merge overlapping regions
-                      let merged = false;
-                      for (let r of regions) {
-                        if (regionsOverlap(r, paddedRegion)) {
-                          r.x = Math.min(r.x, paddedRegion.x);
-                          r.y = Math.min(r.y, paddedRegion.y);
-                          r.width = Math.max(r.x + r.width, paddedRegion.x + paddedRegion.width) - r.x;
-                          r.height = Math.max(r.y + r.height, paddedRegion.y + paddedRegion.height) - r.y;
-                          merged = true;
-                          break;
-                        }
-                      }
-                      if (!merged) {
-                        regions.push(paddedRegion);
-                      }
-                    }
-                  }
-                }
-              }
-              
-              console.log(`🖼️ Detected ${regions.length} potential diagrams on page ${pageNum}`);
-              
-              // Extract each detected region
-              for (let i = 0; i < regions.length; i++) {
-                const region = regions[i];
-                
-                // Create a new canvas for the cropped region
-                const cropCanvas = document.createElement('canvas');
-                const cropContext = cropCanvas.getContext('2d');
-                cropCanvas.width = region.width;
-                cropCanvas.height = region.height;
-                
-                if (!cropContext) continue;
-                
-                // Draw the cropped region with white background
-                cropContext.fillStyle = 'white';
-                cropContext.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
-                cropContext.drawImage(
-                  canvas,
-                  region.x, region.y, region.width, region.height,
-                  0, 0, region.width, region.height
-                );
-                
-                // Convert to base64
-                const croppedImageData = cropCanvas.toDataURL('image/png');
-                const croppedBase64 = croppedImageData.split(',')[1];
-                
-                const diagramUrl = await uploadImageToStorage(
-                  croppedBase64,
-                  'image/png',
-                  `${fileName}-page${pageNum}-diagram-${i}`
-                );
-                
-                if (diagramUrl) {
-                  pdfImages.unshift(diagramUrl);
-                  pageHasEmbeddedImages = true;
-                  diagramCount++;
-                  console.log(`✅ Extracted diagram ${i + 1}/${regions.length} from page ${pageNum}`);
-                }
-              }
-            } catch (error) {
-              console.error('Error processing page for diagrams:', error);
-            }
-            
-            // Helper function to check if two regions overlap
-            function regionsOverlap(r1: any, r2: any): boolean {
-              return !(r1.x + r1.width < r2.x || 
-                      r2.x + r2.width < r1.x || 
-                      r1.y + r1.height < r2.y || 
-                      r2.y + r2.height < r1.y);
-            }
-            
-            // Helper function to find bounding box of connected content
-            function findBoundingBox(
-              data: Uint8ClampedArray,
-              width: number,
-              height: number,
-              startX: number,
-              startY: number,
-              threshold: number,
-              visited: Set<string>,
-              step: number
-            ): { x: number; y: number; width: number; height: number } {
-              let minX = startX, maxX = startX;
-              let minY = startY, maxY = startY;
-              const stack: [number, number][] = [[startX, startY]];
-              let count = 0;
-              const maxIterations = 5000; // Prevent infinite loops
-              
-              while (stack.length > 0 && count < maxIterations) {
-                const [x, y] = stack.pop()!;
-                const key = `${x},${y}`;
-                
-                if (visited.has(key) || x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                const idx = (y * width + x) * 4;
-                if (data[idx] >= threshold) continue;
-                
-                visited.add(key);
-                minX = Math.min(minX, x);
-                maxX = Math.max(maxX, x);
-                minY = Math.min(minY, y);
-                maxY = Math.max(maxY, y);
-                
-                // Check neighbors (at scan step intervals for efficiency)
-                stack.push([x + step, y], [x - step, y], [x, y + step], [x, y - step]);
-                count++;
-              }
-              
-              return {
-                x: minX,
-                y: minY,
-                width: maxX - minX + 1,
-                height: maxY - minY + 1
-              };
-            }
-            
-            // Fallback: If no embedded images found, render full page
-            if (!pageHasEmbeddedImages) {
+              // Render page at 2x scale for AI analysis
               const scale = 2.0;
               const viewport = page.getViewport({ scale });
               const canvas = document.createElement('canvas');
@@ -359,51 +171,107 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               canvas.width = viewport.width;
               canvas.height = viewport.height;
               
-              if (context) {
-                await page.render({
-                  canvasContext: context,
-                  viewport: viewport
-                } as any).promise;
+              if (!context) continue;
+              
+              console.log(`📄 Rendering page ${pageNum} for AI analysis...`);
+              
+              await page.render({
+                canvasContext: context,
+                viewport: viewport,
+              } as any).promise;
+              
+              // Convert to base64 for AI processing
+              const pageImageData = canvas.toDataURL('image/png');
+              const pageBase64 = pageImageData.split(',')[1];
+              
+              // Upload temporary full page for AI analysis
+              const tempPageUrl = await uploadImageToStorage(
+                pageBase64,
+                'image/png',
+                `${fileName}-page${pageNum}-temp`
+              );
+              
+              if (!tempPageUrl) continue;
+              
+              // Call edge function for AI-powered diagram detection
+              const aiResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-doc-images`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  mode: 'pdf-diagram-detection',
+                  pageImageUrl: tempPageUrl,
+                  pageNumber: pageNum
+                })
+              });
+              
+              if (aiResponse.ok) {
+                const aiResult = await aiResponse.json();
+                console.log(`🤖 AI analysis for page ${pageNum}:`, aiResult);
                 
-                const pageImageData = canvas.toDataURL('image/png');
-                const pageBase64 = pageImageData.split(',')[1];
-                
-                const pageImageUrl = await uploadImageToStorage(
-                  pageBase64,
-                  'image/png',
-                  `${fileName}-page${pageNum}-fullpage`
-                );
-                
-                if (pageImageUrl) {
-                  pdfImages.push(pageImageUrl); // Add to end (lower priority)
-                  fullPageCount++;
-                  console.log(`✅ Extracted full page ${pageNum} as fallback`);
+                if (aiResult.diagrams && aiResult.diagrams.length > 0) {
+                  // Extract detected diagrams based on AI bounding boxes
+                  for (const diagram of aiResult.diagrams) {
+                    // Create canvas for cropped diagram
+                    const cropCanvas = document.createElement('canvas');
+                    const cropContext = cropCanvas.getContext('2d');
+                    
+                    const { x, y, width, height } = diagram.boundingBox;
+                    cropCanvas.width = width;
+                    cropCanvas.height = height;
+                    
+                    if (!cropContext) continue;
+                    
+                    // Draw white background
+                    cropContext.fillStyle = 'white';
+                    cropContext.fillRect(0, 0, width, height);
+                    
+                    // Draw cropped region
+                    cropContext.drawImage(
+                      canvas,
+                      x, y, width, height,
+                      0, 0, width, height
+                    );
+                    
+                    const diagramImageData = cropCanvas.toDataURL('image/png');
+                    const diagramBase64 = diagramImageData.split(',')[1];
+                    
+                    const diagramUrl = await uploadImageToStorage(
+                      diagramBase64,
+                      'image/png',
+                      `${fileName}-page${pageNum}-diagram`
+                    );
+                    
+                    if (diagramUrl) {
+                      pdfImages.push(diagramUrl);
+                      console.log(`✅ Extracted diagram from page ${pageNum}: ${diagram.description}`);
+                    }
+                  }
+                } else if (aiResult.hasDiagram) {
+                  // If AI detected diagram but no specific bounding boxes, use full page
+                  pdfImages.push(tempPageUrl);
+                  console.log(`✅ Using full page ${pageNum} as diagram`);
                 }
               }
+            } catch (error) {
+              console.error(`Error processing page ${pageNum}:`, error);
             }
             
             setProgress(35 + pageNum / numPages * 20);
           }
           
-          console.log(`📊 Extraction summary: ${diagramCount} diagrams, ${fullPageCount} full pages`);
-          
           if (pdfImages.length > 0) {
             extractedImages = pdfImages;
-            
-            const imagesSummary = diagramCount > 0 
-              ? `${diagramCount} diagram(s)${fullPageCount > 0 ? ` + ${fullPageCount} page(s)` : ''}`
-              : `${fullPageCount} page(s)`;
+            toast.success(`✅ Extracted ${pdfImages.length} diagram(s) from PDF using AI`);
             
             if (isScannedPDF) {
-              // Scanned PDF - needs OCR
               extractedText = '[Scanned PDF - AI OCR will extract text from images]';
               content = extractedText;
-              toast.success(`📸 Extracted ${imagesSummary} for AI OCR`);
             } else {
-              // Regular PDF with text but also has images
               extractedText = pdfText;
               content = pdfText;
-              toast.success(`✅ Extracted text + ${imagesSummary} from PDF`);
             }
           } else {
             // No images extracted, just text
