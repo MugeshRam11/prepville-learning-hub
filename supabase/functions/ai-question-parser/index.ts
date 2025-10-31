@@ -673,11 +673,9 @@ YOU MUST assign ALL ` + imageCount + ` extracted images to questions:
 - **Quote Handling**: Parse quoted fields with internal commas
 - **Empty Rows**: Skip empty rows, don't count as questions
 - **Example CSV Format**:
-  ```
   question,answer,marks,difficulty
   "What is 2+2?","4",1,"easy"
   "Calculate probability","0.75",3,"medium"
-  ```
 
 **FLATTENING EXAMPLE:**
 Original: "Question 1: A survey shows... a) Find missing values [answer: 94, 29, 150] b) Calculate probability [answer: 0.82]"
