@@ -144,6 +144,66 @@ function needsChunking(content: string, threshold: number = 8000): boolean {
   return content && content.length > threshold;
 }
 
+// Sanitize JSON string to remove control characters that break parsing
+function sanitizeJsonString(jsonString: string): string {
+  if (!jsonString) return jsonString;
+  
+  // Remove control characters (0x00-0x1F) except for \t, \n, \r
+  // but then properly escape them
+  let sanitized = jsonString
+    // First, remove null bytes and other problematic control chars
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    // Fix unescaped control characters in string values
+    .replace(/(?<!\\)\\n(?!["'}])/g, '\\\\n')  // Ensure \n is properly escaped
+    .replace(/(?<!\\)\\r(?!["'}])/g, '\\\\r')  // Ensure \r is properly escaped
+    .replace(/(?<!\\)\\t(?!["'}])/g, '\\\\t'); // Ensure \t is properly escaped
+  
+  return sanitized;
+}
+
+// Safe JSON parse with detailed error logging
+function safeJsonParse(jsonString: string, context: string = 'unknown'): any {
+  try {
+    // First try to sanitize
+    const sanitized = sanitizeJsonString(jsonString);
+    return JSON.parse(sanitized);
+  } catch (firstError) {
+    console.error(`❌ JSON Parse Error (${context}):`, firstError);
+    console.error('📄 First 500 chars of response:', jsonString.substring(0, 500));
+    console.error('📄 Last 500 chars of response:', jsonString.substring(Math.max(0, jsonString.length - 500)));
+    
+    // Try to find the problematic area
+    if (firstError instanceof SyntaxError) {
+      const match = firstError.message.match(/position (\d+)/);
+      if (match) {
+        const pos = parseInt(match[1]);
+        const start = Math.max(0, pos - 100);
+        const end = Math.min(jsonString.length, pos + 100);
+        console.error(`🔍 Context around error position ${pos}:`, jsonString.substring(start, end));
+      }
+    }
+    
+    // Try aggressive cleaning as fallback
+    try {
+      console.log('🔧 Attempting aggressive sanitization...');
+      let aggressiveCleaned = jsonString
+        // Remove all actual newlines and tabs
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\t/g, ' ')
+        // Remove other control characters
+        .replace(/[\x00-\x1F\x7F]/g, '')
+        // Fix multiple spaces
+        .replace(/\s+/g, ' ');
+      
+      return JSON.parse(aggressiveCleaned);
+    } catch (secondError) {
+      console.error('❌ Aggressive sanitization also failed:', secondError);
+      throw firstError; // Throw original error
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -329,7 +389,9 @@ serve(async (req) => {
       }
       
       const aiData = await ocrParseResponse.json();
-      finalParsedData = JSON.parse(aiData.choices[0].message.content);
+      const ocrContent = aiData.choices[0].message.content;
+      console.log(`📏 OCR parse response length: ${ocrContent.length} characters`);
+      finalParsedData = safeJsonParse(ocrContent, 'ocr-parse');
       
       // Log image assignment results
       if (finalParsedData.questions && Array.isArray(finalParsedData.questions)) {
@@ -383,7 +445,9 @@ serve(async (req) => {
         
         if (chunkResponse.ok) {
           const chunkData = await chunkResponse.json();
-          const chunkParsed = JSON.parse(chunkData.choices[0].message.content);
+          const chunkContent = chunkData.choices[0].message.content;
+          console.log(`📏 Chunk ${i + 1} response length: ${chunkContent.length} characters`);
+          const chunkParsed = safeJsonParse(chunkContent, `chunk-${i + 1}`);
           if (chunkParsed.questions && Array.isArray(chunkParsed.questions)) {
             allQuestions.push(...chunkParsed.questions);
           }
@@ -435,12 +499,19 @@ serve(async (req) => {
       const aiData = await aiResponse.json();
       const parsedContentResponse = aiData.choices[0].message.content;
       
+      console.log(`📏 AI response length: ${parsedContentResponse.length} characters`);
+      
       try {
-        finalParsedData = JSON.parse(parsedContentResponse);
+        finalParsedData = safeJsonParse(parsedContentResponse, 'main-parse');
+        console.log('✅ Successfully parsed AI response');
       } catch (e) {
-        console.error('Failed to parse AI response as JSON:', e);
+        console.error('❌ Failed to parse AI response as JSON:', e);
         return new Response(
-          JSON.stringify({ error: 'AI response format invalid', details: String(e) }),
+          JSON.stringify({ 
+            error: 'AI response format invalid', 
+            details: String(e),
+            hint: 'The AI returned malformed JSON. This usually happens with complex content. Try uploading a simpler document first.'
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
