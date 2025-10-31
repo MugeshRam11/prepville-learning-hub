@@ -56,13 +56,16 @@ serve(async (req) => {
     const isPDFDataUrl = content?.startsWith('data:application/pdf;base64,');
     
     if ((isPDF || isPDFDataUrl) && !extractedText) {
-      console.log('🤖 Processing PDF with Lovable AI Vision (Comprehensive Extraction)...');
-      try {
-        // Ensure content is in data URL format
-        const pdfDataUrl = isPDFDataUrl ? content : `data:application/pdf;base64,${content}`;
-        
-        // Step 1: Multi-pass OCR extraction with confidence scoring
-        const ocrPrompt = `You are an advanced OCR system with 100% accuracy. Extract ALL visible content from this PDF with ZERO errors.
+      console.log('🤖 Processing PDF with Enhanced Multi-Pass Extraction...');
+      
+      // Ensure content is in data URL format
+      const pdfDataUrl = isPDFDataUrl ? content : `data:application/pdf;base64,${content}`;
+      
+      let extractionSuccessful = false;
+      const maxAttempts = 3;
+      
+      // Enhanced OCR prompt with 100% extraction focus
+      const ocrPrompt = `You are an advanced OCR system with 100% accuracy. Extract ALL visible content from this PDF with ZERO errors.
 
 **MULTI-LAYER EXTRACTION (Zero Information Loss):**
 
@@ -126,35 +129,52 @@ Provide a complete, character-perfect transcription organized by:
 
 Extract EVERYTHING - assume 100% information recovery is required.`;
 
-        const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: ocrPrompt },
-                  { type: 'image_url', image_url: { url: pdfDataUrl } }
-                ]
-              }
-            ],
-            max_tokens: 6000
-          }),
-        });
-
-        if (ocrResponse.ok) {
-          const ocrData = await ocrResponse.json();
-          finalExtractedText = ocrData.choices[0].message.content;
-          console.log(`✅ PDF Text Extraction: ${finalExtractedText?.length || 0} characters extracted`);
+      // Multi-attempt extraction with increasing aggressiveness
+      for (let attempt = 1; attempt <= maxAttempts && !extractionSuccessful; attempt++) {
+        try {
+          console.log(`📄 PDF Extraction Attempt ${attempt}/${maxAttempts}...`);
           
-          // Step 2: Enhanced visual element extraction with detailed analysis
-          console.log('🖼️ Extracting visual elements with comprehensive analysis...');
-          const imagePrompt = `You are a visual intelligence system. Analyze and extract ALL visual elements from this PDF with complete detail.
+          const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: ocrPrompt },
+                    { type: 'image_url', image_url: { url: pdfDataUrl } }
+                  ]
+                }
+              ],
+              max_tokens: attempt === 1 ? 6000 : (attempt === 2 ? 8000 : 10000), // Increase tokens on retries
+              temperature: attempt === 1 ? 0.1 : (attempt === 2 ? 0.2 : 0.3) // Slightly increase temperature on retries
+            }),
+          });
+
+          if (ocrResponse.ok) {
+            const ocrData = await ocrResponse.json();
+            const extractedContent = ocrData.choices[0].message.content;
+            
+            // Validate extraction quality
+            const wordCount = extractedContent?.split(/\s+/).length || 0;
+            const charCount = extractedContent?.length || 0;
+            
+            console.log(`📊 Attempt ${attempt} Results: ${charCount} chars, ${wordCount} words`);
+            
+            // Success criteria: reasonable content length
+            if (charCount > 100) {
+              finalExtractedText = extractedContent;
+              extractionSuccessful = true;
+              console.log(`✅ PDF text extraction successful on attempt ${attempt}`);
+              
+              // Step 2: Extract visual elements
+              console.log('🖼️ Extracting visual elements with comprehensive analysis...');
+              const imagePrompt = `You are a visual intelligence system. Analyze and extract ALL visual elements from this PDF with complete detail.
 
 **COMPREHENSIVE VISUAL ANALYSIS:**
 
@@ -222,52 +242,85 @@ Visual Element #[Number]:
 
 List ALL visual elements systematically.`;
 
-          const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
-              messages: [
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'text', text: imagePrompt },
-                    { type: 'image_url', image_url: { url: pdfDataUrl } }
-                  ]
-                }
-              ],
-              max_tokens: 2000
-            }),
-          });
+              try {
+                const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    model: 'google/gemini-2.5-flash',
+                    messages: [
+                      {
+                        role: 'user',
+                        content: [
+                          { type: 'text', text: imagePrompt },
+                          { type: 'image_url', image_url: { url: pdfDataUrl } }
+                        ]
+                      }
+                    ],
+                    max_tokens: 3000
+                  }),
+                });
 
-          if (imageResponse.ok) {
-            const imageData = await imageResponse.json();
-            const imageDescription = imageData.choices[0].message.content;
-            console.log(`✅ Visual Elements Identified (${imageDescription.length} chars):\n${imageDescription.substring(0, 500)}...`);
-            
-            // Append comprehensive visual context to extracted text
-            finalExtractedText += `\n\n=== VISUAL ELEMENTS IN DOCUMENT ===\n${imageDescription}\n=== END VISUAL ELEMENTS ===`;
-            
-            // Log extraction metrics
-            const textWords = finalExtractedText.split(/\s+/).length;
-            const textLines = finalExtractedText.split('\n').length;
-            console.log(`📊 Extraction Metrics: ${textWords} words, ${textLines} lines, ${finalExtractedText.length} chars`);
+                if (imageResponse.ok) {
+                  const imageData = await imageResponse.json();
+                  const imageDescription = imageData.choices[0].message.content;
+                  console.log(`✅ Visual Elements Extracted (${imageDescription.length} chars)`);
+                  
+                  // Append visual context to extracted text
+                  finalExtractedText += `\n\n=== VISUAL ELEMENTS IN DOCUMENT ===\n${imageDescription}\n=== END VISUAL ELEMENTS ===`;
+                  
+                  // Final extraction metrics
+                  const finalWords = finalExtractedText.split(/\s+/).length;
+                  const finalLines = finalExtractedText.split('\n').length;
+                  console.log(`📊 Total Extraction: ${finalWords} words, ${finalLines} lines, ${finalExtractedText.length} chars`);
+                } else {
+                  console.warn('⚠️ Visual element extraction failed, text-only extraction complete');
+                }
+              } catch (imgError) {
+                console.warn('⚠️ Visual extraction error:', imgError);
+              }
+              
+              break; // Exit retry loop on success
+            } else {
+              console.warn(`⚠️ Attempt ${attempt}: Insufficient content (${charCount} chars, ${wordCount} words)`);
+              
+              if (attempt === maxAttempts) {
+                console.error(`❌ All ${maxAttempts} attempts failed to extract sufficient content`);
+                finalExtractedText = extractedContent || '[PDF extraction failed - minimal content recovered]';
+              } else {
+                console.log(`🔄 Retrying with enhanced parameters...`);
+                await new Promise(resolve => setTimeout(resolve, 1500 * attempt)); // Exponential backoff
+              }
+            }
           } else {
-            console.warn('⚠️ Visual element extraction failed, proceeding with text only');
+            const errorText = await ocrResponse.text();
+            console.error(`❌ Attempt ${attempt} OCR API error: ${ocrResponse.status} ${errorText}`);
+            
+            if (attempt === maxAttempts) {
+              console.error(`❌ PDF extraction completely failed after ${maxAttempts} attempts`);
+              finalExtractedText = '[PDF extraction failed - API error]';
+            } else {
+              await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Wait before retry
+            }
           }
-        } else {
-          const errorText = await ocrResponse.text();
-          console.error('⚠️ PDF OCR failed:', ocrResponse.status, errorText);
-          console.log('⚠️ Using raw content');
-          finalExtractedText = '[PDF content - please process with base64]';
+        } catch (attemptError) {
+          console.error(`❌ Attempt ${attempt} exception:`, attemptError);
+          
+          if (attempt === maxAttempts) {
+            console.error(`❌ Fatal error during PDF extraction`);
+            finalExtractedText = '[PDF extraction failed - system error]';
+          }
         }
-      } catch (ocrError) {
-        console.error('❌ PDF processing error:', ocrError);
-        console.log('⚠️ Falling back to raw content processing');
-        finalExtractedText = '[PDF content - error during extraction]';
+      }
+      
+      // Final quality check
+      if (!extractionSuccessful) {
+        console.error(`🚨 PDF EXTRACTION QUALITY: POOR - Content may be incomplete or missing`);
+      } else {
+        console.log(`✅ PDF EXTRACTION QUALITY: GOOD - Content successfully extracted`);
       }
     }
 
