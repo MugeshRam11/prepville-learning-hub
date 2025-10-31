@@ -334,15 +334,7 @@ const SubjectBulkUploadForm: React.FC = () => {
   return <div className="space-y-6">
       {/* Question Bank Loader */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="w-5 h-5" />
-            Load from Question Bank
-          </CardTitle>
-          <CardDescription>
-            Browse and select existing questions from the database
-          </CardDescription>
-        </CardHeader>
+        
         
       </Card>
 
