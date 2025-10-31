@@ -951,12 +951,38 @@ Return JSON with this exact structure:
 
   const quickPrompt = `You are an expert educational document parser. Extract ALL questions from ANY document format and convert them to simple multiple-choice questions.
 
+**CRITICAL: SHARED CONTEXT DETECTION AND DEDUPLICATION:**
+⚠️ **DETECT REPETITIVE INTRODUCTIONS**: If multiple questions share the same contextual information, you MUST:
+1. **Identify Shared Context**: Detect if multiple questions start with identical or near-identical setup text
+2. **Extract Common Text ONCE**: Pull out the shared context and DO NOT repeat it in every question
+3. **Keep Questions Concise**: Each question_text should ONLY contain the unique instruction/prompt
+4. **Reference Shared Context**: Add a brief reference if needed (e.g., "Using the scenario above...")
+
+**EXAMPLE OF CORRECT CONTEXT EXTRACTION:**
+❌ WRONG (Repetitive):
+- Q1: "A park café offers Tea/Coffee and Cake/Biscuit. P(Tea)=0.6... Complete the tree diagram."
+- Q2: "A park café offers Tea/Coffee and Cake/Biscuit. P(Tea)=0.6... Calculate P(Coffee and Cake)."
+- Q3: "A park café offers Tea/Coffee and Cake/Biscuit. P(Tea)=0.6... Find P(Tea|Cake)."
+
+✅ CORRECT (Deduplicated):
+- Q1: "Complete the tree diagram by writing down the missing probabilities on the branches."
+- Q2: "Determine the probability that a randomly selected visitor chooses Coffee and Cake."
+- Q3: "Determine the probability that a visitor chose Tea given they chose Cake."
+(All share same image with the complete context)
+
+**CONTEXT HANDLING RULES:**
+1. If 3+ questions share 70%+ identical intro text → Extract as shared context, don't repeat
+2. Question text should focus on the SPECIFIC TASK being asked
+3. Keep questions clean and focused on what the student must DO
+4. The shared context image will provide necessary information
+5. Add minimal context only if absolutely needed for clarity ("Using the tree diagram above...")
+
 **CRITICAL: QUICK TEST FORMAT REQUIREMENTS:**
 - **100% MCQ FORMAT**: EVERY question MUST have exactly 4 options (A, B, C, D) - NO EXCEPTIONS
 - **AUTO-GENERATE OPTIONS**: If original question is short answer/essay, create plausible MCQ options based on the correct answer
 - **NO SUB-QUESTIONS ALLOWED**: If document has sub-questions (a, b, c), convert EACH ONE into a SEPARATE complete question
 - **FLATTEN STRUCTURE**: Question 1a, 1b, 1c should become Question 1, Question 2, Question 3
-- **STANDALONE QUESTIONS**: Each question must be completely independent with its own context
+- **STANDALONE BUT CONCISE**: Each question must be independent but avoid repeating shared context
 - **100% IMAGE ASSIGNMENT**: ALL extracted images MUST be assigned to questions - ZERO images should be left unassigned
 
 **MANDATORY MCQ OPTION GENERATION:**
@@ -970,10 +996,11 @@ Return JSON with this exact structure:
 YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to questions:
 1. **Direct References**: "see diagram", "refer to figure", "tree diagram", "table shown", "graph"
 2. **Contextual Matching**: Match images to questions by topic (probability tree → probability question)
-3. **Distribute All Images**: EVERY image must be assigned - spread them across relevant questions
-4. **Priority Assignment**: Tables/diagrams mentioned in text get highest priority
-5. **No Unassigned Images**: Count your assignments - must equal total extracted images
-6. **Image URLs**: Use exact URLs from extracted images list: ${extractedImages?.join(', ') || 'none'}
+3. **Shared Context Images**: If multiple questions share context, assign the SAME image to ALL related questions
+4. **Distribute All Images**: EVERY image must be assigned - spread them across relevant questions
+5. **Priority Assignment**: Tables/diagrams mentioned in text get highest priority
+6. **No Unassigned Images**: Count your assignments - must equal total extracted images
+7. **Image URLs**: Use exact URLs from extracted images list: ${extractedImages?.join(', ') || 'none'}
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
@@ -982,22 +1009,23 @@ YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to question
 - **Word**: Parse structured documents and FLATTEN all sub-questions + extract embedded images
 
 **PARSING RULES:**
-1. **Flatten Sub-questions**: Convert "Question 1: [context] a) [sub-q] b) [sub-q]" into separate standalone questions
-2. **Standalone Context**: Include necessary context from parent question in each flattened question
-3. **Force MCQ Format**: ALWAYS create 4 options even if original is short answer/essay
-4. **Complete Questions**: Each question_text must be fully self-contained
-5. **Never Skip**: Extract every question/sub-question as a separate item
-6. **Assign All Images**: Every extracted image must appear in question_image_url field
+1. **Detect Shared Context**: Look for repeated introductory paragraphs across questions
+2. **Minimize Repetition**: Extract common setup text, keep questions focused on the task
+3. **Flatten Sub-questions**: Convert "Question 1: [context] a) [sub-q] b) [sub-q]" into separate standalone questions
+4. **Smart Context Inclusion**: Include necessary context ONLY ONCE via images, not repeated text
+5. **Force MCQ Format**: ALWAYS create 4 options even if original is short answer/essay
+6. **Complete BUT Concise**: Each question must be understandable but avoid repetitive context paragraphs
+7. **Never Skip**: Extract every question/sub-question as a separate item
+8. **Assign All Images**: Every extracted image must appear in question_image_url field
 
-**FLATTENING EXAMPLE:**
-Original: "Question 1: A survey shows... a) Find missing values [answer: 94, 29, 150] b) Calculate probability [answer: 0.82]"
+**FLATTENING WITH SHARED CONTEXT EXAMPLE:**
+Original: "Question 1: A survey shows 150 people... [table] a) Find missing values b) Calculate probability"
 Output: 
-- Question 1: "A survey shows... Find the missing values in the table." 
-  → options: ["A. 94, 29, 150", "B. 84, 19, 140", "C. 104, 39, 160", "D. 74, 29, 130"]
-  → question_image_url: "[table image URL if available]"
-- Question 2: "A survey shows... Calculate the probability that a person is a student or travels by train." 
-  → options: ["A. 0.82", "B. 0.72", "C. 0.92", "D. 0.62"]
-  → question_image_url: "[same table image or null]"
+- Question 1: "Find the missing values in the survey data table." 
+  → question_image_url: "[table image URL]"
+- Question 2: "Calculate the probability that a person is a student or travels by train." 
+  → question_image_url: "[same table image URL]"
+(Both questions reference the same table image which contains the context)
 
 **VALID SUBJECTS:** "mathematics", "science", "english", "history" (default: mathematics if unclear)
 
@@ -1006,6 +1034,7 @@ Before returning JSON, verify:
 - Count of question_image_url fields with non-null values = ${extractedImages?.length || 0}
 - Every extracted image URL appears at least once in questions array
 - No images are left unassigned
+- Questions sharing context should share the same image URL
 
 Return JSON:
 {
@@ -1017,9 +1046,9 @@ Return JSON:
   },
   "questions": [
     {
-      "question_text": "string (complete standalone question with all context)",
+      "question_text": "string (CONCISE task-focused question WITHOUT repetitive context - shared context is in the image)",
       "question_type": "mcq",
-      "question_image_url": "string (assign from extracted images if relevant, null otherwise)",
+      "question_image_url": "string (assign from extracted images - SAME image for related questions sharing context)",
       "options": ["A. text", "B. text", "C. text", "D. text"] (MANDATORY - always 4 options),
       "correct_answer": "A|B|C|D" (MANDATORY - must be one of A/B/C/D),
       "explanation": "string (detailed explanation)",
