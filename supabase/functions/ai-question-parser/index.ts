@@ -330,6 +330,19 @@ serve(async (req) => {
       
       const aiData = await ocrParseResponse.json();
       finalParsedData = JSON.parse(aiData.choices[0].message.content);
+      
+      // Log image assignment results
+      if (finalParsedData.questions && Array.isArray(finalParsedData.questions)) {
+        const questionsWithImages = finalParsedData.questions.filter((q: any) => q.question_image_url);
+        console.log(`📊 Image Assignment: ${questionsWithImages.length}/${finalParsedData.questions.length} questions have images`);
+        console.log(`📸 Total images available: ${extractedImages.length}`);
+        
+        // List which questions got which images
+        questionsWithImages.forEach((q: any, idx: number) => {
+          console.log(`  Q${q.question_number || idx + 1}: ${q.question_image_url}`);
+        });
+      }
+      
       console.log(`✅ Scanned PDF OCR complete: Extracted ${finalParsedData.questions?.length || 0} questions`);
       
     } else if (chunkedData && actionMode === 'parse') {
@@ -628,7 +641,26 @@ function getSystemPrompt(
   const hasStructure = documentStructure && documentStructure.sections.length > 1;
   
   const imageContext = hasImages 
-    ? `\n\n📸 **IMAGE HANDLING**: ${extractedImages.length} images were extracted from the document at URLs: ${extractedImages.join(', ')}. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).`
+    ? `\n\n📸 **CRITICAL IMAGE HANDLING (${extractedImages.length} IMAGES AVAILABLE)**:
+    
+**ALL ${extractedImages.length} IMAGES MUST BE ASSIGNED TO QUESTIONS!**
+
+Available image URLs:
+${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+
+**Assignment Strategy (MANDATORY):**
+1. **Direct References**: Look for text like "see diagram", "refer to figure", "tree diagram", "table shown", "graph", "chart"
+2. **Contextual Matching**: Match images to questions by content (e.g., probability tree → probability question)
+3. **Visual Question Indicators**: If question mentions diagrams, figures, tables, graphs, or visual elements
+4. **Full Page Images**: For scanned PDFs, assign full page images to all questions on that page
+5. **Embedded Images**: Assign specific diagram/chart images to their related questions
+6. **Multiple Questions per Image**: OK to assign same image to multiple related questions
+7. **VERIFY 100%**: Before finishing, ensure ALL ${extractedImages.length} images are used
+
+**How to Assign:**
+- Set \`question_image_url\` field to the appropriate image URL from the list above
+- For multi-part questions with shared diagram, assign same image to all parts
+- If unsure which question an image belongs to, analyze the content and match contextually`
     : '';
     
   const structureContext = hasStructure

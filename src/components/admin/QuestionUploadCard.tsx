@@ -166,7 +166,80 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             for (let i = 1; i <= numPages; i++) {
               const page = await pdf.getPage(i);
               
-              // Render page at high resolution for better OCR
+              // First, try to extract embedded images from the page
+              const operatorList = await page.getOperatorList();
+              const pageImages: string[] = [];
+              
+              // Look for image operations in the page
+              for (let j = 0; j < operatorList.fnArray.length; j++) {
+                // Check if this operation is painting an image
+                if (operatorList.fnArray[j] === pdfjsLib.OPS.paintImageXObject) {
+                  try {
+                    const imageName = operatorList.argsArray[j][0];
+                    
+                    // Wait for the image object to be loaded
+                    await new Promise((resolve) => {
+                      page.objs.get(imageName, (image: any) => {
+                        if (image && image.width && image.height) {
+                          try {
+                            // Create canvas for embedded image
+                            const imgCanvas = document.createElement('canvas');
+                            imgCanvas.width = image.width;
+                            imgCanvas.height = image.height;
+                            const imgContext = imgCanvas.getContext('2d');
+                            
+                            if (imgContext) {
+                              // Handle different image formats
+                              if (image.data) {
+                                const imageData = imgContext.createImageData(image.width, image.height);
+                                imageData.data.set(image.data);
+                                imgContext.putImageData(imageData, 0, 0);
+                              } else if (image.bitmap) {
+                                imgContext.drawImage(image.bitmap, 0, 0);
+                              }
+                              
+                              const embeddedImageData = imgCanvas.toDataURL('image/png');
+                              const embeddedBase64 = embeddedImageData.split(',')[1];
+                              
+                              uploadImageToStorage(
+                                embeddedBase64, 
+                                'image/png', 
+                                `${fileName}-p${i}-img${j}`
+                              ).then(embeddedUrl => {
+                                if (embeddedUrl) {
+                                  pageImages.push(embeddedUrl);
+                                  console.log(`✅ Extracted embedded image from page ${i}`);
+                                }
+                                resolve(true);
+                              }).catch(() => resolve(false));
+                            } else {
+                              resolve(false);
+                            }
+                          } catch (imgError) {
+                            console.warn(`Could not process embedded image from page ${i}:`, imgError);
+                            resolve(false);
+                          }
+                        } else {
+                          resolve(false);
+                        }
+                      });
+                    });
+                  } catch (imgError) {
+                    console.warn(`Could not extract embedded image from page ${i}:`, imgError);
+                  }
+                }
+              }
+              
+              // Wait for all embedded images to be processed
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // Add embedded images to the collection
+              if (pageImages.length > 0) {
+                pdfImages.push(...pageImages);
+                console.log(`📷 Found ${pageImages.length} embedded image(s) on page ${i}`);
+              }
+              
+              // Render full page at high resolution for OCR
               const viewport = page.getViewport({ scale: 2.0 });
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
@@ -185,7 +258,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 const imageData = canvas.toDataURL('image/png');
                 const base64 = imageData.split(',')[1];
                 
-                // Upload image to storage for AI processing
+                // Upload full page image to storage for AI processing
                 const imageUrl = await uploadImageToStorage(base64, 'image/png', `${fileName}-page-${i}`);
                 if (imageUrl) {
                   pdfImages.push(imageUrl);
@@ -199,7 +272,15 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               extractedImages = pdfImages;
               extractedText = '[Scanned PDF - AI OCR will extract text from images]';
               content = extractedText;
-              toast.success(`📸 Converted ${pdfImages.length} page(s) to images for AI OCR`);
+              const embeddedCount = pdfImages.length - numPages; // Subtract full page images
+              toast.success(
+                `📸 Extracted ${pdfImages.length} total image(s)`,
+                {
+                  description: embeddedCount > 0 
+                    ? `${embeddedCount} embedded image(s) + ${numPages} full page(s)` 
+                    : `${numPages} full page(s) for AI OCR`
+                }
+              );
             }
           } else {
             // Regular PDF with text
