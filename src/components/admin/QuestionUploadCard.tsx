@@ -130,7 +130,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf')) {
-        // Extract text from PDF using pdfjs
+        // Extract text from PDF using pdfjs with OCR fallback
         setProgress(25);
         toast.info('Processing PDF document...');
         
@@ -141,19 +141,75 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           }).promise;
           const numPages = pdf.numPages;
           let pdfText = '';
+          const pdfImages: string[] = [];
           
+          // First attempt: Extract text normally
           for (let i = 1; i <= numPages; i++) {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
             const pageText = textContent.items.map((item: any) => item.str).join(' ');
             pdfText += `\n--- Page ${i} ---\n${pageText}`;
-            setProgress(25 + i / numPages * 15);
+            setProgress(25 + i / numPages * 10);
           }
           
-          extractedText = pdfText;
-          content = pdfText;
-          console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
-          toast.success(`Extracted text from ${numPages} PDF pages`);
+          // Check if PDF is likely scanned (minimal text extracted)
+          const cleanText = pdfText.replace(/\s+/g, '').trim();
+          const isScannedPDF = cleanText.length < 100 * numPages; // Less than 100 chars per page
+          
+          if (isScannedPDF && numPages <= 10) {
+            // Scanned PDF detected - use AI OCR
+            toast.info('🔍 Scanned PDF detected - activating AI OCR...', {
+              description: `Processing ${numPages} page(s) with advanced OCR`
+            });
+            
+            // Convert PDF pages to images for OCR
+            for (let i = 1; i <= numPages; i++) {
+              const page = await pdf.getPage(i);
+              
+              // Render page at high resolution for better OCR
+              const viewport = page.getViewport({ scale: 2.0 });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              
+              if (context) {
+                const renderTask = page.render({
+                  canvasContext: context,
+                  viewport: viewport
+                } as any);
+                
+                await renderTask.promise;
+                
+                // Convert canvas to base64 image
+                const imageData = canvas.toDataURL('image/png');
+                const base64 = imageData.split(',')[1];
+                
+                // Upload image to storage for AI processing
+                const imageUrl = await uploadImageToStorage(base64, 'image/png', `${fileName}-page-${i}`);
+                if (imageUrl) {
+                  pdfImages.push(imageUrl);
+                }
+              }
+              
+              setProgress(35 + i / numPages * 20);
+            }
+            
+            if (pdfImages.length > 0) {
+              extractedImages = pdfImages;
+              extractedText = '[Scanned PDF - AI OCR will extract text from images]';
+              content = extractedText;
+              toast.success(`📸 Converted ${pdfImages.length} page(s) to images for AI OCR`);
+            }
+          } else {
+            // Regular PDF with text
+            extractedText = pdfText;
+            content = pdfText;
+            console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
+            toast.success(`Extracted text from ${numPages} PDF pages`);
+          }
+          
+          setProgress(55);
         } catch (pdfError: any) {
           console.error('PDF processing error:', pdfError);
           toast.error('Failed to process PDF. Please try another file format.');

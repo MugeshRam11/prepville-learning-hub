@@ -227,10 +227,112 @@ serve(async (req) => {
 
     console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
     
+    // Check if this is a scanned PDF with images that need OCR
+    const isScannedPDFOCR = extractedImages && extractedImages.length > 0 && 
+                           extractedText && extractedText.includes('[Scanned PDF - AI OCR will extract text from images]');
+    
     // If document is chunked, process chunks intelligently
     let finalParsedData: any;
     
-    if (chunkedData && actionMode === 'parse') {
+    if (isScannedPDFOCR && extractedImages.length > 0) {
+      // Special handling for scanned PDFs - use vision to perform OCR on each page
+      console.log(`🔍 OCR Mode: Processing ${extractedImages.length} scanned pages with AI vision...`);
+      
+      let allOCRText = '';
+      for (let i = 0; i < extractedImages.length; i++) {
+        const imageUrl = extractedImages[i];
+        console.log(`📄 OCR processing page ${i + 1}/${extractedImages.length}...`);
+        
+        const ocrMessages: any[] = [
+          {
+            role: 'system',
+            content: 'You are an expert OCR system. Extract ALL text from the image with maximum accuracy. Preserve formatting, structure, and layout. Output the raw extracted text only.'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Extract all text from this scanned document page (Page ${i + 1}). Include questions, answers, diagrams descriptions, tables, and all visible text. Maintain the original structure and formatting as much as possible.`
+              },
+              {
+                type: 'image_url',
+                image_url: { url: imageUrl }
+              }
+            ]
+          }
+        ];
+        
+        const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: ocrMessages,
+            max_tokens: 4096
+          }),
+        });
+        
+        if (ocrResponse.ok) {
+          const ocrData = await ocrResponse.json();
+          const pageText = ocrData.choices[0].message.content;
+          allOCRText += `\n\n--- Page ${i + 1} ---\n${pageText}`;
+          console.log(`✅ OCR completed for page ${i + 1}`);
+        } else {
+          console.warn(`⚠️ OCR failed for page ${i + 1}`);
+        }
+      }
+      
+      // Now process the extracted OCR text with enhanced cleaning
+      console.log(`🧹 Cleaning OCR text (${allOCRText.length} characters)...`);
+      processedContent = enhancedTextCleaning(allOCRText);
+      documentStructure = extractDocumentStructure(processedContent);
+      
+      // Update prompts with OCR-extracted text
+      const ocrSystemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages, documentStructure);
+      const ocrUserPrompt = getUserPrompt(
+        actionMode,
+        parseMode,
+        fileName,
+        fileType,
+        processedContent,
+        processedContent,
+        extractedImages,
+        documentStructure,
+        null
+      );
+      
+      // Process with AI parser
+      const ocrParseResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: ocrSystemPrompt },
+            { role: 'user', content: ocrUserPrompt }
+          ],
+          response_format: { type: 'json_object' }
+        }),
+      });
+      
+      if (!ocrParseResponse.ok) {
+        const errorText = await ocrParseResponse.text();
+        console.error('Gemini AI error:', ocrParseResponse.status, errorText);
+        throw new Error(`AI processing failed: ${ocrParseResponse.status}`);
+      }
+      
+      const aiData = await ocrParseResponse.json();
+      finalParsedData = JSON.parse(aiData.choices[0].message.content);
+      console.log(`✅ Scanned PDF OCR complete: Extracted ${finalParsedData.questions?.length || 0} questions`);
+      
+    } else if (chunkedData && actionMode === 'parse') {
       console.log('🔄 Processing document in chunks...');
       const allQuestions: any[] = [];
       
