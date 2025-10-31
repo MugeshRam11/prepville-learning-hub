@@ -1,7 +1,0 @@
-question,answer,marks,difficulty,subject
-"What is 2 + 2?","4",1,"easy","mathematics"
-"Calculate the probability of getting heads when flipping a fair coin","0.5",2,"easy","mathematics"
-"Solve for x: 2x + 5 = 15","5",3,"medium","mathematics"
-"What is the capital of France?","Paris",1,"easy","social_studies"
-"Find the derivative of f(x) = x^2","2x",4,"hard","mathematics"
-"A tree has a 60% probability of growing. What is the probability it doesn't grow?","0.4",2,"medium","mathematics"
