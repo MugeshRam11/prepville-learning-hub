@@ -167,17 +167,17 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             let pageHasEmbeddedImages = false;
             
             try {
-              // Render the page at high resolution
-              const scale = 2.5;
+              // Render full page at high resolution for AI analysis
+              const scale = 2.0;
               const viewport = page.getViewport({ scale });
               const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d', { willReadFrequently: true });
+              const context = canvas.getContext('2d');
               canvas.width = viewport.width;
               canvas.height = viewport.height;
               
               if (!context) continue;
               
-              console.log(`🎨 Rendering page ${pageNum} for content detection...`);
+              console.log(`🎨 Rendering PDF page ${pageNum} for AI diagram detection...`);
               
               // Render the page
               await page.render({
@@ -185,117 +185,62 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 viewport: viewport,
               } as any).promise;
               
-              // Get image data
-              const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-              const data = imageData.data;
+              // Convert to base64 for AI analysis
+              const pageImageData = canvas.toDataURL('image/png');
+              const pageBase64 = pageImageData.split(',')[1];
               
-              // Find content bounding box by analyzing rows and columns
-              const threshold = 250; // Pixels darker than this are content
-              const minContentPixels = 5; // Minimum dark pixels in a row/column to be considered content
-              const padding = 40; // Padding around content
+              // Upload temp page image
+              const tempImageUrl = await uploadImageToStorage(
+                pageBase64,
+                'image/png',
+                `${fileName}-page${pageNum}-temp`
+              );
               
-              // Find top boundary
-              let top = 0;
-              for (let y = 0; y < canvas.height; y++) {
-                let darkPixels = 0;
-                for (let x = 0; x < canvas.width; x += 5) {
-                  const idx = (y * canvas.width + x) * 4;
-                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                  if (gray < threshold) darkPixels++;
-                }
-                if (darkPixels > minContentPixels) {
-                  top = Math.max(0, y - padding);
-                  break;
-                }
+              if (!tempImageUrl) {
+                console.error(`Failed to upload temp image for page ${pageNum}`);
+                continue;
               }
               
-              // Find bottom boundary
-              let bottom = canvas.height;
-              for (let y = canvas.height - 1; y >= top; y--) {
-                let darkPixels = 0;
-                for (let x = 0; x < canvas.width; x += 5) {
-                  const idx = (y * canvas.width + x) * 4;
-                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                  if (gray < threshold) darkPixels++;
-                }
-                if (darkPixels > minContentPixels) {
-                  bottom = Math.min(canvas.height, y + padding);
-                  break;
-                }
-              }
+              console.log(`🤖 Analyzing page ${pageNum} with AI vision to detect and extract diagrams...`);
               
-              // Find left boundary
-              let left = 0;
-              for (let x = 0; x < canvas.width; x++) {
-                let darkPixels = 0;
-                for (let y = top; y < bottom; y += 5) {
-                  const idx = (y * canvas.width + x) * 4;
-                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                  if (gray < threshold) darkPixels++;
-                }
-                if (darkPixels > minContentPixels) {
-                  left = Math.max(0, x - padding);
-                  break;
-                }
-              }
-              
-              // Find right boundary
-              let right = canvas.width;
-              for (let x = canvas.width - 1; x >= left; x--) {
-                let darkPixels = 0;
-                for (let y = top; y < bottom; y += 5) {
-                  const idx = (y * canvas.width + x) * 4;
-                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                  if (gray < threshold) darkPixels++;
-                }
-                if (darkPixels > minContentPixels) {
-                  right = Math.min(canvas.width, x + padding);
-                  break;
-                }
-              }
-              
-              const contentWidth = right - left;
-              const contentHeight = bottom - top;
-              
-              console.log(`📏 Content bounds: ${contentWidth}x${contentHeight} at (${left},${top})`);
-              
-              // Only extract if there's significant content
-              if (contentWidth > 100 && contentHeight > 100) {
-                // Create canvas for cropped content
-                const cropCanvas = document.createElement('canvas');
-                const cropContext = cropCanvas.getContext('2d');
-                cropCanvas.width = contentWidth;
-                cropCanvas.height = contentHeight;
+              // Use AI to detect and extract only diagrams/charts (not text)
+              try {
+                const aiResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-doc-images`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    pageImageUrl: tempImageUrl,
+                    mode: 'pdf-diagram-extraction',
+                    pageNumber: pageNum
+                  })
+                });
                 
-                if (cropContext) {
-                  // White background
-                  cropContext.fillStyle = 'white';
-                  cropContext.fillRect(0, 0, contentWidth, contentHeight);
+                if (aiResponse.ok) {
+                  const aiData = await aiResponse.json();
                   
-                  // Draw cropped content
-                  cropContext.drawImage(
-                    canvas,
-                    left, top, contentWidth, contentHeight,
-                    0, 0, contentWidth, contentHeight
-                  );
-                  
-                  // Convert to base64
-                  const croppedImageData = cropCanvas.toDataURL('image/png');
-                  const croppedBase64 = croppedImageData.split(',')[1];
-                  
-                  const diagramUrl = await uploadImageToStorage(
-                    croppedBase64,
-                    'image/png',
-                    `${fileName}-page${pageNum}-content`
-                  );
-                  
-                  if (diagramUrl) {
-                    pdfImages.unshift(diagramUrl);
+                  if (aiData.hasDiagram && aiData.diagramUrl) {
+                    // AI successfully extracted a diagram
+                    pdfImages.unshift(aiData.diagramUrl);
                     pageHasEmbeddedImages = true;
                     diagramCount++;
-                    console.log(`✅ Extracted content area from page ${pageNum} (${contentWidth}x${contentHeight})`);
+                    console.log(`✅ AI extracted diagram from page ${pageNum}`);
+                  } else {
+                    console.log(`ℹ️ No diagram detected on page ${pageNum}, using full page`);
+                    pdfImages.push(tempImageUrl);
+                    fullPageCount++;
                   }
+                } else {
+                  console.warn(`AI analysis failed for page ${pageNum}, using full page`);
+                  pdfImages.push(tempImageUrl);
+                  fullPageCount++;
                 }
+              } catch (aiError) {
+                console.error(`AI extraction error for page ${pageNum}:`, aiError);
+                pdfImages.push(tempImageUrl);
+                fullPageCount++;
               }
             } catch (error) {
               console.error('Error processing page for content:', error);
