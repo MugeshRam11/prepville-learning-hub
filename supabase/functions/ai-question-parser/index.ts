@@ -545,12 +545,82 @@ Solve sub-question ${subQuestion.label} and provide ONLY the final answer.`;
         }
       }
       
+      // Cleanup: Remove questions with undefined/invalid critical fields
+      console.log(`🧹 Cleaning up parsed data...`);
+      const originalCount = questions.length;
+      
+      // Filter out invalid main questions
+      const cleanedQuestions = questions.filter((q: any, idx: number) => {
+        // Check critical required fields
+        if (!q.question_text || q.question_text === undefined || q.question_text === 'undefined') {
+          console.warn(`❌ Removing Q${idx + 1}: Invalid question_text`);
+          return false;
+        }
+        
+        // Clean up sub-questions if they exist
+        if (q.sub_questions && Array.isArray(q.sub_questions)) {
+          const originalSubCount = q.sub_questions.length;
+          q.sub_questions = q.sub_questions.filter((sq: any, sqIdx: number) => {
+            if (!sq || !sq.text || sq.text === undefined || sq.text === 'undefined') {
+              console.warn(`❌ Removing Q${idx + 1} sub-question ${sqIdx + 1}: Invalid sub-question`);
+              return false;
+            }
+            
+            // Clean up undefined answer values
+            if (sq.answer === undefined || sq.answer === 'undefined') {
+              sq.answer = '';
+            }
+            
+            return true;
+          });
+          
+          // If all sub-questions were removed, set has_sub_questions to false
+          if (q.sub_questions.length === 0) {
+            q.has_sub_questions = false;
+            console.warn(`⚠️ Q${idx + 1}: All sub-questions removed, setting has_sub_questions=false`);
+          } else if (q.sub_questions.length < originalSubCount) {
+            console.log(`🧹 Q${idx + 1}: Cleaned ${originalSubCount - q.sub_questions.length} invalid sub-questions`);
+          }
+        }
+        
+        // Clean up undefined answer values in main question
+        if (q.correct_answer === undefined || q.correct_answer === 'undefined') {
+          q.correct_answer = '';
+        }
+        
+        // Clean up undefined image URLs
+        if (q.question_image_url === undefined || q.question_image_url === 'undefined') {
+          q.question_image_url = null;
+        }
+        
+        // Clean up undefined options
+        if (q.options && Array.isArray(q.options)) {
+          q.options = q.options.filter((opt: any) => opt !== undefined && opt !== 'undefined' && opt !== null);
+          if (q.options.length === 0 && q.question_type === 'mcq') {
+            console.warn(`⚠️ Q${idx + 1}: MCQ has no valid options after cleanup`);
+          }
+        }
+        
+        return true;
+      });
+      
+      const removedCount = originalCount - cleanedQuestions.length;
+      if (removedCount > 0) {
+        console.log(`🧹 Cleanup complete: Removed ${removedCount} invalid questions (${originalCount} → ${cleanedQuestions.length})`);
+        parsedData.questions = cleanedQuestions;
+      } else {
+        console.log(`✅ No cleanup needed: All ${originalCount} questions are valid`);
+      }
+      
+      // Update questions reference after cleanup
+      const finalQuestions = parsedData.questions;
+      
       // Calculate extraction quality metrics
-      const totalMainQuestions = questions.length;
-      const questionsWithAnswers = questions.filter((q: any) => q.correct_answer && q.correct_answer.trim()).length;
-      const questionsWithImages = questions.filter((q: any) => q.question_image_url).length;
-      const totalSubQuestions = questions.reduce((sum: number, q: any) => sum + (q.sub_questions?.length || 0), 0);
-      const subQuestionsWithAnswers = questions.reduce((sum: number, q: any) => {
+      const totalMainQuestions = finalQuestions.length;
+      const questionsWithAnswers = finalQuestions.filter((q: any) => q.correct_answer && q.correct_answer.trim()).length;
+      const questionsWithImages = finalQuestions.filter((q: any) => q.question_image_url).length;
+      const totalSubQuestions = finalQuestions.reduce((sum: number, q: any) => sum + (q.sub_questions?.length || 0), 0);
+      const subQuestionsWithAnswers = finalQuestions.reduce((sum: number, q: any) => {
         return sum + (q.sub_questions?.filter((sq: any) => sq.answer && sq.answer.trim()).length || 0);
       }, 0);
       
