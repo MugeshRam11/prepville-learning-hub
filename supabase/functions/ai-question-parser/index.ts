@@ -61,26 +61,70 @@ serve(async (req) => {
         // Ensure content is in data URL format
         const pdfDataUrl = isPDFDataUrl ? content : `data:application/pdf;base64,${content}`;
         
-        // Step 1: Extract ALL text content with structure preservation
-        const ocrPrompt = `Analyze this PDF and extract ALL content in a structured format.
+        // Step 1: Multi-pass OCR extraction with confidence scoring
+        const ocrPrompt = `You are an advanced OCR system with 100% accuracy. Extract ALL visible content from this PDF with ZERO errors.
 
-**COMPREHENSIVE EXTRACTION:**
-1. **Main Questions**: Extract question numbers and main question text
-2. **Sub-Questions**: Identify ALL sub-parts (a, b, c, d) OR (i, ii, iii) with their marks
-3. **Tables & Data**: Extract any tables, probability trees, or data structures
-4. **Marks Allocation**: Extract marks for each question/sub-question (e.g., [3 marks])
-5. **Mathematical Content**: Preserve formulas, equations, probability values
-6. **Diagrams**: Note any tree diagrams, tables, or visual elements present
-7. **Structure**: Maintain question hierarchy and formatting
+**MULTI-LAYER EXTRACTION (Zero Information Loss):**
 
-**FORMAT REQUIREMENTS:**
-- Clearly separate main questions and sub-questions
-- Keep mark allocations with each part
-- Preserve probability values and mathematical notation
-- Note references to diagrams/tables (e.g., "tree diagram below")
-- Maintain original question numbering
+1. **DOCUMENT STRUCTURE:**
+   - Page numbers and headers/footers
+   - Section titles and question numbers
+   - Hierarchical organization (main questions → sub-questions)
+   - Any formatting cues (bold, italic, underline, font sizes)
 
-Extract EVERYTHING visible in the document maintaining structure.`;
+2. **TEXTUAL CONTENT (Character-Perfect):**
+   - Main question text with exact wording
+   - Sub-questions (a), b), c), d) OR i), ii), iii) OR Part A:, Part B:
+   - Instructions, context paragraphs, problem statements
+   - Multiple choice options (A, B, C, D) with complete text
+   - Answer keys if visible (e.g., "Answer: C" or "Correct: 0.82")
+
+3. **NUMERICAL & MATHEMATICAL CONTENT:**
+   - ALL numbers, decimals, fractions, percentages (exact precision)
+   - Mathematical formulas and equations (LaTeX-style if complex)
+   - Probability values (e.g., P(A) = 0.45, P(B|A) = 0.7)
+   - Statistical data, measurements, coordinates
+   - Calculation steps if shown
+
+4. **MARKS & SCORING:**
+   - Individual marks per sub-question: [3 marks], (2m), [2], (3 points)
+   - Total marks per question: [12 marks total]
+   - Point distributions and scoring rubrics
+
+5. **TABLES & STRUCTURED DATA:**
+   - Table headers and column names
+   - All table cells with exact values
+   - Row/column counts
+   - Table titles and descriptions
+   - Data relationships (which row/column relates to which)
+
+6. **VISUAL ELEMENTS & DIAGRAMS:**
+   - Tree diagrams: all branches, nodes, labels, probabilities
+   - Graphs/charts: axes labels, data points, legends
+   - Geometric figures: shapes, measurements, angles
+   - Venn diagrams: regions, labels, set notations
+   - References to visuals ("see diagram below", "refer to Figure 2.1")
+
+7. **CONTEXTUAL RELATIONSHIPS:**
+   - Which sub-questions share the same context/diagram
+   - Which questions reference the same data table
+   - Sequential dependencies (e.g., "use your answer from part a")
+
+**EXTRACTION QUALITY REQUIREMENTS:**
+- **100% Accuracy**: Every character, number, and symbol must be exact
+- **Zero Hallucination**: Only extract what's actually visible - no assumptions
+- **Preserve Formatting**: Maintain bullet points, numbering, indentation
+- **Complete Coverage**: Do not skip any section, even if partially visible
+- **Confidence Indicators**: Mark any unclear/ambiguous text with [UNCLEAR: possible text]
+
+**OUTPUT FORMAT:**
+Provide a complete, character-perfect transcription organized by:
+- Question numbers (1, 2, 3...)
+- Sub-questions (a, b, c... or i, ii, iii...)
+- Associated marks, options, tables, diagrams
+- Any answer keys or solutions present
+
+Extract EVERYTHING - assume 100% information recovery is required.`;
 
         const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -108,22 +152,75 @@ Extract EVERYTHING visible in the document maintaining structure.`;
           finalExtractedText = ocrData.choices[0].message.content;
           console.log(`✅ PDF Text Extraction: ${finalExtractedText?.length || 0} characters extracted`);
           
-          // Step 2: Extract visual elements (diagrams, tables, graphs)
-          console.log('🖼️ Extracting visual elements from PDF...');
-          const imagePrompt = `Identify and describe ALL visual elements in this PDF:
-          
-1. **Tree Diagrams**: Probability trees, decision trees
-2. **Tables**: Data tables with rows/columns  
-3. **Graphs**: Charts, plots, visual data
-4. **Diagrams**: Any other visual elements
+          // Step 2: Enhanced visual element extraction with detailed analysis
+          console.log('🖼️ Extracting visual elements with comprehensive analysis...');
+          const imagePrompt = `You are a visual intelligence system. Analyze and extract ALL visual elements from this PDF with complete detail.
 
-For each visual element, describe:
-- Type (tree/table/graph/diagram)
-- Content/purpose
-- Which question it relates to
-- Key data it contains
+**COMPREHENSIVE VISUAL ANALYSIS:**
 
-List ALL visual elements found.`;
+1. **TREE DIAGRAMS (Probability/Decision Trees):**
+   - Type: Probability tree, decision tree, event tree
+   - Structure: Number of levels/branches
+   - Node labels: All text at each node
+   - Branch labels: All probabilities/outcomes on branches
+   - Numerical values: Exact probabilities (e.g., 0.45, 2/5, 45%)
+   - Related question: Which question number references this diagram
+
+2. **DATA TABLES:**
+   - Table title/caption
+   - Column headers (exact text)
+   - Row headers (exact text)
+   - All cell values (complete data extraction)
+   - Number of rows × columns
+   - Missing/incomplete cells (mark as [EMPTY])
+   - Related question: Which question uses this table
+
+3. **GRAPHS & CHARTS:**
+   - Type: Bar chart, line graph, pie chart, scatter plot, histogram
+   - Axes labels: X-axis and Y-axis titles
+   - Scale/units: Numerical ranges and increments
+   - Data points: Exact values from graph
+   - Legend: All legend entries and color coding
+   - Title: Graph title
+   - Related question: Which question analyzes this graph
+
+4. **GEOMETRIC DIAGRAMS:**
+   - Type: Triangle, circle, polygon, 3D shape
+   - Measurements: All labeled dimensions, angles, lengths
+   - Labels: All vertex/point labels (A, B, C, etc.)
+   - Relationships: Parallel lines, right angles, congruence marks
+   - Related question: Which geometry question uses this
+
+5. **VENN DIAGRAMS:**
+   - Number of sets/circles
+   - Set labels (A, B, C, Universe)
+   - Region values: Numbers in each intersection
+   - Related question: Which set theory question references this
+
+6. **OTHER VISUAL ELEMENTS:**
+   - Type: Image, photograph, illustration, symbol
+   - Description: What it shows
+   - Purpose: Why it's included
+   - Related question: Which question needs this visual
+
+**EXTRACTION FORMAT (for each visual element):**
+
+Visual Element #[Number]:
+- Type: [specific type]
+- Question Reference: Q[number] or Q[number][letter] (e.g., Q1, Q2a)
+- Detailed Description: [complete description]
+- Key Data: [all extractable data]
+- OCR Text: [any text visible in the visual]
+- Confidence: [High/Medium/Low based on clarity]
+
+**CRITICAL REQUIREMENTS:**
+- Extract EVERY visual element - zero omissions
+- Transcribe ALL text visible in diagrams/tables
+- Capture ALL numerical values with exact precision
+- Identify which questions reference each visual
+- Mark unclear elements but still provide best extraction
+
+List ALL visual elements systematically.`;
 
           const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
@@ -149,10 +246,17 @@ List ALL visual elements found.`;
           if (imageResponse.ok) {
             const imageData = await imageResponse.json();
             const imageDescription = imageData.choices[0].message.content;
-            console.log(`✅ Visual Elements Identified:\n${imageDescription}`);
+            console.log(`✅ Visual Elements Identified (${imageDescription.length} chars):\n${imageDescription.substring(0, 500)}...`);
             
-            // Append image descriptions to extracted text for better context
-            finalExtractedText += `\n\n**VISUAL ELEMENTS IN DOCUMENT:**\n${imageDescription}`;
+            // Append comprehensive visual context to extracted text
+            finalExtractedText += `\n\n=== VISUAL ELEMENTS IN DOCUMENT ===\n${imageDescription}\n=== END VISUAL ELEMENTS ===`;
+            
+            // Log extraction metrics
+            const textWords = finalExtractedText.split(/\s+/).length;
+            const textLines = finalExtractedText.split('\n').length;
+            console.log(`📊 Extraction Metrics: ${textWords} words, ${textLines} lines, ${finalExtractedText.length} chars`);
+          } else {
+            console.warn('⚠️ Visual element extraction failed, proceeding with text only');
           }
         } else {
           const errorText = await ocrResponse.text();
@@ -234,6 +338,48 @@ List ALL visual elements found.`;
         );
       }
       
+      // Post-processing validation and quality checks
+      console.log(`🔍 Validating ${questions.length} parsed questions...`);
+      
+      let validationWarnings: string[] = [];
+      questions.forEach((q: any, idx: number) => {
+        // Validate required fields
+        if (!q.question_text || q.question_text.trim().length === 0) {
+          validationWarnings.push(`Q${idx + 1}: Missing question text`);
+        }
+        
+        // Validate MCQ questions have options
+        if (q.question_type === 'mcq' && (!q.options || q.options.length !== 4)) {
+          validationWarnings.push(`Q${idx + 1}: MCQ must have exactly 4 options`);
+        }
+        
+        // Validate marks are positive numbers
+        if (q.marks && (typeof q.marks !== 'number' || q.marks <= 0)) {
+          validationWarnings.push(`Q${idx + 1}: Invalid marks value`);
+        }
+        
+        // Check if sub-questions structure is valid
+        if (q.has_sub_questions) {
+          if (!q.sub_questions || !Array.isArray(q.sub_questions) || q.sub_questions.length === 0) {
+            validationWarnings.push(`Q${idx + 1}: Marked as having sub-questions but none found`);
+            q.has_sub_questions = false;
+          } else {
+            // Validate sub-question structure
+            q.sub_questions.forEach((sq: any, sqIdx: number) => {
+              if (!sq.label || !sq.text) {
+                validationWarnings.push(`Q${idx + 1}${sq.label || sqIdx}: Invalid sub-question structure`);
+              }
+            });
+          }
+        }
+      });
+      
+      if (validationWarnings.length > 0) {
+        console.warn(`⚠️ Validation warnings (${validationWarnings.length}):\n${validationWarnings.slice(0, 5).join('\n')}`);
+      } else {
+        console.log('✅ All questions passed validation checks');
+      }
+      
       // Auto-solve questions and sub-questions without answer keys
       console.log(`🔍 Checking for missing answer keys...`);
       const questionsNeedingSolving = questions.filter((q: any) => !q.correct_answer || q.correct_answer.trim() === '');
@@ -246,23 +392,39 @@ List ALL visual elements found.`;
         
         for (const question of questionsNeedingSolving) {
           try {
-            const solvePrompt = `You are a mathematics and science expert. Solve this question and provide ONLY the answer.
+            const solvePrompt = `You are an expert problem solver specializing in ${question.difficulty || 'medium'}-level questions. Solve this question with 100% accuracy.
 
-Question: ${question.question_text}
-${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
-${question.marks ? `Marks: ${question.marks}` : ''}
-${question.difficulty ? `Difficulty: ${question.difficulty}` : ''}
+**QUESTION:**
+${question.question_text}
 
-Instructions:
-- Analyze the question carefully
-- If there's an image, analyze it to understand the problem
-- Solve the problem step by step
-- Provide ONLY the final answer in your response
-- For numerical answers, provide the exact number
-- For text answers, provide the complete answer text
-- Keep answers concise but complete
+${question.question_image_url ? `**VISUAL ELEMENT:** ${question.question_image_url}
+[Analyze the image carefully - it contains critical information for solving]` : ''}
 
-Return ONLY the answer, nothing else.`;
+${question.marks ? `**MARKS:** ${question.marks} marks` : ''}
+${question.difficulty ? `**DIFFICULTY:** ${question.difficulty}` : ''}
+
+**SOLVING REQUIREMENTS:**
+1. **Analyze Comprehensively**: Understand what's being asked
+2. **Use All Information**: Text + image + context
+3. **Show Reasoning**: Think through the problem logically
+4. **Verify Accuracy**: Double-check calculations
+5. **Provide Final Answer**: Clear, concise, complete answer
+
+**ANSWER FORMAT GUIDELINES:**
+- **Numerical**: Exact value (e.g., "0.82", "94", "3.14")
+- **Percentage**: Include % symbol (e.g., "82%")
+- **Multiple Values**: Comma-separated (e.g., "94, 29, 150")
+- **Text**: Complete sentence or phrase
+- **Boolean**: "true" or "false"
+- **Multiple Choice**: Just the letter (e.g., "C")
+
+**IMPORTANT:**
+- For multi-part answers, provide all parts
+- For probability: use decimal format unless specified otherwise
+- For statistics: include units if applicable
+- Keep answer concise but complete
+
+Solve and provide ONLY the final answer.`;
 
             const messages: any[] = [
               { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
@@ -313,24 +475,33 @@ Return ONLY the answer, nothing else.`;
             
             for (const subQuestion of subQuestionsNeedingSolving) {
               try {
-                const subSolvePrompt = `You are a mathematics and science expert. Solve this sub-question and provide ONLY the answer.
+                const subSolvePrompt = `You are an expert problem solver. Solve this sub-question part with complete accuracy.
 
-Main Question Context: ${question.question_text}
-${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
+**MAIN QUESTION CONTEXT:**
+${question.question_text}
 
-Sub-Question ${subQuestion.label}: ${subQuestion.text}
-${subQuestion.marks ? `Marks: ${subQuestion.marks}` : ''}
+${question.question_image_url ? `**SHARED VISUAL:** ${question.question_image_url}
+[This diagram/table applies to all sub-questions]` : ''}
 
-Instructions:
-- Consider the main question context
-- If there's an image, analyze it to understand the problem
-- Solve this specific sub-question
-- Provide ONLY the final answer
-- For numerical answers, provide the exact number
-- For text answers, provide the complete answer text
-- Keep answers concise but complete
+**SUB-QUESTION ${subQuestion.label}:**
+${subQuestion.text}
 
-Return ONLY the answer, nothing else.`;
+${subQuestion.marks ? `**MARKS:** ${subQuestion.marks} marks` : ''}
+
+**SOLVING STRATEGY:**
+1. **Use Main Context**: This sub-question builds on the main question setup
+2. **Refer to Visuals**: If a diagram/table is shared, extract relevant data
+3. **Solve Specific Part**: Focus on what this sub-question asks
+4. **Verify Against Marks**: Answer complexity should match mark allocation
+5. **Provide Clear Answer**: Concise, complete, unambiguous
+
+**ANSWER FORMAT:**
+- Match the expected format (number, percentage, text, etc.)
+- Include units if applicable
+- For calculations, provide the final result
+- For multi-value answers, separate with commas
+
+Solve sub-question ${subQuestion.label} and provide ONLY the final answer.`;
 
                 const subMessages: any[] = [
                   { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
@@ -374,7 +545,21 @@ Return ONLY the answer, nothing else.`;
         }
       }
       
-      console.log(`✅ Successfully parsed ${questions.length} questions (${questionsNeedingSolving.length} main + ${totalSubQuestionsSolved} sub auto-solved)`);
+      // Calculate extraction quality metrics
+      const totalMainQuestions = questions.length;
+      const questionsWithAnswers = questions.filter((q: any) => q.correct_answer && q.correct_answer.trim()).length;
+      const questionsWithImages = questions.filter((q: any) => q.question_image_url).length;
+      const totalSubQuestions = questions.reduce((sum: number, q: any) => sum + (q.sub_questions?.length || 0), 0);
+      const subQuestionsWithAnswers = questions.reduce((sum: number, q: any) => {
+        return sum + (q.sub_questions?.filter((sq: any) => sq.answer && sq.answer.trim()).length || 0);
+      }, 0);
+      
+      console.log(`✅ Successfully parsed ${totalMainQuestions} questions (${questionsNeedingSolving.length} main + ${totalSubQuestionsSolved} sub auto-solved)`);
+      console.log(`📊 Quality Metrics:
+  - Main Q with answers: ${questionsWithAnswers}/${totalMainQuestions} (${Math.round(questionsWithAnswers/totalMainQuestions*100)}%)
+  - Sub-Q with answers: ${subQuestionsWithAnswers}/${totalSubQuestions} (${totalSubQuestions > 0 ? Math.round(subQuestionsWithAnswers/totalSubQuestions*100) : 0}%)
+  - Questions with images: ${questionsWithImages}/${totalMainQuestions} (${Math.round(questionsWithImages/totalMainQuestions*100)}%)
+  - Extracted images count: ${extractedImages?.length || 0}`);
     } else {
       console.log(`✅ Successfully completed ${actionMode} action`);
     }
