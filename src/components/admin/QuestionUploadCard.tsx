@@ -129,25 +129,12 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-        // Advanced PDF OCR processing with complete extraction
-        console.log('📄 Preparing PDF for Advanced OCR...');
-        setProgress(25);
-        toast.info('🤖 Using Advanced OCR System for complete PDF extraction...');
-        
-        // Convert PDF to base64 for transmission
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(
-          new Uint8Array(arrayBuffer)
-            .reduce((data, byte) => data + String.fromCharCode(byte), '')
-        );
-        
-        // Store PDF as data URL for AI vision processing
-        content = `data:application/pdf;base64,${base64}`;
-        extractedText = undefined; // Backend will perform advanced OCR
-        
-        console.log('✅ PDF prepared for Advanced OCR (100% extraction mode)');
-        toast.info('Extracting all text, questions, images, and diagrams...');
-        setProgress(35);
+        // PDF support is limited - show clear guidance
+        toast.error('PDF files have limited support', {
+          description: '📄 For best results, use Word documents (.docx) which support automatic text AND image extraction.',
+          duration: 8000
+        });
+        throw new Error('PDF files can only extract text (no images/diagrams).\n\n✅ Recommended: Use Word documents (.docx) for complete extraction including images, tables, and diagrams.\n\n⚠️ Workaround: Convert PDF to DOCX, or upload individual pages as images (JPG/PNG).');
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
         const base64 = await fileToBase64(file);
@@ -441,7 +428,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     accept: {
       'text/csv': ['.csv'],
       'text/plain': ['.txt'],
-      'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/msword': ['.doc'],
       'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']
