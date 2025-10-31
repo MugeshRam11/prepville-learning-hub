@@ -167,142 +167,187 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             let pageHasEmbeddedImages = false;
             
             try {
-              // Step 1: Get operator list first to identify images
-              const operatorList = await page.getOperatorList();
-              const imageOps: number[] = [];
+              // Render the page at high resolution for diagram detection (grayscale approach)
+              const scale = 3.0; // High resolution for better diagram detection
+              const viewport = page.getViewport({ scale });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d', { willReadFrequently: true });
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
               
-              for (let i = 0; i < operatorList.fnArray.length; i++) {
-                if (operatorList.fnArray[i] === pdfjsLib.OPS.paintImageXObject) {
-                  imageOps.push(i);
+              if (!context) continue;
+              
+              console.log(`🎨 Rendering page ${pageNum} at ${scale}x resolution for diagram detection...`);
+              
+              // Render the page
+              await page.render({
+                canvasContext: context,
+                viewport: viewport,
+              } as any).promise;
+              
+              // Get image data for processing
+              const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+              const data = imageData.data;
+              
+              // Convert to grayscale for better contour detection
+              console.log(`🔍 Converting page ${pageNum} to grayscale...`);
+              for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                data[i] = data[i + 1] = data[i + 2] = gray;
+              }
+              context.putImageData(imageData, 0, 0);
+              
+              // Detect content regions (simplified contour detection)
+              const regions: { x: number; y: number; width: number; height: number }[] = [];
+              const threshold = 250; // Pixels darker than this are considered content
+              const minWidth = 150; // Minimum width for a diagram (in pixels at 3x scale)
+              const minHeight = 150; // Minimum height for a diagram
+              const padding = 30; // Padding around detected regions
+              
+              // Scan for content regions
+              const visited = new Set<string>();
+              const scanStep = 10; // Scan every 10 pixels for efficiency
+              
+              for (let y = 0; y < canvas.height; y += scanStep) {
+                for (let x = 0; x < canvas.width; x += scanStep) {
+                  const idx = (y * canvas.width + x) * 4;
+                  if (data[idx] < threshold && !visited.has(`${x},${y}`)) {
+                    // Found a dark pixel, find the bounding box
+                    const bounds = findBoundingBox(
+                      data, 
+                      canvas.width, 
+                      canvas.height, 
+                      x, 
+                      y, 
+                      threshold, 
+                      visited,
+                      scanStep
+                    );
+                    
+                    if (bounds.width >= minWidth && bounds.height >= minHeight) {
+                      // Add padding
+                      const paddedRegion = {
+                        x: Math.max(0, bounds.x - padding),
+                        y: Math.max(0, bounds.y - padding),
+                        width: Math.min(canvas.width - (bounds.x - padding), bounds.width + padding * 2),
+                        height: Math.min(canvas.height - (bounds.y - padding), bounds.height + padding * 2)
+                      };
+                      
+                      // Merge overlapping regions
+                      let merged = false;
+                      for (let r of regions) {
+                        if (regionsOverlap(r, paddedRegion)) {
+                          r.x = Math.min(r.x, paddedRegion.x);
+                          r.y = Math.min(r.y, paddedRegion.y);
+                          r.width = Math.max(r.x + r.width, paddedRegion.x + paddedRegion.width) - r.x;
+                          r.height = Math.max(r.y + r.height, paddedRegion.y + paddedRegion.height) - r.y;
+                          merged = true;
+                          break;
+                        }
+                      }
+                      if (!merged) {
+                        regions.push(paddedRegion);
+                      }
+                    }
+                  }
                 }
               }
               
-              console.log(`🔍 Page ${pageNum}: Found ${imageOps.length} image operations`);
+              console.log(`🖼️ Detected ${regions.length} potential diagrams on page ${pageNum}`);
               
-              if (imageOps.length === 0) {
-                // No embedded images, skip to full page screenshot later
-                continue;
-              }
-              
-              // Step 2: Render page to load all image objects into memory
-              const tempScale = 2.0;
-              const tempViewport = page.getViewport({ scale: tempScale });
-              const tempCanvas = document.createElement('canvas');
-              const tempContext = tempCanvas.getContext('2d');
-              tempCanvas.width = tempViewport.width;
-              tempCanvas.height = tempViewport.height;
-              
-              if (tempContext) {
-                console.log(`🎨 Rendering page ${pageNum} to load images...`);
-                // Render and wait for completion
-                await page.render({
-                  canvasContext: tempContext,
-                  viewport: tempViewport,
-                  intent: 'display'
-                } as any).promise;
+              // Extract each detected region
+              for (let i = 0; i < regions.length; i++) {
+                const region = regions[i];
                 
-                // Critical: Wait longer for object store to be populated
-                await new Promise(resolve => setTimeout(resolve, 500));
-              }
-              
-              // Step 3: Extract embedded images with aggressive retry logic
-              for (let i = 0; i < imageOps.length; i++) {
-                try {
-                  const imageName = operatorList.argsArray[imageOps[i]][0];
-                  console.log(`🖼️ Processing image: ${imageName}`);
-                  
-                  // Aggressive retry with exponential backoff
-                  let image = null;
-                  let attempts = 0;
-                  const maxAttempts = 30;
-                  
-                  while (!image && attempts < maxAttempts) {
-                    if (page.objs.has(imageName)) {
-                      image = page.objs.get(imageName);
-                      if (image && image.data) {
-                        console.log(`✅ Image ${imageName} loaded successfully`);
-                        break;
-                      }
-                    }
-                    
-                    // Exponential backoff: 50ms, 100ms, 150ms, etc.
-                    const delay = 50 + (attempts * 10);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    attempts++;
-                  }
-                  
-                  if (!image || !image.data) {
-                    console.error(`❌ Failed to load image ${imageName} after ${attempts} attempts`);
-                    continue;
-                  }
-                  
-                  if (image && image.data && image.width && image.height) {
-                    // Skip tiny images (likely icons or artifacts)
-                    if (image.width < 50 || image.height < 50) {
-                      console.log(`⏭️ Skipping small image (${image.width}x${image.height})`);
-                      continue;
-                    }
-                    
-                    console.log(`📊 Processing image ${i}: ${image.width}x${image.height}`);
-                    
-                    const imgCanvas = document.createElement('canvas');
-                    imgCanvas.width = image.width;
-                    imgCanvas.height = image.height;
-                    const imgContext = imgCanvas.getContext('2d');
-                    
-                    if (imgContext) {
-                      const imageData = imgContext.createImageData(image.width, image.height);
-                      const bytesPerPixel = image.data.length / (image.width * image.height);
-                      
-                      if (bytesPerPixel === 4) {
-                        // RGBA format
-                        imageData.data.set(image.data);
-                      } else if (bytesPerPixel === 3) {
-                        // RGB format - convert to RGBA
-                        for (let j = 0; j < image.width * image.height; j++) {
-                          imageData.data[j * 4] = image.data[j * 3];
-                          imageData.data[j * 4 + 1] = image.data[j * 3 + 1];
-                          imageData.data[j * 4 + 2] = image.data[j * 3 + 2];
-                          imageData.data[j * 4 + 3] = 255;
-                        }
-                      } else if (bytesPerPixel === 1) {
-                        // Grayscale - convert to RGBA
-                        for (let j = 0; j < image.width * image.height; j++) {
-                          const gray = image.data[j];
-                          imageData.data[j * 4] = gray;
-                          imageData.data[j * 4 + 1] = gray;
-                          imageData.data[j * 4 + 2] = gray;
-                          imageData.data[j * 4 + 3] = 255;
-                        }
-                      } else {
-                        console.warn(`⚠️ Unsupported format: ${bytesPerPixel} bytes/pixel`);
-                        continue;
-                      }
-                      
-                      imgContext.putImageData(imageData, 0, 0);
-                      const embeddedImageData = imgCanvas.toDataURL('image/png');
-                      const embeddedBase64 = embeddedImageData.split(',')[1];
-                      
-                      const embeddedImageUrl = await uploadImageToStorage(
-                        embeddedBase64,
-                        'image/png',
-                        `${fileName}-page${pageNum}-diagram-${i}`
-                      );
-                      
-                      if (embeddedImageUrl) {
-                        pdfImages.unshift(embeddedImageUrl);
-                        pageHasEmbeddedImages = true;
-                        diagramCount++;
-                        console.log(`✅ Extracted diagram ${i} from page ${pageNum} (${image.width}x${image.height})`);
-                      }
-                    }
-                  }
-                } catch (imgError) {
-                  console.warn(`❌ Failed to extract image ${i} from page ${pageNum}:`, imgError);
+                // Create a new canvas for the cropped region
+                const cropCanvas = document.createElement('canvas');
+                const cropContext = cropCanvas.getContext('2d');
+                cropCanvas.width = region.width;
+                cropCanvas.height = region.height;
+                
+                if (!cropContext) continue;
+                
+                // Draw the cropped region with white background
+                cropContext.fillStyle = 'white';
+                cropContext.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+                cropContext.drawImage(
+                  canvas,
+                  region.x, region.y, region.width, region.height,
+                  0, 0, region.width, region.height
+                );
+                
+                // Convert to base64
+                const croppedImageData = cropCanvas.toDataURL('image/png');
+                const croppedBase64 = croppedImageData.split(',')[1];
+                
+                const diagramUrl = await uploadImageToStorage(
+                  croppedBase64,
+                  'image/png',
+                  `${fileName}-page${pageNum}-diagram-${i}`
+                );
+                
+                if (diagramUrl) {
+                  pdfImages.unshift(diagramUrl);
+                  pageHasEmbeddedImages = true;
+                  diagramCount++;
+                  console.log(`✅ Extracted diagram ${i + 1}/${regions.length} from page ${pageNum}`);
                 }
               }
-            } catch (opError) {
-              console.warn(`⚠️ Failed to process page ${pageNum}:`, opError);
+            } catch (error) {
+              console.error('Error processing page for diagrams:', error);
+            }
+            
+            // Helper function to check if two regions overlap
+            function regionsOverlap(r1: any, r2: any): boolean {
+              return !(r1.x + r1.width < r2.x || 
+                      r2.x + r2.width < r1.x || 
+                      r1.y + r1.height < r2.y || 
+                      r2.y + r2.height < r1.y);
+            }
+            
+            // Helper function to find bounding box of connected content
+            function findBoundingBox(
+              data: Uint8ClampedArray,
+              width: number,
+              height: number,
+              startX: number,
+              startY: number,
+              threshold: number,
+              visited: Set<string>,
+              step: number
+            ): { x: number; y: number; width: number; height: number } {
+              let minX = startX, maxX = startX;
+              let minY = startY, maxY = startY;
+              const stack: [number, number][] = [[startX, startY]];
+              let count = 0;
+              const maxIterations = 5000; // Prevent infinite loops
+              
+              while (stack.length > 0 && count < maxIterations) {
+                const [x, y] = stack.pop()!;
+                const key = `${x},${y}`;
+                
+                if (visited.has(key) || x < 0 || x >= width || y < 0 || y >= height) continue;
+                
+                const idx = (y * width + x) * 4;
+                if (data[idx] >= threshold) continue;
+                
+                visited.add(key);
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+                
+                // Check neighbors (at scan step intervals for efficiency)
+                stack.push([x + step, y], [x - step, y], [x, y + step], [x, y - step]);
+                count++;
+              }
+              
+              return {
+                x: minX,
+                y: minY,
+                width: maxX - minX + 1,
+                height: maxY - minY + 1
+              };
             }
             
             // Fallback: If no embedded images found, render full page
