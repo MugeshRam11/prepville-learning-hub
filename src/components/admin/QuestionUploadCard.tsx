@@ -167,8 +167,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             let pageHasEmbeddedImages = false;
             
             try {
-              // Render the page at high resolution for diagram detection (grayscale approach)
-              const scale = 3.0; // High resolution for better diagram detection
+              // Render the page at high resolution
+              const scale = 2.5;
               const viewport = page.getViewport({ scale });
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d', { willReadFrequently: true });
@@ -177,7 +177,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               
               if (!context) continue;
               
-              console.log(`🎨 Rendering page ${pageNum} at ${scale}x resolution for diagram detection...`);
+              console.log(`🎨 Rendering page ${pageNum} for content detection...`);
               
               // Render the page
               await page.render({
@@ -185,169 +185,120 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 viewport: viewport,
               } as any).promise;
               
-              // Get image data for processing
+              // Get image data
               const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
               const data = imageData.data;
               
-              // Convert to grayscale for better contour detection
-              console.log(`🔍 Converting page ${pageNum} to grayscale...`);
-              for (let i = 0; i < data.length; i += 4) {
-                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                data[i] = data[i + 1] = data[i + 2] = gray;
-              }
-              context.putImageData(imageData, 0, 0);
+              // Find content bounding box by analyzing rows and columns
+              const threshold = 250; // Pixels darker than this are content
+              const minContentPixels = 5; // Minimum dark pixels in a row/column to be considered content
+              const padding = 40; // Padding around content
               
-              // Detect content regions (simplified contour detection)
-              const regions: { x: number; y: number; width: number; height: number }[] = [];
-              const threshold = 250; // Pixels darker than this are considered content
-              const minWidth = 150; // Minimum width for a diagram (in pixels at 3x scale)
-              const minHeight = 150; // Minimum height for a diagram
-              const padding = 30; // Padding around detected regions
-              
-              // Scan for content regions
-              const visited = new Set<string>();
-              const scanStep = 10; // Scan every 10 pixels for efficiency
-              
-              for (let y = 0; y < canvas.height; y += scanStep) {
-                for (let x = 0; x < canvas.width; x += scanStep) {
+              // Find top boundary
+              let top = 0;
+              for (let y = 0; y < canvas.height; y++) {
+                let darkPixels = 0;
+                for (let x = 0; x < canvas.width; x += 5) {
                   const idx = (y * canvas.width + x) * 4;
-                  if (data[idx] < threshold && !visited.has(`${x},${y}`)) {
-                    // Found a dark pixel, find the bounding box
-                    const bounds = findBoundingBox(
-                      data, 
-                      canvas.width, 
-                      canvas.height, 
-                      x, 
-                      y, 
-                      threshold, 
-                      visited,
-                      scanStep
-                    );
-                    
-                    if (bounds.width >= minWidth && bounds.height >= minHeight) {
-                      // Add padding
-                      const paddedRegion = {
-                        x: Math.max(0, bounds.x - padding),
-                        y: Math.max(0, bounds.y - padding),
-                        width: Math.min(canvas.width - (bounds.x - padding), bounds.width + padding * 2),
-                        height: Math.min(canvas.height - (bounds.y - padding), bounds.height + padding * 2)
-                      };
-                      
-                      // Merge overlapping regions
-                      let merged = false;
-                      for (let r of regions) {
-                        if (regionsOverlap(r, paddedRegion)) {
-                          r.x = Math.min(r.x, paddedRegion.x);
-                          r.y = Math.min(r.y, paddedRegion.y);
-                          r.width = Math.max(r.x + r.width, paddedRegion.x + paddedRegion.width) - r.x;
-                          r.height = Math.max(r.y + r.height, paddedRegion.y + paddedRegion.height) - r.y;
-                          merged = true;
-                          break;
-                        }
-                      }
-                      if (!merged) {
-                        regions.push(paddedRegion);
-                      }
-                    }
+                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                  if (gray < threshold) darkPixels++;
+                }
+                if (darkPixels > minContentPixels) {
+                  top = Math.max(0, y - padding);
+                  break;
+                }
+              }
+              
+              // Find bottom boundary
+              let bottom = canvas.height;
+              for (let y = canvas.height - 1; y >= top; y--) {
+                let darkPixels = 0;
+                for (let x = 0; x < canvas.width; x += 5) {
+                  const idx = (y * canvas.width + x) * 4;
+                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                  if (gray < threshold) darkPixels++;
+                }
+                if (darkPixels > minContentPixels) {
+                  bottom = Math.min(canvas.height, y + padding);
+                  break;
+                }
+              }
+              
+              // Find left boundary
+              let left = 0;
+              for (let x = 0; x < canvas.width; x++) {
+                let darkPixels = 0;
+                for (let y = top; y < bottom; y += 5) {
+                  const idx = (y * canvas.width + x) * 4;
+                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                  if (gray < threshold) darkPixels++;
+                }
+                if (darkPixels > minContentPixels) {
+                  left = Math.max(0, x - padding);
+                  break;
+                }
+              }
+              
+              // Find right boundary
+              let right = canvas.width;
+              for (let x = canvas.width - 1; x >= left; x--) {
+                let darkPixels = 0;
+                for (let y = top; y < bottom; y += 5) {
+                  const idx = (y * canvas.width + x) * 4;
+                  const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                  if (gray < threshold) darkPixels++;
+                }
+                if (darkPixels > minContentPixels) {
+                  right = Math.min(canvas.width, x + padding);
+                  break;
+                }
+              }
+              
+              const contentWidth = right - left;
+              const contentHeight = bottom - top;
+              
+              console.log(`📏 Content bounds: ${contentWidth}x${contentHeight} at (${left},${top})`);
+              
+              // Only extract if there's significant content
+              if (contentWidth > 100 && contentHeight > 100) {
+                // Create canvas for cropped content
+                const cropCanvas = document.createElement('canvas');
+                const cropContext = cropCanvas.getContext('2d');
+                cropCanvas.width = contentWidth;
+                cropCanvas.height = contentHeight;
+                
+                if (cropContext) {
+                  // White background
+                  cropContext.fillStyle = 'white';
+                  cropContext.fillRect(0, 0, contentWidth, contentHeight);
+                  
+                  // Draw cropped content
+                  cropContext.drawImage(
+                    canvas,
+                    left, top, contentWidth, contentHeight,
+                    0, 0, contentWidth, contentHeight
+                  );
+                  
+                  // Convert to base64
+                  const croppedImageData = cropCanvas.toDataURL('image/png');
+                  const croppedBase64 = croppedImageData.split(',')[1];
+                  
+                  const diagramUrl = await uploadImageToStorage(
+                    croppedBase64,
+                    'image/png',
+                    `${fileName}-page${pageNum}-content`
+                  );
+                  
+                  if (diagramUrl) {
+                    pdfImages.unshift(diagramUrl);
+                    pageHasEmbeddedImages = true;
+                    diagramCount++;
+                    console.log(`✅ Extracted content area from page ${pageNum} (${contentWidth}x${contentHeight})`);
                   }
                 }
               }
-              
-              console.log(`🖼️ Detected ${regions.length} potential diagrams on page ${pageNum}`);
-              
-              // Extract each detected region
-              for (let i = 0; i < regions.length; i++) {
-                const region = regions[i];
-                
-                // Create a new canvas for the cropped region
-                const cropCanvas = document.createElement('canvas');
-                const cropContext = cropCanvas.getContext('2d');
-                cropCanvas.width = region.width;
-                cropCanvas.height = region.height;
-                
-                if (!cropContext) continue;
-                
-                // Draw the cropped region with white background
-                cropContext.fillStyle = 'white';
-                cropContext.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
-                cropContext.drawImage(
-                  canvas,
-                  region.x, region.y, region.width, region.height,
-                  0, 0, region.width, region.height
-                );
-                
-                // Convert to base64
-                const croppedImageData = cropCanvas.toDataURL('image/png');
-                const croppedBase64 = croppedImageData.split(',')[1];
-                
-                const diagramUrl = await uploadImageToStorage(
-                  croppedBase64,
-                  'image/png',
-                  `${fileName}-page${pageNum}-diagram-${i}`
-                );
-                
-                if (diagramUrl) {
-                  pdfImages.unshift(diagramUrl);
-                  pageHasEmbeddedImages = true;
-                  diagramCount++;
-                  console.log(`✅ Extracted diagram ${i + 1}/${regions.length} from page ${pageNum}`);
-                }
-              }
             } catch (error) {
-              console.error('Error processing page for diagrams:', error);
-            }
-            
-            // Helper function to check if two regions overlap
-            function regionsOverlap(r1: any, r2: any): boolean {
-              return !(r1.x + r1.width < r2.x || 
-                      r2.x + r2.width < r1.x || 
-                      r1.y + r1.height < r2.y || 
-                      r2.y + r2.height < r1.y);
-            }
-            
-            // Helper function to find bounding box of connected content
-            function findBoundingBox(
-              data: Uint8ClampedArray,
-              width: number,
-              height: number,
-              startX: number,
-              startY: number,
-              threshold: number,
-              visited: Set<string>,
-              step: number
-            ): { x: number; y: number; width: number; height: number } {
-              let minX = startX, maxX = startX;
-              let minY = startY, maxY = startY;
-              const stack: [number, number][] = [[startX, startY]];
-              let count = 0;
-              const maxIterations = 5000; // Prevent infinite loops
-              
-              while (stack.length > 0 && count < maxIterations) {
-                const [x, y] = stack.pop()!;
-                const key = `${x},${y}`;
-                
-                if (visited.has(key) || x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                const idx = (y * width + x) * 4;
-                if (data[idx] >= threshold) continue;
-                
-                visited.add(key);
-                minX = Math.min(minX, x);
-                maxX = Math.max(maxX, x);
-                minY = Math.min(minY, y);
-                maxY = Math.max(maxY, y);
-                
-                // Check neighbors (at scan step intervals for efficiency)
-                stack.push([x + step, y], [x - step, y], [x, y + step], [x, y - step]);
-                count++;
-              }
-              
-              return {
-                x: minX,
-                y: minY,
-                width: maxX - minX + 1,
-                height: maxY - minY + 1
-              };
+              console.error('Error processing page for content:', error);
             }
             
             // Fallback: If no embedded images found, render full page
