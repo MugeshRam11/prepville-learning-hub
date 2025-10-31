@@ -58,6 +58,22 @@ serve(async (req) => {
     if ((isPDF || isPDFDataUrl) && !extractedText) {
       console.log('🤖 Processing PDF with Enhanced Multi-Pass Extraction...');
       
+      // For PDFs, we cannot use vision API directly - inform user to use proper PDF extraction
+      console.warn('⚠️ PDF vision extraction is not supported by the AI gateway');
+      console.log('💡 Solution: Use a PDF-to-text extraction tool before uploading');
+      
+      // Return helpful error message
+      return new Response(
+        JSON.stringify({ 
+          error: 'PDF files require pre-processing. Please use the Word document upload feature (.docx) or convert your PDF to text first.',
+          suggestion: 'The system works best with Word documents (.docx) which include automatic text and image extraction.'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Legacy PDF extraction code (disabled) - kept for reference
+    if (false) {
       // Ensure content is in data URL format
       const pdfDataUrl = isPDFDataUrl ? content : `data:application/pdf;base64,${content}`;
       
@@ -322,7 +338,7 @@ List ALL visual elements systematically.`;
       } else {
         console.log(`✅ PDF EXTRACTION QUALITY: GOOD - Content successfully extracted`);
       }
-    }
+    } // End of disabled PDF extraction code
 
     // Get appropriate prompts based on action mode
     const systemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages);
