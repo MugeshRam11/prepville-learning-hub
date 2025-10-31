@@ -8,6 +8,10 @@ import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Fix PDF.js worker - use CDN for worker with correct version
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
@@ -126,17 +130,66 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-        // For PDFs, let the backend handle parsing to avoid worker issues
-        console.log('📄 Processing PDF file - sending to backend...');
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(
-          new Uint8Array(arrayBuffer)
-            .reduce((data, byte) => data + String.fromCharCode(byte), '')
-        );
-        content = base64;
-        extractedText = '[PDF - Backend will extract text]';
-        console.log('✅ PDF prepared for backend processing');
-        toast.info('PDF uploaded - AI will extract content');
+        // Extract text AND images from PDF using pdfjs-dist
+        console.log('📄 Processing PDF file...');
+        setProgress(25);
+        toast.info('Extracting text and images from PDF...');
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const numPages = pdf.numPages;
+          console.log(`📄 PDF has ${numPages} pages`);
+
+          let pdfText = '';
+          const pdfImages: string[] = [];
+
+          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+
+            // Extract text from page
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            pdfText += `\n--- Page ${pageNum} ---\n${pageText}`;
+
+            // Extract page as image (for visual content/diagrams)
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              await page.render({ 
+                canvasContext: ctx, 
+                viewport: viewport,
+                canvas: canvas
+              }).promise;
+              const imageData = canvas.toDataURL('image/png');
+              
+              // Upload image to storage
+              const base64Data = imageData.split(',')[1];
+              const imageUrl = await uploadImageToStorage(base64Data, 'image/png', `${fileName}-page-${pageNum}`);
+              if (imageUrl) {
+                pdfImages.push(imageUrl);
+              }
+            }
+
+            setProgress(25 + (pageNum / numPages) * 15);
+          }
+
+          extractedText = pdfText;
+          extractedImages = pdfImages;
+          content = pdfText;
+          
+          console.log('✅ PDF extraction complete:', {
+            textLength: pdfText.length,
+            imageCount: pdfImages.length
+          });
+          toast.success(`Extracted text and ${pdfImages.length} images from ${numPages} PDF pages!`);
+        } catch (pdfError: any) {
+          console.error('❌ PDF parsing error:', pdfError);
+          throw new Error(`Failed to read PDF: ${pdfError.message}`);
+        }
         setProgress(35);
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
@@ -294,30 +347,39 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       created_by: user.id
     }).select().single();
     if (testError) throw testError;
-    const questions = data.questions.map((q: any, idx: number) => {
-      const isMCQ = q.options && q.options.length > 0;
-      let correctAnswer = null;
-      if (isMCQ) {
-        const answerChar = q.correct_answer?.charAt(0)?.toUpperCase();
-        if (['A', 'B', 'C', 'D'].includes(answerChar)) {
-          correctAnswer = answerChar;
-        } else {
-          correctAnswer = 'A';
+
+    // Filter out undefined or invalid questions
+    const questions = data.questions
+      .filter((q: any) => q && q.question_text && q.question_text.trim() !== '')
+      .map((q: any, idx: number) => {
+        const isMCQ = q.options && q.options.length > 0;
+        let correctAnswer = null;
+        if (isMCQ) {
+          const answerChar = q.correct_answer?.charAt(0)?.toUpperCase();
+          if (['A', 'B', 'C', 'D'].includes(answerChar)) {
+            correctAnswer = answerChar;
+          } else {
+            correctAnswer = 'A';
+          }
         }
-      }
-      return {
-        test_id: test.id,
-        question_text: q.question_text,
-        question_image_url: q.question_image_url || null,
-        option_a: q.options?.[0] || '',
-        option_b: q.options?.[1] || '',
-        option_c: q.options?.[2] || '',
-        option_d: q.options?.[3] || '',
-        correct_answer: correctAnswer,
-        explanation: isMCQ ? q.explanation : `Answer: ${q.correct_answer}\n\n${q.explanation || ''}`,
-        difficulty_level: q.difficulty || 'medium'
-      };
-    });
+        return {
+          test_id: test.id,
+          question_text: q.question_text,
+          question_image_url: q.question_image_url || null,
+          option_a: q.options?.[0] || '',
+          option_b: q.options?.[1] || '',
+          option_c: q.options?.[2] || '',
+          option_d: q.options?.[3] || '',
+          correct_answer: correctAnswer,
+          explanation: isMCQ ? q.explanation : `Answer: ${q.correct_answer}\n\n${q.explanation || ''}`,
+          difficulty_level: q.difficulty || 'medium'
+        };
+      });
+
+    if (questions.length === 0) {
+      throw new Error('No valid questions found in the document');
+    }
+
     const {
       error: questionsError
     } = await supabase.from('questions').insert(questions);
@@ -352,7 +414,17 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       created_by: user.id
     }).select().single();
     if (mockTestError) throw mockTestError;
-    for (const q of data.questions) {
+
+    // Filter out undefined or invalid questions
+    const validQuestions = data.questions.filter((q: any) => 
+      q && q.question_text && q.question_text.trim() !== ''
+    );
+
+    if (validQuestions.length === 0) {
+      throw new Error('No valid questions found in the document');
+    }
+
+    for (const q of validQuestions) {
       const {
         data: question,
         error: questionError
@@ -384,7 +456,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     }
     return {
       mockTest,
-      questions: data.questions
+      questions: validQuestions
     };
   };
   const {
