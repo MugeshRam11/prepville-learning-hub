@@ -81,10 +81,12 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       // Enhanced document parsing with text AND image extraction
       if (fileType === 'text/csv' || fileName.endsWith('.csv')) {
         // Read CSV as text
+        console.log('📊 Processing CSV file...');
         content = await file.text();
         extractedText = content;
         console.log('✅ CSV text extracted:', content.substring(0, 200));
-      } else if (fileName.endsWith('.docx')) {
+        toast.success('CSV file loaded successfully');
+      } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
         // Extract text AND images from Word document via edge function
         setProgress(25);
         const formData = new FormData();
@@ -123,27 +125,38 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           toast.info('Extracted text only (image extraction unavailable)');
         }
         setProgress(35);
-      } else if (fileName.endsWith('.pdf')) {
+      } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
         // Extract text from PDF using pdfjs
+        console.log('📄 Processing PDF file...');
         setProgress(25);
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({
-          data: arrayBuffer
-        }).promise;
-        const numPages = pdf.numPages;
-        let pdfText = '';
-        for (let i = 1; i <= numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          pdfText += `\n--- Page ${i} ---\n${pageText}`;
-          setProgress(25 + i / numPages * 15);
+        
+        try {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({
+            data: arrayBuffer
+          }).promise;
+          const numPages = pdf.numPages;
+          let pdfText = '';
+          
+          console.log(`📄 PDF has ${numPages} pages`);
+          
+          for (let i = 1; i <= numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            pdfText += `\n--- Page ${i} ---\n${pageText}`;
+            setProgress(25 + (i / numPages) * 15);
+          }
+          
+          extractedText = pdfText;
+          content = pdfText;
+          console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
+          toast.success(`Extracted text from ${numPages} PDF pages`);
+        } catch (pdfError: any) {
+          console.error('❌ PDF parsing error:', pdfError);
+          throw new Error(`Failed to read PDF: ${pdfError.message}`);
         }
-        extractedText = pdfText;
-        content = pdfText;
-        console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
-        toast.info(`Extracted text from ${numPages} PDF pages`);
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
         const base64 = await fileToBase64(file);
@@ -187,11 +200,24 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           actionMode
         }
       });
-      if (error) throw error;
-      setProgress(70);
-      if (!data || !data.success) {
-        throw new Error(data?.error || 'Failed to process document');
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw new Error(error.message || 'Failed to call AI parser');
       }
+      
+      setProgress(70);
+      
+      if (!data || !data.success) {
+        const errorMsg = data?.error || 'Failed to process document';
+        console.error('❌ AI parser returned error:', errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      console.log('✅ AI parsing successful:', {
+        actionMode: data.actionMode,
+        count: data.parsed_count,
+        hasData: !!data.data
+      });
       setProgress(90);
 
       // Handle different action modes
@@ -218,17 +244,32 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         onSuccess(savedData);
       }
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload error:', error);
       let errorMessage = 'Failed to process file';
-      if (error.message?.includes('Rate limit')) {
-        errorMessage = 'Rate limit exceeded. Please try again in a moment.';
-      } else if (error.message?.includes('credits')) {
-        errorMessage = 'AI credits exhausted. Please add credits to continue.';
+      let errorDetails = '';
+      
+      if (error.message?.includes('Rate limit') || error.message?.includes('429')) {
+        errorMessage = '⏱️ Rate limit exceeded';
+        errorDetails = 'Please wait a moment and try again.';
+      } else if (error.message?.includes('credits') || error.message?.includes('402')) {
+        errorMessage = '💳 Out of AI credits';
+        errorDetails = 'Please add credits in Settings → Workspace → Usage';
+      } else if (error.message?.includes('Failed to process document')) {
+        errorMessage = '📄 Document processing failed';
+        errorDetails = error.message || 'The AI could not extract questions from this document. Please check the document format.';
+      } else {
+        errorMessage = '❌ Processing failed';
+        errorDetails = error.message || 'Please check the file format and try again.';
       }
-      toast.error(errorMessage);
+      
+      toast.error(errorMessage, {
+        description: errorDetails,
+        duration: 8000
+      });
+      
       setParseResult({
         success: false,
-        error: errorMessage
+        error: `${errorMessage}: ${errorDetails}`
       });
     } finally {
       setUploading(false);
