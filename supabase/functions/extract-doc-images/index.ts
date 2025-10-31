@@ -129,7 +129,25 @@ If NO visual diagrams exist (only plain text), return:
 
           const aiData = await detectionResponse.json();
           const content = aiData.choices?.[0]?.message?.content || '{"hasDiagram": false}';
-          const result = JSON.parse(content);
+          
+          console.log(`📄 Raw AI response length: ${content.length} chars`);
+          
+          // Sanitize JSON to remove control characters
+          const sanitizedContent = content
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // Remove control chars
+            .replace(/\r?\n/g, ' ') // Replace actual newlines with spaces
+            .replace(/\t/g, ' ') // Replace tabs with spaces
+            .replace(/\s+/g, ' '); // Normalize whitespace
+          
+          let result;
+          try {
+            result = JSON.parse(sanitizedContent);
+          } catch (parseError) {
+            console.error('❌ JSON parse error:', parseError);
+            console.error('📄 Content snippet:', sanitizedContent.substring(0, 500));
+            // Fallback: assume diagram present
+            result = { hasDiagram: true, diagrams: [] };
+          }
           
           console.log(`✅ Step 1 Complete - Detection result for page ${pageNumber}:`, JSON.stringify(result, null, 2));
           
