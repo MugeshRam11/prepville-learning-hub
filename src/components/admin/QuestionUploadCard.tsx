@@ -167,7 +167,27 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             let pageHasEmbeddedImages = false;
             
             try {
-              // Get operator list first to find images
+              // Step 1: Render page first to ensure all resources are loaded
+              const tempScale = 2.0;
+              const tempViewport = page.getViewport({ scale: tempScale });
+              const tempCanvas = document.createElement('canvas');
+              const tempContext = tempCanvas.getContext('2d');
+              tempCanvas.width = tempViewport.width;
+              tempCanvas.height = tempViewport.height;
+              
+              if (tempContext) {
+                // Render with intent to load all resources including images
+                await page.render({
+                  canvasContext: tempContext,
+                  viewport: tempViewport,
+                  intent: 'display'
+                } as any).promise;
+                
+                // Wait for all pending operations to complete
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+              
+              // Step 2: Now get operator list - images should be loaded
               const operatorList = await page.getOperatorList();
               const imageOps: number[] = [];
               
@@ -179,39 +199,31 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               
               if (imageOps.length > 0) {
                 console.log(`🔍 Found ${imageOps.length} image operations on page ${pageNum}`);
-                
-                // Render page to force loading of all image objects
-                const tempScale = 2.0;
-                const tempViewport = page.getViewport({ scale: tempScale });
-                const tempCanvas = document.createElement('canvas');
-                const tempContext = tempCanvas.getContext('2d');
-                tempCanvas.width = tempViewport.width;
-                tempCanvas.height = tempViewport.height;
-                
-                if (tempContext) {
-                  // Wait for render to complete - this loads all objects
-                  await page.render({
-                    canvasContext: tempContext,
-                    viewport: tempViewport
-                  } as any).promise;
-                  
-                  // Small delay to ensure object store is updated
-                  await new Promise(resolve => setTimeout(resolve, 100));
-                }
               }
               
-              // Now extract embedded images/diagrams
+              // Step 3: Extract embedded images/diagrams with retry logic
               for (let i = 0; i < imageOps.length; i++) {
                 try {
                   const imageName = operatorList.argsArray[imageOps[i]][0];
                   
-                  // Check if object is available
-                  if (!page.objs.has(imageName)) {
-                    console.warn(`❌ Image object ${imageName} not found in object store`);
-                    continue;
+                  // Wait for image to be available with retries
+                  let image = null;
+                  let attempts = 0;
+                  const maxAttempts = 20;
+                  
+                  while (!image && attempts < maxAttempts) {
+                    if (page.objs.has(imageName)) {
+                      image = page.objs.get(imageName);
+                      break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    attempts++;
                   }
                   
-                  const image = page.objs.get(imageName);
+                  if (!image) {
+                    console.warn(`❌ Image object ${imageName} not available after ${maxAttempts} attempts`);
+                    continue;
+                  }
                   
                   if (image && image.data && image.width && image.height) {
                     // Skip tiny images (likely icons or artifacts)
