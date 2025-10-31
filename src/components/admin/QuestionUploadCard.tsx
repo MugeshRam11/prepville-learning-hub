@@ -167,27 +167,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             let pageHasEmbeddedImages = false;
             
             try {
-              // Step 1: Render page first to ensure all resources are loaded
-              const tempScale = 2.0;
-              const tempViewport = page.getViewport({ scale: tempScale });
-              const tempCanvas = document.createElement('canvas');
-              const tempContext = tempCanvas.getContext('2d');
-              tempCanvas.width = tempViewport.width;
-              tempCanvas.height = tempViewport.height;
-              
-              if (tempContext) {
-                // Render with intent to load all resources including images
-                await page.render({
-                  canvasContext: tempContext,
-                  viewport: tempViewport,
-                  intent: 'display'
-                } as any).promise;
-                
-                // Wait for all pending operations to complete
-                await new Promise(resolve => setTimeout(resolve, 300));
-              }
-              
-              // Step 2: Now get operator list - images should be loaded
+              // Step 1: Get operator list first to identify images
               const operatorList = await page.getOperatorList();
               const imageOps: number[] = [];
               
@@ -197,31 +177,62 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 }
               }
               
-              if (imageOps.length > 0) {
-                console.log(`🔍 Found ${imageOps.length} image operations on page ${pageNum}`);
+              console.log(`🔍 Page ${pageNum}: Found ${imageOps.length} image operations`);
+              
+              if (imageOps.length === 0) {
+                // No embedded images, skip to full page screenshot later
+                continue;
               }
               
-              // Step 3: Extract embedded images/diagrams with retry logic
+              // Step 2: Render page to load all image objects into memory
+              const tempScale = 2.0;
+              const tempViewport = page.getViewport({ scale: tempScale });
+              const tempCanvas = document.createElement('canvas');
+              const tempContext = tempCanvas.getContext('2d');
+              tempCanvas.width = tempViewport.width;
+              tempCanvas.height = tempViewport.height;
+              
+              if (tempContext) {
+                console.log(`🎨 Rendering page ${pageNum} to load images...`);
+                // Render and wait for completion
+                await page.render({
+                  canvasContext: tempContext,
+                  viewport: tempViewport,
+                  intent: 'display'
+                } as any).promise;
+                
+                // Critical: Wait longer for object store to be populated
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+              
+              // Step 3: Extract embedded images with aggressive retry logic
               for (let i = 0; i < imageOps.length; i++) {
                 try {
                   const imageName = operatorList.argsArray[imageOps[i]][0];
+                  console.log(`🖼️ Processing image: ${imageName}`);
                   
-                  // Wait for image to be available with retries
+                  // Aggressive retry with exponential backoff
                   let image = null;
                   let attempts = 0;
-                  const maxAttempts = 20;
+                  const maxAttempts = 30;
                   
                   while (!image && attempts < maxAttempts) {
                     if (page.objs.has(imageName)) {
                       image = page.objs.get(imageName);
-                      break;
+                      if (image && image.data) {
+                        console.log(`✅ Image ${imageName} loaded successfully`);
+                        break;
+                      }
                     }
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // Exponential backoff: 50ms, 100ms, 150ms, etc.
+                    const delay = 50 + (attempts * 10);
+                    await new Promise(resolve => setTimeout(resolve, delay));
                     attempts++;
                   }
                   
-                  if (!image) {
-                    console.warn(`❌ Image object ${imageName} not available after ${maxAttempts} attempts`);
+                  if (!image || !image.data) {
+                    console.error(`❌ Failed to load image ${imageName} after ${attempts} attempts`);
                     continue;
                   }
                   
