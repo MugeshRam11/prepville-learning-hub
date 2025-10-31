@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_type: string
+          setting_value: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_type: string
+          setting_value: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_type?: string
+          setting_value?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ai_knowledge_base: {
         Row: {
           common_mistakes: Json | null
@@ -25,7 +58,7 @@ export type Database = {
           id: string
           question_text: string
           related_concepts: string[] | null
-          search_vector: unknown | null
+          search_vector: unknown
           subject: string
           topic: string
           updated_at: string | null
@@ -40,7 +73,7 @@ export type Database = {
           id?: string
           question_text: string
           related_concepts?: string[] | null
-          search_vector?: unknown | null
+          search_vector?: unknown
           subject: string
           topic: string
           updated_at?: string | null
@@ -55,7 +88,7 @@ export type Database = {
           id?: string
           question_text?: string
           related_concepts?: string[] | null
-          search_vector?: unknown | null
+          search_vector?: unknown
           subject?: string
           topic?: string
           updated_at?: string | null
@@ -1655,9 +1688,19 @@ export type Database = {
           reward_xp: number
         }[]
       }
+      get_admin_settings: { Args: never; Returns: Json }
       get_current_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_platform_statistics: {
+        Args: never
+        Returns: {
+          active_tests: number
+          storage_used: number
+          total_questions: number
+          total_users: number
+        }[]
       }
       get_user_activity_timeline: {
         Args: { limit_count?: number; user_uuid: string }
@@ -1707,10 +1750,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      reset_user_progress_data: {
-        Args: { user_uuid: string }
-        Returns: Json
-      }
+      reset_user_progress_data: { Args: { user_uuid: string }; Returns: Json }
       search_knowledge_base: {
         Args: {
           limit_count?: number
@@ -1729,6 +1769,10 @@ export type Database = {
           subject: string
           topic: string
         }[]
+      }
+      update_admin_setting: {
+        Args: { p_setting_key: string; p_setting_value: Json }
+        Returns: boolean
       }
       update_user_streak: {
         Args: { user_uuid: string }

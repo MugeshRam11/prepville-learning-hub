@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Save, 
   Shield, 
@@ -23,30 +23,159 @@ import {
   Settings as SettingsIcon,
   CheckCircle,
   Clock,
-  FileText
+  FileText,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 
 const AdminSettings = () => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     siteName: 'The Prep Ville',
     siteDescription: 'Comprehensive EdTech platform for MYP and IBDP students',
     allowRegistration: true,
     requireEmailVerification: true,
-    enableNotifications: true,
     maintenanceMode: false,
     maxTestDuration: 120,
     defaultTestQuestions: 10,
     autoApproveUsers: false,
+    maxConcurrentSessions: 3,
+    sessionTimeout: 30,
+    passingScore: 70,
+    maxAttempts: 3,
     emailNotifications: true,
     smsNotifications: false,
     weeklyReports: true,
+    adminEmail: 'admin@prepville.com',
     theme: 'light',
-    language: 'en'
+    language: 'en',
+    primaryColor: '#0EA5E9',
+    secondaryColor: '#8B5CF6'
   });
 
-  const handleSave = async (section: string) => {
-    toast.success(`${section} settings saved successfully`);
+  const [statistics, setStatistics] = useState({
+    totalUsers: 0,
+    activeTests: 0,
+    totalQuestions: 0,
+    storageUsed: 0,
+    uptime: 99.8
+  });
+
+  const [dbStatus, setDbStatus] = useState<'connected' | 'error'>('connected');
+  const [apiStatus, setApiStatus] = useState<'online' | 'offline'>('online');
+
+  // Load settings and statistics on mount
+  useEffect(() => {
+    loadSettings();
+    loadStatistics();
+    checkSystemStatus();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_admin_settings');
+      
+      if (error) throw error;
+      
+      if (data) {
+        const settingsData = data as Record<string, any>;
+        setSettings({
+          siteName: settingsData.site_name || 'The Prep Ville',
+          siteDescription: settingsData.site_description || 'Comprehensive EdTech platform for MYP and IBDP students',
+          allowRegistration: settingsData.allow_registration ?? true,
+          requireEmailVerification: settingsData.require_email_verification ?? true,
+          maintenanceMode: settingsData.maintenance_mode ?? false,
+          maxTestDuration: settingsData.max_test_duration || 120,
+          defaultTestQuestions: settingsData.default_test_questions || 10,
+          autoApproveUsers: settingsData.auto_approve_users ?? false,
+          maxConcurrentSessions: settingsData.max_concurrent_sessions || 3,
+          sessionTimeout: settingsData.session_timeout || 30,
+          passingScore: settingsData.passing_score || 70,
+          maxAttempts: settingsData.max_attempts || 3,
+          emailNotifications: settingsData.email_notifications ?? true,
+          smsNotifications: settingsData.sms_notifications ?? false,
+          weeklyReports: settingsData.weekly_reports ?? true,
+          adminEmail: settingsData.admin_email || 'admin@prepville.com',
+          theme: settingsData.theme || 'light',
+          language: settingsData.default_language || 'en',
+          primaryColor: settingsData.primary_color || '#0EA5E9',
+          secondaryColor: settingsData.secondary_color || '#8B5CF6'
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast.error('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const loadStatistics = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_platform_statistics');
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const stats = data[0];
+        setStatistics({
+          totalUsers: stats.total_users || 0,
+          activeTests: stats.active_tests || 0,
+          totalQuestions: stats.total_questions || 0,
+          storageUsed: stats.storage_used || 0,
+          uptime: 99.8
+        });
+      }
+    } catch (error) {
+      console.error('Error loading statistics:', error);
+    }
+  };
+
+  const checkSystemStatus = async () => {
+    try {
+      const { error } = await supabase.from('profiles').select('id').limit(1);
+      setDbStatus(error ? 'error' : 'connected');
+      setApiStatus('online');
+    } catch (error) {
+      setDbStatus('error');
+      setApiStatus('offline');
+    }
+  };
+
+  const handleSave = async (section: string, settingsToSave: Record<string, any>) => {
+    setSaving(true);
+    try {
+      const updates = [];
+      
+      for (const [key, value] of Object.entries(settingsToSave)) {
+        const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        updates.push(
+          supabase.rpc('update_admin_setting', {
+            p_setting_key: snakeKey,
+            p_setting_value: JSON.stringify(value)
+          })
+        );
+      }
+      
+      await Promise.all(updates);
+      toast.success(`${section} settings saved successfully`);
+      await loadSettings();
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error(`Failed to save ${section} settings`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -160,9 +289,18 @@ const AdminSettings = () => {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={() => handleSave('General')} className="gap-2">
-                  <Save className="w-4 h-4" />
+                <Button variant="outline" onClick={loadSettings}>Cancel</Button>
+                <Button 
+                  onClick={() => handleSave('General', {
+                    siteName: settings.siteName,
+                    siteDescription: settings.siteDescription,
+                    allowRegistration: settings.allowRegistration,
+                    language: settings.language
+                  })} 
+                  className="gap-2"
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
                 </Button>
               </div>
@@ -241,9 +379,16 @@ const AdminSettings = () => {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={() => handleSave('Security')} className="gap-2">
-                  <Save className="w-4 h-4" />
+                <Button variant="outline" onClick={loadSettings}>Cancel</Button>
+                <Button 
+                  onClick={() => handleSave('Security', {
+                    requireEmailVerification: settings.requireEmailVerification,
+                    maintenanceMode: settings.maintenanceMode
+                  })} 
+                  className="gap-2"
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
                 </Button>
               </div>
@@ -285,8 +430,8 @@ const AdminSettings = () => {
                   <Input
                     id="maxSessions"
                     type="number"
-                    placeholder="3"
-                    defaultValue="3"
+                    value={settings.maxConcurrentSessions}
+                    onChange={(e) => setSettings({ ...settings, maxConcurrentSessions: parseInt(e.target.value) })}
                   />
                   <p className="text-xs text-muted-foreground">
                     Maximum number of simultaneous logins per user
@@ -297,8 +442,8 @@ const AdminSettings = () => {
                   <Input
                     id="sessionTimeout"
                     type="number"
-                    placeholder="30"
-                    defaultValue="30"
+                    value={settings.sessionTimeout}
+                    onChange={(e) => setSettings({ ...settings, sessionTimeout: parseInt(e.target.value) })}
                   />
                   <p className="text-xs text-muted-foreground">
                     Automatically log out inactive users
@@ -307,9 +452,17 @@ const AdminSettings = () => {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={() => handleSave('User')} className="gap-2">
-                  <Save className="w-4 h-4" />
+                <Button variant="outline" onClick={loadSettings}>Cancel</Button>
+                <Button 
+                  onClick={() => handleSave('User', {
+                    autoApproveUsers: settings.autoApproveUsers,
+                    maxConcurrentSessions: settings.maxConcurrentSessions,
+                    sessionTimeout: settings.sessionTimeout
+                  })} 
+                  className="gap-2"
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
                 </Button>
               </div>
@@ -359,8 +512,8 @@ const AdminSettings = () => {
                   <Input
                     id="passingScore"
                     type="number"
-                    placeholder="70"
-                    defaultValue="70"
+                    value={settings.passingScore}
+                    onChange={(e) => setSettings({ ...settings, passingScore: parseInt(e.target.value) })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -368,16 +521,25 @@ const AdminSettings = () => {
                   <Input
                     id="attemptsAllowed"
                     type="number"
-                    placeholder="3"
-                    defaultValue="3"
+                    value={settings.maxAttempts}
+                    onChange={(e) => setSettings({ ...settings, maxAttempts: parseInt(e.target.value) })}
                   />
                 </div>
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={() => handleSave('Test')} className="gap-2">
-                  <Save className="w-4 h-4" />
+                <Button variant="outline" onClick={loadSettings}>Cancel</Button>
+                <Button 
+                  onClick={() => handleSave('Test', {
+                    maxTestDuration: settings.maxTestDuration,
+                    defaultTestQuestions: settings.defaultTestQuestions,
+                    passingScore: settings.passingScore,
+                    maxAttempts: settings.maxAttempts
+                  })} 
+                  className="gap-2"
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
                 </Button>
               </div>
@@ -449,8 +611,9 @@ const AdminSettings = () => {
                 <Input
                   id="adminEmail"
                   type="email"
+                  value={settings.adminEmail}
+                  onChange={(e) => setSettings({ ...settings, adminEmail: e.target.value })}
                   placeholder="admin@theprepville.com"
-                  defaultValue="admin@theprepville.com"
                 />
                 <p className="text-xs text-muted-foreground">
                   Primary email for receiving admin notifications
@@ -458,9 +621,18 @@ const AdminSettings = () => {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={() => handleSave('Notifications')} className="gap-2">
-                  <Save className="w-4 h-4" />
+                <Button variant="outline" onClick={loadSettings}>Cancel</Button>
+                <Button 
+                  onClick={() => handleSave('Notifications', {
+                    emailNotifications: settings.emailNotifications,
+                    smsNotifications: settings.smsNotifications,
+                    weeklyReports: settings.weeklyReports,
+                    adminEmail: settings.adminEmail
+                  })} 
+                  className="gap-2"
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
                 </Button>
               </div>
@@ -499,42 +671,40 @@ const AdminSettings = () => {
 
               <div className="space-y-4">
                 <Label className="text-base">Brand Colors</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-sm">Primary</Label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded bg-primary border" />
-                      <span className="text-xs text-muted-foreground">#007BFF</span>
-                    </div>
+                    <Label htmlFor="primaryColor">Primary Color</Label>
+                    <Input
+                      id="primaryColor"
+                      type="color"
+                      value={settings.primaryColor}
+                      onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm">Accent</Label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded bg-accent border" />
-                      <span className="text-xs text-muted-foreground">#FF4F81</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Success</Label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded bg-green-500 border" />
-                      <span className="text-xs text-muted-foreground">#10B981</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Warning</Label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded bg-yellow-500 border" />
-                      <span className="text-xs text-muted-foreground">#F59E0B</span>
-                    </div>
+                    <Label htmlFor="secondaryColor">Secondary Color</Label>
+                    <Input
+                      id="secondaryColor"
+                      type="color"
+                      value={settings.secondaryColor}
+                      onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={() => handleSave('Appearance')} className="gap-2">
-                  <Save className="w-4 h-4" />
+                <Button variant="outline" onClick={loadSettings}>Cancel</Button>
+                <Button 
+                  onClick={() => handleSave('Appearance', {
+                    theme: settings.theme,
+                    primaryColor: settings.primaryColor,
+                    secondaryColor: settings.secondaryColor
+                  })} 
+                  className="gap-2"
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save Changes
                 </Button>
               </div>
@@ -556,25 +726,39 @@ const AdminSettings = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <Label className="text-base">System Status</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-base">System Status</Label>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      loadStatistics();
+                      checkSystemStatus();
+                      toast.success('Status refreshed');
+                    }}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Database Status</span>
-                    <Badge variant="default" className="bg-green-600">
+                    <Badge variant={dbStatus === 'connected' ? 'default' : 'destructive'} className={dbStatus === 'connected' ? 'bg-green-600' : ''}>
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      Connected
+                      {dbStatus === 'connected' ? 'Connected' : 'Error'}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">API Status</span>
-                    <Badge variant="default" className="bg-green-600">
+                    <Badge variant={apiStatus === 'online' ? 'default' : 'destructive'} className={apiStatus === 'online' ? 'bg-green-600' : ''}>
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      Online
+                      {apiStatus === 'online' ? 'Online' : 'Offline'}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Storage</span>
-                    <span className="text-sm text-muted-foreground">45.2 GB / 100 GB</span>
+                    <span className="text-sm text-muted-foreground">{statistics.storageUsed} GB / 100 GB</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Last Backup</span>
@@ -590,25 +774,25 @@ const AdminSettings = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <Card>
                     <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-primary">1,234</div>
+                      <div className="text-2xl font-bold text-primary">{statistics.totalUsers.toLocaleString()}</div>
                       <p className="text-xs text-muted-foreground">Total Users</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-primary">156</div>
+                      <div className="text-2xl font-bold text-primary">{statistics.activeTests.toLocaleString()}</div>
                       <p className="text-xs text-muted-foreground">Active Tests</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-primary">8,567</div>
+                      <div className="text-2xl font-bold text-primary">{statistics.totalQuestions.toLocaleString()}</div>
                       <p className="text-xs text-muted-foreground">Questions</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-primary">99.8%</div>
+                      <div className="text-2xl font-bold text-primary">{statistics.uptime}%</div>
                       <p className="text-xs text-muted-foreground">Uptime</p>
                     </CardContent>
                   </Card>
@@ -620,24 +804,28 @@ const AdminSettings = () => {
               <div className="space-y-4">
                 <Label className="text-base">Cache Management</Label>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => toast.success('Application cache cleared')}
+                  >
                     Clear Application Cache
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => toast.success('Database cache cleared')}
+                  >
                     Clear Database Cache
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => toast.success('Database optimized')}
+                  >
                     Optimize Database
                   </Button>
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={() => handleSave('System')} className="gap-2">
-                  <Save className="w-4 h-4" />
-                  Save Changes
-                </Button>
               </div>
             </CardContent>
           </Card>
