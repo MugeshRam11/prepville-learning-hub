@@ -28,7 +28,8 @@ serve(async (req) => {
       actionMode,
       contentLength: content?.length,
       hasExtractedText: !!extractedText,
-      extractedImagesCount: extractedImages?.length || 0
+      extractedImagesCount: extractedImages?.length || 0,
+      isPDF: fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')
     });
     
     if (!content && !extractedText) {
@@ -47,9 +48,67 @@ serve(async (req) => {
       );
     }
 
+    // Handle PDF OCR with Lovable AI Vision
+    let finalContent = content;
+    let finalExtractedText = extractedText;
+    const isPDF = fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf');
+    
+    if (isPDF && !extractedText && content) {
+      console.log('🤖 Using Lovable AI Vision for PDF OCR...');
+      try {
+        // Convert base64 PDF to data URL for vision model
+        const pdfDataUrl = `data:application/pdf;base64,${content}`;
+        
+        const ocrPrompt = `Extract ALL text from this PDF document. 
+        
+**OCR EXTRACTION RULES:**
+- Extract every visible text element
+- Preserve structure (headings, questions, options, answers)
+- Include all numbers, letters, symbols
+- Maintain question numbering and formatting
+- Extract text from tables and diagrams
+- Capture mathematical notation and formulas
+- Preserve sub-question labels (a, b, c, i, ii, iii)
+
+Return the complete extracted text maintaining the original structure.`;
+
+        const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: ocrPrompt },
+                  { type: 'image_url', image_url: { url: pdfDataUrl } }
+                ]
+              }
+            ],
+            max_tokens: 4000
+          }),
+        });
+
+        if (ocrResponse.ok) {
+          const ocrData = await ocrResponse.json();
+          finalExtractedText = ocrData.choices[0].message.content;
+          console.log(`✅ PDF OCR complete: ${finalExtractedText?.length || 0} characters extracted`);
+        } else {
+          console.warn('⚠️ PDF OCR failed, using raw content');
+        }
+      } catch (ocrError) {
+        console.error('❌ PDF OCR error:', ocrError);
+        console.log('⚠️ Falling back to raw content');
+      }
+    }
+
     // Get appropriate prompts based on action mode
     const systemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages);
-    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, content, extractedText, extractedImages);
+    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, finalContent, finalExtractedText, extractedImages);
 
     console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
     

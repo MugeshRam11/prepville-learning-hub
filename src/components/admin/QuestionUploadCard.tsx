@@ -7,11 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Fix PDF.js worker - use CDN for worker with correct version
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
@@ -26,6 +23,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [progress, setProgress] = useState(0);
   const [parseResult, setParseResult] = useState<any>(null);
   const [actionMode, setActionMode] = useState<ActionMode>('parse');
+  const [manualJsonInput, setManualJsonInput] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -130,66 +129,19 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-        // Extract text AND images from PDF using pdfjs-dist
-        console.log('📄 Processing PDF file...');
+        // Use Lovable AI OCR - send PDF as base64 for backend processing
+        console.log('📄 Processing PDF with Lovable AI OCR...');
         setProgress(25);
-        toast.info('Extracting text and images from PDF...');
-
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          const numPages = pdf.numPages;
-          console.log(`📄 PDF has ${numPages} pages`);
-
-          let pdfText = '';
-          const pdfImages: string[] = [];
-
-          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-
-            // Extract text from page
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(' ');
-            pdfText += `\n--- Page ${pageNum} ---\n${pageText}`;
-
-            // Extract page as image (for visual content/diagrams)
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-              await page.render({ 
-                canvasContext: ctx, 
-                viewport: viewport,
-                canvas: canvas
-              }).promise;
-              const imageData = canvas.toDataURL('image/png');
-              
-              // Upload image to storage
-              const base64Data = imageData.split(',')[1];
-              const imageUrl = await uploadImageToStorage(base64Data, 'image/png', `${fileName}-page-${pageNum}`);
-              if (imageUrl) {
-                pdfImages.push(imageUrl);
-              }
-            }
-
-            setProgress(25 + (pageNum / numPages) * 15);
-          }
-
-          extractedText = pdfText;
-          extractedImages = pdfImages;
-          content = pdfText;
-          
-          console.log('✅ PDF extraction complete:', {
-            textLength: pdfText.length,
-            imageCount: pdfImages.length
-          });
-          toast.success(`Extracted text and ${pdfImages.length} images from ${numPages} PDF pages!`);
-        } catch (pdfError: any) {
-          console.error('❌ PDF parsing error:', pdfError);
-          throw new Error(`Failed to read PDF: ${pdfError.message}`);
-        }
+        toast.info('🤖 AI is extracting text and images from PDF...');
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer)
+            .reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+        content = base64;
+        extractedText = undefined; // Let backend handle OCR
+        console.log('✅ PDF prepared for Lovable AI OCR processing');
         setProgress(35);
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
@@ -481,9 +433,92 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     maxFiles: 1,
     disabled: uploading
   });
+
+  const handleManualJsonSubmit = async () => {
+    if (!manualJsonInput.trim()) {
+      toast.error('Please paste JSON data');
+      return;
+    }
+
+    setUploading(true);
+    setProgress(50);
+    try {
+      const parsedData = JSON.parse(manualJsonInput);
+      setProgress(80);
+      
+      let savedData = null;
+      if (parsedData.questions && parsedData.questions.length > 0) {
+        savedData = await saveQuestions(parsedData);
+      }
+      
+      setProgress(100);
+      setParseResult({
+        success: true,
+        actionMode: 'parse',
+        count: parsedData.questions?.length || 0,
+        data: savedData || parsedData
+      });
+      
+      toast.success(`Successfully imported ${parsedData.questions?.length || 0} questions from JSON!`);
+      setManualJsonInput('');
+      setShowManualInput(false);
+      
+      if (onSuccess && savedData) {
+        onSuccess(savedData);
+      }
+    } catch (error: any) {
+      console.error('❌ JSON parse error:', error);
+      toast.error('Invalid JSON format', {
+        description: error.message || 'Please check your JSON structure'
+      });
+      setParseResult({
+        success: false,
+        error: `Invalid JSON: ${error.message}`
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return <Card>
       
       <CardContent className="space-y-6">
+        {/* Manual JSON Input Toggle */}
+        <div className="flex justify-end">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowManualInput(!showManualInput)}
+          >
+            {showManualInput ? 'Hide' : 'Show'} Manual JSON Input
+          </Button>
+        </div>
+
+        {/* Manual JSON Input Section */}
+        {showManualInput && (
+          <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Paste JSON Data</label>
+              <Button 
+                size="sm" 
+                onClick={handleManualJsonSubmit}
+                disabled={uploading || !manualJsonInput.trim()}
+              >
+                Import JSON
+              </Button>
+            </div>
+            <Textarea
+              placeholder='{"questions": [{"question_text": "...", "correct_answer": "..."}]}'
+              value={manualJsonInput}
+              onChange={(e) => setManualJsonInput(e.target.value)}
+              className="font-mono text-xs min-h-[200px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Paste extracted JSON data if automatic parsing fails
+            </p>
+          </div>
+        )}
+
         {/* Action Mode Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Processing Action</label>
