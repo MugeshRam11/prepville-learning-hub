@@ -645,22 +645,28 @@ function getSystemPrompt(
     
 **ALL ${extractedImages.length} IMAGES MUST BE ASSIGNED TO QUESTIONS!**
 
-Available image URLs:
-${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+**Image Priority System:**
+${extractedImages.map((url, i) => {
+  const isDiagram = url.includes('-diagram-');
+  const isFullPage = url.includes('-fullpage');
+  const priority = isDiagram ? '🎯 HIGH PRIORITY (Embedded Diagram)' : isFullPage ? '⬇️ LOW PRIORITY (Full Page - Fallback Only)' : '📄 STANDARD';
+  return `${i + 1}. ${priority}\n   ${url}`;
+}).join('\n')}
 
 **Assignment Strategy (MANDATORY):**
-1. **Direct References**: Look for text like "see diagram", "refer to figure", "tree diagram", "table shown", "graph", "chart"
-2. **Contextual Matching**: Match images to questions by content (e.g., probability tree → probability question)
-3. **Visual Question Indicators**: If question mentions diagrams, figures, tables, graphs, or visual elements
-4. **Full Page Images**: For scanned PDFs, assign full page images to all questions on that page
-5. **Embedded Images**: Assign specific diagram/chart images to their related questions
-6. **Multiple Questions per Image**: OK to assign same image to multiple related questions
-7. **VERIFY 100%**: Before finishing, ensure ALL ${extractedImages.length} images are used
+1. **🎯 PRIORITIZE DIAGRAM IMAGES FIRST**: Images with "-diagram-" are specific embedded images (charts, diagrams, tables) - assign these FIRST
+2. **Direct References**: Look for text like "see diagram", "refer to figure", "tree diagram", "table shown", "graph", "chart"
+3. **Contextual Matching**: Match images to questions by content (e.g., probability tree → probability question)
+4. **Visual Question Indicators**: If question mentions diagrams, figures, tables, graphs, or visual elements
+5. **⬇️ Full Page Images (FALLBACK ONLY)**: Use "-fullpage" images ONLY if no specific diagram is available for a question
+6. **Multiple Questions per Image**: OK to assign same diagram to multiple related questions on same page
+7. **VERIFY 100%**: Before finishing, ensure ALL high-priority diagram images are used
 
 **How to Assign:**
 - Set \`question_image_url\` field to the appropriate image URL from the list above
 - For multi-part questions with shared diagram, assign same image to all parts
-- If unsure which question an image belongs to, analyze the content and match contextually`
+- If unsure which question an image belongs to, analyze the content and match contextually
+- ALWAYS prefer "-diagram-" images over "-fullpage" images when available`
     : '';
     
   const structureContext = hasStructure

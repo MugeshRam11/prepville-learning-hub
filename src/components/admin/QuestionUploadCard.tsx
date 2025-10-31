@@ -159,54 +159,129 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           // Always extract images from PDFs (for both scanned and regular PDFs)
           toast.info('🔍 Extracting images from PDF...');
           
+          let diagramCount = 0;
+          let fullPageCount = 0;
+          
           for (let pageNum = 1; pageNum <= numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
+            let pageHasEmbeddedImages = false;
             
-            // Method 1: Render entire page as image (always works)
-            const scale = 2.0;
-            const viewport = page.getViewport({ scale });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
+            try {
+              // First: Try to extract embedded images/diagrams
+              const operatorList = await page.getOperatorList();
+              
+              for (let i = 0; i < operatorList.fnArray.length; i++) {
+                if (operatorList.fnArray[i] === pdfjsLib.OPS.paintImageXObject) {
+                  try {
+                    const imageName = operatorList.argsArray[i][0];
+                    const image = page.objs.get(imageName);
+                    
+                    if (image && image.data) {
+                      // Create canvas for the embedded image
+                      const imgCanvas = document.createElement('canvas');
+                      imgCanvas.width = image.width;
+                      imgCanvas.height = image.height;
+                      const imgContext = imgCanvas.getContext('2d');
+                      
+                      if (imgContext && image.data) {
+                        // Create ImageData from the raw image data
+                        const imageData = imgContext.createImageData(image.width, image.height);
+                        
+                        // Handle different image formats
+                        if (image.data.length === image.width * image.height * 4) {
+                          // RGBA format
+                          imageData.data.set(image.data);
+                        } else if (image.data.length === image.width * image.height * 3) {
+                          // RGB format - convert to RGBA
+                          for (let j = 0; j < image.width * image.height; j++) {
+                            imageData.data[j * 4] = image.data[j * 3];
+                            imageData.data[j * 4 + 1] = image.data[j * 3 + 1];
+                            imageData.data[j * 4 + 2] = image.data[j * 3 + 2];
+                            imageData.data[j * 4 + 3] = 255; // Alpha
+                          }
+                        }
+                        
+                        imgContext.putImageData(imageData, 0, 0);
+                        const embeddedImageData = imgCanvas.toDataURL('image/png');
+                        const embeddedBase64 = embeddedImageData.split(',')[1];
+                        
+                        const embeddedImageUrl = await uploadImageToStorage(
+                          embeddedBase64,
+                          'image/png',
+                          `${fileName}-page${pageNum}-diagram-${i}`
+                        );
+                        
+                        if (embeddedImageUrl) {
+                          pdfImages.unshift(embeddedImageUrl); // Add to front (higher priority)
+                          pageHasEmbeddedImages = true;
+                          diagramCount++;
+                          console.log(`✅ Extracted embedded diagram ${i} from page ${pageNum}`);
+                        }
+                      }
+                    }
+                  } catch (imgError) {
+                    console.warn(`Failed to extract embedded image from page ${pageNum}:`, imgError);
+                  }
+                }
+              }
+            } catch (opError) {
+              console.warn(`Failed to get operator list for page ${pageNum}:`, opError);
+            }
             
-            if (context) {
-              await page.render({
-                canvasContext: context,
-                viewport: viewport
-              } as any).promise;
+            // Fallback: If no embedded images found, render full page
+            if (!pageHasEmbeddedImages) {
+              const scale = 2.0;
+              const viewport = page.getViewport({ scale });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
               
-              const pageImageData = canvas.toDataURL('image/png');
-              const pageBase64 = pageImageData.split(',')[1];
-              
-              const pageImageUrl = await uploadImageToStorage(
-                pageBase64,
-                'image/png',
-                `${fileName}-page-${pageNum}`
-              );
-              
-              if (pageImageUrl) {
-                pdfImages.push(pageImageUrl);
-                console.log(`✅ Extracted page ${pageNum} as image`);
+              if (context) {
+                await page.render({
+                  canvasContext: context,
+                  viewport: viewport
+                } as any).promise;
+                
+                const pageImageData = canvas.toDataURL('image/png');
+                const pageBase64 = pageImageData.split(',')[1];
+                
+                const pageImageUrl = await uploadImageToStorage(
+                  pageBase64,
+                  'image/png',
+                  `${fileName}-page${pageNum}-fullpage`
+                );
+                
+                if (pageImageUrl) {
+                  pdfImages.push(pageImageUrl); // Add to end (lower priority)
+                  fullPageCount++;
+                  console.log(`✅ Extracted full page ${pageNum} as fallback`);
+                }
               }
             }
             
             setProgress(35 + pageNum / numPages * 20);
           }
           
+          console.log(`📊 Extraction summary: ${diagramCount} diagrams, ${fullPageCount} full pages`);
+          
           if (pdfImages.length > 0) {
             extractedImages = pdfImages;
+            
+            const imagesSummary = diagramCount > 0 
+              ? `${diagramCount} diagram(s)${fullPageCount > 0 ? ` + ${fullPageCount} page(s)` : ''}`
+              : `${fullPageCount} page(s)`;
             
             if (isScannedPDF) {
               // Scanned PDF - needs OCR
               extractedText = '[Scanned PDF - AI OCR will extract text from images]';
               content = extractedText;
-              toast.success(`📸 Extracted ${pdfImages.length} page(s) for AI OCR`);
+              toast.success(`📸 Extracted ${imagesSummary} for AI OCR`);
             } else {
               // Regular PDF with text but also has images
               extractedText = pdfText;
               content = pdfText;
-              toast.success(`✅ Extracted text + ${pdfImages.length} image(s) from PDF`);
+              toast.success(`✅ Extracted text + ${imagesSummary} from PDF`);
             }
           } else {
             // No images extracted, just text
