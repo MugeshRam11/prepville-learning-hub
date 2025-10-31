@@ -46,7 +46,14 @@ serve(async (req) => {
                     type: 'text',
                     text: `Analyze this PDF page image and detect if it contains diagrams, charts, graphs, illustrations, or mathematical figures (not just plain text).
 
-If diagrams are present, provide bounding boxes for each diagram in the format:
+CRITICAL: For tree diagrams, flowcharts, and connected diagrams, you MUST capture the ENTIRE structure including:
+- Starting nodes on the left/top
+- ALL branches and connections
+- ALL labels, text boxes, and probability values
+- ALL endpoints on the right/bottom
+- Any boxes with question marks or empty values that need to be filled in
+
+If diagrams are present, provide bounding boxes for each COMPLETE diagram:
 {
   "hasDiagram": true,
   "diagrams": [
@@ -60,7 +67,7 @@ If diagrams are present, provide bounding boxes for each diagram in the format:
 If it's mostly plain text with no visual diagrams, return:
 { "hasDiagram": false }
 
-Be precise with bounding boxes to capture complete diagrams without excessive whitespace.`
+IMPORTANT: Bounding boxes should capture the FULL extent of the diagram. For tree diagrams, this means from the leftmost starting point to the rightmost endpoints, and from the top branch to the bottom branch. Do NOT crop partial diagrams.`
                   },
                   {
                     type: 'image_url',

@@ -212,13 +212,22 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 console.log(`🤖 AI analysis for page ${pageNum}:`, aiResult);
                 
                 if (aiResult.diagrams && aiResult.diagrams.length > 0) {
-                  // Extract detected diagrams based on AI bounding boxes
+                  // Extract detected diagrams based on AI bounding boxes with generous padding
                   for (const diagram of aiResult.diagrams) {
                     // Create canvas for cropped diagram
                     const cropCanvas = document.createElement('canvas');
                     const cropContext = cropCanvas.getContext('2d');
                     
-                    const { x, y, width, height } = diagram.boundingBox;
+                    // Add generous padding (80px) to ensure complete diagram capture
+                    const padding = 80;
+                    let { x, y, width, height } = diagram.boundingBox;
+                    
+                    // Apply padding with boundary checks
+                    x = Math.max(0, x - padding);
+                    y = Math.max(0, y - padding);
+                    width = Math.min(canvas.width - x, width + padding * 2);
+                    height = Math.min(canvas.height - y, height + padding * 2);
+                    
                     cropCanvas.width = width;
                     cropCanvas.height = height;
                     
