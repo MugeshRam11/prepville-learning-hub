@@ -212,21 +212,32 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 console.log(`🤖 AI analysis for page ${pageNum}:`, aiResult);
                 
                 if (aiResult.diagrams && aiResult.diagrams.length > 0) {
-                  // Extract detected diagrams based on AI bounding boxes with generous padding
-                  for (const diagram of aiResult.diagrams) {
+                  console.log(`📊 Processing ${aiResult.diagrams.length} AI-detected diagrams from page ${pageNum}`);
+                  
+                  // Extract detected diagrams based on AI bounding boxes with very generous padding
+                  for (let diagIdx = 0; diagIdx < aiResult.diagrams.length; diagIdx++) {
+                    const diagram = aiResult.diagrams[diagIdx];
+                    console.log(`🎯 Diagram ${diagIdx + 1}: ${diagram.type || 'unknown'} - ${diagram.description}`);
+                    console.log(`📐 Original bounding box:`, diagram.boundingBox);
+                    
                     // Create canvas for cropped diagram
                     const cropCanvas = document.createElement('canvas');
                     const cropContext = cropCanvas.getContext('2d');
                     
-                    // Add generous padding (80px) to ensure complete diagram capture
-                    const padding = 80;
+                    // Add VERY generous padding (120px) to ensure absolutely complete diagram capture
+                    const padding = 120;
                     let { x, y, width, height } = diagram.boundingBox;
                     
+                    // For tree diagrams and flowcharts, add extra horizontal padding
+                    const extraPadding = diagram.type?.includes('tree') || diagram.type?.includes('flowchart') ? 60 : 0;
+                    
                     // Apply padding with boundary checks
-                    x = Math.max(0, x - padding);
+                    x = Math.max(0, x - padding - extraPadding);
                     y = Math.max(0, y - padding);
-                    width = Math.min(canvas.width - x, width + padding * 2);
+                    width = Math.min(canvas.width - x, width + (padding + extraPadding) * 2);
                     height = Math.min(canvas.height - y, height + padding * 2);
+                    
+                    console.log(`📐 Adjusted bounding box with ${padding}px padding (+${extraPadding}px extra):`, { x, y, width, height });
                     
                     cropCanvas.width = width;
                     cropCanvas.height = height;
@@ -255,8 +266,17 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                     
                     if (diagramUrl) {
                       pdfImages.push(diagramUrl);
-                      console.log(`✅ Extracted diagram from page ${pageNum}: ${diagram.description}`);
+                      console.log(`✅ Extracted diagram ${diagIdx + 1} from page ${pageNum}: ${diagram.description}`);
+                      console.log(`🔗 Uploaded to: ${diagramUrl}`);
                     }
+                  }
+                  
+                  // Log comprehensive extraction results from AI analysis
+                  if (aiResult.extractedText) {
+                    console.log(`📝 Extracted text (${aiResult.extractedText.length} chars):`, aiResult.extractedText.substring(0, 200));
+                  }
+                  if (aiResult.questionStructure) {
+                    console.log(`❓ Parsed question structure:`, aiResult.questionStructure);
                   }
                 } else if (aiResult.hasDiagram) {
                   // If AI detected diagram but no specific bounding boxes, use full page

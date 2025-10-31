@@ -15,12 +15,12 @@ serve(async (req) => {
   try {
     const contentType = req.headers.get('content-type');
     
-    // Handle JSON request for PDF diagram detection
+    // Handle JSON request for comprehensive PDF parsing
     if (contentType?.includes('application/json')) {
-      const { mode, pageImageUrl, pageNumber } = await req.json();
+      const { mode, pageImageUrl, pageNumber, pageText } = await req.json();
       
       if (mode === 'pdf-diagram-detection' && pageImageUrl) {
-        console.log(`🤖 AI analyzing PDF page ${pageNumber} for diagrams...`);
+        console.log(`🔍 Step 1/3: AI analyzing PDF page ${pageNumber} for complete diagram extraction...`);
         
         const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
         if (!LOVABLE_API_KEY) {
@@ -31,43 +31,81 @@ serve(async (req) => {
         }
         
         try {
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          // Step 1: Comprehensive diagram detection with enhanced prompt
+          const detectionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${LOVABLE_API_KEY}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
+              model: 'google/gemini-2.5-pro',
               messages: [{
                 role: 'user',
                 content: [
                   {
                     type: 'text',
-                    text: `Analyze this PDF page image and detect if it contains diagrams, charts, graphs, illustrations, or mathematical figures (not just plain text).
+                    text: `COMPREHENSIVE PDF PAGE ANALYSIS - STEP 1: DIAGRAM DETECTION
 
-CRITICAL: For tree diagrams, flowcharts, and connected diagrams, you MUST capture the ENTIRE structure including:
-- Starting nodes on the left/top
-- ALL branches and connections
-- ALL labels, text boxes, and probability values
-- ALL endpoints on the right/bottom
-- Any boxes with question marks or empty values that need to be filled in
+You are analyzing a page from an educational question paper. Your task is to identify ALL visual elements that are NOT plain text.
 
-If diagrams are present, provide bounding boxes for each COMPLETE diagram:
+🎯 WHAT TO DETECT:
+- Tree diagrams (probability trees, decision trees, organizational charts)
+- Flowcharts and process diagrams
+- Graphs (bar charts, line graphs, pie charts, scatter plots)
+- Mathematical figures (geometric shapes, coordinate planes, function graphs)
+- Tables with visual structure
+- Illustrations and labeled diagrams
+- Scientific diagrams (circuits, biology diagrams, chemistry structures)
+- Maps and geographic representations
+
+⚠️ CRITICAL RULES FOR BOUNDING BOXES:
+
+1. **COMPLETE CAPTURE**: The bounding box MUST include:
+   - ALL starting points (leftmost elements)
+   - ALL branches, connections, and arrows
+   - ALL labels, text annotations, and values
+   - ALL endpoints (rightmost elements)
+   - ALL axes, legends, and titles
+   - Generous padding (at least 40-60 pixels on all sides)
+
+2. **DON'T CROP PARTIAL DIAGRAMS**: 
+   - For tree diagrams: capture from root to ALL leaf nodes
+   - For graphs: include ALL axes, labels, and data points
+   - For tables: include ALL borders and content
+
+3. **ACCURACY**: Provide pixel-perfect coordinates:
+   - x: leftmost pixel of the diagram (minus padding)
+   - y: topmost pixel of the diagram (minus padding)
+   - width: full horizontal extent (plus padding)
+   - height: full vertical extent (plus padding)
+
+📐 MEASUREMENT TIPS:
+- Look at the actual image dimensions visible to you
+- Tree diagrams often span 70-90% of page width
+- Add 10-15% padding to ensure complete capture
+
+RETURN FORMAT (strict JSON):
 {
-  "hasDiagram": true,
+  "hasDiagram": true/false,
   "diagrams": [
     {
-      "description": "brief description",
-      "boundingBox": { "x": pixels, "y": pixels, "width": pixels, "height": pixels }
+      "type": "tree_diagram|graph|flowchart|table|illustration|geometric_figure|other",
+      "description": "detailed description of what this diagram shows",
+      "boundingBox": { 
+        "x": number (left edge with padding), 
+        "y": number (top edge with padding), 
+        "width": number (full width with padding), 
+        "height": number (full height with padding) 
+      },
+      "confidence": "high|medium|low"
     }
-  ]
+  ],
+  "pageType": "question_with_diagram|text_only|mixed_content"
 }
 
-If it's mostly plain text with no visual diagrams, return:
-{ "hasDiagram": false }
-
-IMPORTANT: Bounding boxes should capture the FULL extent of the diagram. For tree diagrams, this means from the leftmost starting point to the rightmost endpoints, and from the top branch to the bottom branch. Do NOT crop partial diagrams.`
+If NO visual diagrams exist (only plain text), return:
+{ "hasDiagram": false, "pageType": "text_only" }`
                   },
                   {
                     type: 'image_url',
@@ -75,33 +113,137 @@ IMPORTANT: Bounding boxes should capture the FULL extent of the diagram. For tre
                   }
                 ]
               }],
-              max_tokens: 1000,
+              max_tokens: 2000,
               response_format: { type: "json_object" }
             })
           });
           
-          if (response.ok) {
-            const aiData = await response.json();
-            const content = aiData.choices?.[0]?.message?.content || '{"hasDiagram": false}';
-            const result = JSON.parse(content);
-            
-            console.log(`✅ AI detection result for page ${pageNumber}:`, result);
-            
+          if (!detectionResponse.ok) {
+            const errorText = await detectionResponse.text();
+            console.error('❌ AI detection failed:', detectionResponse.status, errorText);
             return new Response(
-              JSON.stringify(result),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          } else {
-            console.error('AI analysis failed:', response.status, await response.text());
-            return new Response(
-              JSON.stringify({ hasDiagram: true, diagrams: [] }), // Fallback: assume diagram present
+              JSON.stringify({ hasDiagram: false, error: 'AI detection failed' }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
-        } catch (aiError) {
-          console.error('AI analysis error:', aiError);
+
+          const aiData = await detectionResponse.json();
+          const content = aiData.choices?.[0]?.message?.content || '{"hasDiagram": false}';
+          const result = JSON.parse(content);
+          
+          console.log(`✅ Step 1 Complete - Detection result for page ${pageNumber}:`, JSON.stringify(result, null, 2));
+          
+          // Step 2: If diagrams detected, enhance with OCR analysis
+          if (result.hasDiagram && result.diagrams && result.diagrams.length > 0) {
+            console.log(`🔍 Step 2/3: Enhanced OCR analysis for ${result.diagrams.length} detected diagrams...`);
+            
+            try {
+              const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-2.5-flash',
+                  messages: [{
+                    role: 'user',
+                    content: [
+                      {
+                        type: 'text',
+                        text: `STEP 2: OCR TEXT EXTRACTION
+
+Extract ALL text visible in this image, including:
+- Question numbers and text
+- Labels and annotations on diagrams
+- Values, probabilities, or measurements
+- Any instructions or notes
+
+Return ONLY the extracted text, maintaining the reading order (top-to-bottom, left-to-right).`
+                      },
+                      {
+                        type: 'image_url',
+                        image_url: { url: pageImageUrl }
+                      }
+                    ]
+                  }],
+                  max_tokens: 1500
+                })
+              });
+
+              if (ocrResponse.ok) {
+                const ocrData = await ocrResponse.json();
+                const extractedText = ocrData.choices?.[0]?.message?.content || '';
+                result.extractedText = extractedText;
+                console.log(`✅ Step 2 Complete - Extracted text (${extractedText.length} chars)`);
+              }
+            } catch (ocrError) {
+              console.warn('⚠️ OCR extraction failed, continuing without text:', ocrError);
+            }
+
+            // Step 3: Structure question parsing
+            console.log(`🔍 Step 3/3: Parsing question structure...`);
+            
+            try {
+              const structureResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-2.5-flash',
+                  messages: [{
+                    role: 'user',
+                    content: `STEP 3: QUESTION STRUCTURE PARSING
+
+Analyze this text and identify the question structure:
+${result.extractedText || pageText || 'No text available'}
+
+Return JSON:
+{
+  "questions": [
+    {
+      "questionNumber": "string",
+      "questionText": "string",
+      "parts": ["a)", "b)", etc.],
+      "hasDiagram": true/false,
+      "topic": "probability|algebra|geometry|statistics|etc."
+    }
+  ]
+}`
+                  }],
+                  max_tokens: 1000,
+                  response_format: { type: "json_object" }
+                })
+              });
+
+              if (structureResponse.ok) {
+                const structureData = await structureResponse.json();
+                const structureContent = structureData.choices?.[0]?.message?.content || '{}';
+                const parsedStructure = JSON.parse(structureContent);
+                result.questionStructure = parsedStructure;
+                console.log(`✅ Step 3 Complete - Parsed ${parsedStructure.questions?.length || 0} questions`);
+              }
+            } catch (structureError) {
+              console.warn('⚠️ Question structure parsing failed:', structureError);
+            }
+          }
+          
+          console.log(`🎉 COMPLETE: All 3 steps finished for page ${pageNumber}`);
+          
           return new Response(
-            JSON.stringify({ hasDiagram: true, diagrams: [] }),
+            JSON.stringify(result),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+          
+        } catch (aiError) {
+          console.error('❌ AI analysis error:', aiError);
+          return new Response(
+            JSON.stringify({ 
+              hasDiagram: false, 
+              error: aiError instanceof Error ? aiError.message : 'Unknown error' 
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
