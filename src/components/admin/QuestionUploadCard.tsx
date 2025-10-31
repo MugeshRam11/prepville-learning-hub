@@ -162,32 +162,91 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           for (let pageNum = 1; pageNum <= numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
             
-            // Method 1: Render entire page as image (always works)
-            const scale = 2.0;
-            const viewport = page.getViewport({ scale });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
+            // Method 1: Extract embedded images first (diagrams, charts, tables)
+            try {
+              const operatorList = await page.getOperatorList();
+              
+              for (let imgIdx = 0; imgIdx < operatorList.fnArray.length; imgIdx++) {
+                if (operatorList.fnArray[imgIdx] === pdfjsLib.OPS.paintImageXObject) {
+                  try {
+                    const imageName = operatorList.argsArray[imgIdx][0];
+                    
+                    await new Promise((resolve) => {
+                      page.objs.get(imageName, async (image: any) => {
+                        if (image && image.width && image.height && image.width > 50 && image.height > 50) {
+                          try {
+                            const imgCanvas = document.createElement('canvas');
+                            imgCanvas.width = image.width;
+                            imgCanvas.height = image.height;
+                            const imgContext = imgCanvas.getContext('2d');
+                            
+                            if (imgContext) {
+                              if (image.data) {
+                                const imageData = imgContext.createImageData(image.width, image.height);
+                                imageData.data.set(image.data);
+                                imgContext.putImageData(imageData, 0, 0);
+                              }
+                              
+                              const embeddedImageData = imgCanvas.toDataURL('image/png');
+                              const embeddedBase64 = embeddedImageData.split(',')[1];
+                              
+                              const embeddedUrl = await uploadImageToStorage(
+                                embeddedBase64,
+                                'image/png',
+                                `${fileName}-p${pageNum}-diagram-${imgIdx}`
+                              );
+                              
+                              if (embeddedUrl) {
+                                // Prioritize embedded images by adding them first
+                                pdfImages.unshift(embeddedUrl);
+                                console.log(`✅ Extracted embedded diagram from page ${pageNum}`);
+                              }
+                            }
+                          } catch (err) {
+                            console.warn(`Could not process embedded image:`, err);
+                          }
+                        }
+                        resolve(true);
+                      });
+                    });
+                  } catch (imgError) {
+                    console.warn(`Error extracting embedded image:`, imgError);
+                  }
+                }
+              }
+            } catch (opError) {
+              console.warn(`Could not extract embedded images from page ${pageNum}:`, opError);
+            }
             
-            if (context) {
-              await page.render({
-                canvasContext: context,
-                viewport: viewport
-              } as any).promise;
+            // Method 2: Only add full page screenshot if no embedded images found
+            if (pdfImages.filter(img => img.includes(`-p${pageNum}-`)).length === 0) {
+              const scale = 2.0;
+              const viewport = page.getViewport({ scale });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
               
-              const pageImageData = canvas.toDataURL('image/png');
-              const pageBase64 = pageImageData.split(',')[1];
-              
-              const pageImageUrl = await uploadImageToStorage(
-                pageBase64,
-                'image/png',
-                `${fileName}-page-${pageNum}`
-              );
-              
-              if (pageImageUrl) {
-                pdfImages.push(pageImageUrl);
-                console.log(`✅ Extracted page ${pageNum} as image`);
+              if (context) {
+                await page.render({
+                  canvasContext: context,
+                  viewport: viewport
+                } as any).promise;
+                
+                const pageImageData = canvas.toDataURL('image/png');
+                const pageBase64 = pageImageData.split(',')[1];
+                
+                const pageImageUrl = await uploadImageToStorage(
+                  pageBase64,
+                  'image/png',
+                  `${fileName}-page-${pageNum}-fullpage`
+                );
+                
+                if (pageImageUrl) {
+                  // Add full page as fallback (lower priority)
+                  pdfImages.push(pageImageUrl);
+                  console.log(`✅ Extracted page ${pageNum} as fallback image`);
+                }
               }
             }
             
@@ -197,16 +256,33 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           if (pdfImages.length > 0) {
             extractedImages = pdfImages;
             
+            const diagramCount = pdfImages.filter(img => img.includes('-diagram-')).length;
+            const fullPageCount = pdfImages.filter(img => img.includes('-fullpage')).length;
+            
             if (isScannedPDF) {
               // Scanned PDF - needs OCR
               extractedText = '[Scanned PDF - AI OCR will extract text from images]';
               content = extractedText;
-              toast.success(`📸 Extracted ${pdfImages.length} page(s) for AI OCR`);
+              toast.success(
+                `📸 Extracted ${pdfImages.length} image(s) for AI OCR`,
+                {
+                  description: diagramCount > 0 
+                    ? `${diagramCount} diagram(s) + ${fullPageCount} page(s)` 
+                    : `${fullPageCount} page(s)`
+                }
+              );
             } else {
               // Regular PDF with text but also has images
               extractedText = pdfText;
               content = pdfText;
-              toast.success(`✅ Extracted text + ${pdfImages.length} image(s) from PDF`);
+              toast.success(
+                `✅ Extracted text + ${pdfImages.length} image(s)`,
+                {
+                  description: diagramCount > 0 
+                    ? `${diagramCount} embedded diagram(s) + ${fullPageCount} page(s)` 
+                    : `${fullPageCount} page(s)`
+                }
+              );
             }
           } else {
             // No images extracted, just text

@@ -645,22 +645,34 @@ function getSystemPrompt(
     
 **ALL ${extractedImages.length} IMAGES MUST BE ASSIGNED TO QUESTIONS!**
 
-Available image URLs:
-${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+Available image URLs (PRIORITIZED ORDER):
+${extractedImages.map((url, i) => {
+  const isDiagram = url.includes('-diagram-');
+  const isFullPage = url.includes('-fullpage');
+  const priority = isDiagram ? '🎯 HIGH PRIORITY' : isFullPage ? '⬇️ LOW PRIORITY' : '📄 NORMAL';
+  return `${i + 1}. ${priority}: ${url}`;
+}).join('\n')}
 
 **Assignment Strategy (MANDATORY):**
-1. **Direct References**: Look for text like "see diagram", "refer to figure", "tree diagram", "table shown", "graph", "chart"
-2. **Contextual Matching**: Match images to questions by content (e.g., probability tree → probability question)
-3. **Visual Question Indicators**: If question mentions diagrams, figures, tables, graphs, or visual elements
-4. **Full Page Images**: For scanned PDFs, assign full page images to all questions on that page
-5. **Embedded Images**: Assign specific diagram/chart images to their related questions
-6. **Multiple Questions per Image**: OK to assign same image to multiple related questions
-7. **VERIFY 100%**: Before finishing, ensure ALL ${extractedImages.length} images are used
+1. **PRIORITIZE DIAGRAM IMAGES**: Images with "-diagram-" in the URL are embedded diagrams/charts - ALWAYS use these FIRST!
+2. **Direct References**: Look for text like "see diagram", "refer to figure", "tree diagram", "table shown", "graph", "chart"
+3. **Contextual Matching**: Match images to questions by content
+   - "tree diagram" → assign the DIAGRAM image (not fullpage)
+   - "table" → assign the TABLE diagram image
+   - "graph/chart" → assign the CHART diagram image
+4. **Fallback to Fullpage**: Only use "-fullpage" images if no specific diagram is available
+5. **Visual Question Indicators**: If question mentions diagrams, figures, tables, graphs
+6. **VERIFY 100%**: Before finishing, ensure all DIAGRAM images are used
 
-**How to Assign:**
-- Set \`question_image_url\` field to the appropriate image URL from the list above
-- For multi-part questions with shared diagram, assign same image to all parts
-- If unsure which question an image belongs to, analyze the content and match contextually`
+**Critical Rules:**
+- 🎯 DIAGRAM images (-diagram-) = Highest priority - these are the actual tree diagrams, tables, charts
+- 📄 NORMAL images = Medium priority
+- ⬇️ FULLPAGE images (-fullpage) = Lowest priority - only if no better option exists
+
+**Example:**
+Question: "Complete the tree diagram..." 
+✅ CORRECT: Use \`...-p1-diagram-0.png\` (the actual tree diagram)
+❌ WRONG: Use \`...-page-1-fullpage.png\` (too broad, shows whole page)`
     : '';
     
   const structureContext = hasStructure
