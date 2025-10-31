@@ -405,8 +405,10 @@ Return ONLY the answer, nothing else.`;
 
 function getSystemPrompt(actionMode: string, parseMode: string, extractedImages?: string[]): string {
   const hasImages = extractedImages && extractedImages.length > 0;
+  const imageCount = extractedImages?.length || 0;
+  const imageUrls = extractedImages?.join(', ') || 'none';
   const imageContext = hasImages 
-    ? `\n\n📸 **IMAGE HANDLING**: ${extractedImages.length} images were extracted from the document at URLs: ${extractedImages.join(', ')}. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).`
+    ? `\n\n📸 **IMAGE HANDLING**: ${imageCount} images were extracted from the document at URLs: ${imageUrls}. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).`
     : '';
   
   if (actionMode === 'summarize') {
@@ -641,14 +643,15 @@ Return JSON with this exact structure:
 - For text answers: use related but incorrect concepts
 - EXAMPLE: Answer is "94" → Options: ["A. 94", "B. 84", "C. 104", "D. 74"]
 
-**100% IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}
-YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to questions:
+**100% IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**
+${imageContext}
+YOU MUST assign ALL ${imageCount} extracted images to questions:
 1. **Direct References**: "see diagram", "refer to figure", "tree diagram", "table shown", "graph"
 2. **Contextual Matching**: Match images to questions by topic (probability tree → probability question)
 3. **Distribute All Images**: EVERY image must be assigned - spread them across relevant questions
 4. **Priority Assignment**: Tables/diagrams mentioned in text get highest priority
 5. **No Unassigned Images**: Count your assignments - must equal total extracted images
-6. **Image URLs**: Use exact URLs from extracted images list: ${extractedImages?.join(', ') || 'none'}
+6. **Image URLs**: Use exact URLs from extracted images list: ${imageUrls}
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
@@ -689,7 +692,7 @@ Output:
 
 **IMAGE ASSIGNMENT VALIDATION:**
 Before returning JSON, verify:
-- Count of question_image_url fields with non-null values = ${extractedImages?.length || 0}
+- Count of question_image_url fields with non-null values = ${imageCount}
 - Every extracted image URL appears at least once in questions array
 - No images are left unassigned
 
@@ -726,12 +729,14 @@ function getUserPrompt(
   extractedText: string | undefined,
   extractedImages?: string[]
 ): string {
+  const imageCount = extractedImages?.length || 0;
+  const imageUrls = extractedImages?.join(', ') || 'none';
   const fileContext = fileName ? `\n📁 File: ${fileName} (${fileType})` : '';
   const textPreview = extractedText 
     ? `\n\n📄 Pre-extracted Text (${extractedText.length} characters):\n${extractedText.substring(0, 2500)}${extractedText.length > 2500 ? '\n...(truncated)' : ''}`
     : '';
   const imageContext = extractedImages && extractedImages.length > 0
-    ? `\n\n📸 Extracted Images (${extractedImages.length} total):\n${extractedImages.map((url, i) => `Image ${i + 1}: ${url}`).join('\n')}`
+    ? `\n\n📸 Extracted Images (${imageCount} total):\n${extractedImages.map((url, i) => `Image ${i + 1}: ${url}`).join('\n')}`
     : '';
 
   if (actionMode === 'summarize') {
@@ -785,8 +790,8 @@ ${parseMode === 'quick' ? `\n**🎯 QUICK TEST MODE - CRITICAL REQUIREMENTS:**
 4. **STANDALONE CONTEXT**: Each question must include all necessary context from parent
 5. **NO SHORT ANSWER**: Convert ALL question types to MCQ with 4 options\n` : ''}
 
-${extractedImages && extractedImages.length > 0 ? `\n**📸 100% IMAGE ASSIGNMENT (CRITICAL - ${extractedImages.length} IMAGES TOTAL)**:
-YOU MUST ASSIGN ALL ${extractedImages.length} IMAGES - ZERO IMAGES SHOULD BE LEFT UNASSIGNED!
+  ${extractedImages && extractedImages.length > 0 ? `\n**📸 100% IMAGE ASSIGNMENT (CRITICAL - ${imageCount} IMAGES TOTAL)**:
+YOU MUST ASSIGN ALL ${imageCount} IMAGES - ZERO IMAGES SHOULD BE LEFT UNASSIGNED!
 
 **Available Image URLs:**
 ${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
@@ -796,7 +801,7 @@ ${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
 2. **Contextual Matching**: Match images to questions by content (probability tree → probability question, table → data question)
 3. **Distribute ALL Images**: Every single image must appear in at least one question's question_image_url field
 4. **Shared Images OK**: Multiple questions can reference the same image if they all relate to it
-5. **Verify 100%**: Before finishing, count - did you assign all ${extractedImages.length} images?
+5. **Verify 100%**: Before finishing, count - did you assign all ${imageCount} images?
 
 **Examples of Good Assignment:**
 - Question mentions "tree diagram" → assign tree image URL
@@ -805,13 +810,13 @@ ${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
 - Multiple parts (a,b,c) referencing same diagram → assign same image to each flattened question
 
 **VALIDATION CHECK:**
-After assigning, verify that all ${extractedImages.length} image URLs appear in your questions array.
-Count of non-null question_image_url values should equal ${extractedImages.length}.
+After assigning, verify that all ${imageCount} image URLs appear in your questions array.
+Count of non-null question_image_url values should equal ${imageCount}.
 ` : ''}
 
-${parseMode === 'quick' && extractedImages && extractedImages.length > 0 ? `\n**⚠️ QUICK TEST + IMAGES CHECKLIST:**
+  ${parseMode === 'quick' && extractedImages && extractedImages.length > 0 ? `\n**⚠️ QUICK TEST + IMAGES CHECKLIST:**
 ✓ Every question has exactly 4 MCQ options (A, B, C, D)
-✓ All ${extractedImages.length} images are assigned to questions
+✓ All ${imageCount} images are assigned to questions
 ✓ Sub-questions are flattened into separate standalone questions
 ✓ Each question includes necessary context
 ✓ No short answer or essay questions remain\n` : ''}
