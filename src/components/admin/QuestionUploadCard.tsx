@@ -130,7 +130,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf')) {
-        // Extract text from PDF using pdfjs with OCR fallback
+        // Extract text from PDF using pdfjs with enhanced image extraction
         setProgress(25);
         toast.info('Processing PDF document...');
         
@@ -156,134 +156,60 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           const cleanText = pdfText.replace(/\s+/g, '').trim();
           const isScannedPDF = cleanText.length < 100 * numPages; // Less than 100 chars per page
           
-          if (isScannedPDF && numPages <= 10) {
-            // Scanned PDF detected - use AI OCR
-            toast.info('🔍 Scanned PDF detected - activating AI OCR...', {
-              description: `Processing ${numPages} page(s) with advanced OCR`
-            });
+          // Always extract images from PDFs (for both scanned and regular PDFs)
+          toast.info('🔍 Extracting images from PDF...');
+          
+          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
             
-            // Convert PDF pages to images for OCR
-            for (let i = 1; i <= numPages; i++) {
-              const page = await pdf.getPage(i);
+            // Method 1: Render entire page as image (always works)
+            const scale = 2.0;
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            if (context) {
+              await page.render({
+                canvasContext: context,
+                viewport: viewport
+              } as any).promise;
               
-              // First, try to extract embedded images from the page
-              const operatorList = await page.getOperatorList();
-              const pageImages: string[] = [];
+              const pageImageData = canvas.toDataURL('image/png');
+              const pageBase64 = pageImageData.split(',')[1];
               
-              // Look for image operations in the page
-              for (let j = 0; j < operatorList.fnArray.length; j++) {
-                // Check if this operation is painting an image
-                if (operatorList.fnArray[j] === pdfjsLib.OPS.paintImageXObject) {
-                  try {
-                    const imageName = operatorList.argsArray[j][0];
-                    
-                    // Wait for the image object to be loaded
-                    await new Promise((resolve) => {
-                      page.objs.get(imageName, (image: any) => {
-                        if (image && image.width && image.height) {
-                          try {
-                            // Create canvas for embedded image
-                            const imgCanvas = document.createElement('canvas');
-                            imgCanvas.width = image.width;
-                            imgCanvas.height = image.height;
-                            const imgContext = imgCanvas.getContext('2d');
-                            
-                            if (imgContext) {
-                              // Handle different image formats
-                              if (image.data) {
-                                const imageData = imgContext.createImageData(image.width, image.height);
-                                imageData.data.set(image.data);
-                                imgContext.putImageData(imageData, 0, 0);
-                              } else if (image.bitmap) {
-                                imgContext.drawImage(image.bitmap, 0, 0);
-                              }
-                              
-                              const embeddedImageData = imgCanvas.toDataURL('image/png');
-                              const embeddedBase64 = embeddedImageData.split(',')[1];
-                              
-                              uploadImageToStorage(
-                                embeddedBase64, 
-                                'image/png', 
-                                `${fileName}-p${i}-img${j}`
-                              ).then(embeddedUrl => {
-                                if (embeddedUrl) {
-                                  pageImages.push(embeddedUrl);
-                                  console.log(`✅ Extracted embedded image from page ${i}`);
-                                }
-                                resolve(true);
-                              }).catch(() => resolve(false));
-                            } else {
-                              resolve(false);
-                            }
-                          } catch (imgError) {
-                            console.warn(`Could not process embedded image from page ${i}:`, imgError);
-                            resolve(false);
-                          }
-                        } else {
-                          resolve(false);
-                        }
-                      });
-                    });
-                  } catch (imgError) {
-                    console.warn(`Could not extract embedded image from page ${i}:`, imgError);
-                  }
-                }
+              const pageImageUrl = await uploadImageToStorage(
+                pageBase64,
+                'image/png',
+                `${fileName}-page-${pageNum}`
+              );
+              
+              if (pageImageUrl) {
+                pdfImages.push(pageImageUrl);
+                console.log(`✅ Extracted page ${pageNum} as image`);
               }
-              
-              // Wait for all embedded images to be processed
-              await new Promise(resolve => setTimeout(resolve, 100));
-              
-              // Add embedded images to the collection
-              if (pageImages.length > 0) {
-                pdfImages.push(...pageImages);
-                console.log(`📷 Found ${pageImages.length} embedded image(s) on page ${i}`);
-              }
-              
-              // Render full page at high resolution for OCR
-              const viewport = page.getViewport({ scale: 2.0 });
-              const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d');
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-              
-              if (context) {
-                const renderTask = page.render({
-                  canvasContext: context,
-                  viewport: viewport
-                } as any);
-                
-                await renderTask.promise;
-                
-                // Convert canvas to base64 image
-                const imageData = canvas.toDataURL('image/png');
-                const base64 = imageData.split(',')[1];
-                
-                // Upload full page image to storage for AI processing
-                const imageUrl = await uploadImageToStorage(base64, 'image/png', `${fileName}-page-${i}`);
-                if (imageUrl) {
-                  pdfImages.push(imageUrl);
-                }
-              }
-              
-              setProgress(35 + i / numPages * 20);
             }
             
-            if (pdfImages.length > 0) {
-              extractedImages = pdfImages;
+            setProgress(35 + pageNum / numPages * 20);
+          }
+          
+          if (pdfImages.length > 0) {
+            extractedImages = pdfImages;
+            
+            if (isScannedPDF) {
+              // Scanned PDF - needs OCR
               extractedText = '[Scanned PDF - AI OCR will extract text from images]';
               content = extractedText;
-              const embeddedCount = pdfImages.length - numPages; // Subtract full page images
-              toast.success(
-                `📸 Extracted ${pdfImages.length} total image(s)`,
-                {
-                  description: embeddedCount > 0 
-                    ? `${embeddedCount} embedded image(s) + ${numPages} full page(s)` 
-                    : `${numPages} full page(s) for AI OCR`
-                }
-              );
+              toast.success(`📸 Extracted ${pdfImages.length} page(s) for AI OCR`);
+            } else {
+              // Regular PDF with text but also has images
+              extractedText = pdfText;
+              content = pdfText;
+              toast.success(`✅ Extracted text + ${pdfImages.length} image(s) from PDF`);
             }
           } else {
-            // Regular PDF with text
+            // No images extracted, just text
             extractedText = pdfText;
             content = pdfText;
             console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
