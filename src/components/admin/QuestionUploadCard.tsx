@@ -129,25 +129,12 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-        // Enhanced PDF processing with full OCR + image extraction
-        console.log('📄 Processing PDF with comprehensive extraction...');
-        setProgress(25);
-        toast.info('🤖 Extracting text, images, and structure from PDF...');
-        
-        // Convert PDF to base64 for transmission
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(
-          new Uint8Array(arrayBuffer)
-            .reduce((data, byte) => data + String.fromCharCode(byte), '')
-        );
-        
-        // Store PDF as data URL for AI vision processing
-        content = `data:application/pdf;base64,${base64}`;
-        extractedText = undefined; // Backend will perform comprehensive OCR
-        
-        console.log('✅ PDF prepared for AI processing (Vision + OCR)');
-        toast.info('AI will extract all content including diagrams and tables...');
-        setProgress(35);
+        // PDF files are not supported - direct users to Word documents
+        toast.error('PDF files are not supported', {
+          description: 'Please convert your PDF to a Word document (.docx) for best results. Word documents support automatic text and image extraction.',
+          duration: 10000
+        });
+        throw new Error('PDF files are not currently supported. Please use Word documents (.docx) instead, which provide better extraction of text, images, and formatting.');
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
         const base64 = await fileToBase64(file);
@@ -441,7 +428,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     accept: {
       'text/csv': ['.csv'],
       'text/plain': ['.txt'],
-      'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/msword': ['.doc'],
       'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']
