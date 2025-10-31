@@ -28,7 +28,8 @@ serve(async (req) => {
       actionMode,
       contentLength: content?.length,
       hasExtractedText: !!extractedText,
-      extractedImagesCount: extractedImages?.length || 0
+      extractedImagesCount: extractedImages?.length || 0,
+      isPDF: fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')
     });
     
     if (!content && !extractedText) {
@@ -47,9 +48,300 @@ serve(async (req) => {
       );
     }
 
+    // Enhanced PDF processing with comprehensive extraction
+    let finalContent = content;
+    let finalExtractedText = extractedText;
+    let finalExtractedImages = [...extractedImages];
+    const isPDF = fileType?.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf');
+    const isPDFDataUrl = content?.startsWith('data:application/pdf;base64,');
+    
+    if ((isPDF || isPDFDataUrl) && !extractedText) {
+      console.log('⚠️ PDF Processing: Limited to text extraction (images not supported)');
+      console.log('💡 For complete extraction including images, use Word documents (.docx)');
+      
+      // PDFs cannot use vision API - return helpful guidance
+      return new Response(
+        JSON.stringify({ 
+          error: 'PDF files have limited support',
+          suggestion: 'For best results with automatic text AND image extraction, please use Word documents (.docx) instead.',
+          technical_details: 'PDFs can only extract text content. Diagrams, images, and complex formatting require Word document format (.docx) which provides complete extraction capabilities.',
+          workaround: 'Convert your PDF to DOCX format, or upload individual pages as images (JPG/PNG) for image-based questions.'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Legacy PDF extraction code (disabled) - kept for reference
+    if (false) {
+      // Ensure content is in data URL format
+      const pdfDataUrl = isPDFDataUrl ? content : `data:application/pdf;base64,${content}`;
+      
+      let extractionSuccessful = false;
+      const maxAttempts = 3;
+      
+      // Enhanced OCR prompt with 100% extraction focus
+      const ocrPrompt = `You are an advanced OCR system with 100% accuracy. Extract ALL visible content from this PDF with ZERO errors.
+
+**MULTI-LAYER EXTRACTION (Zero Information Loss):**
+
+1. **DOCUMENT STRUCTURE:**
+   - Page numbers and headers/footers
+   - Section titles and question numbers
+   - Hierarchical organization (main questions → sub-questions)
+   - Any formatting cues (bold, italic, underline, font sizes)
+
+2. **TEXTUAL CONTENT (Character-Perfect):**
+   - Main question text with exact wording
+   - Sub-questions (a), b), c), d) OR i), ii), iii) OR Part A:, Part B:
+   - Instructions, context paragraphs, problem statements
+   - Multiple choice options (A, B, C, D) with complete text
+   - Answer keys if visible (e.g., "Answer: C" or "Correct: 0.82")
+
+3. **NUMERICAL & MATHEMATICAL CONTENT:**
+   - ALL numbers, decimals, fractions, percentages (exact precision)
+   - Mathematical formulas and equations (LaTeX-style if complex)
+   - Probability values (e.g., P(A) = 0.45, P(B|A) = 0.7)
+   - Statistical data, measurements, coordinates
+   - Calculation steps if shown
+
+4. **MARKS & SCORING:**
+   - Individual marks per sub-question: [3 marks], (2m), [2], (3 points)
+   - Total marks per question: [12 marks total]
+   - Point distributions and scoring rubrics
+
+5. **TABLES & STRUCTURED DATA:**
+   - Table headers and column names
+   - All table cells with exact values
+   - Row/column counts
+   - Table titles and descriptions
+   - Data relationships (which row/column relates to which)
+
+6. **VISUAL ELEMENTS & DIAGRAMS:**
+   - Tree diagrams: all branches, nodes, labels, probabilities
+   - Graphs/charts: axes labels, data points, legends
+   - Geometric figures: shapes, measurements, angles
+   - Venn diagrams: regions, labels, set notations
+   - References to visuals ("see diagram below", "refer to Figure 2.1")
+
+7. **CONTEXTUAL RELATIONSHIPS:**
+   - Which sub-questions share the same context/diagram
+   - Which questions reference the same data table
+   - Sequential dependencies (e.g., "use your answer from part a")
+
+**EXTRACTION QUALITY REQUIREMENTS:**
+- **100% Accuracy**: Every character, number, and symbol must be exact
+- **Zero Hallucination**: Only extract what's actually visible - no assumptions
+- **Preserve Formatting**: Maintain bullet points, numbering, indentation
+- **Complete Coverage**: Do not skip any section, even if partially visible
+- **Confidence Indicators**: Mark any unclear/ambiguous text with [UNCLEAR: possible text]
+
+**OUTPUT FORMAT:**
+Provide a complete, character-perfect transcription organized by:
+- Question numbers (1, 2, 3...)
+- Sub-questions (a, b, c... or i, ii, iii...)
+- Associated marks, options, tables, diagrams
+- Any answer keys or solutions present
+
+Extract EVERYTHING - assume 100% information recovery is required.`;
+
+      // Multi-attempt extraction with increasing aggressiveness
+      for (let attempt = 1; attempt <= maxAttempts && !extractionSuccessful; attempt++) {
+        try {
+          console.log(`📄 PDF Extraction Attempt ${attempt}/${maxAttempts}...`);
+          
+          const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: ocrPrompt },
+                    { type: 'image_url', image_url: { url: pdfDataUrl } }
+                  ]
+                }
+              ],
+              max_tokens: attempt === 1 ? 6000 : (attempt === 2 ? 8000 : 10000), // Increase tokens on retries
+              temperature: attempt === 1 ? 0.1 : (attempt === 2 ? 0.2 : 0.3) // Slightly increase temperature on retries
+            }),
+          });
+
+          if (ocrResponse.ok) {
+            const ocrData = await ocrResponse.json();
+            const extractedContent = ocrData.choices[0].message.content;
+            
+            // Validate extraction quality
+            const wordCount = extractedContent?.split(/\s+/).length || 0;
+            const charCount = extractedContent?.length || 0;
+            
+            console.log(`📊 Attempt ${attempt} Results: ${charCount} chars, ${wordCount} words`);
+            
+            // Success criteria: reasonable content length
+            if (charCount > 100) {
+              finalExtractedText = extractedContent;
+              extractionSuccessful = true;
+              console.log(`✅ PDF text extraction successful on attempt ${attempt}`);
+              
+              // Step 2: Extract visual elements
+              console.log('🖼️ Extracting visual elements with comprehensive analysis...');
+              const imagePrompt = `You are a visual intelligence system. Analyze and extract ALL visual elements from this PDF with complete detail.
+
+**COMPREHENSIVE VISUAL ANALYSIS:**
+
+1. **TREE DIAGRAMS (Probability/Decision Trees):**
+   - Type: Probability tree, decision tree, event tree
+   - Structure: Number of levels/branches
+   - Node labels: All text at each node
+   - Branch labels: All probabilities/outcomes on branches
+   - Numerical values: Exact probabilities (e.g., 0.45, 2/5, 45%)
+   - Related question: Which question number references this diagram
+
+2. **DATA TABLES:**
+   - Table title/caption
+   - Column headers (exact text)
+   - Row headers (exact text)
+   - All cell values (complete data extraction)
+   - Number of rows × columns
+   - Missing/incomplete cells (mark as [EMPTY])
+   - Related question: Which question uses this table
+
+3. **GRAPHS & CHARTS:**
+   - Type: Bar chart, line graph, pie chart, scatter plot, histogram
+   - Axes labels: X-axis and Y-axis titles
+   - Scale/units: Numerical ranges and increments
+   - Data points: Exact values from graph
+   - Legend: All legend entries and color coding
+   - Title: Graph title
+   - Related question: Which question analyzes this graph
+
+4. **GEOMETRIC DIAGRAMS:**
+   - Type: Triangle, circle, polygon, 3D shape
+   - Measurements: All labeled dimensions, angles, lengths
+   - Labels: All vertex/point labels (A, B, C, etc.)
+   - Relationships: Parallel lines, right angles, congruence marks
+   - Related question: Which geometry question uses this
+
+5. **VENN DIAGRAMS:**
+   - Number of sets/circles
+   - Set labels (A, B, C, Universe)
+   - Region values: Numbers in each intersection
+   - Related question: Which set theory question references this
+
+6. **OTHER VISUAL ELEMENTS:**
+   - Type: Image, photograph, illustration, symbol
+   - Description: What it shows
+   - Purpose: Why it's included
+   - Related question: Which question needs this visual
+
+**EXTRACTION FORMAT (for each visual element):**
+
+Visual Element #[Number]:
+- Type: [specific type]
+- Question Reference: Q[number] or Q[number][letter] (e.g., Q1, Q2a)
+- Detailed Description: [complete description]
+- Key Data: [all extractable data]
+- OCR Text: [any text visible in the visual]
+- Confidence: [High/Medium/Low based on clarity]
+
+**CRITICAL REQUIREMENTS:**
+- Extract EVERY visual element - zero omissions
+- Transcribe ALL text visible in diagrams/tables
+- Capture ALL numerical values with exact precision
+- Identify which questions reference each visual
+- Mark unclear elements but still provide best extraction
+
+List ALL visual elements systematically.`;
+
+              try {
+                const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    model: 'google/gemini-2.5-flash',
+                    messages: [
+                      {
+                        role: 'user',
+                        content: [
+                          { type: 'text', text: imagePrompt },
+                          { type: 'image_url', image_url: { url: pdfDataUrl } }
+                        ]
+                      }
+                    ],
+                    max_tokens: 3000
+                  }),
+                });
+
+                if (imageResponse.ok) {
+                  const imageData = await imageResponse.json();
+                  const imageDescription = imageData.choices[0].message.content;
+                  console.log(`✅ Visual Elements Extracted (${imageDescription.length} chars)`);
+                  
+                  // Append visual context to extracted text
+                  finalExtractedText += `\n\n=== VISUAL ELEMENTS IN DOCUMENT ===\n${imageDescription}\n=== END VISUAL ELEMENTS ===`;
+                  
+                  // Final extraction metrics
+                  const finalWords = finalExtractedText.split(/\s+/).length;
+                  const finalLines = finalExtractedText.split('\n').length;
+                  console.log(`📊 Total Extraction: ${finalWords} words, ${finalLines} lines, ${finalExtractedText.length} chars`);
+                } else {
+                  console.warn('⚠️ Visual element extraction failed, text-only extraction complete');
+                }
+              } catch (imgError) {
+                console.warn('⚠️ Visual extraction error:', imgError);
+              }
+              
+              break; // Exit retry loop on success
+            } else {
+              console.warn(`⚠️ Attempt ${attempt}: Insufficient content (${charCount} chars, ${wordCount} words)`);
+              
+              if (attempt === maxAttempts) {
+                console.error(`❌ All ${maxAttempts} attempts failed to extract sufficient content`);
+                finalExtractedText = extractedContent || '[PDF extraction failed - minimal content recovered]';
+              } else {
+                console.log(`🔄 Retrying with enhanced parameters...`);
+                await new Promise(resolve => setTimeout(resolve, 1500 * attempt)); // Exponential backoff
+              }
+            }
+          } else {
+            const errorText = await ocrResponse.text();
+            console.error(`❌ Attempt ${attempt} OCR API error: ${ocrResponse.status} ${errorText}`);
+            
+            if (attempt === maxAttempts) {
+              console.error(`❌ PDF extraction completely failed after ${maxAttempts} attempts`);
+              finalExtractedText = '[PDF extraction failed - API error]';
+            } else {
+              await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Wait before retry
+            }
+          }
+        } catch (attemptError) {
+          console.error(`❌ Attempt ${attempt} exception:`, attemptError);
+          
+          if (attempt === maxAttempts) {
+            console.error(`❌ Fatal error during PDF extraction`);
+            finalExtractedText = '[PDF extraction failed - system error]';
+          }
+        }
+      }
+      
+      // Final quality check
+      if (!extractionSuccessful) {
+        console.error(`🚨 PDF EXTRACTION QUALITY: POOR - Content may be incomplete or missing`);
+      } else {
+        console.log(`✅ PDF EXTRACTION QUALITY: GOOD - Content successfully extracted`);
+      }
+    } // End of disabled PDF extraction code
+
     // Get appropriate prompts based on action mode
     const systemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages);
-    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, content, extractedText, extractedImages);
+    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, finalContent, finalExtractedText, extractedImages);
 
     console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
     
@@ -114,6 +406,48 @@ serve(async (req) => {
         );
       }
       
+      // Post-processing validation and quality checks
+      console.log(`🔍 Validating ${questions.length} parsed questions...`);
+      
+      let validationWarnings: string[] = [];
+      questions.forEach((q: any, idx: number) => {
+        // Validate required fields
+        if (!q.question_text || q.question_text.trim().length === 0) {
+          validationWarnings.push(`Q${idx + 1}: Missing question text`);
+        }
+        
+        // Validate MCQ questions have options
+        if (q.question_type === 'mcq' && (!q.options || q.options.length !== 4)) {
+          validationWarnings.push(`Q${idx + 1}: MCQ must have exactly 4 options`);
+        }
+        
+        // Validate marks are positive numbers
+        if (q.marks && (typeof q.marks !== 'number' || q.marks <= 0)) {
+          validationWarnings.push(`Q${idx + 1}: Invalid marks value`);
+        }
+        
+        // Check if sub-questions structure is valid
+        if (q.has_sub_questions) {
+          if (!q.sub_questions || !Array.isArray(q.sub_questions) || q.sub_questions.length === 0) {
+            validationWarnings.push(`Q${idx + 1}: Marked as having sub-questions but none found`);
+            q.has_sub_questions = false;
+          } else {
+            // Validate sub-question structure
+            q.sub_questions.forEach((sq: any, sqIdx: number) => {
+              if (!sq.label || !sq.text) {
+                validationWarnings.push(`Q${idx + 1}${sq.label || sqIdx}: Invalid sub-question structure`);
+              }
+            });
+          }
+        }
+      });
+      
+      if (validationWarnings.length > 0) {
+        console.warn(`⚠️ Validation warnings (${validationWarnings.length}):\n${validationWarnings.slice(0, 5).join('\n')}`);
+      } else {
+        console.log('✅ All questions passed validation checks');
+      }
+      
       // Auto-solve questions and sub-questions without answer keys
       console.log(`🔍 Checking for missing answer keys...`);
       const questionsNeedingSolving = questions.filter((q: any) => !q.correct_answer || q.correct_answer.trim() === '');
@@ -126,23 +460,39 @@ serve(async (req) => {
         
         for (const question of questionsNeedingSolving) {
           try {
-            const solvePrompt = `You are a mathematics and science expert. Solve this question and provide ONLY the answer.
+            const solvePrompt = `You are an expert problem solver specializing in ${question.difficulty || 'medium'}-level questions. Solve this question with 100% accuracy.
 
-Question: ${question.question_text}
-${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
-${question.marks ? `Marks: ${question.marks}` : ''}
-${question.difficulty ? `Difficulty: ${question.difficulty}` : ''}
+**QUESTION:**
+${question.question_text}
 
-Instructions:
-- Analyze the question carefully
-- If there's an image, analyze it to understand the problem
-- Solve the problem step by step
-- Provide ONLY the final answer in your response
-- For numerical answers, provide the exact number
-- For text answers, provide the complete answer text
-- Keep answers concise but complete
+${question.question_image_url ? `**VISUAL ELEMENT:** ${question.question_image_url}
+[Analyze the image carefully - it contains critical information for solving]` : ''}
 
-Return ONLY the answer, nothing else.`;
+${question.marks ? `**MARKS:** ${question.marks} marks` : ''}
+${question.difficulty ? `**DIFFICULTY:** ${question.difficulty}` : ''}
+
+**SOLVING REQUIREMENTS:**
+1. **Analyze Comprehensively**: Understand what's being asked
+2. **Use All Information**: Text + image + context
+3. **Show Reasoning**: Think through the problem logically
+4. **Verify Accuracy**: Double-check calculations
+5. **Provide Final Answer**: Clear, concise, complete answer
+
+**ANSWER FORMAT GUIDELINES:**
+- **Numerical**: Exact value (e.g., "0.82", "94", "3.14")
+- **Percentage**: Include % symbol (e.g., "82%")
+- **Multiple Values**: Comma-separated (e.g., "94, 29, 150")
+- **Text**: Complete sentence or phrase
+- **Boolean**: "true" or "false"
+- **Multiple Choice**: Just the letter (e.g., "C")
+
+**IMPORTANT:**
+- For multi-part answers, provide all parts
+- For probability: use decimal format unless specified otherwise
+- For statistics: include units if applicable
+- Keep answer concise but complete
+
+Solve and provide ONLY the final answer.`;
 
             const messages: any[] = [
               { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
@@ -193,24 +543,33 @@ Return ONLY the answer, nothing else.`;
             
             for (const subQuestion of subQuestionsNeedingSolving) {
               try {
-                const subSolvePrompt = `You are a mathematics and science expert. Solve this sub-question and provide ONLY the answer.
+                const subSolvePrompt = `You are an expert problem solver. Solve this sub-question part with complete accuracy.
 
-Main Question Context: ${question.question_text}
-${question.question_image_url ? `Question Image: ${question.question_image_url}` : ''}
+**MAIN QUESTION CONTEXT:**
+${question.question_text}
 
-Sub-Question ${subQuestion.label}: ${subQuestion.text}
-${subQuestion.marks ? `Marks: ${subQuestion.marks}` : ''}
+${question.question_image_url ? `**SHARED VISUAL:** ${question.question_image_url}
+[This diagram/table applies to all sub-questions]` : ''}
 
-Instructions:
-- Consider the main question context
-- If there's an image, analyze it to understand the problem
-- Solve this specific sub-question
-- Provide ONLY the final answer
-- For numerical answers, provide the exact number
-- For text answers, provide the complete answer text
-- Keep answers concise but complete
+**SUB-QUESTION ${subQuestion.label}:**
+${subQuestion.text}
 
-Return ONLY the answer, nothing else.`;
+${subQuestion.marks ? `**MARKS:** ${subQuestion.marks} marks` : ''}
+
+**SOLVING STRATEGY:**
+1. **Use Main Context**: This sub-question builds on the main question setup
+2. **Refer to Visuals**: If a diagram/table is shared, extract relevant data
+3. **Solve Specific Part**: Focus on what this sub-question asks
+4. **Verify Against Marks**: Answer complexity should match mark allocation
+5. **Provide Clear Answer**: Concise, complete, unambiguous
+
+**ANSWER FORMAT:**
+- Match the expected format (number, percentage, text, etc.)
+- Include units if applicable
+- For calculations, provide the final result
+- For multi-value answers, separate with commas
+
+Solve sub-question ${subQuestion.label} and provide ONLY the final answer.`;
 
                 const subMessages: any[] = [
                   { role: 'system', content: 'You are an expert problem solver. Solve questions accurately and provide concise answers.' },
@@ -254,7 +613,91 @@ Return ONLY the answer, nothing else.`;
         }
       }
       
-      console.log(`✅ Successfully parsed ${questions.length} questions (${questionsNeedingSolving.length} main + ${totalSubQuestionsSolved} sub auto-solved)`);
+      // Cleanup: Remove questions with undefined/invalid critical fields
+      console.log(`🧹 Cleaning up parsed data...`);
+      const originalCount = questions.length;
+      
+      // Filter out invalid main questions
+      const cleanedQuestions = questions.filter((q: any, idx: number) => {
+        // Check critical required fields
+        if (!q.question_text || q.question_text === undefined || q.question_text === 'undefined') {
+          console.warn(`❌ Removing Q${idx + 1}: Invalid question_text`);
+          return false;
+        }
+        
+        // Clean up sub-questions if they exist
+        if (q.sub_questions && Array.isArray(q.sub_questions)) {
+          const originalSubCount = q.sub_questions.length;
+          q.sub_questions = q.sub_questions.filter((sq: any, sqIdx: number) => {
+            if (!sq || !sq.text || sq.text === undefined || sq.text === 'undefined') {
+              console.warn(`❌ Removing Q${idx + 1} sub-question ${sqIdx + 1}: Invalid sub-question`);
+              return false;
+            }
+            
+            // Clean up undefined answer values
+            if (sq.answer === undefined || sq.answer === 'undefined') {
+              sq.answer = '';
+            }
+            
+            return true;
+          });
+          
+          // If all sub-questions were removed, set has_sub_questions to false
+          if (q.sub_questions.length === 0) {
+            q.has_sub_questions = false;
+            console.warn(`⚠️ Q${idx + 1}: All sub-questions removed, setting has_sub_questions=false`);
+          } else if (q.sub_questions.length < originalSubCount) {
+            console.log(`🧹 Q${idx + 1}: Cleaned ${originalSubCount - q.sub_questions.length} invalid sub-questions`);
+          }
+        }
+        
+        // Clean up undefined answer values in main question
+        if (q.correct_answer === undefined || q.correct_answer === 'undefined') {
+          q.correct_answer = '';
+        }
+        
+        // Clean up undefined image URLs
+        if (q.question_image_url === undefined || q.question_image_url === 'undefined') {
+          q.question_image_url = null;
+        }
+        
+        // Clean up undefined options
+        if (q.options && Array.isArray(q.options)) {
+          q.options = q.options.filter((opt: any) => opt !== undefined && opt !== 'undefined' && opt !== null);
+          if (q.options.length === 0 && q.question_type === 'mcq') {
+            console.warn(`⚠️ Q${idx + 1}: MCQ has no valid options after cleanup`);
+          }
+        }
+        
+        return true;
+      });
+      
+      const removedCount = originalCount - cleanedQuestions.length;
+      if (removedCount > 0) {
+        console.log(`🧹 Cleanup complete: Removed ${removedCount} invalid questions (${originalCount} → ${cleanedQuestions.length})`);
+        parsedData.questions = cleanedQuestions;
+      } else {
+        console.log(`✅ No cleanup needed: All ${originalCount} questions are valid`);
+      }
+      
+      // Update questions reference after cleanup
+      const finalQuestions = parsedData.questions;
+      
+      // Calculate extraction quality metrics
+      const totalMainQuestions = finalQuestions.length;
+      const questionsWithAnswers = finalQuestions.filter((q: any) => q.correct_answer && q.correct_answer.trim()).length;
+      const questionsWithImages = finalQuestions.filter((q: any) => q.question_image_url).length;
+      const totalSubQuestions = finalQuestions.reduce((sum: number, q: any) => sum + (q.sub_questions?.length || 0), 0);
+      const subQuestionsWithAnswers = finalQuestions.reduce((sum: number, q: any) => {
+        return sum + (q.sub_questions?.filter((sq: any) => sq.answer && sq.answer.trim()).length || 0);
+      }, 0);
+      
+      console.log(`✅ Successfully parsed ${totalMainQuestions} questions (${questionsNeedingSolving.length} main + ${totalSubQuestionsSolved} sub auto-solved)`);
+      console.log(`📊 Quality Metrics:
+  - Main Q with answers: ${questionsWithAnswers}/${totalMainQuestions} (${Math.round(questionsWithAnswers/totalMainQuestions*100)}%)
+  - Sub-Q with answers: ${subQuestionsWithAnswers}/${totalSubQuestions} (${totalSubQuestions > 0 ? Math.round(subQuestionsWithAnswers/totalSubQuestions*100) : 0}%)
+  - Questions with images: ${questionsWithImages}/${totalMainQuestions} (${Math.round(questionsWithImages/totalMainQuestions*100)}%)
+  - Extracted images count: ${extractedImages?.length || 0}`);
     } else {
       console.log(`✅ Successfully completed ${actionMode} action`);
     }
@@ -285,9 +728,13 @@ Return ONLY the answer, nothing else.`;
 
 function getSystemPrompt(actionMode: string, parseMode: string, extractedImages?: string[]): string {
   const hasImages = extractedImages && extractedImages.length > 0;
-  const imageContext = hasImages 
-    ? `\n\n📸 **IMAGE HANDLING**: ${extractedImages.length} images were extracted from the document at URLs: ${extractedImages.join(', ')}. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).`
-    : '';
+  const imageCount = hasImages ? extractedImages.length : 0;
+  const imageUrls = hasImages ? extractedImages.join(', ') : 'none';
+  let imageContext = '';
+  
+  if (hasImages) {
+    imageContext = '\n\n📸 **IMAGE HANDLING**: ' + imageCount + ' images were extracted from the document at URLs: ' + imageUrls + '. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).';
+  }
   
   if (actionMode === 'summarize') {
     return `You are an expert document summarizer specializing in educational content. Create comprehensive, structured summaries.
@@ -403,7 +850,7 @@ Return JSON:
 - **CSV**: Intelligently map columns to question components
 - **Text**: Handle numbered lists, bullets, paragraphs
 
-**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}
+**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**` + imageContext + `
 When images are provided, you MUST analyze and assign them intelligently:
 1. **Direct References**: Look for "diagram below", "tree diagram", "table shown", "graph", "figure"
 2. **Contextual Matching**: Match images to questions by content (e.g., probability tree image → probability question)
@@ -412,25 +859,44 @@ When images are provided, you MUST analyze and assign them intelligently:
 5. **Sub-questions with shared images**: If sub-questions a), b), c) all refer to same diagram, assign image to main question
 6. **Multiple images per question**: If one question has multiple diagrams/tables, assign the most relevant primary image
 
-**ADAPTIVE PARSING RULES:**
-1. **Format-Agnostic**: Handle any document structure
-2. **Flexible Column Detection**: Recognize data even with different column names
-3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
-4. **Smart Option Extraction**: Handle options in any format (1/2/3/4, A/B/C/D, bullets)
-5. **Answer Normalization**: Convert all answer formats to A/B/C/D standard
-6. **Missing Data Handling**: Use sensible defaults, never skip questions
-7. **Sub-question Support**: Detect and structure multi-part questions
-8. **Image Association**: Link images to questions intelligently
+**ADAPTIVE PARSING (CSV/DOC/PDF Support):**
+- **CSV Files**: 
+  - Parse headers intelligently (question, answer, options, marks, etc.)
+  - Handle any column names/order (flexible mapping)
+  - Extract question_text, correct_answer, difficulty, marks
+  - Generate MCQ options if only answer provided
+  - Support both comma and semicolon delimiters
+- **Word Documents**: 
+  - Extract from structured/unstructured text
+  - Parse tables and embedded images
+  - Flatten sub-questions into separate items (Quick mode)
+  - Preserve sub-question structure (Mock mode)
+- **PDF Files**: 
+  - Use extracted OCR text with visual context
+  - Identify tables, tree diagrams, graphs from descriptions
+  - Match questions to visual elements
+  - Extract marks from notation like [3 marks], (2m), etc.
 
-**CRITICAL SUB-QUESTION DETECTION:**
-- Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c) OR Part a:, Part b:
-- Each sub-question should have its own text and marks allocation  
-- COUNT MARKS CAREFULLY: Sum ALL individual sub-question marks to get the main question total
-- If a question has sub-parts, set "has_sub_questions": true
-- Extract each sub-question with: label (e.g., "a"), text, marks, and answer (if provided)
-- The main question_text should contain the context/setup text ONLY
-- Sub_questions array contains ALL the actual questions to be answered
-- Example: "Question 1" with parts a) [3 marks], b) [2 marks], c) [4 marks] → main question marks = 9
+**CRITICAL SUB-QUESTION DETECTION & MARKS CALCULATION:**
+- **Sub-Question Formats**: Look for a), b), c), d) OR i), ii), iii) OR (a), (b), (c) OR Part a:, Part b:
+- **Marks Extraction**: Each sub-question has marks like [3 marks], [2 marks], (3 marks), (2m)
+- **Main Question Marks**: SUM of ALL sub-question marks = main question total_marks
+- **Example**: Question 1 with:
+  - a) [3 marks]
+  - b) [2 marks]  
+  - c) [4 marks]
+  - d) [3 marks]
+  → Main question marks = 3+2+4+3 = 12 marks total
+- **Set has_sub_questions: true** when sub-parts exist
+- **Main question_text**: Context/setup ONLY (not the actual questions to answer)
+- **sub_questions array**: Contains ALL actual question parts with {label, text, marks, answer}
+- **Each sub-question needs**: label ("a", "b", "c"), text (the actual question), marks (integer), answer (if provided)
+
+**TREE DIAGRAM & VISUAL ELEMENT HANDLING:**
+- **Tree Diagrams**: Questions with "tree diagram", "complete the tree", "probability tree" MUST reference diagram
+- **Shared Visuals**: If multiple sub-questions (a,b,c,d) reference same diagram, note it in main question
+- **Visual Context**: Include visual element descriptions in question context for AI understanding
+- **Marks Validation**: Verify marks sum correctly - don't guess, extract from document
 
 **TABLE, GRAPH & DIAGRAM EXTRACTION (CRITICAL):**
 - **Tree diagrams**: If question mentions "tree diagram", "complete the tree diagram", "probability tree" → MUST assign tree diagram image
@@ -502,14 +968,14 @@ Return JSON with this exact structure:
 - For text answers: use related but incorrect concepts
 - EXAMPLE: Answer is "94" → Options: ["A. 94", "B. 84", "C. 104", "D. 74"]
 
-**100% IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}
-YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to questions:
+**100% IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**` + imageContext + `
+YOU MUST assign ALL ` + imageCount + ` extracted images to questions:
 1. **Direct References**: "see diagram", "refer to figure", "tree diagram", "table shown", "graph"
 2. **Contextual Matching**: Match images to questions by topic (probability tree → probability question)
 3. **Distribute All Images**: EVERY image must be assigned - spread them across relevant questions
 4. **Priority Assignment**: Tables/diagrams mentioned in text get highest priority
 5. **No Unassigned Images**: Count your assignments - must equal total extracted images
-6. **Image URLs**: Use exact URLs from extracted images list: ${extractedImages?.join(', ') || 'none'}
+6. **Image URLs**: Use exact URLs from extracted images list: ` + imageUrls + `
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
@@ -517,13 +983,22 @@ YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to question
 - **Images**: Perform OCR to recognize text + extract visual elements
 - **Word**: Parse structured documents and FLATTEN all sub-questions + extract embedded images
 
-**PARSING RULES:**
-1. **Flatten Sub-questions**: Convert "Question 1: [context] a) [sub-q] b) [sub-q]" into separate standalone questions
-2. **Standalone Context**: Include necessary context from parent question in each flattened question
-3. **Force MCQ Format**: ALWAYS create 4 options even if original is short answer/essay
-4. **Complete Questions**: Each question_text must be fully self-contained
-5. **Never Skip**: Extract every question/sub-question as a separate item
-6. **Assign All Images**: Every extracted image must appear in question_image_url field
+**CSV PARSING INTELLIGENCE:**
+- **Flexible Headers**: Recognize these column variations:
+  - Question: "question", "question_text", "q", "problem", "item"
+  - Answer: "answer", "correct_answer", "key", "solution", "correct"  
+  - Options: "options", "choices", "option_a/b/c/d", "a/b/c/d"
+  - Marks: "marks", "points", "score", "weight"
+  - Difficulty: "difficulty", "level", "diff"
+  - Type: "type", "question_type", "category"
+- **Auto-Generate**: If answer exists but no options, create 4 MCQ options
+- **Delimiters**: Support comma, semicolon, tab separators
+- **Quote Handling**: Parse quoted fields with internal commas
+- **Empty Rows**: Skip empty rows, don't count as questions
+- **Example CSV Format**:
+  question,answer,marks,difficulty
+  "What is 2+2?","4",1,"easy"
+  "Calculate probability","0.75",3,"medium"
 
 **FLATTENING EXAMPLE:**
 Original: "Question 1: A survey shows... a) Find missing values [answer: 94, 29, 150] b) Calculate probability [answer: 0.82]"
@@ -539,7 +1014,7 @@ Output:
 
 **IMAGE ASSIGNMENT VALIDATION:**
 Before returning JSON, verify:
-- Count of question_image_url fields with non-null values = ${extractedImages?.length || 0}
+- Count of question_image_url fields with non-null values = ` + imageCount + `
 - Every extracted image URL appears at least once in questions array
 - No images are left unassigned
 
@@ -576,13 +1051,20 @@ function getUserPrompt(
   extractedText: string | undefined,
   extractedImages?: string[]
 ): string {
-  const fileContext = fileName ? `\n📁 File: ${fileName} (${fileType})` : '';
+  const hasImages = extractedImages && extractedImages.length > 0;
+  const imgCount = hasImages ? extractedImages.length : 0;
+  const imgUrls = hasImages ? extractedImages.join(', ') : 'none';
+  
+  const fileContext = fileName ? '\n📁 File: ' + fileName + ' (' + fileType + ')' : '';
   const textPreview = extractedText 
-    ? `\n\n📄 Pre-extracted Text (${extractedText.length} characters):\n${extractedText.substring(0, 2500)}${extractedText.length > 2500 ? '\n...(truncated)' : ''}`
+    ? '\n\n📄 Pre-extracted Text (' + extractedText.length + ' characters):\n' + extractedText.substring(0, 2500) + (extractedText.length > 2500 ? '\n...(truncated)' : '')
     : '';
-  const imageContext = extractedImages && extractedImages.length > 0
-    ? `\n\n📸 Extracted Images (${extractedImages.length} total):\n${extractedImages.map((url, i) => `Image ${i + 1}: ${url}`).join('\n')}`
-    : '';
+  
+  let imageContext = '';
+  if (hasImages) {
+    const imageList = extractedImages.map((url: string, i: number) => 'Image ' + (i + 1) + ': ' + url).join('\n');
+    imageContext = '\n\n📸 Extracted Images (' + imgCount + ' total):\n' + imageList;
+  }
 
   if (actionMode === 'summarize') {
     return `Analyze and summarize this educational document.${fileContext}${textPreview}
@@ -635,18 +1117,20 @@ ${parseMode === 'quick' ? `\n**🎯 QUICK TEST MODE - CRITICAL REQUIREMENTS:**
 4. **STANDALONE CONTEXT**: Each question must include all necessary context from parent
 5. **NO SHORT ANSWER**: Convert ALL question types to MCQ with 4 options\n` : ''}
 
-${extractedImages && extractedImages.length > 0 ? `\n**📸 100% IMAGE ASSIGNMENT (CRITICAL - ${extractedImages.length} IMAGES TOTAL)**:
-YOU MUST ASSIGN ALL ${extractedImages.length} IMAGES - ZERO IMAGES SHOULD BE LEFT UNASSIGNED!
+` + (hasImages ? `
+
+**📸 100% IMAGE ASSIGNMENT (CRITICAL - ` + imgCount + ` IMAGES TOTAL)**:
+YOU MUST ASSIGN ALL ` + imgCount + ` IMAGES - ZERO IMAGES SHOULD BE LEFT UNASSIGNED!
 
 **Available Image URLs:**
-${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+` + extractedImages.map((url: string, i: number) => (i + 1) + '. ' + url).join('\n') + `
 
 **Assignment Strategy:**
 1. **Direct References First**: Look for text like "see diagram", "refer to figure", "tree diagram", "table", "graph", "chart"
 2. **Contextual Matching**: Match images to questions by content (probability tree → probability question, table → data question)
 3. **Distribute ALL Images**: Every single image must appear in at least one question's question_image_url field
 4. **Shared Images OK**: Multiple questions can reference the same image if they all relate to it
-5. **Verify 100%**: Before finishing, count - did you assign all ${extractedImages.length} images?
+5. **Verify 100%**: Before finishing, count - did you assign all ` + imgCount + ` images?
 
 **Examples of Good Assignment:**
 - Question mentions "tree diagram" → assign tree image URL
@@ -655,16 +1139,19 @@ ${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
 - Multiple parts (a,b,c) referencing same diagram → assign same image to each flattened question
 
 **VALIDATION CHECK:**
-After assigning, verify that all ${extractedImages.length} image URLs appear in your questions array.
-Count of non-null question_image_url values should equal ${extractedImages.length}.
-` : ''}
+After assigning, verify that all ` + imgCount + ` image URLs appear in your questions array.
+Count of non-null question_image_url values should equal ` + imgCount + `.
+` : '') + `
 
-${parseMode === 'quick' && extractedImages && extractedImages.length > 0 ? `\n**⚠️ QUICK TEST + IMAGES CHECKLIST:**
+` + (parseMode === 'quick' && hasImages ? `
+
+**⚠️ QUICK TEST + IMAGES CHECKLIST:**
 ✓ Every question has exactly 4 MCQ options (A, B, C, D)
-✓ All ${extractedImages.length} images are assigned to questions
+✓ All ` + imgCount + ` images are assigned to questions
 ✓ Sub-questions are flattened into separate standalone questions
 ✓ Each question includes necessary context
-✓ No short answer or essay questions remain\n` : ''}
+✓ No short answer or essay questions remain
+` : '') + `
 
 ${parseMode === 'mock' ? `\n**SUB-QUESTION EXTRACTION (CRITICAL)**:
 1. Detect sub-parts labeled as: a), b), c), d) OR (a), (b), (c) OR i), ii), iii)
