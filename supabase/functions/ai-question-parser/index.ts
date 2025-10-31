@@ -405,11 +405,13 @@ Return ONLY the answer, nothing else.`;
 
 function getSystemPrompt(actionMode: string, parseMode: string, extractedImages?: string[]): string {
   const hasImages = extractedImages && extractedImages.length > 0;
-  const imageCount = extractedImages?.length || 0;
-  const imageUrls = extractedImages?.join(', ') || 'none';
-  const imageContext = hasImages 
-    ? `\n\n📸 **IMAGE HANDLING**: ${imageCount} images were extracted from the document at URLs: ${imageUrls}. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).`
-    : '';
+  const imageCount = hasImages ? extractedImages.length : 0;
+  const imageUrls = hasImages ? extractedImages.join(', ') : 'none';
+  let imageContext = '';
+  
+  if (hasImages) {
+    imageContext = '\n\n📸 **IMAGE HANDLING**: ' + imageCount + ' images were extracted from the document at URLs: ' + imageUrls + '. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).';
+  }
   
   if (actionMode === 'summarize') {
     return `You are an expert document summarizer specializing in educational content. Create comprehensive, structured summaries.
@@ -525,7 +527,7 @@ Return JSON:
 - **CSV**: Intelligently map columns to question components
 - **Text**: Handle numbered lists, bullets, paragraphs
 
-**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}
+**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**` + imageContext + `
 When images are provided, you MUST analyze and assign them intelligently:
 1. **Direct References**: Look for "diagram below", "tree diagram", "table shown", "graph", "figure"
 2. **Contextual Matching**: Match images to questions by content (e.g., probability tree image → probability question)
@@ -643,15 +645,14 @@ Return JSON with this exact structure:
 - For text answers: use related but incorrect concepts
 - EXAMPLE: Answer is "94" → Options: ["A. 94", "B. 84", "C. 104", "D. 74"]
 
-**100% IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**
-${imageContext}
-YOU MUST assign ALL ${imageCount} extracted images to questions:
+**100% IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**` + imageContext + `
+YOU MUST assign ALL ` + imageCount + ` extracted images to questions:
 1. **Direct References**: "see diagram", "refer to figure", "tree diagram", "table shown", "graph"
 2. **Contextual Matching**: Match images to questions by topic (probability tree → probability question)
 3. **Distribute All Images**: EVERY image must be assigned - spread them across relevant questions
 4. **Priority Assignment**: Tables/diagrams mentioned in text get highest priority
 5. **No Unassigned Images**: Count your assignments - must equal total extracted images
-6. **Image URLs**: Use exact URLs from extracted images list: ${imageUrls}
+6. **Image URLs**: Use exact URLs from extracted images list: ` + imageUrls
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
@@ -692,7 +693,7 @@ Output:
 
 **IMAGE ASSIGNMENT VALIDATION:**
 Before returning JSON, verify:
-- Count of question_image_url fields with non-null values = ${imageCount}
+- Count of question_image_url fields with non-null values = ` + imageCount + `
 - Every extracted image URL appears at least once in questions array
 - No images are left unassigned
 
@@ -729,15 +730,20 @@ function getUserPrompt(
   extractedText: string | undefined,
   extractedImages?: string[]
 ): string {
-  const imageCount = extractedImages?.length || 0;
-  const imageUrls = extractedImages?.join(', ') || 'none';
-  const fileContext = fileName ? `\n📁 File: ${fileName} (${fileType})` : '';
+  const hasImages = extractedImages && extractedImages.length > 0;
+  const imgCount = hasImages ? extractedImages.length : 0;
+  const imgUrls = hasImages ? extractedImages.join(', ') : 'none';
+  
+  const fileContext = fileName ? '\n📁 File: ' + fileName + ' (' + fileType + ')' : '';
   const textPreview = extractedText 
-    ? `\n\n📄 Pre-extracted Text (${extractedText.length} characters):\n${extractedText.substring(0, 2500)}${extractedText.length > 2500 ? '\n...(truncated)' : ''}`
+    ? '\n\n📄 Pre-extracted Text (' + extractedText.length + ' characters):\n' + extractedText.substring(0, 2500) + (extractedText.length > 2500 ? '\n...(truncated)' : '')
     : '';
-  const imageContext = extractedImages && extractedImages.length > 0
-    ? `\n\n📸 Extracted Images (${imageCount} total):\n${extractedImages.map((url, i) => `Image ${i + 1}: ${url}`).join('\n')}`
-    : '';
+  
+  let imageContext = '';
+  if (hasImages) {
+    const imageList = extractedImages.map((url: string, i: number) => 'Image ' + (i + 1) + ': ' + url).join('\n');
+    imageContext = '\n\n📸 Extracted Images (' + imgCount + ' total):\n' + imageList;
+  }
 
   if (actionMode === 'summarize') {
     return `Analyze and summarize this educational document.${fileContext}${textPreview}
@@ -790,18 +796,20 @@ ${parseMode === 'quick' ? `\n**🎯 QUICK TEST MODE - CRITICAL REQUIREMENTS:**
 4. **STANDALONE CONTEXT**: Each question must include all necessary context from parent
 5. **NO SHORT ANSWER**: Convert ALL question types to MCQ with 4 options\n` : ''}
 
-  ${extractedImages && extractedImages.length > 0 ? `\n**📸 100% IMAGE ASSIGNMENT (CRITICAL - ${imageCount} IMAGES TOTAL)**:
-YOU MUST ASSIGN ALL ${imageCount} IMAGES - ZERO IMAGES SHOULD BE LEFT UNASSIGNED!
+` + (hasImages ? `
+
+**📸 100% IMAGE ASSIGNMENT (CRITICAL - ` + imgCount + ` IMAGES TOTAL)**:
+YOU MUST ASSIGN ALL ` + imgCount + ` IMAGES - ZERO IMAGES SHOULD BE LEFT UNASSIGNED!
 
 **Available Image URLs:**
-${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+` + extractedImages.map((url: string, i: number) => (i + 1) + '. ' + url).join('\n') + `
 
 **Assignment Strategy:**
 1. **Direct References First**: Look for text like "see diagram", "refer to figure", "tree diagram", "table", "graph", "chart"
 2. **Contextual Matching**: Match images to questions by content (probability tree → probability question, table → data question)
 3. **Distribute ALL Images**: Every single image must appear in at least one question's question_image_url field
 4. **Shared Images OK**: Multiple questions can reference the same image if they all relate to it
-5. **Verify 100%**: Before finishing, count - did you assign all ${imageCount} images?
+5. **Verify 100%**: Before finishing, count - did you assign all ` + imgCount + ` images?
 
 **Examples of Good Assignment:**
 - Question mentions "tree diagram" → assign tree image URL
@@ -810,16 +818,19 @@ ${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}
 - Multiple parts (a,b,c) referencing same diagram → assign same image to each flattened question
 
 **VALIDATION CHECK:**
-After assigning, verify that all ${imageCount} image URLs appear in your questions array.
-Count of non-null question_image_url values should equal ${imageCount}.
-` : ''}
+After assigning, verify that all ` + imgCount + ` image URLs appear in your questions array.
+Count of non-null question_image_url values should equal ` + imgCount + `.
+` : '') + `
 
-  ${parseMode === 'quick' && extractedImages && extractedImages.length > 0 ? `\n**⚠️ QUICK TEST + IMAGES CHECKLIST:**
+` + (parseMode === 'quick' && hasImages ? `
+
+**⚠️ QUICK TEST + IMAGES CHECKLIST:**
 ✓ Every question has exactly 4 MCQ options (A, B, C, D)
-✓ All ${imageCount} images are assigned to questions
+✓ All ` + imgCount + ` images are assigned to questions
 ✓ Sub-questions are flattened into separate standalone questions
 ✓ Each question includes necessary context
-✓ No short answer or essay questions remain\n` : ''}
+✓ No short answer or essay questions remain
+` : '') + `
 
 ${parseMode === 'mock' ? `\n**SUB-QUESTION EXTRACTION (CRITICAL)**:
 1. Detect sub-parts labeled as: a), b), c), d) OR (a), (b), (c) OR i), ii), iii)
