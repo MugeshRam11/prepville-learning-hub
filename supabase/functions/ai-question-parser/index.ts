@@ -5,6 +5,145 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Enhanced PDF/Document Processing Utilities
+interface ChunkResult {
+  chunks: string[];
+  metadata: {
+    total_length: number;
+    chunk_count: number;
+    chunk_size: number;
+  };
+}
+
+interface DocumentStructure {
+  sections: Array<{ title: string; content: string }>;
+  tables: Array<{ content: string; page?: number }>;
+  metadata: Record<string, any>;
+}
+
+// Intelligent text chunking with overlap
+function chunkText(text: string, chunkSize: number = 4000, overlap: number = 500): ChunkResult {
+  const sentences = text.split(/[.!?]+\s+/);
+  const chunks: string[] = [];
+  let currentChunk = "";
+  
+  for (const sentence of sentences) {
+    if (currentChunk.length + sentence.length <= chunkSize) {
+      currentChunk += sentence + ". ";
+    } else {
+      if (currentChunk) {
+        chunks.push(currentChunk.trim());
+      }
+      
+      // Add overlap from previous chunk
+      const words = currentChunk.split(' ');
+      const overlapText = words.slice(-Math.floor(overlap / 5)).join(' ');
+      currentChunk = overlapText + " " + sentence + ". ";
+    }
+  }
+  
+  if (currentChunk) {
+    chunks.push(currentChunk.trim());
+  }
+  
+  return {
+    chunks,
+    metadata: {
+      total_length: text.length,
+      chunk_count: chunks.length,
+      chunk_size: chunkSize
+    }
+  };
+}
+
+// Enhanced text cleaning with OCR error correction
+function enhancedTextCleaning(text: string): string {
+  if (!text) return "";
+  
+  // Remove excessive whitespace
+  text = text.replace(/\s+/g, ' ');
+  
+  // Fix common OCR errors
+  text = text.replace(/(\w+)-\s*\n\s*(\w+)/g, '$1$2'); // Fix hyphenated words
+  text = text.replace(/\s*\.\s*/g, '. '); // Fix spacing around periods
+  text = text.replace(/\s*,\s*/g, ', '); // Fix spacing around commas
+  text = text.replace(/\s*:\s*/g, ': '); // Fix spacing around colons
+  
+  // Fix common number/letter confusion
+  text = text.replace(/\bl\b/g, '1'); // lowercase L to 1 in certain contexts
+  text = text.replace(/\bO\b/g, '0'); // uppercase O to 0 in certain contexts
+  
+  // Remove page numbers and headers/footers (heuristic)
+  const lines = text.split('\n');
+  const cleanedLines = lines.filter(line => {
+    line = line.trim();
+    // Skip likely page numbers and headers
+    if (line.length < 3 || /^\d+$/.test(line) || /^[ivxlcdm]+$/i.test(line)) {
+      return false;
+    }
+    return true;
+  });
+  
+  return cleanedLines.join('\n').trim();
+}
+
+// Extract document structure
+function extractDocumentStructure(text: string): DocumentStructure {
+  const sections: Array<{ title: string; content: string }> = [];
+  const lines = text.split('\n');
+  
+  let currentSection = { title: "Introduction", content: [] as string[] };
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    // Detect section headers (heuristic - all caps or numbered)
+    const isHeader = (
+      (trimmed.length < 100 && trimmed === trimmed.toUpperCase() && trimmed.length > 2) ||
+      /^(?:[0-9]+\.?\s+)?[A-Z][A-Za-z\s]{2,50}$/.test(trimmed) ||
+      /^[0-9]+\.\s*[A-Z]/.test(trimmed)
+    );
+    
+    if (isHeader) {
+      // Save previous section
+      if (currentSection.content.length > 0) {
+        sections.push({
+          title: currentSection.title,
+          content: currentSection.content.join('\n')
+        });
+      }
+      
+      // Start new section
+      currentSection = { title: trimmed, content: [] };
+    } else {
+      currentSection.content.push(trimmed);
+    }
+  }
+  
+  // Add final section
+  if (currentSection.content.length > 0) {
+    sections.push({
+      title: currentSection.title,
+      content: currentSection.content.join('\n')
+    });
+  }
+  
+  return {
+    sections,
+    tables: [], // Table extraction can be enhanced with more complex parsing
+    metadata: {
+      section_count: sections.length,
+      has_structure: sections.length > 1
+    }
+  };
+}
+
+// Detect if content needs chunking
+function needsChunking(content: string, threshold: number = 8000): boolean {
+  return content && content.length > threshold;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,7 +157,8 @@ serve(async (req) => {
       fileName, 
       extractedText,
       extractedImages = [],  // Array of image URLs from Word doc
-      actionMode = 'parse'
+      actionMode = 'parse',
+      enableEnhancedParsing = true // Enable enhanced PDF parsing by default
     } = await req.json();
     
     console.log('📥 Processing request:', { 
@@ -28,7 +168,8 @@ serve(async (req) => {
       actionMode,
       contentLength: content?.length,
       hasExtractedText: !!extractedText,
-      extractedImagesCount: extractedImages?.length || 0
+      extractedImagesCount: extractedImages?.length || 0,
+      enhancedParsing: enableEnhancedParsing
     });
     
     if (!content && !extractedText) {
@@ -36,6 +177,29 @@ serve(async (req) => {
         JSON.stringify({ error: 'No content provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    
+    // Enhanced document processing
+    let processedContent = extractedText || content;
+    let documentStructure: DocumentStructure | null = null;
+    let chunkedData: ChunkResult | null = null;
+    
+    if (enableEnhancedParsing && processedContent) {
+      console.log('🔍 Applying enhanced text processing...');
+      
+      // Clean and enhance text
+      processedContent = enhancedTextCleaning(processedContent);
+      
+      // Extract document structure
+      documentStructure = extractDocumentStructure(processedContent);
+      console.log(`📚 Detected ${documentStructure.sections.length} document sections`);
+      
+      // Check if chunking is needed for large documents
+      if (needsChunking(processedContent)) {
+        console.log('📄 Document is large, applying intelligent chunking...');
+        chunkedData = chunkText(processedContent);
+        console.log(`✂️ Split into ${chunkedData.chunks.length} chunks`);
+      }
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -48,65 +212,128 @@ serve(async (req) => {
     }
 
     // Get appropriate prompts based on action mode
-    const systemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages);
-    const userPrompt = getUserPrompt(actionMode, parseMode, fileName, fileType, content, extractedText, extractedImages);
+    const systemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages, documentStructure);
+    const userPrompt = getUserPrompt(
+      actionMode, 
+      parseMode, 
+      fileName, 
+      fileType, 
+      content, 
+      processedContent, 
+      extractedImages,
+      documentStructure,
+      chunkedData
+    );
 
     console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
     
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        response_format: { type: 'json_object' }
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Gemini AI error:', aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      throw new Error(`AI processing failed: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const parsedContent = aiData.choices[0].message.content;
+    // If document is chunked, process chunks intelligently
+    let finalParsedData: any;
     
-    let parsedData;
-    try {
-      parsedData = JSON.parse(parsedContent);
-    } catch (e) {
-      console.error('Failed to parse AI response as JSON:', e);
-      return new Response(
-        JSON.stringify({ error: 'AI response format invalid', details: String(e) }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (chunkedData && actionMode === 'parse') {
+      console.log('🔄 Processing document in chunks...');
+      const allQuestions: any[] = [];
+      
+      for (let i = 0; i < chunkedData.chunks.length; i++) {
+        const chunk = chunkedData.chunks[i];
+        console.log(`📝 Processing chunk ${i + 1}/${chunkedData.chunks.length}...`);
+        
+        const chunkUserPrompt = getUserPrompt(
+          actionMode,
+          parseMode,
+          fileName,
+          fileType,
+          chunk,
+          chunk,
+          extractedImages,
+          documentStructure,
+          null
+        );
+        
+        const chunkResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: chunkUserPrompt }
+            ],
+            response_format: { type: 'json_object' }
+          }),
+        });
+        
+        if (chunkResponse.ok) {
+          const chunkData = await chunkResponse.json();
+          const chunkParsed = JSON.parse(chunkData.choices[0].message.content);
+          if (chunkParsed.questions && Array.isArray(chunkParsed.questions)) {
+            allQuestions.push(...chunkParsed.questions);
+          }
+        }
+      }
+      
+      finalParsedData = { questions: allQuestions };
+      console.log(`✅ Merged ${allQuestions.length} questions from all chunks`);
+    } else {
+      // Standard single-request processing
+    
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          response_format: { type: 'json_object' }
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error('Gemini AI error:', aiResponse.status, errorText);
+        
+        if (aiResponse.status === 429) {
+          return new Response(
+            JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        if (aiResponse.status === 402) {
+          return new Response(
+            JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        throw new Error(`AI processing failed: ${aiResponse.status}`);
+      }
+
+      const aiData = await aiResponse.json();
+      const parsedContentResponse = aiData.choices[0].message.content;
+      
+      try {
+        finalParsedData = JSON.parse(parsedContentResponse);
+      } catch (e) {
+        console.error('Failed to parse AI response as JSON:', e);
+        return new Response(
+          JSON.stringify({ error: 'AI response format invalid', details: String(e) }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Validate based on action mode
     if (actionMode === 'parse') {
-      const questions = parsedData.questions || [];
+      const questions = finalParsedData.questions || [];
       if (questions.length === 0) {
         return new Response(
           JSON.stringify({ error: 'No questions found in the content' }),
@@ -263,8 +490,14 @@ Return ONLY the answer, nothing else.`;
       JSON.stringify({
         success: true,
         actionMode,
-        data: parsedData,
-        parsed_count: actionMode === 'parse' ? (parsedData.questions?.length || 0) : null
+        data: finalParsedData,
+        parsed_count: actionMode === 'parse' ? (finalParsedData.questions?.length || 0) : null,
+        metadata: {
+          enhanced_parsing: enableEnhancedParsing,
+          chunked: !!chunkedData,
+          chunk_count: chunkedData?.chunks.length || 1,
+          sections_detected: documentStructure?.sections.length || 0
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -283,10 +516,21 @@ Return ONLY the answer, nothing else.`;
 
 // ============= Helper Functions =============
 
-function getSystemPrompt(actionMode: string, parseMode: string, extractedImages?: string[]): string {
+function getSystemPrompt(
+  actionMode: string, 
+  parseMode: string, 
+  extractedImages?: string[],
+  documentStructure?: DocumentStructure | null
+): string {
   const hasImages = extractedImages && extractedImages.length > 0;
+  const hasStructure = documentStructure && documentStructure.sections.length > 1;
+  
   const imageContext = hasImages 
     ? `\n\n📸 **IMAGE HANDLING**: ${extractedImages.length} images were extracted from the document at URLs: ${extractedImages.join(', ')}. You MUST intelligently assign these image URLs to the appropriate questions based on context clues in the text (e.g., "see diagram", "refer to image", question numbers, etc.).`
+    : '';
+    
+  const structureContext = hasStructure
+    ? `\n\n📚 **DOCUMENT STRUCTURE**: Document has ${documentStructure.sections.length} sections detected. Use this structure to better understand context and question grouping.`
     : '';
   
   if (actionMode === 'summarize') {
@@ -394,16 +638,24 @@ Return JSON:
   }
 
   // Default: parse mode
-  const mockPrompt = `You are an expert educational document parser with OCR-like capabilities. Parse ANY document format and extract ALL questions with complete structure.
+  const mockPrompt = `You are an ADVANCED educational document parser with ENHANCED OCR-like capabilities and intelligent text processing. Parse ANY document format and extract ALL questions with complete structure.
+
+**🚀 ENHANCED PARSING CAPABILITIES:**
+- **Advanced PDF Processing**: Extract from complex layouts, multi-column formats, scanned documents
+- **Intelligent OCR**: Recognize handwritten/printed text with error correction
+- **Structure-Aware**: Understand document sections, headers, and hierarchy
+- **Smart Text Cleaning**: Auto-correct common OCR errors (l→1, O→0, spacing issues)
+- **Large Document Support**: Handle documents of any size with intelligent chunking
+- **Table & Diagram Extraction**: Advanced parsing of complex tables and diagrams
 
 **MULTI-FORMAT PARSING (docTR-like OCR + AI):**
-- **PDF**: Extract from formatted text, tables, and layouts
+- **PDF**: Extract from formatted text, tables, and layouts (including scanned PDFs)
 - **Images**: Perform intelligent OCR - recognize handwritten/printed text
 - **Word (.docx)**: Parse formatted documents, tables, diagrams WITH IMAGE SUPPORT
 - **CSV**: Intelligently map columns to question components
 - **Text**: Handle numbered lists, bullets, paragraphs
 
-**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}
+**IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}${structureContext}
 When images are provided, you MUST analyze and assign them intelligently:
 1. **Direct References**: Look for "diagram below", "tree diagram", "table shown", "graph", "figure"
 2. **Contextual Matching**: Match images to questions by content (e.g., probability tree image → probability question)
@@ -421,6 +673,7 @@ When images are provided, you MUST analyze and assign them intelligently:
 6. **Missing Data Handling**: Use sensible defaults, never skip questions
 7. **Sub-question Support**: Detect and structure multi-part questions
 8. **Image Association**: Link images to questions intelligently
+9. **OCR Error Correction**: Fix common scanning errors automatically
 
 **CRITICAL SUB-QUESTION DETECTION:**
 - Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c) OR Part a:, Part b:
@@ -574,57 +827,76 @@ function getUserPrompt(
   fileType: string | undefined,
   content: string, 
   extractedText: string | undefined,
-  extractedImages?: string[]
+  extractedImages?: string[],
+  documentStructure?: DocumentStructure | null,
+  chunkedData?: ChunkResult | null
 ): string {
   const fileContext = fileName ? `\n📁 File: ${fileName} (${fileType})` : '';
-  const textPreview = extractedText 
-    ? `\n\n📄 Pre-extracted Text (${extractedText.length} characters):\n${extractedText.substring(0, 2500)}${extractedText.length > 2500 ? '\n...(truncated)' : ''}`
+  const processedText = extractedText || content;
+  
+  const textPreview = processedText 
+    ? `\n\n📄 ${chunkedData ? 'Document Chunk' : 'Pre-extracted Text'} (${processedText.length} characters):\n${processedText.substring(0, 2500)}${processedText.length > 2500 ? '\n...(truncated)' : ''}`
     : '';
+    
   const imageContext = extractedImages && extractedImages.length > 0
     ? `\n\n📸 Extracted Images (${extractedImages.length} total):\n${extractedImages.map((url, i) => `Image ${i + 1}: ${url}`).join('\n')}`
     : '';
+    
+  const structureContext = documentStructure && documentStructure.sections.length > 1
+    ? `\n\n📚 Document Structure Detected:\n${documentStructure.sections.map((s, i) => `Section ${i + 1}: ${s.title}`).join('\n')}`
+    : '';
+    
+  const chunkContext = chunkedData
+    ? `\n\n✂️ Document Chunking: Processing large document in ${chunkedData.chunks.length} chunks for optimal parsing.`
+    : '';
 
   if (actionMode === 'summarize') {
-    return `Analyze and summarize this educational document.${fileContext}${textPreview}
+    return `Analyze and summarize this educational document.${fileContext}${textPreview}${structureContext}${chunkContext}
 
 ${!extractedText ? `Content to summarize:\n${content}` : ''}
 
 Create a comprehensive, well-structured summary with key topics, main points, and learning objectives.
+${documentStructure && documentStructure.sections.length > 1 ? 'Use the detected document structure to organize the summary logically.' : ''}
 Return pure JSON only (no markdown, no explanations).`;
   }
 
   if (actionMode === 'extract_data') {
-    return `Extract all structured data from this document.${fileContext}${textPreview}
+    return `Extract all structured data from this document.${fileContext}${textPreview}${structureContext}${chunkContext}
 
 ${!extractedText ? `Content to analyze:\n${content}` : ''}
 
 Extract entities, tables, key facts, and categorize all data points with high accuracy.
+${documentStructure && documentStructure.sections.length > 1 ? 'Leverage the document structure for better data organization.' : ''}
 Return pure JSON only (no markdown, no explanations).`;
   }
 
   if (actionMode === 'quiz') {
-    return `Generate high-quality quiz questions from this educational content.${fileContext}${textPreview}
+    return `Generate high-quality quiz questions from this educational content.${fileContext}${textPreview}${structureContext}${chunkContext}
 
 ${!extractedText ? `Content to convert into quiz:\n${content}` : ''}
 
 Create a comprehensive quiz with multiple question types, varying difficulty, plausible distractors, and detailed explanations.
+${documentStructure && documentStructure.sections.length > 1 ? 'Distribute questions across document sections for balanced coverage.' : ''}
 Return pure JSON only (no markdown, no explanations).`;
   }
 
   // Default: parse mode
-  return `Parse this educational document and extract ALL questions with complete details.${fileContext}${textPreview}${imageContext}
+  return `Parse this educational document and extract ALL questions with complete details.${fileContext}${textPreview}${imageContext}${structureContext}${chunkContext}
 
 ${extractedText ? 'Use the pre-extracted text above for accurate parsing.' : 'Content to parse:'}
 ${!extractedText ? content : ''}
 
-**PARSING INSTRUCTIONS:**
+**🚀 ENHANCED PARSING INSTRUCTIONS:**
+- **OCR Error Handling**: Auto-correct common OCR errors (spacing, character confusion)
+- **Structure-Aware**: Use detected sections and hierarchy for better question grouping
 - **CSV**: Parse column headers and map to question components intelligently
-- **Word/PDF**: Extract from formatted text, tables, and structured layouts
-- **Images**: Perform OCR and extract all visible text and questions
+- **Word/PDF**: Extract from formatted text, tables, and structured layouts (including scanned documents)
+- **Images**: Perform intelligent OCR and extract all visible text and questions
 - **Handle All Formats**: Numbered lists (1, 2, 3), bullet points, tables, paragraphs
 - **Auto-detect Structure**: Question types, options, answers, sub-questions
 - **Normalize Answers**: Convert all formats (1/2/3/4, A/B/C/D, a/b/c/d) to A/B/C/D
 - **Extract EVERYTHING**: Never skip questions due to format issues - use defaults if needed
+- **Large Documents**: Handle chunked documents by extracting all questions from this chunk
 
 ${parseMode === 'quick' ? `\n**🎯 QUICK TEST MODE - CRITICAL REQUIREMENTS:**
 1. **100% MCQ FORMAT**: EVERY question MUST have exactly 4 options (A, B, C, D)
