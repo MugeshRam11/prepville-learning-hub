@@ -652,7 +652,7 @@ YOU MUST assign ALL ` + imageCount + ` extracted images to questions:
 3. **Distribute All Images**: EVERY image must be assigned - spread them across relevant questions
 4. **Priority Assignment**: Tables/diagrams mentioned in text get highest priority
 5. **No Unassigned Images**: Count your assignments - must equal total extracted images
-6. **Image URLs**: Use exact URLs from extracted images list: ` + imageUrls
+6. **Image URLs**: Use exact URLs from extracted images list: ` + imageUrls + `
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
