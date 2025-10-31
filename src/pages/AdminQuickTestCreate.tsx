@@ -12,9 +12,7 @@ import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
 import type { Database } from '@/integrations/supabase/types';
-
 type TestSubject = Database['public']['Enums']['test_subject'];
-
 const AdminQuickTestCreate = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -33,10 +31,9 @@ const AdminQuickTestCreate = () => {
   });
   const [questions, setQuestions] = useState([]);
   const [showAIParser, setShowAIParser] = useState(false);
-
   const handleTestParsed = (testData: any) => {
     console.log('Received test data:', testData);
-    
+
     // Update test info from quiz_metadata
     const metadata = testData.quiz_metadata || testData;
     setTestInfo({
@@ -50,8 +47,10 @@ const AdminQuickTestCreate = () => {
     // Transform questions to match the expected format
     const transformedQuestions = (testData.questions || []).map((q: any, index: number) => {
       // Extract options - handle both array format and object properties
-      let optionA = '', optionB = '', optionC = '', optionD = '';
-      
+      let optionA = '',
+        optionB = '',
+        optionC = '',
+        optionD = '';
       if (Array.isArray(q.options) && q.options.length >= 4) {
         // Remove "A. ", "B. " prefixes if present
         optionA = q.options[0]?.replace(/^[Aa]\.\s*/, '') || '';
@@ -65,7 +64,6 @@ const AdminQuickTestCreate = () => {
         optionC = q.option_c || q.optionC || '';
         optionD = q.option_d || q.optionD || '';
       }
-      
       return {
         id: Date.now() + index,
         question_text: q.question_text || 'Question not found',
@@ -79,46 +77,38 @@ const AdminQuickTestCreate = () => {
         difficulty_level: q.difficulty || 'medium'
       };
     });
-
     console.log('Transformed questions:', transformedQuestions);
     setQuestions(transformedQuestions);
-    
     toast.success(`Successfully parsed ${transformedQuestions.length} questions!`);
   };
-
   const handleSave = async (publish = false) => {
     // Validation
     if (!testInfo.title.trim()) {
       toast.error('Please enter a test title');
       return;
     }
-
     if (!testInfo.subject) {
       toast.error('Please select a subject');
       return;
     }
-
     if (questions.length === 0) {
       toast.error('Please add at least one question');
       return;
     }
-
     setLoading(true);
     try {
       // 1. Create the test
-      const { data: testData, error: testError } = await supabase
-        .from('tests')
-        .insert({
-          title: testInfo.title,
-          test_type: 'quick_test',
-          difficulty_level: testInfo.difficulty,
-          time_limit_minutes: testInfo.timeLimit,
-          is_active: publish,
-          total_questions: questions.length
-        })
-        .select()
-        .single();
-
+      const {
+        data: testData,
+        error: testError
+      } = await supabase.from('tests').insert({
+        title: testInfo.title,
+        test_type: 'quick_test',
+        difficulty_level: testInfo.difficulty,
+        time_limit_minutes: testInfo.timeLimit,
+        is_active: publish,
+        total_questions: questions.length
+      }).select().single();
       if (testError) throw testError;
 
       // 2. Insert questions
@@ -134,13 +124,10 @@ const AdminQuickTestCreate = () => {
         explanation: q.explanation,
         difficulty_level: q.difficulty_level
       }));
-
-      const { error: questionsError } = await supabase
-        .from('questions')
-        .insert(questionsToInsert);
-
+      const {
+        error: questionsError
+      } = await supabase.from('questions').insert(questionsToInsert);
       if (questionsError) throw questionsError;
-
       toast.success(publish ? 'Test published successfully!' : 'Test saved as draft!');
       navigate('/admin/tests');
     } catch (error) {
@@ -150,19 +137,13 @@ const AdminQuickTestCreate = () => {
       setLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex">
+  return <div className="min-h-screen bg-gray-50 flex">
       <AdminSidebar activeTab="tests" onTabChange={() => {}} />
       
       <div className="flex-1 ml-64">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-8 py-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/admin/tests')}
-            className="mb-4 -ml-2"
-          >
+          <Button variant="ghost" onClick={() => navigate('/admin/tests')} className="mb-4 -ml-2">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Quick Tests
           </Button>
@@ -183,12 +164,10 @@ const AdminQuickTestCreate = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Test Title <span className="text-red-500">*</span>
                   </label>
-                  <Input
-                    value={testInfo.title}
-                    onChange={(e) => setTestInfo({ ...testInfo, title: e.target.value })}
-                    placeholder="e.g., Mathematics Quick Test - Algebra Fundamentals"
-                    className="border-gray-300"
-                  />
+                  <Input value={testInfo.title} onChange={e => setTestInfo({
+                  ...testInfo,
+                  title: e.target.value
+                })} placeholder="e.g., Mathematics Quick Test - Algebra Fundamentals" className="border-gray-300" />
                 </div>
 
                 {/* Subject and Topic */}
@@ -197,7 +176,10 @@ const AdminQuickTestCreate = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Subject <span className="text-red-500">*</span>
                     </label>
-                    <Select value={testInfo.subject} onValueChange={(value) => setTestInfo({ ...testInfo, subject: value as TestSubject })}>
+                    <Select value={testInfo.subject} onValueChange={value => setTestInfo({
+                    ...testInfo,
+                    subject: value as TestSubject
+                  })}>
                       <SelectTrigger className="border-gray-300 bg-white">
                         <SelectValue placeholder="Select Subject" />
                       </SelectTrigger>
@@ -217,12 +199,10 @@ const AdminQuickTestCreate = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Topic <span className="text-red-500">*</span>
                     </label>
-                    <Input
-                      value={testInfo.topic}
-                      onChange={(e) => setTestInfo({ ...testInfo, topic: e.target.value })}
-                      placeholder="e.g., Algebra, Force & Motion, etc."
-                      className="border-gray-300"
-                    />
+                    <Input value={testInfo.topic} onChange={e => setTestInfo({
+                    ...testInfo,
+                    topic: e.target.value
+                  })} placeholder="e.g., Algebra, Force & Motion, etc." className="border-gray-300" />
                   </div>
                 </div>
 
@@ -232,19 +212,20 @@ const AdminQuickTestCreate = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Time Limit (minutes)
                     </label>
-                    <Input
-                      type="number"
-                      value={testInfo.timeLimit}
-                      onChange={(e) => setTestInfo({ ...testInfo, timeLimit: parseInt(e.target.value) || 30 })}
-                      className="border-gray-300"
-                    />
+                    <Input type="number" value={testInfo.timeLimit} onChange={e => setTestInfo({
+                    ...testInfo,
+                    timeLimit: parseInt(e.target.value) || 30
+                  })} className="border-gray-300" />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Difficulty
                     </label>
-                    <Select value={testInfo.difficulty} onValueChange={(value: any) => setTestInfo({ ...testInfo, difficulty: value })}>
+                    <Select value={testInfo.difficulty} onValueChange={(value: any) => setTestInfo({
+                    ...testInfo,
+                    difficulty: value
+                  })}>
                       <SelectTrigger className="border-gray-300 bg-white">
                         <SelectValue />
                       </SelectTrigger>
@@ -282,40 +263,21 @@ const AdminQuickTestCreate = () => {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <Button
-                    variant="outline"
-                    className="border-gray-300"
-                    onClick={() => toast.info('Question bank coming soon!')}
-                  >
-                    <DatabaseIcon className="w-4 h-4 mr-2" />
-                    Load from Bank
-                  </Button>
+                  
                 </div>
               </div>
 
-              <QuestionBuilder 
-                questions={questions} 
-                setQuestions={setQuestions}
-              />
+              <QuestionBuilder questions={questions} setQuestions={setQuestions} />
             </CardContent>
           </Card>
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 mt-8">
-            <Button
-              variant="outline"
-              onClick={() => handleSave(false)}
-              disabled={loading}
-              className="border-gray-300"
-            >
+            <Button variant="outline" onClick={() => handleSave(false)} disabled={loading} className="border-gray-300">
               <Save className="w-4 h-4 mr-2" />
               Save as Draft
             </Button>
-            <Button
-              onClick={() => handleSave(true)}
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
+            <Button onClick={() => handleSave(true)} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
               <Upload className="w-4 h-4 mr-2" />
               Publish Test
             </Button>
@@ -324,8 +286,7 @@ const AdminQuickTestCreate = () => {
       </div>
 
       {/* AI Parser Modal */}
-      {showAIParser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {showAIParser && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -334,19 +295,13 @@ const AdminQuickTestCreate = () => {
                   ✕
                 </Button>
               </div>
-              <QuestionUploadCard 
-                mode="quick" 
-                onSuccess={(data) => {
-                  handleTestParsed(data);
-                  setShowAIParser(false);
-                }} 
-              />
+              <QuestionUploadCard mode="quick" onSuccess={data => {
+            handleTestParsed(data);
+            setShowAIParser(false);
+          }} />
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 };
-
 export default AdminQuickTestCreate;
