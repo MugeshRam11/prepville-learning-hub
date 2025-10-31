@@ -336,19 +336,28 @@ const SubjectQuestionManager = () => {
   });
 
   if (loading) {
-    return <div className="flex justify-center p-8">Loading questions...</div>;
+    return <div className="flex justify-center items-center h-64">
+      <div className="text-lg text-muted-foreground">Loading questions...</div>
+    </div>;
   }
+
+  const publishedCount = questions.filter(q => q.is_published).length;
+  const unpublishedCount = questions.filter(q => !q.is_published).length;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Subject Questions Management</h2>
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">Subject Questions Management</h2>
+          <p className="text-gray-600 mt-1">Create and manage subject-specific questions</p>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) resetForm();
         }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
               Add Question
             </Button>
@@ -558,29 +567,72 @@ const SubjectQuestionManager = () => {
         </Dialog>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Published Questions</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{publishedCount}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Unpublished Questions</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{unpublishedCount}</p>
+              </div>
+              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                <Circle className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Questions</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{questions.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Filter Questions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card className="bg-white border border-gray-200">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Filter Questions</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Search questions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-9 bg-gray-50 border-gray-300"
               />
             </div>
             
             <Select value={filterSubject} onValueChange={setFilterSubject}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Subject" />
+              <SelectTrigger className="bg-gray-50 border-gray-300">
+                <SelectValue placeholder="All Subjects" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subjects</SelectItem>
@@ -591,10 +643,10 @@ const SubjectQuestionManager = () => {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Select value={filterLevel} onValueChange={setFilterLevel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Level" />
+              <SelectTrigger className="bg-gray-50 border-gray-300">
+                <SelectValue placeholder="All Levels" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
@@ -605,8 +657,8 @@ const SubjectQuestionManager = () => {
             </Select>
 
             <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Difficulty" />
+              <SelectTrigger className="bg-gray-50 border-gray-300">
+                <SelectValue placeholder="All Difficulties" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Difficulties</SelectItem>
@@ -619,89 +671,109 @@ const SubjectQuestionManager = () => {
         </CardContent>
       </Card>
 
-      {/* Questions List */}
-      <div className="grid gap-4">
-        {filteredQuestions.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <HelpCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No questions found matching your criteria.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredQuestions.map(question => (
-            <Card key={question.id}>
+      {/* Questions Grid */}
+      {filteredQuestions.length === 0 ? (
+        <Card className="bg-white border border-gray-200">
+          <CardContent className="py-16 text-center">
+            <HelpCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg text-gray-600">No questions found</p>
+            <p className="text-sm text-gray-500 mt-2">Try adjusting your filters or create a new question</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredQuestions.map((question) => (
+            <Card key={question.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden group">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <HelpCircle className="w-5 h-5" />
-                      <h3 className="text-lg font-semibold">{question.title}</h3>
-                      <Badge variant={question.is_published ? "default" : "secondary"}>
-                        {question.is_published ? 'Published' : 'Draft'}
-                      </Badge>
+                {/* Header with icon and badge */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <HelpCircle className="w-5 h-5 text-primary" />
                     </div>
-                    
-                    <p className="text-muted-foreground mb-3 line-clamp-2">{question.question_text}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <Badge variant="outline">{question.subject.replace('_', ' ')}</Badge>
-                      <Badge variant="outline">{question.level}</Badge>
-                      <Badge variant="outline">{question.topic}</Badge>
-                      <Badge className={getDifficultyColor(question.difficulty)}>
-                        {question.difficulty}
-                      </Badge>
-                    </div>
-                    
-                    {question.tags && question.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {question.tags.map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="text-sm text-muted-foreground">
-                      Created: {new Date(question.created_at).toLocaleDateString()}
-                      {question.hints && question.hints.length > 0 && (
-                        <span> • {question.hints.length} hints</span>
-                      )}
-                      {question.explanation && <span> • Has explanation</span>}
-                    </div>
+                    <Badge 
+                      variant={question.is_published ? "default" : "secondary"}
+                      className={question.is_published ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}
+                    >
+                      {question.is_published ? 'Published' : 'Draft'}
+                    </Badge>
                   </div>
-                  
-                  <div className="flex gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(question)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => togglePublished(question.id, question.is_published)}
-                    >
-                      {question.is_published ? 'Unpublish' : 'Publish'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteQuestion(question.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                </div>
+
+                {/* Title */}
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+                    {question.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {question.question_text}
+                  </p>
+                </div>
+
+                {/* Image Preview */}
+                {question.question_image_url && (
+                  <div className="mb-4">
+                    <img 
+                      src={question.question_image_url} 
+                      alt="Question" 
+                      className="w-full h-32 object-cover border rounded-lg"
+                    />
                   </div>
+                )}
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal bg-white border-gray-300 capitalize">
+                    {question.subject.replace('_', ' ')}
+                  </Badge>
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal bg-white border-gray-300">
+                    {question.level}
+                  </Badge>
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal bg-white border-gray-300">
+                    {question.topic}
+                  </Badge>
+                </div>
+
+                {/* Difficulty Badge */}
+                <div className="mb-6 pb-6 border-b border-gray-100">
+                  <Badge className={getDifficultyColor(question.difficulty)}>
+                    {question.difficulty}
+                  </Badge>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleEdit(question)}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 border-gray-300 hover:bg-gray-50"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={() => togglePublished(question.id, question.is_published)}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 border-gray-300 hover:bg-gray-50"
+                  >
+                    {question.is_published ? 'Unpublish' : 'Publish'}
+                  </Button>
+                  <Button
+                    onClick={() => deleteQuestion(question.id)}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
