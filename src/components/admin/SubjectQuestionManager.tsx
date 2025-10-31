@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus,
   Edit,
@@ -19,10 +20,13 @@ import {
   Circle,
   HelpCircle,
   Upload,
-  X
+  X,
+  FileText,
+  PenTool
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import QuestionUploadCard from './QuestionUploadCard';
 
 interface SubjectQuestion {
   id: string;
@@ -366,6 +370,20 @@ const SubjectQuestionManager = () => {
             <DialogHeader>
               <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add New Question'}</DialogTitle>
             </DialogHeader>
+            
+            <Tabs defaultValue="manual" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  <PenTool className="w-4 h-4" />
+                  Manual Entry
+                </TabsTrigger>
+                <TabsTrigger value="ai-upload" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  AI Document Parser
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="manual" className="space-y-4 mt-4">
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -563,6 +581,28 @@ const SubjectQuestionManager = () => {
                 </Button>
               </div>
             </div>
+              </TabsContent>
+
+              <TabsContent value="ai-upload" className="mt-4">
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 mb-2">AI Document Parser</h3>
+                    <p className="text-sm text-blue-700">
+                      Upload documents (PDF, Word, CSV, Images) and let AI extract questions automatically.
+                      Supports text extraction, OCR, and image recognition.
+                    </p>
+                  </div>
+                  
+                  <QuestionUploadCard 
+                    mode="quick" 
+                    onSuccess={(data) => {
+                      fetchQuestions();
+                      setIsDialogOpen(false);
+                    }} 
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
           </DialogContent>
         </Dialog>
       </div>
