@@ -1003,14 +1003,13 @@ YOU MUST assign ALL ${extractedImages?.length || 0} extracted images to question
 7. **Image URLs**: Use exact URLs from extracted images list: ${extractedImages?.join(', ') || 'none'}
 
 ⚠️ **CRITICAL IMAGE URL RULES:**
-${extractedImages && extractedImages.length > 0 
-  ? `- ONLY use these actual extracted image URLs: ${extractedImages.join(', ')}
+` + (extractedImages && extractedImages.length > 0 
+  ? `- ONLY use these actual extracted image URLs from the list above
 - NEVER generate placeholder URLs like "placeholder.png" or "api.quizgen.io"
 - If no appropriate image for a question, set question_image_url to null (not a placeholder)
-- ALL ${extractedImages.length} images MUST be used - assign to the most relevant questions`
-  : '- NO images were extracted - set ALL question_image_url fields to null
-- DO NOT generate fake image URLs or placeholders'
-}
+- ALL extracted images MUST be used - assign to the most relevant questions`
+  : `- NO images were extracted - set ALL question_image_url fields to null
+- DO NOT generate fake image URLs or placeholders`) + `
 
 **ADAPTIVE PARSING (works like docTR OCR + AI):**
 - **CSV/Text**: Parse column headers and rows intelligently
@@ -1041,13 +1040,12 @@ Output:
 
 **IMAGE ASSIGNMENT VALIDATION:**
 Before returning JSON, verify:
-${extractedImages && extractedImages.length > 0 
-  ? `- Count of question_image_url fields with non-null values MUST EQUAL ${extractedImages.length}
+` + (extractedImages && extractedImages.length > 0 
+  ? `- Count of question_image_url fields with non-null values MUST EQUAL total extracted images
 - Every extracted image URL appears at least once in questions array
-- NO placeholder URLs or fake image URLs - only use provided URLs: ${extractedImages.join(', ')}
+- NO placeholder URLs or fake image URLs - only use provided URLs from list above
 - Questions sharing context should share the same image URL`
-  : '- ALL question_image_url fields are null (no images provided)'
-}
+  : `- ALL question_image_url fields are null (no images provided)`) + `
 
 Return JSON:
 {
@@ -1061,7 +1059,7 @@ Return JSON:
     {
       "question_text": "string (CONCISE task-focused question WITHOUT repetitive context - shared context is in the image)",
       "question_type": "mcq",
-      "question_image_url": "string (${extractedImages && extractedImages.length > 0 ? `MUST use one of: ${extractedImages.join(' OR ')} - NO PLACEHOLDERS` : 'null - no images provided'})",
+      "question_image_url": "string (` + (extractedImages && extractedImages.length > 0 ? `MUST use actual extracted URLs from list above - NO PLACEHOLDERS` : `null - no images provided`) + `)",
       "options": ["A. text", "B. text", "C. text", "D. text"] (MANDATORY - always 4 options),
       "correct_answer": "A|B|C|D" (MANDATORY - must be one of A/B/C/D),
       "explanation": "string (detailed explanation)",
