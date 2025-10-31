@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Loader2, CheckCircle, XCircle, Brain, FileSearch, ListChecks, Eye } from 'lucide-react';
@@ -9,6 +9,12 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker - use the correct path for Vite
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
   onSuccess?: (data: any) => void;
@@ -126,24 +132,33 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       } else if (fileName.endsWith('.pdf')) {
         // Extract text from PDF using pdfjs
         setProgress(25);
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({
-          data: arrayBuffer
-        }).promise;
-        const numPages = pdf.numPages;
-        let pdfText = '';
-        for (let i = 1; i <= numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          pdfText += `\n--- Page ${i} ---\n${pageText}`;
-          setProgress(25 + i / numPages * 15);
+        toast.info('Processing PDF document...');
+        
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({
+            data: arrayBuffer
+          }).promise;
+          const numPages = pdf.numPages;
+          let pdfText = '';
+          
+          for (let i = 1; i <= numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            pdfText += `\n--- Page ${i} ---\n${pageText}`;
+            setProgress(25 + i / numPages * 15);
+          }
+          
+          extractedText = pdfText;
+          content = pdfText;
+          console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
+          toast.success(`Extracted text from ${numPages} PDF pages`);
+        } catch (pdfError: any) {
+          console.error('PDF processing error:', pdfError);
+          toast.error('Failed to process PDF. Please try another file format.');
+          throw new Error(`PDF processing failed: ${pdfError.message}`);
         }
-        extractedText = pdfText;
-        content = pdfText;
-        console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
-        toast.info(`Extracted text from ${numPages} PDF pages`);
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
         const base64 = await fileToBase64(file);
