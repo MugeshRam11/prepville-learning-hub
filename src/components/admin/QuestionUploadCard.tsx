@@ -7,9 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import mammoth from 'mammoth';
-
+import * as pdfjsLib from 'pdfjs-dist';
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
   onSuccess?: (data: any) => void;
@@ -23,8 +22,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [progress, setProgress] = useState(0);
   const [parseResult, setParseResult] = useState<any>(null);
   const [actionMode, setActionMode] = useState<ActionMode>('parse');
-  const [manualJsonInput, setManualJsonInput] = useState('');
-  const [showManualInput, setShowManualInput] = useState(false);
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -84,12 +81,10 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       // Enhanced document parsing with text AND image extraction
       if (fileType === 'text/csv' || fileName.endsWith('.csv')) {
         // Read CSV as text
-        console.log('📊 Processing CSV file...');
         content = await file.text();
         extractedText = content;
         console.log('✅ CSV text extracted:', content.substring(0, 200));
-        toast.success('CSV file loaded successfully');
-      } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+      } else if (fileName.endsWith('.docx')) {
         // Extract text AND images from Word document via edge function
         setProgress(25);
         const formData = new FormData();
@@ -128,13 +123,27 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           toast.info('Extracted text only (image extraction unavailable)');
         }
         setProgress(35);
-      } else if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-        // PDF support is limited - show clear guidance
-        toast.error('PDF files have limited support', {
-          description: '📄 For best results, use Word documents (.docx) which support automatic text AND image extraction.',
-          duration: 8000
-        });
-        throw new Error('PDF files can only extract text (no images/diagrams).\n\n✅ Recommended: Use Word documents (.docx) for complete extraction including images, tables, and diagrams.\n\n⚠️ Workaround: Convert PDF to DOCX, or upload individual pages as images (JPG/PNG).');
+      } else if (fileName.endsWith('.pdf')) {
+        // Extract text from PDF using pdfjs
+        setProgress(25);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({
+          data: arrayBuffer
+        }).promise;
+        const numPages = pdf.numPages;
+        let pdfText = '';
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          pdfText += `\n--- Page ${i} ---\n${pageText}`;
+          setProgress(25 + i / numPages * 15);
+        }
+        extractedText = pdfText;
+        content = pdfText;
+        console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
+        toast.info(`Extracted text from ${numPages} PDF pages`);
       } else if (fileType.includes('image')) {
         // For images, send as base64 (AI will perform OCR)
         const base64 = await fileToBase64(file);
@@ -178,36 +187,11 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           actionMode
         }
       });
-      if (error) {
-        console.error('❌ Edge function error:', error);
-        throw new Error(error.message || 'Failed to call AI parser');
-      }
-      
+      if (error) throw error;
       setProgress(70);
-      
       if (!data || !data.success) {
-        const errorMsg = data?.error || 'Failed to process document';
-        console.error('❌ AI parser returned error:', errorMsg);
-        
-        // Provide helpful error context
-        let helpText = 'Please try again or use Manual JSON Input.';
-        if (errorMsg.includes('Rate limit')) {
-          helpText = 'AI service is rate limited. Wait a moment and try again.';
-        } else if (errorMsg.includes('credits')) {
-          helpText = 'AI credits exhausted. Please add credits to continue.';
-        } else if (errorMsg.includes('No questions found')) {
-          helpText = 'Could not detect questions in the document. Ensure the file contains properly formatted questions.';
-        }
-        
-        throw new Error(`${errorMsg}\n\n${helpText}`);
+        throw new Error(data?.error || 'Failed to process document');
       }
-      
-      console.log('✅ AI parsing successful:', {
-        actionMode: data.actionMode,
-        count: data.parsed_count,
-        hasData: !!data.data,
-        questionsFound: data.data?.questions?.length || 0
-      });
       setProgress(90);
 
       // Handle different action modes
@@ -234,32 +218,17 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         onSuccess(savedData);
       }
     } catch (error: any) {
-      console.error('❌ Upload error:', error);
+      console.error('Upload error:', error);
       let errorMessage = 'Failed to process file';
-      let errorDetails = '';
-      
-      if (error.message?.includes('Rate limit') || error.message?.includes('429')) {
-        errorMessage = '⏱️ Rate limit exceeded';
-        errorDetails = 'Please wait a moment and try again.';
-      } else if (error.message?.includes('credits') || error.message?.includes('402')) {
-        errorMessage = '💳 Out of AI credits';
-        errorDetails = 'Please add credits in Settings → Workspace → Usage';
-      } else if (error.message?.includes('Failed to process document')) {
-        errorMessage = '📄 Document processing failed';
-        errorDetails = error.message || 'The AI could not extract questions from this document. Please check the document format.';
-      } else {
-        errorMessage = '❌ Processing failed';
-        errorDetails = error.message || 'Please check the file format and try again.';
+      if (error.message?.includes('Rate limit')) {
+        errorMessage = 'Rate limit exceeded. Please try again in a moment.';
+      } else if (error.message?.includes('credits')) {
+        errorMessage = 'AI credits exhausted. Please add credits to continue.';
       }
-      
-      toast.error(errorMessage, {
-        description: errorDetails,
-        duration: 8000
-      });
-      
+      toast.error(errorMessage);
       setParseResult({
         success: false,
-        error: `${errorMessage}: ${errorDetails}`
+        error: errorMessage
       });
     } finally {
       setUploading(false);
@@ -303,39 +272,30 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       created_by: user.id
     }).select().single();
     if (testError) throw testError;
-
-    // Filter out undefined or invalid questions
-    const questions = data.questions
-      .filter((q: any) => q && q.question_text && q.question_text.trim() !== '')
-      .map((q: any, idx: number) => {
-        const isMCQ = q.options && q.options.length > 0;
-        let correctAnswer = null;
-        if (isMCQ) {
-          const answerChar = q.correct_answer?.charAt(0)?.toUpperCase();
-          if (['A', 'B', 'C', 'D'].includes(answerChar)) {
-            correctAnswer = answerChar;
-          } else {
-            correctAnswer = 'A';
-          }
+    const questions = data.questions.map((q: any, idx: number) => {
+      const isMCQ = q.options && q.options.length > 0;
+      let correctAnswer = null;
+      if (isMCQ) {
+        const answerChar = q.correct_answer?.charAt(0)?.toUpperCase();
+        if (['A', 'B', 'C', 'D'].includes(answerChar)) {
+          correctAnswer = answerChar;
+        } else {
+          correctAnswer = 'A';
         }
-        return {
-          test_id: test.id,
-          question_text: q.question_text,
-          question_image_url: q.question_image_url || null,
-          option_a: q.options?.[0] || '',
-          option_b: q.options?.[1] || '',
-          option_c: q.options?.[2] || '',
-          option_d: q.options?.[3] || '',
-          correct_answer: correctAnswer,
-          explanation: isMCQ ? q.explanation : `Answer: ${q.correct_answer}\n\n${q.explanation || ''}`,
-          difficulty_level: q.difficulty || 'medium'
-        };
-      });
-
-    if (questions.length === 0) {
-      throw new Error('No valid questions found in the document');
-    }
-
+      }
+      return {
+        test_id: test.id,
+        question_text: q.question_text,
+        question_image_url: q.question_image_url || null,
+        option_a: q.options?.[0] || '',
+        option_b: q.options?.[1] || '',
+        option_c: q.options?.[2] || '',
+        option_d: q.options?.[3] || '',
+        correct_answer: correctAnswer,
+        explanation: isMCQ ? q.explanation : `Answer: ${q.correct_answer}\n\n${q.explanation || ''}`,
+        difficulty_level: q.difficulty || 'medium'
+      };
+    });
     const {
       error: questionsError
     } = await supabase.from('questions').insert(questions);
@@ -370,17 +330,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       created_by: user.id
     }).select().single();
     if (mockTestError) throw mockTestError;
-
-    // Filter out undefined or invalid questions
-    const validQuestions = data.questions.filter((q: any) => 
-      q && q.question_text && q.question_text.trim() !== ''
-    );
-
-    if (validQuestions.length === 0) {
-      throw new Error('No valid questions found in the document');
-    }
-
-    for (const q of validQuestions) {
+    for (const q of data.questions) {
       const {
         data: question,
         error: questionError
@@ -412,7 +362,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     }
     return {
       mockTest,
-      questions: validQuestions
+      questions: data.questions
     };
   };
   const {
@@ -428,6 +378,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     accept: {
       'text/csv': ['.csv'],
       'text/plain': ['.txt'],
+      'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/msword': ['.doc'],
       'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']
@@ -436,92 +387,9 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     maxFiles: 1,
     disabled: uploading
   });
-
-  const handleManualJsonSubmit = async () => {
-    if (!manualJsonInput.trim()) {
-      toast.error('Please paste JSON data');
-      return;
-    }
-
-    setUploading(true);
-    setProgress(50);
-    try {
-      const parsedData = JSON.parse(manualJsonInput);
-      setProgress(80);
-      
-      let savedData = null;
-      if (parsedData.questions && parsedData.questions.length > 0) {
-        savedData = await saveQuestions(parsedData);
-      }
-      
-      setProgress(100);
-      setParseResult({
-        success: true,
-        actionMode: 'parse',
-        count: parsedData.questions?.length || 0,
-        data: savedData || parsedData
-      });
-      
-      toast.success(`Successfully imported ${parsedData.questions?.length || 0} questions from JSON!`);
-      setManualJsonInput('');
-      setShowManualInput(false);
-      
-      if (onSuccess && savedData) {
-        onSuccess(savedData);
-      }
-    } catch (error: any) {
-      console.error('❌ JSON parse error:', error);
-      toast.error('Invalid JSON format', {
-        description: error.message || 'Please check your JSON structure'
-      });
-      setParseResult({
-        success: false,
-        error: `Invalid JSON: ${error.message}`
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   return <Card>
       
       <CardContent className="space-y-6">
-        {/* Manual JSON Input Toggle */}
-        <div className="flex justify-end">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowManualInput(!showManualInput)}
-          >
-            {showManualInput ? 'Hide' : 'Show'} Manual JSON Input
-          </Button>
-        </div>
-
-        {/* Manual JSON Input Section */}
-        {showManualInput && (
-          <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Paste JSON Data</label>
-              <Button 
-                size="sm" 
-                onClick={handleManualJsonSubmit}
-                disabled={uploading || !manualJsonInput.trim()}
-              >
-                Import JSON
-              </Button>
-            </div>
-            <Textarea
-              placeholder='{"questions": [{"question_text": "...", "correct_answer": "..."}]}'
-              value={manualJsonInput}
-              onChange={(e) => setManualJsonInput(e.target.value)}
-              className="font-mono text-xs min-h-[200px]"
-            />
-            <p className="text-xs text-muted-foreground">
-              Paste extracted JSON data if automatic parsing fails
-            </p>
-          </div>
-        )}
-
         {/* Action Mode Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Processing Action</label>
@@ -553,7 +421,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           </p>
         </div>
 
-          <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+        <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
             ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
           <input {...getInputProps()} />
@@ -567,10 +435,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 {isDragActive ? 'Drop file here' : 'Drag & drop or click to upload'}
               </p>
               <p className="text-xs text-muted-foreground">
-                ✅ PDF (Vision OCR) | ✅ Word (with images) | ✅ CSV | ✅ Images (OCR) | ✅ Text
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Max 20MB | Auto-extracts text, images, sub-questions & marks
+                PDF, Word (with images), CSV, Images (OCR), Text | Max 20MB
               </p>
             </>}
         </div>
