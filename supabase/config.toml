@@ -15,6 +15,9 @@ verify_jwt = true
 [functions.pdf-to-word]
 verify_jwt = true
 
+[functions.pdf-pipeline]
+verify_jwt = true
+
 [functions.daily-motivation]
 verify_jwt = false
 
