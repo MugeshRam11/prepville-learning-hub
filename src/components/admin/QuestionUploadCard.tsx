@@ -74,27 +74,28 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       return null;
     }
   };
-  const convertPDFToWord = async (file: File): Promise<Blob | null> => {
+  const convertPDFToWord = async (file: File, extractedPageContents: Array<{ pageNum: number; text: string }>): Promise<Blob | null> => {
     try {
       setConvertingToWord(true);
-      setProcessingStage('Converting PDF to Word...');
-      
-      const formData = new FormData();
-      formData.append('file', file);
+      setProcessingStage('Creating Word document...');
       
       const response = await fetch(
         `https://mvmciqmszakciijfdyos.supabase.co/functions/v1/pdf-to-word`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w`
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w`,
+            'Content-Type': 'application/json'
           },
-          body: formData
+          body: JSON.stringify({
+            pageContents: extractedPageContents,
+            fileName: file.name
+          })
         }
       );
       
       if (!response.ok) {
-        throw new Error('Failed to convert PDF to Word');
+        throw new Error('Failed to create Word document');
       }
       
       const wordBlob = await response.blob();
@@ -103,14 +104,14 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       const url = URL.createObjectURL(wordBlob);
       setWordFileUrl(url);
       
-      toast.success('PDF successfully converted to Word!');
+      toast.success('Word document created successfully!');
       setConvertingToWord(false);
       setProcessingStage('');
       
       return wordBlob;
     } catch (error) {
-      console.error('PDF to Word conversion error:', error);
-      toast.error('Failed to convert PDF to Word');
+      console.error('Word document creation error:', error);
+      toast.error('Failed to create Word document');
       setConvertingToWord(false);
       setProcessingStage('');
       return null;
@@ -132,20 +133,45 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       console.log('📄 Processing:', fileName, '| Type:', fileType);
       setProgress(20);
       
-      // Auto-convert PDF to Word if PDF is uploaded
+      // Handle PDF files - extract text first, then optionally create Word
+      let pdfPageContents: Array<{ pageNum: number; text: string }> = [];
       if (fileName.endsWith('.pdf')) {
-        setProcessingStage('Converting PDF to Word format...');
-        const wordBlob = await convertPDFToWord(file);
+        setProcessingStage('Extracting text from PDF...');
+        toast.info('Processing PDF document...');
         
-        if (wordBlob) {
-          // Create a new File object from the Word blob
-          const wordFile = new File([wordBlob], fileName.replace('.pdf', '.docx'), {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({
+            data: arrayBuffer
+          }).promise;
+          const numPages = pdf.numPages;
+          
+          // Extract text from each page
+          for (let i = 1; i <= numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            pdfPageContents.push({
+              pageNum: i,
+              text: pageText
+            });
+            setProgress(20 + (i / numPages) * 15);
+          }
+          
+          extractedText = pdfPageContents.map(p => `--- Page ${p.pageNum} ---\n${p.text}`).join('\n\n');
+          content = extractedText;
+          
+          // Create Word document in background
+          setProcessingStage('Creating Word document...');
+          convertPDFToWord(file, pdfPageContents).catch(err => {
+            console.warn('Word conversion failed but continuing with parsing:', err);
           });
           
-          // Now process the Word file
-          setProcessingStage('Extracting content from Word document...');
-          file = wordFile;
+          setProgress(35);
+        } catch (pdfError: any) {
+          console.error('PDF processing error:', pdfError);
+          toast.error('Failed to process PDF. Please try another file format.');
+          throw new Error(`PDF processing failed: ${pdfError.message}`);
         }
       }
 
