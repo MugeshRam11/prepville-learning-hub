@@ -113,6 +113,8 @@ Your task:
 • Return valid JSON with no duplicates or incomplete entries
 • If fields are missing, use empty strings/arrays
 • Infer difficulty level (easy/medium/hard) and topic when possible
+• IMPORTANT: For math expressions, keep them simple. Convert LaTeX to plain text when possible (e.g., "2x + 3" instead of "$2x + 3$")
+• Avoid complex LaTeX notation with multiple backslashes
 • Be precise and ensure no extra commentary`;
 
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -177,7 +179,27 @@ Your task:
         throw new Error('No structured output from AI');
       }
 
-      const parsedData = JSON.parse(toolCall.function.arguments);
+      // Sanitize the JSON string before parsing to handle LaTeX escaping issues
+      let jsonString = toolCall.function.arguments;
+      
+      // Fix common LaTeX escaping issues
+      jsonString = jsonString
+        .replace(/\\\\\\\\/g, '\\\\')  // Fix quadruple backslashes
+        .replace(/\\begin{pmatrix}/g, '[')  // Simplify matrix notation
+        .replace(/\\end{pmatrix}/g, ']')
+        .replace(/\\\\/g, '; ')  // Replace matrix row separators with semicolons
+        .replace(/\\times/g, '×')  // Use multiplication symbol
+        .replace(/\\div/g, '÷');  // Use division symbol
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error('JSON parsing failed after sanitization:', parseError);
+        console.error('Problematic JSON:', jsonString.substring(0, 500));
+        throw new Error('AI response format invalid. Try a simpler document first.');
+      }
+
       const questions = parsedData.questions || [];
       
       console.log(`✅ Parsed ${questions.length} questions`);
