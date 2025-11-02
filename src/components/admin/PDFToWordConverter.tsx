@@ -27,6 +27,7 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
     images: string[];
     pageImages: Array<{ url: string; base64: string }>;
     fileName: string;
+    ocrResults?: Array<{ page: number; text: string; hasTable: boolean; hasDiagram: boolean; description: string }>;
   } | null>(null);
 
   const uploadImageToStorage = async (base64Data: string, contentType: string): Promise<string | null> => {
@@ -142,6 +143,44 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
     return { text: fullText, images: imageUrls, pageImages };
   };
 
+  const extractWithAIOCR = async () => {
+    if (!extractedData) return;
+
+    try {
+      setCurrentStep('Performing AI OCR extraction...');
+      setProgress(70);
+
+      const response = await supabase.functions.invoke('pdf-to-word', {
+        body: {
+          extractedText: extractedData.text,
+          extractedImages: extractedData.images,
+          pageImages: extractedData.pageImages,
+          fileName: extractedData.fileName,
+          returnOCROnly: true
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setProgress(90);
+      setCurrentStep('OCR extraction complete!');
+
+      // Store OCR results
+      setExtractedData(prev => prev ? {
+        ...prev,
+        ocrResults: response.data.ocrResults
+      } : null);
+
+      toast.success('AI OCR extraction completed successfully!');
+
+    } catch (error: any) {
+      console.error('OCR error:', error);
+      toast.error(error.message || 'Failed to perform OCR extraction');
+    }
+  };
+
   const convertToWord = async () => {
     if (!extractedData) return;
 
@@ -154,7 +193,8 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
           extractedText: extractedData.text,
           extractedImages: extractedData.images,
           pageImages: extractedData.pageImages,
-          fileName: extractedData.fileName
+          fileName: extractedData.fileName,
+          returnOCROnly: false
         }
       });
 
@@ -196,8 +236,8 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
       // Extract PDF content with AI OCR
       const { text, images, pageImages } = await extractPDFContent(file);
 
-      setProgress(70);
-      setCurrentStep('AI OCR processing complete!');
+      setProgress(60);
+      setCurrentStep('Extracted pages, ready for AI OCR...');
 
       setExtractedData({
         text,
@@ -206,7 +246,50 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
         fileName: file.name
       });
 
-      toast.success(`Extracted ${images.length} pages with AI-powered OCR`);
+      // Automatically perform AI OCR after extraction
+      await performAutoOCR(file.name, text, images, pageImages);
+
+    } catch (error: any) {
+      console.error('Processing error:', error);
+      toast.error(error.message || 'Failed to process PDF');
+      setConverting(false);
+    }
+  };
+
+  const performAutoOCR = async (
+    fileName: string, 
+    text: string, 
+    images: string[], 
+    pageImages: Array<{ url: string; base64: string }>
+  ) => {
+    try {
+      setCurrentStep('Running AI OCR on all pages...');
+      setProgress(70);
+
+      const response = await supabase.functions.invoke('pdf-to-word', {
+        body: {
+          extractedText: text,
+          extractedImages: images,
+          pageImages: pageImages,
+          fileName: fileName,
+          returnOCROnly: true
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setProgress(90);
+      setCurrentStep('AI OCR extraction complete!');
+
+      // Update with OCR results
+      setExtractedData(prev => prev ? {
+        ...prev,
+        ocrResults: response.data.ocrResults
+      } : null);
+
+      toast.success(`AI OCR completed: ${pageImages.length} pages analyzed with diagrams, tables, and text extracted`);
 
     } catch (error: any) {
       console.error('Processing error:', error);
@@ -301,9 +384,40 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
                 <p>📄 File: {extractedData.fileName}</p>
                 <p>📝 Basic Text: {extractedData.text.length} characters</p>
                 <p>🖼️ Pages Processed: {extractedData.pageImages.length}</p>
-                <p>🤖 AI OCR: Ready for extraction</p>
+                {extractedData.ocrResults && (
+                  <>
+                    <p>🤖 AI OCR: ✅ Complete ({extractedData.ocrResults.length} pages)</p>
+                    <p>📊 Detected: {extractedData.ocrResults.filter(r => r.hasDiagram).length} diagrams, {extractedData.ocrResults.filter(r => r.hasTable).length} tables</p>
+                  </>
+                )}
               </div>
             </div>
+
+            {extractedData.ocrResults && extractedData.ocrResults.length > 0 && (
+              <div className="mb-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <h3 className="text-sm font-semibold mb-2">📊 AI OCR Results Preview</h3>
+                <div className="max-h-40 overflow-y-auto text-xs space-y-2">
+                  {extractedData.ocrResults.slice(0, 3).map((result, idx) => (
+                    <div key={idx} className="p-2 bg-background rounded border">
+                      <div className="font-medium">Page {result.page}</div>
+                      <div className="text-muted-foreground">
+                        {result.text.substring(0, 100)}...
+                      </div>
+                      {(result.hasDiagram || result.hasTable) && (
+                        <div className="text-primary text-xs mt-1">
+                          {result.hasDiagram && '📊 Diagram detected'} {result.hasTable && '📋 Table detected'}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {extractedData.ocrResults.length > 3 && (
+                    <div className="text-center text-muted-foreground">
+                      + {extractedData.ocrResults.length - 3} more pages
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button

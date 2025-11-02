@@ -101,7 +101,7 @@ serve(async (req) => {
   try {
     console.log('📄 Starting PDF to Word conversion with AI OCR...');
     
-    const { extractedText, extractedImages, fileName, pageImages } = await req.json();
+    const { extractedText, extractedImages, fileName, pageImages, returnOCROnly = false } = await req.json();
     
     console.log(`📝 Processing: ${fileName}`);
     console.log(`📊 Text length: ${extractedText?.length || 0} chars`);
@@ -147,7 +147,51 @@ serve(async (req) => {
     );
 
     // Process pages with AI OCR
+    const allOCRResults: Array<any> = [];
+    
     if (pageImages && pageImages.length > 0) {
+      // If only OCR results are requested, skip Word generation
+      if (returnOCROnly) {
+        for (let i = 0; i < pageImages.length; i++) {
+          const pageData = pageImages[i];
+          console.log(`📄 Processing page ${i + 1} with AI OCR (OCR-only mode)...`);
+          
+          try {
+            const ocrResult = await extractContentWithAI(pageData.base64);
+            allOCRResults.push({
+              page: i + 1,
+              ...ocrResult
+            });
+          } catch (error) {
+            console.error(`Error processing page ${i + 1}:`, error);
+            allOCRResults.push({
+              page: i + 1,
+              text: "",
+              hasTable: false,
+              hasDiagram: false,
+              description: `Error: ${error.message}`,
+              error: true
+            });
+          }
+        }
+        
+        // Return OCR results as JSON
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            ocrResults: allOCRResults,
+            totalPages: pageImages.length
+          }),
+          {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      }
+      
+      // Regular Word document generation mode
       docSections.push(
         new Paragraph({
           text: "AI-Extracted Content",
@@ -163,6 +207,7 @@ serve(async (req) => {
         try {
           // Perform AI OCR on the page image
           const ocrResult = await extractContentWithAI(pageData.base64);
+          allOCRResults.push({ page: i + 1, ...ocrResult });
           
           // Add page header
           docSections.push(
