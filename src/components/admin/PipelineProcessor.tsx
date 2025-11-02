@@ -72,20 +72,33 @@ const PipelineProcessor: React.FC<PipelineProcessorProps> = ({ file, onComplete 
         extractedText += `\n--- Page ${i} ---\n${pageText}`;
       }
 
-      // Task 2: Convert to Word
-      setCurrentTask('Converting to Word format...');
+      // Task 2: Convert to Word using RapidAPI
+      setCurrentTask('Converting to Word format with RapidAPI...');
       updateTaskStatus('convert-1', 'processing');
       
-      const { data: wordBlob, error: wordError } = await supabase.functions.invoke('pdf-pipeline', {
-        body: {
-          extractedText,
-          fileName: file.name,
-          operation: 'convert'
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const convertResponse = await fetch(
+        `https://mvmciqmszakciijfdyos.supabase.co/functions/v1/pdf-pipeline`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w`
+          },
+          body: formData
         }
-      });
-
-      if (wordError) throw wordError;
-      updateTaskStatus('convert-1', 'completed', { format: 'docx' });
+      );
+      
+      if (!convertResponse.ok) {
+        throw new Error('Failed to convert PDF to Word');
+      }
+      
+      const wordBlob = await convertResponse.blob();
+      
+      // Create download URL for the Word file
+      const wordUrl = URL.createObjectURL(wordBlob);
+      updateTaskStatus('convert-1', 'completed', { format: 'docx', downloadUrl: wordUrl });
 
       // Task 3: Parse questions
       setCurrentTask('Parsing questions with AI...');
@@ -227,17 +240,28 @@ const PipelineProcessor: React.FC<PipelineProcessorProps> = ({ file, onComplete 
           )}
         </Button>
 
-        {/* Summary */}
+        {/* Summary with Download Link */}
         {tasks.every(t => t.status === 'completed') && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium text-green-900">Pipeline completed successfully!</p>
-                <p className="text-xs text-green-700 mt-1">
-                  All tasks executed: Import → Convert → Parse → Export
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-green-900">Pipeline completed successfully!</p>
+                  <p className="text-xs text-green-700 mt-1">
+                    All tasks executed: Import → Convert → Parse → Export
+                  </p>
+                </div>
               </div>
+              {tasks.find(t => t.id === 'convert-1')?.result?.downloadUrl && (
+                <a
+                  href={tasks.find(t => t.id === 'convert-1')?.result?.downloadUrl}
+                  download="converted-document.docx"
+                  className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 transition-colors"
+                >
+                  Download Word
+                </a>
+              )}
             </div>
           </div>
         )}

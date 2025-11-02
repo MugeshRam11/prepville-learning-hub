@@ -12,70 +12,89 @@ serve(async (req) => {
   }
 
   try {
-    const { extractedText, fileName, operation } = await req.json();
-
-    console.log(`📋 Pipeline operation: ${operation || 'full'}`);
-
-    let result: any = { success: true };
-
-    // Step 1: Convert to Word
-    if (operation === 'convert' || !operation) {
-      console.log('🔄 Converting to Word format...');
+    const contentType = req.headers.get('content-type');
+    
+    // Handle file upload for conversion
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const file = formData.get('file') as File;
       
-      const JSZip = (await import('https://esm.sh/jszip@3.10.1')).default;
-      const zip = new JSZip();
+      if (!file) {
+        return new Response(
+          JSON.stringify({ error: 'No file provided' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-      const escapedText = (extractedText || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+      console.log(`📄 Converting ${file.name} using RapidAPI DocConverter...`);
 
-      const wordContent = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    <w:p>
-      <w:r>
-        <w:t>${escapedText}</w:t>
-      </w:r>
-    </w:p>
-  </w:body>
-</w:document>`;
+      const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY');
+      if (!RAPIDAPI_KEY) {
+        return new Response(
+          JSON.stringify({ error: 'RapidAPI key not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-      zip.file('word/document.xml', wordContent);
-      zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`);
-      
-      zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`);
+      try {
+        // Read file as base64
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-      const docxBlob = await zip.generateAsync({ type: 'uint8array' });
-      
-      result.word = {
-        success: true,
-        size: docxBlob.length,
-        fileName: (fileName || 'document').replace('.pdf', '.docx')
-      };
+        // Call RapidAPI DocConverter
+        const convertResponse = await fetch(
+          'https://docconverter-pro-one-api-for-all-your-document-conversions.p.rapidapi.com/convert/pdf',
+          {
+            method: 'POST',
+            headers: {
+              'x-rapidapi-key': RAPIDAPI_KEY,
+              'x-rapidapi-host': 'docconverter-pro-one-api-for-all-your-document-conversions.p.rapidapi.com',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              file: base64,
+              outputFormat: 'docx',
+              fileName: file.name
+            })
+          }
+        );
 
-      // If we only want to convert, return the Word document
-      if (operation === 'convert') {
-        return new Response(docxBlob, {
+        if (!convertResponse.ok) {
+          const errorText = await convertResponse.text();
+          console.error('RapidAPI conversion error:', convertResponse.status, errorText);
+          throw new Error(`Conversion failed: ${convertResponse.status}`);
+        }
+
+        const convertedData = await convertResponse.arrayBuffer();
+        
+        console.log(`✅ Converted successfully (${convertedData.byteLength} bytes)`);
+
+        return new Response(convertedData, {
           status: 200,
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'Content-Disposition': `attachment; filename="${result.word.fileName}"`,
+            'Content-Disposition': `attachment; filename="${file.name.replace('.pdf', '.docx')}"`,
           }
         });
+
+      } catch (error) {
+        console.error('Conversion error:', error);
+        return new Response(
+          JSON.stringify({ 
+            error: error instanceof Error ? error.message : 'Conversion failed' 
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
+
+    // Handle JSON request for parsing
+    const { extractedText, fileName, operation } = await req.json();
+
+    console.log(`📋 Pipeline operation: ${operation || 'parse'}`);
+
+    let result: any = { success: true };
 
     // Step 2: Parse with AI
     if (operation === 'parse' || !operation) {
