@@ -100,24 +100,46 @@ const PipelineProcessor: React.FC<PipelineProcessorProps> = ({ file, onComplete 
       const wordUrl = URL.createObjectURL(wordBlob);
       updateTaskStatus('convert-1', 'completed', { format: 'docx', downloadUrl: wordUrl });
 
-      // Task 3: Parse questions
-      setCurrentTask('Parsing questions with AI...');
+      // Task 3: Parse questions with AI and save to database
+      setCurrentTask('Parsing questions with AI and saving to database...');
       updateTaskStatus('parse-1', 'processing');
+
+      // Create a mock test record first to get the test ID
+      const { data: testData, error: testError } = await supabase
+        .from('mock_tests')
+        .insert({
+          title: `Imported Test - ${file.name}`,
+          subject: 'mathematics',
+          topic: 'Auto-imported from PDF pipeline',
+          is_published: false
+        })
+        .select()
+        .single();
+
+      if (testError) {
+        console.error('Failed to create test:', testError);
+        throw new Error('Failed to create test record');
+      }
 
       const { data: parseData, error: parseError } = await supabase.functions.invoke('pdf-pipeline', {
         body: {
           extractedText,
           fileName: file.name,
-          operation: 'parse'
+          operation: 'parse',
+          testId: testData.id
         }
       });
 
       if (parseError) throw parseError;
       
       const questionsData = parseData?.parse?.questions || [];
+      const savedToDb = parseData?.parse?.metadata?.savedToDatabase || false;
+      
       updateTaskStatus('parse-1', 'completed', { 
         questions: questionsData,
-        count: questionsData.length 
+        count: questionsData.length,
+        testId: testData.id,
+        savedToDatabase: savedToDb
       });
 
       // Task 4: Export
@@ -196,7 +218,9 @@ const PipelineProcessor: React.FC<PipelineProcessorProps> = ({ file, onComplete 
                   </div>
                   {task.status === 'completed' && task.result && (
                     <p className="text-xs text-green-700 mt-1">
-                      {task.result.questions ? `✓ ${task.result.questions.length} questions parsed` : '✓ Completed'}
+                      {task.result.questions 
+                        ? `✓ ${task.result.count} questions ${task.result.savedToDatabase ? 'parsed & saved' : 'parsed'}` 
+                        : '✓ Completed'}
                     </p>
                   )}
                 </div>
@@ -242,7 +266,7 @@ const PipelineProcessor: React.FC<PipelineProcessorProps> = ({ file, onComplete 
 
         {/* Summary with Download Link */}
         {tasks.every(t => t.status === 'completed') && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-600" />
@@ -263,6 +287,16 @@ const PipelineProcessor: React.FC<PipelineProcessorProps> = ({ file, onComplete 
                 </a>
               )}
             </div>
+            {tasks.find(t => t.id === 'parse-1')?.result?.testId && (
+              <div className="bg-white border border-green-200 rounded p-3">
+                <p className="text-xs font-medium text-green-900 mb-1">
+                  ✓ {tasks.find(t => t.id === 'parse-1')?.result?.count} questions saved to database
+                </p>
+                <p className="text-xs text-green-700">
+                  Test ID: {tasks.find(t => t.id === 'parse-1')?.result?.testId}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
