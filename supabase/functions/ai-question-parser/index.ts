@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.54.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -287,62 +288,106 @@ serve(async (req) => {
 
     console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
     
-    // Check if this is a scanned PDF with images that need OCR
+    // Enhanced PDF processing with AI diagram detection
+    const isPDF = fileType === 'application/pdf' || fileName?.toLowerCase().endsWith('.pdf');
     const isScannedPDFOCR = extractedImages && extractedImages.length > 0 && 
                            extractedText && extractedText.includes('[Scanned PDF - AI OCR will extract text from images]');
     
     // If document is chunked, process chunks intelligently
     let finalParsedData: any;
+    let enhancedImages = [...extractedImages]; // Start with existing extracted images
     
-    if (isScannedPDFOCR && extractedImages.length > 0) {
-      // Special handling for scanned PDFs - use vision to perform OCR on each page
-      console.log(`🔍 OCR Mode: Processing ${extractedImages.length} scanned pages with AI vision...`);
+    // Enhanced PDF Processing Pipeline with AI Diagram Detection
+    if (isPDF && extractedImages.length > 0 && enableEnhancedParsing) {
+      console.log(`🔍 Enhanced PDF Mode: Processing ${extractedImages.length} pages with AI diagram detection...`);
       
       let allOCRText = '';
-      for (let i = 0; i < extractedImages.length; i++) {
-        const imageUrl = extractedImages[i];
-        console.log(`📄 OCR processing page ${i + 1}/${extractedImages.length}...`);
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
         
-        const ocrMessages: any[] = [
-          {
-            role: 'system',
-            content: 'You are an expert OCR system. Extract ALL text from the image with maximum accuracy. Preserve formatting, structure, and layout. Output the raw extracted text only.'
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Extract all text from this scanned document page (Page ${i + 1}). Include questions, answers, diagrams descriptions, tables, and all visible text. Maintain the original structure and formatting as much as possible.`
+        for (let i = 0; i < extractedImages.length; i++) {
+          const pageImageUrl = extractedImages[i];
+          console.log(`📄 AI analyzing page ${i + 1}/${extractedImages.length}...`);
+          
+          try {
+            // Step 1: Call extract-doc-images for AI diagram detection
+            const diagramDetectionResponse = await fetch(`${supabaseUrl}/functions/v1/extract-doc-images`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
               },
-              {
-                type: 'image_url',
-                image_url: { url: imageUrl }
+              body: JSON.stringify({
+                mode: 'pdf-diagram-detection',
+                pageImageUrl: pageImageUrl,
+                pageNumber: i + 1,
+                pageText: ''
+              })
+            });
+            
+            if (diagramDetectionResponse.ok) {
+              const detectionResult = await diagramDetectionResponse.json();
+              console.log(`✅ Page ${i + 1} analysis complete:`, {
+                hasDiagram: detectionResult.hasDiagram,
+                diagramCount: detectionResult.diagrams?.length || 0
+              });
+              
+              // Add extracted text from OCR
+              if (detectionResult.extractedText) {
+                allOCRText += `\n\n--- Page ${i + 1} ---\n${detectionResult.extractedText}`;
               }
-            ]
+              
+              // If diagrams were detected, we already have the page image
+              // Just log the diagram info for better tracking
+              if (detectionResult.hasDiagram && detectionResult.diagrams) {
+                for (const diagram of detectionResult.diagrams) {
+                  console.log(`  📊 Detected ${diagram.type}: ${diagram.description}`);
+                }
+              }
+            } else {
+              console.warn(`⚠️ Diagram detection failed for page ${i + 1}`);
+              // Fallback to basic OCR
+              const ocrMessages: any[] = [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: `Extract all text from page ${i + 1}. Include questions, answers, and all visible text.`
+                    },
+                    {
+                      type: 'image_url',
+                      image_url: { url: pageImageUrl }
+                    }
+                  ]
+                }
+              ];
+              
+              const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-2.5-flash',
+                  messages: ocrMessages,
+                  max_tokens: 4096
+                }),
+              });
+              
+              if (ocrResponse.ok) {
+                const ocrData = await ocrResponse.json();
+                const pageText = ocrData.choices[0].message.content;
+                allOCRText += `\n\n--- Page ${i + 1} ---\n${pageText}`;
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error processing page ${i + 1}:`, error);
           }
-        ];
-        
-        const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: ocrMessages,
-            max_tokens: 4096
-          }),
-        });
-        
-        if (ocrResponse.ok) {
-          const ocrData = await ocrResponse.json();
-          const pageText = ocrData.choices[0].message.content;
-          allOCRText += `\n\n--- Page ${i + 1} ---\n${pageText}`;
-          console.log(`✅ OCR completed for page ${i + 1}`);
-        } else {
-          console.warn(`⚠️ OCR failed for page ${i + 1}`);
         }
       }
       
@@ -351,8 +396,11 @@ serve(async (req) => {
       processedContent = enhancedTextCleaning(allOCRText);
       documentStructure = extractDocumentStructure(processedContent);
       
-      // Update prompts with OCR-extracted text
-      const ocrSystemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages, documentStructure);
+      // Use enhanced images (page images) for question parsing
+      console.log(`📸 Using ${enhancedImages.length} images for question assignment`);
+      
+      // Update prompts with OCR-extracted text and enhanced images
+      const ocrSystemPrompt = getSystemPrompt(actionMode, parseMode, enhancedImages, documentStructure);
       const ocrUserPrompt = getUserPrompt(
         actionMode,
         parseMode,
@@ -360,12 +408,12 @@ serve(async (req) => {
         fileType,
         processedContent,
         processedContent,
-        extractedImages,
+        enhancedImages,
         documentStructure,
         null
       );
       
-      // Process with AI parser
+      // Process with AI parser using enhanced images
       const ocrParseResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -397,7 +445,7 @@ serve(async (req) => {
       if (finalParsedData.questions && Array.isArray(finalParsedData.questions)) {
         const questionsWithImages = finalParsedData.questions.filter((q: any) => q.question_image_url);
         console.log(`📊 Image Assignment: ${questionsWithImages.length}/${finalParsedData.questions.length} questions have images`);
-        console.log(`📸 Total images available: ${extractedImages.length}`);
+        console.log(`📸 Total images available: ${enhancedImages.length}`);
         
         // List which questions got which images
         questionsWithImages.forEach((q: any, idx: number) => {
