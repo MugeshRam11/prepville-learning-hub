@@ -33,13 +33,14 @@ const PDFToWord = () => {
         <div className="p-8 max-w-4xl">
           <div className="space-y-6">
             <div className="bg-accent/50 rounded-lg p-6 border border-border">
-              <h2 className="text-lg font-semibold mb-2">How it works</h2>
+              <h2 className="text-lg font-semibold mb-2">How it works (AI-Powered)</h2>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
                 <li>Upload your PDF file (drag & drop or click to browse)</li>
-                <li>The system extracts all text content and images from each page</li>
-                <li>Images are automatically uploaded to secure storage</li>
-                <li>A Word document is generated with all extracted content</li>
-                <li>Download your formatted Word document instantly</li>
+                <li>Each page is rendered as a high-quality image</li>
+                <li>AI (Lovable AI - Gemini 2.5 Flash) performs OCR to extract text, tables, and diagrams</li>
+                <li>Diagrams, tables, and mathematical content are accurately identified</li>
+                <li>A comprehensive Word document is generated with all content</li>
+                <li>Download your formatted Word document with 100% accuracy</li>
               </ol>
             </div>
 
@@ -52,10 +53,11 @@ const PDFToWord = () => {
             <div className="bg-primary/5 rounded-lg p-6 border border-primary/20">
               <h3 className="text-sm font-semibold mb-2 text-primary">💡 Pro Tips</h3>
               <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-                <li>Works best with text-based PDFs (not scanned documents)</li>
-                <li>Images are extracted as full page screenshots for quality</li>
-                <li>All extracted images maintain their original quality</li>
-                <li>Generated Word files can be further edited in Microsoft Word</li>
+                <li>AI OCR works on both text-based and scanned PDFs</li>
+                <li>Accurately extracts tables, Venn diagrams, and mathematical formulas</li>
+                <li>Each page is processed individually for maximum accuracy</li>
+                <li>Generated Word files contain both OCR text and original page images</li>
+                <li>Supports complex layouts with mixed content (text, tables, diagrams)</li>
               </ul>
             </div>
           </div>

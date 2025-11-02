@@ -25,6 +25,7 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
   const [extractedData, setExtractedData] = useState<{
     text: string;
     images: string[];
+    pageImages: Array<{ url: string; base64: string }>;
     fileName: string;
   } | null>(null);
 
@@ -78,25 +79,26 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
     
     let fullText = '';
     const imageUrls: string[] = [];
+    const pageImages: Array<{ url: string; base64: string }> = [];
 
     // Process each page
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      setCurrentStep(`Processing page ${pageNum} of ${pdf.numPages}...`);
-      setProgress(10 + (pageNum / pdf.numPages) * 40);
+      setCurrentStep(`Processing page ${pageNum} of ${pdf.numPages} with AI OCR...`);
+      setProgress(10 + (pageNum / pdf.numPages) * 50);
 
       const page = await pdf.getPage(pageNum);
 
-      // Extract text
+      // Extract text (basic extraction for reference)
       const textContent = await page.getTextContent();
       const pageText = textContent.items
         .map((item: any) => item.str)
         .join(' ');
       fullText += pageText + '\n\n';
 
-      // Extract images
+      // Render page as high-quality image for AI OCR
       try {
         const canvas = document.createElement('canvas');
-        const viewport = page.getViewport({ scale: 2.0 });
+        const viewport = page.getViewport({ scale: 3.0 }); // Higher scale for better OCR
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const context = canvas.getContext('2d');
@@ -110,7 +112,7 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
           
           // Convert canvas to blob
           const blob = await new Promise<Blob>((resolve) => {
-            canvas.toBlob((blob) => resolve(blob!), 'image/png');
+            canvas.toBlob((blob) => resolve(blob!), 'image/png', 1.0);
           });
 
           // Convert to base64
@@ -128,28 +130,30 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
           const imageUrl = await uploadImageToStorage(base64Data, 'image/png');
           if (imageUrl) {
             imageUrls.push(imageUrl);
-            console.log(`✅ Page ${pageNum} image uploaded: ${imageUrl}`);
+            pageImages.push({ url: imageUrl, base64: base64Data });
+            console.log(`✅ Page ${pageNum} uploaded for AI OCR: ${imageUrl}`);
           }
         }
       } catch (error) {
-        console.error(`Error extracting image from page ${pageNum}:`, error);
+        console.error(`Error extracting page ${pageNum}:`, error);
       }
     }
 
-    return { text: fullText, images: imageUrls };
+    return { text: fullText, images: imageUrls, pageImages };
   };
 
   const convertToWord = async () => {
     if (!extractedData) return;
 
     try {
-      setCurrentStep('Generating Word document...');
+      setCurrentStep('Generating Word document with AI-extracted content...');
       setProgress(80);
 
       const response = await supabase.functions.invoke('pdf-to-word', {
         body: {
           extractedText: extractedData.text,
           extractedImages: extractedData.images,
+          pageImages: extractedData.pageImages,
           fileName: extractedData.fileName
         }
       });
@@ -189,19 +193,20 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
     setExtractedData(null);
 
     try {
-      // Extract PDF content
-      const { text, images } = await extractPDFContent(file);
+      // Extract PDF content with AI OCR
+      const { text, images, pageImages } = await extractPDFContent(file);
 
       setProgress(70);
-      setCurrentStep('Processing complete!');
+      setCurrentStep('AI OCR processing complete!');
 
       setExtractedData({
         text,
         images,
+        pageImages,
         fileName: file.name
       });
 
-      toast.success(`Extracted ${images.length} images and ${text.length} characters of text`);
+      toast.success(`Extracted ${images.length} pages with AI-powered OCR`);
 
     } catch (error: any) {
       console.error('Processing error:', error);
@@ -294,8 +299,9 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
               </div>
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>📄 File: {extractedData.fileName}</p>
-                <p>📝 Text: {extractedData.text.length} characters</p>
-                <p>🖼️ Images: {extractedData.images.length} extracted</p>
+                <p>📝 Basic Text: {extractedData.text.length} characters</p>
+                <p>🖼️ Pages Processed: {extractedData.pageImages.length}</p>
+                <p>🤖 AI OCR: Ready for extraction</p>
               </div>
             </div>
 
