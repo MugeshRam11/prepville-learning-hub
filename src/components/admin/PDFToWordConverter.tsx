@@ -188,35 +188,48 @@ const PDFToWordConverter: React.FC<PDFToWordConverterProps> = ({ onSuccess }) =>
       setCurrentStep('Generating Word document with AI-extracted content...');
       setProgress(80);
 
-      const response = await supabase.functions.invoke('pdf-to-word', {
-        body: {
+      // Use direct fetch for binary data to avoid corruption
+      const response = await fetch(`https://mvmciqmszakciijfdyos.supabase.co/functions/v1/pdf-to-word`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w`
+        },
+        body: JSON.stringify({
           extractedText: extractedData.text,
           extractedImages: extractedData.images,
           pageImages: extractedData.pageImages,
           fileName: extractedData.fileName,
           returnOCROnly: false
-        }
+        })
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate Word document');
       }
 
-      setProgress(100);
+      setProgress(95);
       setCurrentStep('Download ready!');
 
+      // Get the binary data as blob
+      const blob = await response.blob();
+      
+      console.log(`📥 Downloaded Word document: ${blob.size} bytes`);
+      
       // Create download link
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${extractedData.fileName.replace('.pdf', '')}_extracted.docx`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
 
       toast.success('Word document created successfully!');
       onSuccess?.();
