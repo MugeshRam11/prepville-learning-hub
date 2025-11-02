@@ -153,6 +153,22 @@ const AdminQuickTestCreate = () => {
 
         {/* Main Content */}
         <div className="p-8 max-w-5xl">
+          {/* Enhanced Feature Notice */}
+          <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Upload className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-blue-900 mb-1">✨ Enhanced PDF Processing</h3>
+                <p className="text-xs text-blue-700">
+                  Upload PDFs and they'll automatically convert to Word format with extracted text and images. 
+                  Download the converted document or continue to parse questions directly.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Test Information */}
           <Card className="mb-8 border-gray-200">
             <CardContent className="p-6">

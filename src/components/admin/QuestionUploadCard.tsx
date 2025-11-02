@@ -28,6 +28,9 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [progress, setProgress] = useState(0);
   const [parseResult, setParseResult] = useState<any>(null);
   const [actionMode, setActionMode] = useState<ActionMode>('parse');
+  const [convertingToWord, setConvertingToWord] = useState(false);
+  const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
+  const [processingStage, setProcessingStage] = useState<string>('');
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -71,10 +74,55 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       return null;
     }
   };
+  const convertPDFToWord = async (file: File): Promise<Blob | null> => {
+    try {
+      setConvertingToWord(true);
+      setProcessingStage('Converting PDF to Word...');
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(
+        `https://mvmciqmszakciijfdyos.supabase.co/functions/v1/pdf-to-word`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w`
+          },
+          body: formData
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to convert PDF to Word');
+      }
+      
+      const wordBlob = await response.blob();
+      
+      // Create download URL
+      const url = URL.createObjectURL(wordBlob);
+      setWordFileUrl(url);
+      
+      toast.success('PDF successfully converted to Word!');
+      setConvertingToWord(false);
+      setProcessingStage('');
+      
+      return wordBlob;
+    } catch (error) {
+      console.error('PDF to Word conversion error:', error);
+      toast.error('Failed to convert PDF to Word');
+      setConvertingToWord(false);
+      setProcessingStage('');
+      return null;
+    }
+  };
+
   const processFile = async (file: File) => {
     setUploading(true);
     setProgress(10);
     setParseResult(null);
+    setWordFileUrl(null);
+    
     try {
       let content = '';
       let extractedText = '';
@@ -83,6 +131,23 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       const fileName = file.name.toLowerCase();
       console.log('📄 Processing:', fileName, '| Type:', fileType);
       setProgress(20);
+      
+      // Auto-convert PDF to Word if PDF is uploaded
+      if (fileName.endsWith('.pdf')) {
+        setProcessingStage('Converting PDF to Word format...');
+        const wordBlob = await convertPDFToWord(file);
+        
+        if (wordBlob) {
+          // Create a new File object from the Word blob
+          const wordFile = new File([wordBlob], fileName.replace('.pdf', '.docx'), {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          });
+          
+          // Now process the Word file
+          setProcessingStage('Extracting content from Word document...');
+          file = wordFile;
+        }
+      }
 
       // Enhanced document parsing with text AND image extraction
       if (fileType === 'text/csv' || fileName.endsWith('.csv')) {
@@ -562,6 +627,41 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   return <Card>
       
       <CardContent className="space-y-6">
+        {/* Processing Stage Indicator */}
+        {(uploading || convertingToWord) && processingStage && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-900">{processingStage}</p>
+              {progress > 0 && (
+                <Progress value={progress} className="mt-2 h-2" />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Download Converted Word File */}
+        {wordFileUrl && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-green-900">Word Document Ready</p>
+                  <p className="text-xs text-green-700">PDF successfully converted to Word format</p>
+                </div>
+              </div>
+              <a
+                href={wordFileUrl}
+                download="converted-document.docx"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+              >
+                Download Word
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* Action Mode Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Processing Action</label>
@@ -607,7 +707,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 {isDragActive ? 'Drop file here' : 'Drag & drop or click to upload'}
               </p>
               <p className="text-xs text-muted-foreground">
-                PDF, Word (with images), CSV, Images (OCR), Text | Max 20MB
+                PDF (auto-converts to Word), Word (with images), CSV, Images (OCR), Text | Max 20MB
               </p>
             </>}
         </div>
@@ -620,6 +720,11 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                   {parseResult.success ? parseResult.actionMode === 'parse' ? `Success! Parsed ${parseResult.count} questions${parseResult.images?.length > 0 ? ` with ${parseResult.images.length} images` : ''}` : parseResult.actionMode === 'summarize' ? 'Summary created successfully!' : parseResult.actionMode === 'quiz' ? `Quiz generated with ${parseResult.count} questions!` : 'Data extracted successfully!' : `${parseResult.actionMode || 'Processing'} Failed`}
                 </p>
                 {!parseResult.success && <p className="text-sm text-red-700 mt-1">{parseResult.error}</p>}
+                {parseResult.success && parseResult.images && parseResult.images.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-green-700">✓ Extracted {parseResult.images.length} image(s) from document</p>
+                  </div>
+                )}
                 {parseResult.success && parseResult.data && <div className="mt-2">
                     <Button size="sm" variant="outline" onClick={() => {
                 const dataStr = JSON.stringify(parseResult.data, null, 2);
