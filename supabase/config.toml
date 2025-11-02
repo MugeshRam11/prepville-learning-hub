@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.ai-exam-evaluator]
 verify_jwt = true
+
+[functions.pdf-to-word]
+verify_jwt = false

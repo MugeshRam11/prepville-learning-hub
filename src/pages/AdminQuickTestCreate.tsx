@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
+import PDFToWordConverter from '@/components/admin/PDFToWordConverter';
 import type { Database } from '@/integrations/supabase/types';
 type TestSubject = Database['public']['Enums']['test_subject'];
 const AdminQuickTestCreate = () => {
@@ -259,6 +260,10 @@ const AdminQuickTestCreate = () => {
                       <DropdownMenuItem onClick={() => setShowAIParser(true)}>
                         <Upload className="w-4 h-4 mr-2" />
                         AI Document Parser
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/admin/pdf-to-word')}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        PDF to Word Converter
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -45,6 +45,7 @@ import LevelDetails from "./pages/LevelDetails";
 import SubjectLearning from "./pages/SubjectLearning";
 import QuestionBuilder from "./pages/QuestionBuilder";
 import UploadDemo1 from "./pages/UploadDemo1";
+import PDFToWord from "./pages/PDFToWord";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CopyPasteProtection from "./components/CopyPasteProtection";
 
@@ -221,6 +222,11 @@ const App = () => (
           <Route path="/admin/settings" element={
             <ProtectedRoute>
               <AdminSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/pdf-to-word" element={
+            <ProtectedRoute>
+              <PDFToWord />
             </ProtectedRoute>
           } />
           <Route path="/admin/question-builder" element={
