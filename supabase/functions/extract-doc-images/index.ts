@@ -473,7 +473,7 @@ Return JSON:
       }
     }
 
-    // Extract text using a simple XML parsing approach
+    // Extract text using proper XML parsing for docx format
     let extractedText = '';
     try {
       const JSZip = (await import('https://esm.sh/jszip@3.10.1')).default;
@@ -481,16 +481,38 @@ Return JSON:
       const docXml = await zip.file('word/document.xml')?.async('string');
       
       if (docXml) {
-        // Extract text from XML (simple approach - removes all tags)
-        extractedText = docXml
-          .replace(/<[^>]*>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
+        console.log('📄 Parsing Word document XML...');
         
-        console.log(`✅ Extracted ${extractedText.length} characters of text`);
+        // Extract text from <w:t> tags (proper Word format)
+        const textMatches = docXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+        
+        if (textMatches && textMatches.length > 0) {
+          // Extract text content from each match
+          const textContent = textMatches.map(match => {
+            const content = match.replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, '');
+            return content;
+          });
+          
+          extractedText = textContent.join(' ').replace(/\s+/g, ' ').trim();
+          console.log(`✅ Extracted ${extractedText.length} characters from ${textMatches.length} text nodes`);
+        } else {
+          // Fallback: try simple tag removal for other formats
+          console.log('⚠️ No <w:t> tags found, trying fallback extraction...');
+          extractedText = docXml
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          console.log(`✅ Fallback extraction: ${extractedText.length} characters`);
+        }
+        
+        if (extractedText.length === 0) {
+          console.warn('⚠️ No text extracted from document.xml, file may be empty or use unsupported format');
+        }
+      } else {
+        console.error('❌ word/document.xml not found in the .docx file');
       }
     } catch (textError) {
-      console.error('Error extracting text:', textError);
+      console.error('❌ Error extracting text:', textError);
     }
 
     return new Response(
