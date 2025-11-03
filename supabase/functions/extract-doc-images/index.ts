@@ -45,11 +45,12 @@ serve(async (req) => {
                 content: [
                   {
                     type: 'text',
-                    text: `COMPREHENSIVE PDF PAGE ANALYSIS - STEP 1: DIAGRAM DETECTION
+                text: `COMPREHENSIVE PDF PAGE ANALYSIS - STEP 1: DIAGRAM DETECTION
 
 You are analyzing a page from an educational question paper. Your task is to identify ALL visual elements that are NOT plain text.
 
 🎯 WHAT TO DETECT:
+- Venn diagrams and set theory diagrams
 - Tree diagrams (probability trees, decision trees, organizational charts)
 - Flowcharts and process diagrams
 - Graphs (bar charts, line graphs, pie charts, scatter plots)
@@ -61,7 +62,9 @@ You are analyzing a page from an educational question paper. Your task is to ide
 
 ⚠️ CRITICAL RULES FOR BOUNDING BOXES:
 
-1. **COMPLETE CAPTURE**: The bounding box MUST include:
+1. **ALWAYS PROVIDE BOUNDING BOXES**: If you detect a diagram, you MUST provide bounding box coordinates. Never return hasDiagram:true without providing the diagrams array with coordinates.
+
+2. **COMPLETE CAPTURE**: The bounding box MUST include:
    - ALL starting points (leftmost elements)
    - ALL branches, connections, and arrows
    - ALL labels, text annotations, and values
@@ -69,12 +72,13 @@ You are analyzing a page from an educational question paper. Your task is to ide
    - ALL axes, legends, and titles
    - Generous padding (at least 40-60 pixels on all sides)
 
-2. **DON'T CROP PARTIAL DIAGRAMS**: 
+3. **DON'T CROP PARTIAL DIAGRAMS**: 
+   - For Venn diagrams: capture ALL circles/sets and their labels
    - For tree diagrams: capture from root to ALL leaf nodes
    - For graphs: include ALL axes, labels, and data points
    - For tables: include ALL borders and content
 
-3. **ACCURACY**: Provide pixel-perfect coordinates:
+4. **ACCURACY**: Provide pixel-perfect coordinates:
    - x: leftmost pixel of the diagram (minus padding)
    - y: topmost pixel of the diagram (minus padding)
    - width: full horizontal extent (plus padding)
@@ -82,15 +86,16 @@ You are analyzing a page from an educational question paper. Your task is to ide
 
 📐 MEASUREMENT TIPS:
 - Look at the actual image dimensions visible to you
-- Tree diagrams often span 70-90% of page width
+- Diagrams often span 60-90% of page width
 - Add 10-15% padding to ensure complete capture
+- For Venn diagrams, ensure ALL overlapping regions are captured
 
-RETURN FORMAT (strict JSON):
+RETURN FORMAT (strict JSON - REQUIRED):
 {
   "hasDiagram": true/false,
   "diagrams": [
     {
-      "type": "tree_diagram|graph|flowchart|table|illustration|geometric_figure|other",
+      "type": "venn_diagram|tree_diagram|graph|flowchart|table|illustration|geometric_figure|other",
       "description": "detailed description of what this diagram shows",
       "boundingBox": { 
         "x": number (left edge with padding), 
@@ -104,8 +109,10 @@ RETURN FORMAT (strict JSON):
   "pageType": "question_with_diagram|text_only|mixed_content"
 }
 
+⚠️ IMPORTANT: If hasDiagram is true, diagrams array MUST NOT be empty!
+
 If NO visual diagrams exist (only plain text), return:
-{ "hasDiagram": false, "pageType": "text_only" }`
+{ "hasDiagram": false, "diagrams": [], "pageType": "text_only" }`
                   },
                   {
                     type: 'image_url',

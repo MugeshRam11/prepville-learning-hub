@@ -296,6 +296,12 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 const aiResult = await aiResponse.json();
                 console.log(`🤖 AI analysis for page ${pageNum}:`, aiResult);
                 
+                // Validate AI result
+                if (aiResult.hasDiagram && (!aiResult.diagrams || aiResult.diagrams.length === 0)) {
+                  console.error(`❌ AI detection error: hasDiagram=true but diagrams array is empty!`);
+                  toast.error(`AI detected diagram on page ${pageNum} but failed to locate it`);
+                }
+                
                 if (aiResult.diagrams && aiResult.diagrams.length > 0) {
                   console.log(`📊 Processing ${aiResult.diagrams.length} AI-detected diagrams from page ${pageNum}`);
                   
@@ -364,9 +370,9 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                     console.log(`❓ Parsed question structure:`, aiResult.questionStructure);
                   }
                 } else if (aiResult.hasDiagram) {
-                  // If AI detected diagram but no specific bounding boxes, use full page
-                  pdfImages.push(tempPageUrl);
-                  console.log(`✅ Using full page ${pageNum} as diagram`);
+                  // AI detected diagram but couldn't provide bounding boxes
+                  console.warn(`⚠️ AI detected diagram on page ${pageNum} but no bounding boxes provided - skipping full page upload`);
+                  toast.warning(`Diagram detected on page ${pageNum} but couldn't isolate it - please crop manually if needed`);
                 }
               }
             } catch (error) {
