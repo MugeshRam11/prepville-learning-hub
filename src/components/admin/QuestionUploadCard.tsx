@@ -95,19 +95,13 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       );
       
       if (!response.ok) {
-        throw new Error('Failed to create Word document');
+        throw new Error('PDF to Word conversion failed');
       }
-      
+
       const wordBlob = await response.blob();
-      
-      // Create download URL
-      const url = URL.createObjectURL(wordBlob);
-      setWordFileUrl(url);
-      
-      toast.success('Word document created successfully!');
+      console.log('✅ Converted PDF to Word:', wordBlob.size, 'bytes');
+      toast.success('PDF converted to Word successfully!');
       setConvertingToWord(false);
-      setProcessingStage('');
-      
       return wordBlob;
     } catch (error) {
       console.error('Word document creation error:', error);
