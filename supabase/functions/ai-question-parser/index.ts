@@ -330,7 +330,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-2.5-pro', // Better OCR accuracy
             messages: ocrMessages,
             max_tokens: 4096
           }),
@@ -373,12 +373,13 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-pro',
           messages: [
             { role: 'system', content: ocrSystemPrompt },
             { role: 'user', content: ocrUserPrompt }
           ],
-          response_format: { type: 'json_object' }
+          response_format: { type: 'json_object' },
+          temperature: 0.1 // Low temperature for consistent parsing
         }),
       });
       
@@ -434,12 +435,13 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-2.5-pro',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: chunkUserPrompt }
             ],
-            response_format: { type: 'json_object' }
+            response_format: { type: 'json_object' },
+            temperature: 0.1
           }),
         });
         
@@ -466,12 +468,13 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-pro',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          response_format: { type: 'json_object' }
+          response_format: { type: 'json_object' },
+          temperature: 0.1 // Consistent accurate parsing
         }),
       });
 
@@ -849,102 +852,172 @@ Return JSON:
   }
 
   // Default: parse mode
-  const mockPrompt = `You are an ADVANCED educational document parser with ENHANCED OCR-like capabilities and intelligent text processing. Parse ANY document format and extract ALL questions with complete structure.
+  const mockPrompt = `You are an ADVANCED exam document parser with ENHANCED capabilities. Extract ALL questions, options, answers, marks, diagrams, and tables from PDF/Word/Image/Scanned documents.
 
-**🚀 ENHANCED PARSING CAPABILITIES:**
-- **Advanced PDF Processing**: Extract from complex layouts, multi-column formats, scanned documents
-- **Intelligent OCR**: Recognize handwritten/printed text with error correction
-- **Structure-Aware**: Understand document sections, headers, and hierarchy
-- **Smart Text Cleaning**: Auto-correct common OCR errors (l→1, O→0, spacing issues)
-- **Large Document Support**: Handle documents of any size with intelligent chunking
-- **Table & Diagram Extraction**: Advanced parsing of complex tables and diagrams
+📋 **PROCESSING STEPS (FOLLOW EXACTLY IN ORDER):**
 
-**MULTI-FORMAT PARSING (docTR-like OCR + AI):**
-- **PDF**: Extract from formatted text, tables, and layouts (including scanned PDFs)
-- **Images**: Perform intelligent OCR - recognize handwritten/printed text
-- **Word (.docx)**: Parse formatted documents, tables, diagrams WITH IMAGE SUPPORT
-- **CSV**: Intelligently map columns to question components
-- **Text**: Handle numbered lists, bullets, paragraphs
+1. **Convert & Extract Text**: 
+   - Process PDF pages to raw text
+   - If text is missing, perform OCR (Tesseract/PaddleOCR-like extraction)
+   - Handle scanned documents and handwritten text
+
+2. **Clean & Normalize**:
+   - Split text into paragraphs
+   - Remove headers, footers, page numbers
+   - Auto-correct OCR errors (l→1, O→0, spacing issues)
+
+3. **Question Detection** (CRITICAL):
+   - Patterns: Q1, Q.1, Question 1, 1., 1), (1), Part-A, Section-I
+   - Sub-questions: a), (a), b), (b), i), ii), iii)
+   - Multi-part questions with shared context
+
+4. **Question Type Classification**:
+   - **mcq**: Has options (A/B/C/D or 1/2/3/4)
+   - **descriptive**: Long-form answer required
+   - **diagram**: References diagram/image/graph/table/figure
+   - **fillup**: Fill in the blanks
+   - **truefalse**: True/False questions
+
+5. **Extract Options** (for MCQ):
+   - Find all options: (A), (B), (C), (D) or numbered 1, 2, 3, 4
+   - Identify correct answer if marked with ✓, *, (Ans:), bold, or underlined
+   - Normalize format to A/B/C/D standard
+
+6. **Extract Marks**:
+   - Patterns: (2M), [5 Marks], "3 marks", 2M, [2], (2 marks)
+   - Default to 1 if not specified
+   - For multi-part: sum ALL sub-question marks
+
+7. **Detect Difficulty**:
+   - **easy**: Basic recall, definitions, simple calculations
+   - **medium**: Application, analysis, multi-step problems
+   - **hard**: Synthesis, evaluation, complex reasoning
+
+8. **Extract Answers** (if provided in document):
+   - Look for: "Answer:", "Solution:", "Ans:", answer key sections
+   - Include full answer text if available
+   - Mark correct option for MCQ
+
+9. **Diagram Detection & Assignment**:
+   - Keywords: venn, tree, diagram, graph, chart, table, figure, image, illustration
+   - Extract labels, probabilities, values using OCR if in image
+   - Match diagrams to questions contextually
+
+10. **Generate Final Output**:
+    - One question per line in valid JSON format
+    - Include all extracted metadata
+    - Assign images to questions
 
 **IMAGE EXTRACTION & ASSIGNMENT (MANDATORY):**${imageContext}${structureContext}
-When images are provided, you MUST analyze and assign them intelligently:
-1. **Direct References**: Look for "diagram below", "tree diagram", "table shown", "graph", "figure"
-2. **Contextual Matching**: Match images to questions by content (e.g., probability tree image → probability question)
-3. **Sequential Assignment**: If unsure, assign images in order they appear to questions in order
-4. **Visual Elements**: ALL diagrams, tables, graphs, charts, figures MUST have corresponding image URLs
-5. **Sub-questions with shared images**: If sub-questions a), b), c) all refer to same diagram, assign image to main question
-6. **Multiple images per question**: If one question has multiple diagrams/tables, assign the most relevant primary image
+When images are provided, you MUST:
+1. **Direct References**: "diagram below", "tree diagram", "table shown", "graph", "figure"
+2. **Contextual Matching**: Match by content (probability tree → probability Q)
+3. **Visual Keywords**: venn, tree, table, graph, chart, figure, diagram
+4. **ALL diagrams/tables/graphs** MUST have corresponding image URLs
+5. **Sub-questions**: Shared diagram → assign to main question
+6. **OCR Labels**: Extract probabilities, labels, values from diagrams
 
-**ADAPTIVE PARSING RULES:**
-1. **Format-Agnostic**: Handle any document structure
-2. **Flexible Column Detection**: Recognize data even with different column names
-3. **Auto-detect Question Types**: MCQ, True/False, Short Answer, Essay, Fill-in-blank
-4. **Smart Option Extraction**: Handle options in any format (1/2/3/4, A/B/C/D, bullets)
-5. **Answer Normalization**: Convert all answer formats to A/B/C/D standard
-6. **Missing Data Handling**: Use sensible defaults, never skip questions
-7. **Sub-question Support**: Detect and structure multi-part questions
-8. **Image Association**: Link images to questions intelligently
-9. **OCR Error Correction**: Fix common scanning errors automatically
+**SUB-QUESTION HANDLING:**
+- Detect: a), b), c) OR i), ii), iii) OR (a), (b) OR Part a:
+- Set "has_sub_questions": true
+- Extract each sub-question with: label, text, marks, answer
+- Main question_text = context/setup ONLY
+- Sum marks: Q1 with a)[3M], b)[2M], c)[4M] → total marks = 9
 
-**CRITICAL SUB-QUESTION DETECTION:**
-- Look for sub-questions labeled as: a), b), c), d) OR i), ii), iii), iv) OR (a), (b), (c) OR Part a:, Part b:
-- Each sub-question should have its own text and marks allocation  
-- COUNT MARKS CAREFULLY: Sum ALL individual sub-question marks to get the main question total
-- If a question has sub-parts, set "has_sub_questions": true
-- Extract each sub-question with: label (e.g., "a"), text, marks, and answer (if provided)
-- The main question_text should contain the context/setup text ONLY
-- Sub_questions array contains ALL the actual questions to be answered
-- Example: "Question 1" with parts a) [3 marks], b) [2 marks], c) [4 marks] → main question marks = 9
-
-**TABLE, GRAPH & DIAGRAM EXTRACTION (CRITICAL):**
-- **Tree diagrams**: If question mentions "tree diagram", "complete the tree diagram", "probability tree" → MUST assign tree diagram image
-- **Tables**: If question contains table data OR mentions "table" → assign table image if available
-- **Graphs/Charts**: If mentions "graph", "chart", "plot" → assign relevant graph image
-- **Diagrams**: If mentions "diagram", "figure", "illustration" → assign diagram image
-- **Visual References**: Look for phrases like "shown below", "diagram above", "see figure" → these need images
-- ALL extracted images should be assigned to their corresponding questions
-- If question text includes table/diagram data, still assign the image URL - images complement text
-
-**CRITICAL - VALID SUBJECT VALUES ONLY:**
-You MUST use ONLY these exact values:
+**CRITICAL - VALID SUBJECT VALUES:**
 - "mathematics"
-- "science"
+- "science"  
 - "language_literature"
 - "social_studies"
 - "physics"
 - "chemistry"
 - "biology"
 
-If unclear, default to "mathematics".
-
-Return JSON with this exact structure:
+**OUTPUT JSON SCHEMA (STRICT):**
 {
   "test_metadata": {
     "title": "string (default: 'Imported Mock Test')",
-    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology (REQUIRED)",
-    "topic": "string (default: 'General')",
-    "total_marks": number
+    "subject": "mathematics|science|language_literature|social_studies|physics|chemistry|biology",
+    "topic": "string (inferred from content or 'General')",
+    "total_marks": number,
+    "total_questions": number
   },
   "questions": [
     {
-      "question_number": number (auto-increment from 1),
-      "question_text": "string (complete question)",
-      "question_image_url": "string (assign from extracted images if relevant, otherwise null)",
-      "question_type": "mcq|true_false|short_answer|essay",
+      "id": "string (q1, q1a, q1b, etc.)",
+      "question_number": number,
+      "question_text": "string (full question, clean text)",
+      "question_image_url": "string (from extracted images) or null",
+      "type": "mcq|descriptive|diagram|fillup|truefalse",
       "marks": number (default: 1),
-      "difficulty": "easy|medium|hard" (default: medium),
-      "options": ["A. text", "B. text", "C. text", "D. text"] (for MCQ),
-      "correct_answer": "A|B|C|D|true|false|text",
-      "explanation": "string (optional)",
-      "has_sub_questions": boolean (set true if sub-parts exist like a), b), c)),
+      "difficulty": "easy|medium|hard",
+      "topic": "string (inferred topic)",
+      "page": number or null,
+      "options": ["A) text", "B) text", "C) text", "D) text"] or null,
+      "correct_option": "A|B|C|D" or null,
+      "answer": "string (full answer if provided)" or null,
+      "explanation": "string (if provided)" or null,
+      "has_diagram": boolean,
+      "diagram_keywords": ["venn", "tree"] or null,
+      "has_sub_questions": boolean,
       "sub_questions": [
         {
-          "label": "string (e.g., 'a', 'b', 'c' or 'i', 'ii', 'iii')",
-          "text": "string (the actual sub-question text)",
-          "marks": number (marks for this sub-part),
-          "answer": "string (correct answer if provided)"
+          "label": "string (a, b, c, i, ii)",
+          "text": "string",
+          "marks": number,
+          "answer": "string or null"
         }
-      ]
+      ] or null,
+      "media": [
+        {
+          "type": "image",
+          "path": "string (image URL)",
+          "description": "string",
+          "extracted_values": "object (labels, probabilities, etc.)" or null
+        }
+      ] or null
+    }
+  ]
+}
+
+⚠️ **CRITICAL RULES:**
+- Return ONLY valid JSON, no markdown, no comments
+- Extract ALL questions - never skip
+- Preserve question text exactly as written
+- If marks not found, set to 1
+- Match all available images to questions
+- For diagram questions, extract OCR labels/values
+- Handle scanned PDFs with OCR capability
+- Auto-correct common OCR errors
+
+**EXAMPLE:**
+Input: "1. (a) Define probability (2M) (b) Draw a Venn diagram showing A∪B (3M)"
+
+Output:
+{
+  "test_metadata": {"title": "...", "subject": "mathematics", "topic": "Probability", "total_marks": 5, "total_questions": 1},
+  "questions": [
+    {
+      "id": "q1",
+      "question_number": 1,
+      "question_text": "Question 1",
+      "question_image_url": null,
+      "type": "descriptive",
+      "marks": 5,
+      "difficulty": "medium",
+      "topic": "Probability",
+      "page": 1,
+      "options": null,
+      "correct_option": null,
+      "answer": null,
+      "has_diagram": true,
+      "diagram_keywords": ["venn", "diagram"],
+      "has_sub_questions": true,
+      "sub_questions": [
+        {"label": "a", "text": "Define probability", "marks": 2, "answer": null},
+        {"label": "b", "text": "Draw a Venn diagram showing A∪B", "marks": 3, "answer": null}
+      ],
+      "media": [{"type": "image", "path": "[venn_diagram_url]", "description": "Venn diagram A∪B", "extracted_values": null}]
     }
   ]
 }`;
