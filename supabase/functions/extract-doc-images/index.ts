@@ -45,77 +45,39 @@ serve(async (req) => {
                 content: [
                   {
                     type: 'text',
-                text: `COMPREHENSIVE PDF PAGE ANALYSIS - STEP 1: DIAGRAM DETECTION
+                text: `PDF PAGE DIAGRAM DETECTION
 
-You are analyzing a page from an educational question paper. Your task is to identify ALL visual elements that are NOT plain text.
+Analyze this image and detect visual diagrams (Venn, tree, graph, table, chart, figure).
 
-🎯 WHAT TO DETECT:
-- Venn diagrams and set theory diagrams
-- Tree diagrams (probability trees, decision trees, organizational charts)
-- Flowcharts and process diagrams
-- Graphs (bar charts, line graphs, pie charts, scatter plots)
-- Mathematical figures (geometric shapes, coordinate planes, function graphs)
-- Tables with visual structure
-- Illustrations and labeled diagrams
-- Scientific diagrams (circuits, biology diagrams, chemistry structures)
-- Maps and geographic representations
+CRITICAL: If you detect ANY diagram, you MUST provide bounding box coordinates!
 
-⚠️ CRITICAL RULES FOR BOUNDING BOXES:
+Return ONLY this JSON (keep it short):
 
-1. **ALWAYS PROVIDE BOUNDING BOXES**: If you detect a diagram, you MUST provide bounding box coordinates. Never return hasDiagram:true without providing the diagrams array with coordinates.
-
-2. **COMPLETE CAPTURE**: The bounding box MUST include:
-   - ALL starting points (leftmost elements)
-   - ALL branches, connections, and arrows
-   - ALL labels, text annotations, and values
-   - ALL endpoints (rightmost elements)
-   - ALL axes, legends, and titles
-   - Generous padding (at least 40-60 pixels on all sides)
-
-3. **DON'T CROP PARTIAL DIAGRAMS**: 
-   - For Venn diagrams: capture ALL circles/sets and their labels
-   - For tree diagrams: capture from root to ALL leaf nodes
-   - For graphs: include ALL axes, labels, and data points
-   - For tables: include ALL borders and content
-
-4. **ACCURACY**: Provide pixel-perfect coordinates:
-   - x: leftmost pixel of the diagram (minus padding)
-   - y: topmost pixel of the diagram (minus padding)
-   - width: full horizontal extent (plus padding)
-   - height: full vertical extent (plus padding)
-
-📐 MEASUREMENT TIPS:
-- Look at the actual image dimensions visible to you
-- Diagrams often span 60-90% of page width
-- Add 10-15% padding to ensure complete capture
-- For Venn diagrams, ensure ALL overlapping regions are captured
-
-RETURN FORMAT (strict JSON - REQUIRED):
+If diagram found:
 {
-  "hasDiagram": true/false,
-  "diagrams": [
-    {
-      "type": "venn_diagram|tree_diagram|graph|flowchart|table|illustration|geometric_figure|other",
-      "description": "SHORT 5-10 word summary",
-      "boundingBox": { 
-        "x": number, 
-        "y": number, 
-        "width": number, 
-        "height": number 
-      },
-      "confidence": "high|medium|low"
-    }
-  ],
-  "pageType": "question_with_diagram|text_only|mixed_content"
+  "hasDiagram": true,
+  "diagrams": [{
+    "type": "venn_diagram",
+    "description": "Venn diagram with sets A and B",
+    "boundingBox": {"x": 50, "y": 100, "width": 800, "height": 600},
+    "confidence": "high"
+  }],
+  "pageType": "question_with_diagram"
 }
 
-⚠️ CRITICAL: 
-- Keep descriptions SHORT (5-10 words max)
-- If hasDiagram is true, diagrams array MUST NOT be empty!
-- Always provide bounding boxes with coordinates
+If NO diagram:
+{
+  "hasDiagram": false,
+  "diagrams": [],
+  "pageType": "text_only"
+}
 
-If NO visual diagrams exist (only plain text), return:
-{ "hasDiagram": false, "diagrams": [], "pageType": "text_only" }`
+RULES:
+- Keep descriptions under 10 words
+- Provide x, y, width, height in pixels
+- Add 50px padding around diagrams
+- Types: venn_diagram, tree_diagram, graph, table, flowchart, illustration, other
+- If you see a diagram, diagrams array MUST have at least one item with boundingBox`
                   },
                   {
                     type: 'image_url',
@@ -123,7 +85,7 @@ If NO visual diagrams exist (only plain text), return:
                   }
                 ]
               }],
-              max_tokens: 1000,
+              max_tokens: 500,
               temperature: 0.1,
               response_format: { type: "json_object" }
             })
