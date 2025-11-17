@@ -39,7 +39,7 @@ serve(async (req) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'google/gemini-2.5-pro',
+              model: 'google/gemini-2.5-flash', // Flash is faster and more reliable for JSON
               messages: [{
                 role: 'user',
                 content: [
@@ -96,12 +96,12 @@ RETURN FORMAT (strict JSON - REQUIRED):
   "diagrams": [
     {
       "type": "venn_diagram|tree_diagram|graph|flowchart|table|illustration|geometric_figure|other",
-      "description": "detailed description of what this diagram shows",
+      "description": "SHORT 5-10 word summary",
       "boundingBox": { 
-        "x": number (left edge with padding), 
-        "y": number (top edge with padding), 
-        "width": number (full width with padding), 
-        "height": number (full height with padding) 
+        "x": number, 
+        "y": number, 
+        "width": number, 
+        "height": number 
       },
       "confidence": "high|medium|low"
     }
@@ -109,7 +109,10 @@ RETURN FORMAT (strict JSON - REQUIRED):
   "pageType": "question_with_diagram|text_only|mixed_content"
 }
 
-⚠️ IMPORTANT: If hasDiagram is true, diagrams array MUST NOT be empty!
+⚠️ CRITICAL: 
+- Keep descriptions SHORT (5-10 words max)
+- If hasDiagram is true, diagrams array MUST NOT be empty!
+- Always provide bounding boxes with coordinates
 
 If NO visual diagrams exist (only plain text), return:
 { "hasDiagram": false, "diagrams": [], "pageType": "text_only" }`
@@ -120,7 +123,8 @@ If NO visual diagrams exist (only plain text), return:
                   }
                 ]
               }],
-              max_tokens: 2000,
+              max_tokens: 1000,
+              temperature: 0.1,
               response_format: { type: "json_object" }
             })
           });
@@ -149,11 +153,18 @@ If NO visual diagrams exist (only plain text), return:
           let result;
           try {
             result = JSON.parse(sanitizedContent);
+            
+            // Validate: if hasDiagram is true, diagrams array must not be empty
+            if (result.hasDiagram === true && (!result.diagrams || result.diagrams.length === 0)) {
+              console.warn('⚠️ AI returned hasDiagram=true but empty diagrams array, treating as no diagram');
+              result.hasDiagram = false;
+              result.pageType = 'text_only';
+            }
           } catch (parseError) {
             console.error('❌ JSON parse error:', parseError);
             console.error('📄 Content snippet:', sanitizedContent.substring(0, 500));
-            // Fallback: assume diagram present
-            result = { hasDiagram: true, diagrams: [] };
+            // Fallback: no diagram detected
+            result = { hasDiagram: false, diagrams: [], pageType: 'text_only' };
           }
           
           console.log(`✅ Step 1 Complete - Detection result for page ${pageNumber}:`, JSON.stringify(result, null, 2));
