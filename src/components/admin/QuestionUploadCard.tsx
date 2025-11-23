@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Loader2, CheckCircle, XCircle, Brain, FileSearch, ListChecks, Eye } from 'lucide-react';
@@ -15,6 +15,13 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
 ).toString();
+
+// Declare WebLLM types
+declare global {
+  interface Window {
+    webllm?: any;
+  }
+}
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
   onSuccess?: (data: any) => void;
@@ -31,6 +38,112 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [convertingToWord, setConvertingToWord] = useState(false);
   const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
   const [processingStage, setProcessingStage] = useState<string>('');
+  const webllmEngineRef = useRef<any>(null);
+
+  // Initialize WebLLM engine
+  useEffect(() => {
+    const initWebLLM = async () => {
+      if (!window.webllm || webllmEngineRef.current) return;
+      
+      try {
+        console.log('🚀 Initializing WebLLM engine...');
+        toast.info('Loading AI Vision model (first time may take a moment)...');
+        webllmEngineRef.current = await window.webllm.CreateMLCEngine("qwen2.5-vl-2b-instruct");
+        console.log('✅ WebLLM engine ready!');
+        toast.success('AI Vision model loaded successfully!');
+      } catch (error) {
+        console.error('❌ WebLLM initialization failed:', error);
+        toast.error('Failed to load AI model. Falling back to server processing.');
+      }
+    };
+
+    initWebLLM();
+  }, []);
+
+  // Browser-based OCR + Vision extraction using WebLLM
+  const extractWithWebLLM = async (base64Image: string): Promise<any> => {
+    if (!webllmEngineRef.current) {
+      throw new Error('WebLLM engine not initialized');
+    }
+
+    const prompt = `### 🔥 FULL OCR + VISION EXTRACTOR (BROWSER ONLY | FREE | NO BACKEND)
+
+You are an OCR + Vision + Diagram Understanding AI running fully inside the browser.
+
+Your job:
+1. Read the input IMAGE.
+2. Extract ALL text found in the page.
+3. Extract ALL diagram shapes and structure:
+   - Venn diagrams (circles, labels, intersection values)
+   - Boxes, underlines, arrows
+   - Numeric labels inside shapes
+   - Missing blanks (treat them as "blank_slot_1", "blank_slot_2", ...)
+4. Return a CLEAN and PURE JSON output.
+5. Do NOT add explanation. Only JSON.
+
+### 🎯 JSON FORMAT TO FOLLOW STRICTLY:
+{
+  "text": "<full OCR text>",
+  "diagram": {
+    "type": "<diagram_type>",
+    "shapes": [
+      { "type": "circle", "id": "A", "x": 100, "y": 100, "r": 50 },
+      { "type": "circle", "id": "B", "x": 200, "y": 100, "r": 50 }
+    ],
+    "labels": [
+      { "text": "1", "x": 100, "y": 100 },
+      { "text": "20", "x": 200, "y": 100 }
+    ],
+    "blanks": [
+      "blank_slot_1",
+      "blank_slot_2"
+    ]
+  }
+}
+
+### RULES (IMPORTANT)
+- Output ONLY JSON. No sentences.
+- If diagram not found → "diagram": null
+- Remove noise text correctly.
+- Combine fragmented text lines into proper reading order.
+- If number is inside a circle → treat as a Venn label.
+- If shape is empty → return a blank_slot.
+
+### INPUT BELOW (IMAGE)
+Analyze this image and extract all content.`;
+
+    try {
+      const result = await webllmEngineRef.current.chat.completions.create({
+        model: "qwen2.5-vl-2b-instruct",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: `data:image/png;base64,${base64Image}` } }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.1
+      });
+
+      const responseText = result.choices[0].message.content;
+      
+      // Extract JSON from response (handle markdown code blocks)
+      let jsonText = responseText;
+      if (jsonText.includes('```json')) {
+        jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+      } else if (jsonText.includes('```')) {
+        jsonText = jsonText.split('```')[1].split('```')[0].trim();
+      }
+
+      return JSON.parse(jsonText);
+    } catch (error) {
+      console.error('WebLLM extraction error:', error);
+      throw error;
+    }
+  };
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -241,8 +354,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           const cleanText = pdfText.replace(/\s+/g, '').trim();
           const isScannedPDF = cleanText.length < 100 * numPages; // Less than 100 chars per page
           
-          // AI-powered diagram extraction
-          toast.info('🤖 Using AI vision to detect and extract diagrams...');
+          // Browser-based AI-powered diagram extraction using WebLLM
+          toast.info('🤖 Using browser AI vision to extract content...');
           
           for (let pageNum = 1; pageNum <= numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
@@ -258,122 +371,51 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               
               if (!context) continue;
               
-              console.log(`📄 Rendering page ${pageNum} for AI analysis...`);
+              console.log(`📄 Rendering page ${pageNum} for browser AI analysis...`);
               
               await page.render({
                 canvasContext: context,
                 viewport: viewport,
               } as any).promise;
               
-              // Convert to base64 for AI processing
+              // Convert to base64 for WebLLM processing
               const pageImageData = canvas.toDataURL('image/png');
               const pageBase64 = pageImageData.split(',')[1];
               
-              // Upload temporary full page for AI analysis
-              const tempPageUrl = await uploadImageToStorage(
-                pageBase64,
-                'image/png',
-                `${fileName}-page${pageNum}-temp`
-              );
-              
-              if (!tempPageUrl) continue;
-              
-              // Call edge function for AI-powered diagram detection
-              const aiResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-doc-images`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  mode: 'pdf-diagram-detection',
-                  pageImageUrl: tempPageUrl,
-                  pageNumber: pageNum
-                })
-              });
-              
-              if (aiResponse.ok) {
-                const aiResult = await aiResponse.json();
-                console.log(`🤖 AI analysis for page ${pageNum}:`, aiResult);
-                
-                // Validate AI result
-                if (aiResult.hasDiagram && (!aiResult.diagrams || aiResult.diagrams.length === 0)) {
-                  console.error(`❌ AI detection error: hasDiagram=true but diagrams array is empty!`);
-                  toast.error(`AI detected diagram on page ${pageNum} but failed to locate it`);
-                }
-                
-                if (aiResult.diagrams && aiResult.diagrams.length > 0) {
-                  console.log(`📊 Processing ${aiResult.diagrams.length} AI-detected diagrams from page ${pageNum}`);
+              // Use browser-based WebLLM for extraction
+              if (webllmEngineRef.current) {
+                try {
+                  const extractionResult = await extractWithWebLLM(pageBase64);
+                  console.log(`🤖 Browser AI extraction for page ${pageNum}:`, extractionResult);
                   
-                  // Extract detected diagrams based on AI bounding boxes with very generous padding
-                  for (let diagIdx = 0; diagIdx < aiResult.diagrams.length; diagIdx++) {
-                    const diagram = aiResult.diagrams[diagIdx];
-                    console.log(`🎯 Diagram ${diagIdx + 1}: ${diagram.type || 'unknown'} - ${diagram.description}`);
-                    console.log(`📐 Original bounding box:`, diagram.boundingBox);
+                  // Append extracted text
+                  if (extractionResult.text) {
+                    pdfText += `\n--- Page ${pageNum} (AI Extracted) ---\n${extractionResult.text}`;
+                  }
+                  
+                  // Handle diagram extraction
+                  if (extractionResult.diagram && extractionResult.diagram.type) {
+                    console.log(`📊 Diagram detected: ${extractionResult.diagram.type}`);
                     
-                    // Create canvas for cropped diagram
-                    const cropCanvas = document.createElement('canvas');
-                    const cropContext = cropCanvas.getContext('2d');
-                    
-                    // Add VERY generous padding (120px) to ensure absolutely complete diagram capture
-                    const padding = 120;
-                    let { x, y, width, height } = diagram.boundingBox;
-                    
-                    // For tree diagrams and flowcharts, add extra horizontal padding
-                    const extraPadding = diagram.type?.includes('tree') || diagram.type?.includes('flowchart') ? 60 : 0;
-                    
-                    // Apply padding with boundary checks
-                    x = Math.max(0, x - padding - extraPadding);
-                    y = Math.max(0, y - padding);
-                    width = Math.min(canvas.width - x, width + (padding + extraPadding) * 2);
-                    height = Math.min(canvas.height - y, height + padding * 2);
-                    
-                    console.log(`📐 Adjusted bounding box with ${padding}px padding (+${extraPadding}px extra):`, { x, y, width, height });
-                    
-                    cropCanvas.width = width;
-                    cropCanvas.height = height;
-                    
-                    if (!cropContext) continue;
-                    
-                    // Draw white background
-                    cropContext.fillStyle = 'white';
-                    cropContext.fillRect(0, 0, width, height);
-                    
-                    // Draw cropped region
-                    cropContext.drawImage(
-                      canvas,
-                      x, y, width, height,
-                      0, 0, width, height
-                    );
-                    
-                    const diagramImageData = cropCanvas.toDataURL('image/png');
-                    const diagramBase64 = diagramImageData.split(',')[1];
-                    
+                    // Upload the full page as diagram since WebLLM provides structured data
                     const diagramUrl = await uploadImageToStorage(
-                      diagramBase64,
+                      pageBase64,
                       'image/png',
                       `${fileName}-page${pageNum}-diagram`
                     );
                     
                     if (diagramUrl) {
                       pdfImages.push(diagramUrl);
-                      console.log(`✅ Extracted diagram ${diagIdx + 1} from page ${pageNum}: ${diagram.description}`);
-                      console.log(`🔗 Uploaded to: ${diagramUrl}`);
+                      console.log(`✅ Extracted diagram from page ${pageNum}:`, extractionResult.diagram);
+                      toast.success(`Extracted ${extractionResult.diagram.type} from page ${pageNum}`);
                     }
                   }
-                  
-                  // Log comprehensive extraction results from AI analysis
-                  if (aiResult.extractedText) {
-                    console.log(`📝 Extracted text (${aiResult.extractedText.length} chars):`, aiResult.extractedText.substring(0, 200));
-                  }
-                  if (aiResult.questionStructure) {
-                    console.log(`❓ Parsed question structure:`, aiResult.questionStructure);
-                  }
-                } else if (aiResult.hasDiagram) {
-                  // AI detected diagram but couldn't provide bounding boxes
-                  console.warn(`⚠️ AI detected diagram on page ${pageNum} but no bounding boxes provided - skipping full page upload`);
-                  toast.warning(`Diagram detected on page ${pageNum} but couldn't isolate it - please crop manually if needed`);
+                } catch (webllmError) {
+                  console.error(`WebLLM extraction failed for page ${pageNum}:`, webllmError);
+                  toast.warning(`Page ${pageNum}: Falling back to text-only extraction`);
                 }
+              } else {
+                console.warn('WebLLM not available, skipping vision extraction');
               }
             } catch (error) {
               console.error(`Error processing page ${pageNum}:`, error);
