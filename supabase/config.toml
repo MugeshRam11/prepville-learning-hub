@@ -18,6 +18,9 @@ verify_jwt = true
 [functions.pdf-pipeline]
 verify_jwt = true
 
+[functions.pdf-vision-extractor]
+verify_jwt = true
+
 [functions.daily-motivation]
 verify_jwt = false
 
