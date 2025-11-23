@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Loader2, CheckCircle, XCircle, Brain, FileSearch, ListChecks, Eye } from 'lucide-react';
@@ -15,13 +15,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
 ).toString();
-
-// Declare WebLLM types
-declare global {
-  interface Window {
-    webllm?: any;
-  }
-}
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
   onSuccess?: (data: any) => void;
@@ -38,112 +31,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [convertingToWord, setConvertingToWord] = useState(false);
   const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
   const [processingStage, setProcessingStage] = useState<string>('');
-  const webllmEngineRef = useRef<any>(null);
-
-  // Initialize WebLLM engine
-  useEffect(() => {
-    const initWebLLM = async () => {
-      if (!window.webllm || webllmEngineRef.current) return;
-      
-      try {
-        console.log('🚀 Initializing WebLLM engine...');
-        toast.info('Loading AI Vision model (first time may take a moment)...');
-        webllmEngineRef.current = await window.webllm.CreateMLCEngine("qwen2.5-vl-2b-instruct");
-        console.log('✅ WebLLM engine ready!');
-        toast.success('AI Vision model loaded successfully!');
-      } catch (error) {
-        console.error('❌ WebLLM initialization failed:', error);
-        toast.error('Failed to load AI model. Falling back to server processing.');
-      }
-    };
-
-    initWebLLM();
-  }, []);
-
-  // Browser-based OCR + Vision extraction using WebLLM
-  const extractWithWebLLM = async (base64Image: string): Promise<any> => {
-    if (!webllmEngineRef.current) {
-      throw new Error('WebLLM engine not initialized');
-    }
-
-    const prompt = `### 🔥 FULL OCR + VISION EXTRACTOR (BROWSER ONLY | FREE | NO BACKEND)
-
-You are an OCR + Vision + Diagram Understanding AI running fully inside the browser.
-
-Your job:
-1. Read the input IMAGE.
-2. Extract ALL text found in the page.
-3. Extract ALL diagram shapes and structure:
-   - Venn diagrams (circles, labels, intersection values)
-   - Boxes, underlines, arrows
-   - Numeric labels inside shapes
-   - Missing blanks (treat them as "blank_slot_1", "blank_slot_2", ...)
-4. Return a CLEAN and PURE JSON output.
-5. Do NOT add explanation. Only JSON.
-
-### 🎯 JSON FORMAT TO FOLLOW STRICTLY:
-{
-  "text": "<full OCR text>",
-  "diagram": {
-    "type": "<diagram_type>",
-    "shapes": [
-      { "type": "circle", "id": "A", "x": 100, "y": 100, "r": 50 },
-      { "type": "circle", "id": "B", "x": 200, "y": 100, "r": 50 }
-    ],
-    "labels": [
-      { "text": "1", "x": 100, "y": 100 },
-      { "text": "20", "x": 200, "y": 100 }
-    ],
-    "blanks": [
-      "blank_slot_1",
-      "blank_slot_2"
-    ]
-  }
-}
-
-### RULES (IMPORTANT)
-- Output ONLY JSON. No sentences.
-- If diagram not found → "diagram": null
-- Remove noise text correctly.
-- Combine fragmented text lines into proper reading order.
-- If number is inside a circle → treat as a Venn label.
-- If shape is empty → return a blank_slot.
-
-### INPUT BELOW (IMAGE)
-Analyze this image and extract all content.`;
-
-    try {
-      const result = await webllmEngineRef.current.chat.completions.create({
-        model: "qwen2.5-vl-2b-instruct",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: `data:image/png;base64,${base64Image}` } }
-            ]
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.1
-      });
-
-      const responseText = result.choices[0].message.content;
-      
-      // Extract JSON from response (handle markdown code blocks)
-      let jsonText = responseText;
-      if (jsonText.includes('```json')) {
-        jsonText = jsonText.split('```json')[1].split('```')[0].trim();
-      } else if (jsonText.includes('```')) {
-        jsonText = jsonText.split('```')[1].split('```')[0].trim();
-      }
-
-      return JSON.parse(jsonText);
-    } catch (error) {
-      console.error('WebLLM extraction error:', error);
-      throw error;
-    }
-  };
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -354,15 +241,15 @@ Analyze this image and extract all content.`;
           const cleanText = pdfText.replace(/\s+/g, '').trim();
           const isScannedPDF = cleanText.length < 100 * numPages; // Less than 100 chars per page
           
-          // Browser-based AI-powered diagram extraction using WebLLM
-          toast.info('🤖 Using browser AI vision to extract content...');
+          // Lovable AI-powered OCR + diagram extraction
+          toast.info('🤖 Using Lovable AI vision to extract content...');
           
           for (let pageNum = 1; pageNum <= numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
             
             try {
-              // Render page at 2x scale for AI analysis
-              const scale = 2.0;
+              // Render page at high quality for AI analysis
+              const scale = 2.5;
               const viewport = page.getViewport({ scale });
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
@@ -371,54 +258,62 @@ Analyze this image and extract all content.`;
               
               if (!context) continue;
               
-              console.log(`📄 Rendering page ${pageNum} for browser AI analysis...`);
+              console.log(`📄 Rendering page ${pageNum} for Lovable AI vision...`);
               
               await page.render({
                 canvasContext: context,
                 viewport: viewport,
               } as any).promise;
               
-              // Convert to base64 for WebLLM processing
+              // Convert to base64 for AI processing
               const pageImageData = canvas.toDataURL('image/png');
               const pageBase64 = pageImageData.split(',')[1];
               
-              // Use browser-based WebLLM for extraction
-              if (webllmEngineRef.current) {
-                try {
-                  const extractionResult = await extractWithWebLLM(pageBase64);
-                  console.log(`🤖 Browser AI extraction for page ${pageNum}:`, extractionResult);
-                  
-                  // Append extracted text
-                  if (extractionResult.text) {
-                    pdfText += `\n--- Page ${pageNum} (AI Extracted) ---\n${extractionResult.text}`;
-                  }
-                  
-                  // Handle diagram extraction
-                  if (extractionResult.diagram && extractionResult.diagram.type) {
-                    console.log(`📊 Diagram detected: ${extractionResult.diagram.type}`);
-                    
-                    // Upload the full page as diagram since WebLLM provides structured data
-                    const diagramUrl = await uploadImageToStorage(
-                      pageBase64,
-                      'image/png',
-                      `${fileName}-page${pageNum}-diagram`
-                    );
-                    
-                    if (diagramUrl) {
-                      pdfImages.push(diagramUrl);
-                      console.log(`✅ Extracted diagram from page ${pageNum}:`, extractionResult.diagram);
-                      toast.success(`Extracted ${extractionResult.diagram.type} from page ${pageNum}`);
-                    }
-                  }
-                } catch (webllmError) {
-                  console.error(`WebLLM extraction failed for page ${pageNum}:`, webllmError);
-                  toast.warning(`Page ${pageNum}: Falling back to text-only extraction`);
+              // Call Lovable AI edge function for vision extraction
+              console.log(`🤖 Calling Lovable AI for page ${pageNum}...`);
+              const { data: visionData, error: visionError } = await supabase.functions.invoke('pdf-vision-extractor', {
+                body: {
+                  imageBase64: pageBase64,
+                  pageNumber: pageNum,
+                  fileName: fileName
                 }
-              } else {
-                console.warn('WebLLM not available, skipping vision extraction');
+              });
+              
+              if (visionError) {
+                console.error(`Vision extraction failed for page ${pageNum}:`, visionError);
+                toast.error(`Failed to extract content from page ${pageNum}`);
+                continue;
+              }
+              
+              console.log(`✅ Lovable AI extraction for page ${pageNum}:`, visionData);
+              
+              // Append extracted text
+              if (visionData.text) {
+                pdfText += `\n--- Page ${pageNum} (AI OCR) ---\n${visionData.text}`;
+              }
+              
+              // Handle diagram extraction
+              if (visionData.diagram && visionData.diagram.type !== null) {
+                console.log(`📊 Diagram detected: ${visionData.diagram.type}`);
+                console.log(`📐 Shapes:`, visionData.diagram.shapes);
+                console.log(`🏷️ Labels:`, visionData.diagram.labels);
+                console.log(`📝 Blanks:`, visionData.diagram.blanks);
+                
+                // Upload the full page as diagram with structured data
+                const diagramUrl = await uploadImageToStorage(
+                  pageBase64,
+                  'image/png',
+                  `${fileName}-page${pageNum}-diagram`
+                );
+                
+                if (diagramUrl) {
+                  pdfImages.push(diagramUrl);
+                  toast.success(`Extracted ${visionData.diagram.type} from page ${pageNum} with ${visionData.diagram.labels?.length || 0} labels`);
+                }
               }
             } catch (error) {
               console.error(`Error processing page ${pageNum}:`, error);
+              toast.error(`Failed to process page ${pageNum}`);
             }
             
             setProgress(35 + pageNum / numPages * 20);
