@@ -3,9 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowLeft, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { 
+  cleanupAuthState, 
+  getFriendlyErrorMessage, 
+  withRetry,
+  updateServiceStatus 
+} from '@/lib/authService';
 
 const SignUpForm = () => {
   const [fullName, setFullName] = useState('');
@@ -18,23 +24,11 @@ const SignUpForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-
-  const cleanupAuthState = () => {
-    // Clear all auth-related storage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        sessionStorage.removeItem(key);
-      }
-    });
-  };
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLastError(null);
     
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
@@ -49,49 +43,50 @@ const SignUpForm = () => {
     setLoading(true);
 
     try {
-      // Clean up any existing auth state
       cleanupAuthState();
       
-      // Attempt global sign out first
       try {
         await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
+      } catch {
         // Continue even if this fails
-        console.log('Global signout failed, continuing...');
       }
 
       const nameParts = fullName.trim().split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: fullName,
-            first_name: firstName,
-            last_name: lastName,
-            phone: phone,
-            role: 'student'
+      const result = await withRetry(async () => {
+        return supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: fullName,
+              first_name: firstName,
+              last_name: lastName,
+              phone: phone,
+              role: 'student'
+            }
           }
-        }
+        });
       });
 
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('An account with this email already exists. Please sign in instead.');
-        } else {
-          toast.error(error.message);
-        }
+      if (result.error) {
+        const friendlyMessage = getFriendlyErrorMessage(result.error);
+        setLastError(friendlyMessage);
+        toast.error(friendlyMessage);
+        updateServiceStatus(false, friendlyMessage);
       } else {
         setOtpSent(true);
         toast.success('Account created! Please check your email for the verification code.');
+        updateServiceStatus(true);
       }
     } catch (error) {
-      console.error('Sign up error:', error);
-      toast.error('An unexpected error occurred during sign up');
+      const friendlyMessage = getFriendlyErrorMessage(error);
+      setLastError(friendlyMessage);
+      toast.error(friendlyMessage);
+      updateServiceStatus(false, friendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -100,18 +95,24 @@ const SignUpForm = () => {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setLastError(null);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: otp,
-        type: 'signup'
+      const result = await withRetry(async () => {
+        return supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: otp,
+          type: 'signup'
+        });
       });
 
-      if (error) {
-        toast.error(error.message);
-      } else if (data.user) {
+      if (result.error) {
+        const friendlyMessage = getFriendlyErrorMessage(result.error);
+        setLastError(friendlyMessage);
+        toast.error(friendlyMessage);
+      } else if (result.data.user) {
         toast.success('Email verified! Account created successfully.');
+        updateServiceStatus(true);
         // Clear the form
         setFullName('');
         setEmail('');
@@ -124,8 +125,9 @@ const SignUpForm = () => {
         window.location.href = '/';
       }
     } catch (error) {
-      console.error('Verify OTP error:', error);
-      toast.error('An unexpected error occurred during verification');
+      const friendlyMessage = getFriendlyErrorMessage(error);
+      setLastError(friendlyMessage);
+      toast.error(friendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -133,50 +135,85 @@ const SignUpForm = () => {
 
   const handleResendOtp = async () => {
     setLoading(true);
+    setLastError(null);
+    
     try {
       const nameParts = fullName.trim().split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: fullName,
-            first_name: firstName,
-            last_name: lastName,
-            phone: phone,
-            role: 'student'
+      const result = await withRetry(async () => {
+        return supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: fullName,
+              first_name: firstName,
+              last_name: lastName,
+              phone: phone,
+              role: 'student'
+            }
           }
-        }
+        });
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (result.error) {
+        const friendlyMessage = getFriendlyErrorMessage(result.error);
+        toast.error(friendlyMessage);
       } else {
         toast.success('New verification code sent to your email!');
       }
     } catch (error) {
-      console.error('Resend OTP error:', error);
-      toast.error('Failed to resend verification code');
+      const friendlyMessage = getFriendlyErrorMessage(error);
+      toast.error(friendlyMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleRetry = () => {
+    setLastError(null);
+  };
+
   const handleBack = () => {
     setOtpSent(false);
     setOtp('');
+    setLastError(null);
+  };
+
+  // Error banner component
+  const ErrorBanner = () => {
+    if (!lastError) return null;
+    
+    return (
+      <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4 flex items-start gap-2">
+        <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm text-destructive">{lastError}</p>
+          <Button
+            variant="link"
+            size="sm"
+            className="p-0 h-auto text-destructive hover:text-destructive/80"
+            onClick={handleRetry}
+          >
+            <RefreshCw className="w-3 h-3 mr-1" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   if (otpSent) {
     return (
       <div className="space-y-6">
+        <ErrorBanner />
+        
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-blue-600" />
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-primary" />
           </div>
           <h3 className="text-xl font-semibold">Verify your email</h3>
           <p className="text-muted-foreground">
@@ -207,10 +244,17 @@ const SignUpForm = () => {
           
           <Button 
             type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full h-12"
             disabled={loading || otp.length !== 6}
           >
-            {loading ? 'Verifying...' : 'Verify & Create Account'}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              'Verify & Create Account'
+            )}
           </Button>
         </form>
 
@@ -241,125 +285,143 @@ const SignUpForm = () => {
   }
 
   return (
-    <form onSubmit={handleSignUp} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="fullName">Full Name</Label>
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="fullName"
-            type="text"
-            placeholder="Enter your full name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="pl-10"
-            required
-            autoComplete="name"
-          />
-        </div>
-      </div>
+    <div>
+      <ErrorBanner />
       
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email Address</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="signup-email"
-            type="email"
-            placeholder="your.email@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="pl-10"
-            required
-            autoComplete="email"
-          />
+      <form onSubmit={handleSignUp} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="fullName">Full Name</Label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="Enter your full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="pl-10"
+              required
+              autoComplete="name"
+              disabled={loading}
+            />
+          </div>
         </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number (Optional)</Label>
-        <div className="relative">
-          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="+1 (555) 123-4567"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="pl-10"
-            autoComplete="tel"
-          />
+        
+        <div className="space-y-2">
+          <Label htmlFor="signup-email">Email Address</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              id="signup-email"
+              type="email"
+              placeholder="your.email@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-10"
+              required
+              autoComplete="email"
+              disabled={loading}
+            />
+          </div>
         </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="signup-password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Create a strong password (min 6 characters)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 pr-10"
-            required
-            autoComplete="new-password"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </Button>
+        
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number (Optional)</Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+1 (555) 123-4567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="pl-10"
+              autoComplete="tel"
+              disabled={loading}
+            />
+          </div>
         </div>
-      </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="signup-password">Password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              id="signup-password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Create a strong password (min 6 characters)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-10 pr-10"
+              required
+              autoComplete="new-password"
+              disabled={loading}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={loading}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            id="confirm-password"
-            type={showConfirmPassword ? "text" : "password"}
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="pl-10 pr-10"
-            required
-            autoComplete="new-password"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password">Confirm Password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              id="confirm-password"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="pl-10 pr-10"
+              required
+              autoComplete="new-password"
+              disabled={loading}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              disabled={loading}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
-      
-      <Button 
-        type="submit" 
-        className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base font-medium"
-        disabled={loading}
-      >
-        {loading ? 'Creating Account...' : 'Create Account'}
-      </Button>
-    </form>
+        
+        <Button 
+          type="submit" 
+          className="w-full h-12 text-base font-medium"
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating Account...
+            </>
+          ) : (
+            'Create Account'
+          )}
+        </Button>
+      </form>
+    </div>
   );
 };
 
