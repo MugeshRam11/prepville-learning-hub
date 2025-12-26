@@ -25,7 +25,7 @@ const MockExamSidebar = ({
   onQuestionSelect,
   focusMode = false
 }: MockExamSidebarProps) => {
-  const activeQuestionRef = useRef<HTMLDivElement>(null);
+  const activeQuestionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (activeQuestionRef.current) {
@@ -117,130 +117,128 @@ const MockExamSidebar = ({
             const mainQuestionStatus = getQuestionStatus(questionIndex);
             const isMainActive = currentQuestionIndex === questionIndex && currentSubQuestionIndex === null;
 
-            return (
-              <div 
-                key={question.id} 
-                className="space-y-2"
-                ref={isMainActive && currentSubQuestionIndex === null ? activeQuestionRef : null}
-              >
-                <motion.div
+              return (
+                <motion.div 
+                  key={question.id} 
+                  className="space-y-2"
+                  ref={isMainActive && currentSubQuestionIndex === null ? activeQuestionRef as React.RefObject<HTMLDivElement> : null}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: questionIndex * 0.05 }}
                 >
-                {/* Main Question Tile */}
-                <motion.button
-                  onClick={() => onQuestionSelect(questionIndex)}
-                  className={cn(
-                    "w-full p-3 rounded-xl border-2 transition-all duration-200 text-left",
-                    "hover:shadow-md hover:scale-[1.02]",
-                    isMainActive && "border-primary bg-primary/10 shadow-lg shadow-primary/20",
-                    mainQuestionStatus === 'answered' && !isMainActive && "border-green-400 bg-green-50 dark:bg-green-950/30",
-                    mainQuestionStatus === 'flagged' && !isMainActive && "border-amber-400 bg-amber-50 dark:bg-amber-950/30",
-                    mainQuestionStatus === 'unanswered' && !isMainActive && "border-border bg-card hover:border-primary/50"
-                  )}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {/* Status indicator */}
-                      <motion.div
-                        className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm",
-                          isMainActive && "bg-primary text-primary-foreground",
-                          mainQuestionStatus === 'answered' && !isMainActive && "bg-green-500 text-white",
-                          mainQuestionStatus === 'flagged' && !isMainActive && "bg-amber-500 text-white",
-                          mainQuestionStatus === 'unanswered' && !isMainActive && "bg-muted text-muted-foreground"
-                        )}
-                        animate={isMainActive ? { scale: [1, 1.1, 1] } : {}}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      >
-                        {mainQuestionStatus === 'answered' && !isMainActive ? (
-                          <CheckCircle className="w-4 h-4" />
-                        ) : mainQuestionStatus === 'flagged' ? (
-                          <Flag className="w-4 h-4" />
-                        ) : (
-                          questionIndex + 1
-                        )}
-                      </motion.div>
-                      <div>
-                        <span className={cn(
-                          "font-medium text-sm",
-                          isMainActive ? "text-primary" : "text-foreground"
-                        )}>
-                          Question {questionIndex + 1}
-                        </span>
-                        {question.subQuestions?.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {question.subQuestions.length} parts
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Badge 
-                      variant="outline"
-                      className={cn(
-                        "text-xs",
-                        isMainActive && "border-primary text-primary"
-                      )}
-                    >
-                      {question.marks}m
-                    </Badge>
-                  </div>
-                </motion.button>
-
-                {/* Sub-questions */}
-                <AnimatePresence>
-                  {question.subQuestions && question.subQuestions.map((subQuestion: any, subIndex: number) => {
-                    const subQuestionStatus = getQuestionStatus(questionIndex, subIndex);
-                    const isSubActive = currentQuestionIndex === questionIndex && currentSubQuestionIndex === subIndex;
-
-                    return (
-                      <motion.button
-                        key={subQuestion.id}
-                        ref={isSubActive ? activeQuestionRef : null}
-                        onClick={() => onQuestionSelect(questionIndex, subIndex)}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        className={cn(
-                          "w-full ml-4 p-2.5 rounded-lg border transition-all duration-200 text-left flex items-center justify-between",
-                          "hover:shadow-sm hover:scale-[1.01]",
-                          isSubActive && "border-primary bg-primary/10",
-                          subQuestionStatus === 'answered' && !isSubActive && "border-green-300 bg-green-50/50 dark:bg-green-950/20",
-                          subQuestionStatus === 'unanswered' && !isSubActive && "border-border bg-card/50"
-                        )}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={cn(
-                            "w-6 h-6 rounded-md flex items-center justify-center text-xs font-medium",
-                            isSubActive && "bg-primary text-primary-foreground",
-                            subQuestionStatus === 'answered' && !isSubActive && "bg-green-500 text-white",
-                            subQuestionStatus === 'unanswered' && !isSubActive && "bg-muted text-muted-foreground"
+                  {/* Main Question Tile */}
+                  <motion.button
+                    onClick={() => onQuestionSelect(questionIndex)}
+                    className={cn(
+                      "w-full p-3 rounded-xl border-2 transition-all duration-200 text-left",
+                      "hover:shadow-md hover:scale-[1.02]",
+                      isMainActive && "border-primary bg-primary/10 shadow-lg shadow-primary/20",
+                      mainQuestionStatus === 'answered' && !isMainActive && "border-green-400 bg-green-50 dark:bg-green-950/30",
+                      mainQuestionStatus === 'flagged' && !isMainActive && "border-amber-400 bg-amber-50 dark:bg-amber-950/30",
+                      mainQuestionStatus === 'unanswered' && !isMainActive && "border-border bg-card hover:border-primary/50"
+                    )}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {/* Status indicator */}
+                        <motion.div
+                          className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm",
+                            isMainActive && "bg-primary text-primary-foreground",
+                            mainQuestionStatus === 'answered' && !isMainActive && "bg-green-500 text-white",
+                            mainQuestionStatus === 'flagged' && !isMainActive && "bg-amber-500 text-white",
+                            mainQuestionStatus === 'unanswered' && !isMainActive && "bg-muted text-muted-foreground"
+                          )}
+                          animate={isMainActive ? { scale: [1, 1.1, 1] } : {}}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          {mainQuestionStatus === 'answered' && !isMainActive ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : mainQuestionStatus === 'flagged' ? (
+                            <Flag className="w-4 h-4" />
+                          ) : (
+                            questionIndex + 1
+                          )}
+                        </motion.div>
+                        <div>
+                          <span className={cn(
+                            "font-medium text-sm",
+                            isMainActive ? "text-primary" : "text-foreground"
                           )}>
-                            {subQuestionStatus === 'answered' && !isSubActive ? (
-                              <CheckCircle className="w-3 h-3" />
-                            ) : (
-                              subQuestion.label || String.fromCharCode(97 + subIndex)
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground truncate">
-                            Part {subQuestion.label || String.fromCharCode(97 + subIndex)}
+                            Question {questionIndex + 1}
                           </span>
+                          {question.subQuestions?.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {question.subQuestions.length} parts
+                            </p>
+                          )}
                         </div>
-                        <Badge variant="outline" className="text-[10px] h-5">
-                          {subQuestion.marks}m
-                        </Badge>
-                      </motion.button>
-                    );
-                  })}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
+                      </div>
+                      <Badge 
+                        variant="outline"
+                        className={cn(
+                          "text-xs",
+                          isMainActive && "border-primary text-primary"
+                        )}
+                      >
+                        {question.marks}m
+                      </Badge>
+                    </div>
+                  </motion.button>
+
+                  {/* Sub-questions */}
+                  <AnimatePresence>
+                    {question.subQuestions && question.subQuestions.map((subQuestion: any, subIndex: number) => {
+                      const subQuestionStatus = getQuestionStatus(questionIndex, subIndex);
+                      const isSubActive = currentQuestionIndex === questionIndex && currentSubQuestionIndex === subIndex;
+
+                      return (
+                        <motion.button
+                          key={subQuestion.id}
+                          ref={isSubActive ? activeQuestionRef as React.RefObject<HTMLButtonElement> : null}
+                          onClick={() => onQuestionSelect(questionIndex, subIndex)}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className={cn(
+                            "w-full ml-4 p-2.5 rounded-lg border transition-all duration-200 text-left flex items-center justify-between",
+                            "hover:shadow-sm hover:scale-[1.01]",
+                            isSubActive && "border-primary bg-primary/10",
+                            subQuestionStatus === 'answered' && !isSubActive && "border-green-300 bg-green-50/50 dark:bg-green-950/20",
+                            subQuestionStatus === 'unanswered' && !isSubActive && "border-border bg-card/50"
+                          )}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={cn(
+                              "w-6 h-6 rounded-md flex items-center justify-center text-xs font-medium",
+                              isSubActive && "bg-primary text-primary-foreground",
+                              subQuestionStatus === 'answered' && !isSubActive && "bg-green-500 text-white",
+                              subQuestionStatus === 'unanswered' && !isSubActive && "bg-muted text-muted-foreground"
+                            )}>
+                              {subQuestionStatus === 'answered' && !isSubActive ? (
+                                <CheckCircle className="w-3 h-3" />
+                              ) : (
+                                subQuestion.label || String.fromCharCode(97 + subIndex)
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground truncate">
+                              Part {subQuestion.label || String.fromCharCode(97 + subIndex)}
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] h-5">
+                            {subQuestion.marks}m
+                          </Badge>
+                        </motion.button>
+                      );
+                    })}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
         </div>
       </ScrollArea>
 
