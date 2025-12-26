@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.ai-exam-evaluator]
 verify_jwt = true
+
+[functions.ocr-gpt4-structurer]
+verify_jwt = true
