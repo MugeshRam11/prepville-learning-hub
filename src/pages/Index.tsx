@@ -1,12 +1,13 @@
-
 import React from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import HeroSection from '@/components/HeroSection';
-
-import FeaturesSection from '@/components/FeaturesSection';
-import StatsSection from '@/components/StatsSection';
-import CTASection from '@/components/CTASection';
+import AnimatedHero from '@/components/home/AnimatedHero';
+import HowItWorks from '@/components/home/HowItWorks';
+import QuestionBankPower from '@/components/home/QuestionBankPower';
+import SmartFeatures from '@/components/home/SmartFeatures';
+import PlansPreview from '@/components/home/PlansPreview';
+import TrustSection from '@/components/home/TrustSection';
+import FinalCTA from '@/components/home/FinalCTA';
 import SubscriptionBanner from '@/components/SubscriptionBanner';
 
 const Index = () => {
@@ -15,11 +16,13 @@ const Index = () => {
       <Header />
       <SubscriptionBanner />
       <main className="flex-1">
-        <HeroSection />
-        
-        <FeaturesSection />
-        <StatsSection />
-        <CTASection />
+        <AnimatedHero />
+        <HowItWorks />
+        <QuestionBankPower />
+        <SmartFeatures />
+        <PlansPreview />
+        <TrustSection />
+        <FinalCTA />
       </main>
       <Footer />
     </div>

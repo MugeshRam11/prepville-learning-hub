@@ -52,6 +52,7 @@
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
+    "framer-motion": "^12.23.26",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.2.4",
     "katex": "^0.16.22",
