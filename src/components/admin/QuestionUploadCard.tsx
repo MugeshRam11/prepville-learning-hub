@@ -424,16 +424,58 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       }
     } catch (error: any) {
       console.error('Upload error:', error);
+      
+      // Build specific error message based on error type
       let errorMessage = 'Failed to process file';
-      if (error.message?.includes('Rate limit')) {
-        errorMessage = 'Rate limit exceeded. Please try again in a moment.';
-      } else if (error.message?.includes('credits')) {
-        errorMessage = 'AI credits exhausted. Please add credits to continue.';
+      let errorDetails = '';
+      
+      const errorString = error?.message || error?.toString() || '';
+      
+      if (errorString.includes('Rate limit') || errorString.includes('429')) {
+        errorMessage = 'Rate limit exceeded';
+        errorDetails = 'Too many requests. Please wait a moment and try again.';
+      } else if (errorString.includes('credits') || errorString.includes('402') || errorString.includes('Payment required')) {
+        errorMessage = 'AI credits exhausted';
+        errorDetails = 'Please add credits to your workspace to continue processing.';
+      } else if (errorString.includes('PDF processing failed')) {
+        errorMessage = 'PDF processing failed';
+        errorDetails = 'Could not extract content from PDF. Try converting to Word format first.';
+      } else if (errorString.includes('Failed to fetch') || errorString.includes('NetworkError') || errorString.includes('network')) {
+        errorMessage = 'Network error';
+        errorDetails = 'Unable to connect to the server. Please check your internet connection.';
+      } else if (errorString.includes('timeout') || errorString.includes('Timeout')) {
+        errorMessage = 'Request timed out';
+        errorDetails = 'The file is taking too long to process. Try a smaller file.';
+      } else if (errorString.includes('Invalid file') || errorString.includes('Unsupported')) {
+        errorMessage = 'Unsupported file format';
+        errorDetails = 'Please upload PDF, Word (.docx), CSV, or image files only.';
+      } else if (errorString.includes('File too large') || errorString.includes('size')) {
+        errorMessage = 'File too large';
+        errorDetails = 'Maximum file size is 20MB. Please upload a smaller file.';
+      } else if (errorString.includes('storage') || errorString.includes('bucket')) {
+        errorMessage = 'Storage error';
+        errorDetails = 'Failed to store extracted images. Please try again.';
+      } else if (errorString.includes('parse') || errorString.includes('JSON')) {
+        errorMessage = 'Parsing error';
+        errorDetails = 'AI could not parse the document structure. Try a clearer document.';
+      } else if (errorString.includes('No questions found') || errorString.includes('empty')) {
+        errorMessage = 'No content found';
+        errorDetails = 'The document appears to be empty or unreadable. Check the file content.';
+      } else if (errorString) {
+        // Show the actual error message if we have one
+        errorMessage = 'Processing error';
+        errorDetails = errorString.length > 100 ? errorString.substring(0, 100) + '...' : errorString;
       }
-      toast.error(errorMessage);
+      
+      // Show detailed toast with error info
+      toast.error(errorMessage, {
+        description: errorDetails,
+        duration: 6000
+      });
+      
       setParseResult({
         success: false,
-        error: errorMessage
+        error: `${errorMessage}${errorDetails ? ': ' + errorDetails : ''}`
       });
     } finally {
       setUploading(false);
