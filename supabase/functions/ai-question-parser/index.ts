@@ -1,9 +1,16 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// ============= AI MODEL CONFIGURATION =============
+// Primary: OpenAI GPT-4o for exam-grade structuring
+// Fallback: Lovable AI (Gemini) for basic operations
+const USE_GPT4_FOR_STRUCTURING = true;
+const GPT4_MODEL = 'gpt-4o';
 
 // Enhanced PDF/Document Processing Utilities
 interface ChunkResult {
@@ -263,8 +270,13 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    
+    // Determine which AI to use based on configuration and availability
+    const useGPT4 = USE_GPT4_FOR_STRUCTURING && OPENAI_API_KEY;
+    
+    if (!LOVABLE_API_KEY && !OPENAI_API_KEY) {
+      console.error('No AI API keys configured');
       return new Response(
         JSON.stringify({ error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -285,7 +297,7 @@ serve(async (req) => {
       chunkedData
     );
 
-    console.log(`🤖 Calling Gemini AI for ${actionMode} (${parseMode} mode)...`);
+    console.log(`🤖 Using ${useGPT4 ? 'OpenAI GPT-4o' : 'Lovable AI (Gemini)'} for ${actionMode} (${parseMode} mode)...`);
     
     // Check if this is a scanned PDF with images that need OCR
     const isScannedPDFOCR = extractedImages && extractedImages.length > 0 && 
@@ -365,33 +377,52 @@ serve(async (req) => {
         null
       );
       
-      // Process with AI parser
-      const ocrParseResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-pro',
-          messages: [
-            { role: 'system', content: ocrSystemPrompt },
-            { role: 'user', content: ocrUserPrompt }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.1 // Low temperature for consistent parsing
-        }),
-      });
+      // Process with GPT-4o for structuring (Stage 2)
+      console.log(`🧠 Stage 2: Structuring with ${useGPT4 ? 'GPT-4o' : 'Lovable AI'}...`);
+      
+      const ocrParseResponse = useGPT4 
+        ? await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: GPT4_MODEL,
+              messages: [
+                { role: 'system', content: ocrSystemPrompt },
+                { role: 'user', content: ocrUserPrompt }
+              ],
+              response_format: { type: 'json_object' },
+              max_tokens: 4096
+            }),
+          })
+        : await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-pro',
+              messages: [
+                { role: 'system', content: ocrSystemPrompt },
+                { role: 'user', content: ocrUserPrompt }
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.1
+            }),
+          });
       
       if (!ocrParseResponse.ok) {
         const errorText = await ocrParseResponse.text();
-        console.error('Gemini AI error:', ocrParseResponse.status, errorText);
+        console.error(`${useGPT4 ? 'GPT-4o' : 'Gemini'} error:`, ocrParseResponse.status, errorText);
         throw new Error(`AI processing failed: ${ocrParseResponse.status}`);
       }
       
       const aiData = await ocrParseResponse.json();
       const ocrContent = aiData.choices[0].message.content;
-      console.log(`📏 OCR parse response length: ${ocrContent.length} characters`);
+      console.log(`📏 Structured output length: ${ocrContent.length} characters`);
       finalParsedData = safeJsonParse(ocrContent, 'ocr-parse');
       
       // Log image assignment results
@@ -428,22 +459,40 @@ serve(async (req) => {
           null
         );
         
-        const chunkResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-pro',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: chunkUserPrompt }
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.1
-          }),
-        });
+        // Use GPT-4o for chunk structuring when available
+        const chunkResponse = useGPT4
+          ? await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: GPT4_MODEL,
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: chunkUserPrompt }
+                ],
+                response_format: { type: 'json_object' },
+                max_tokens: 4096
+              }),
+            })
+          : await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-pro',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: chunkUserPrompt }
+                ],
+                response_format: { type: 'json_object' },
+                temperature: 0.1
+              }),
+            });
         
         if (chunkResponse.ok) {
           const chunkData = await chunkResponse.json();
@@ -459,28 +508,44 @@ serve(async (req) => {
       finalParsedData = { questions: allQuestions };
       console.log(`✅ Merged ${allQuestions.length} questions from all chunks`);
     } else {
-      // Standard single-request processing
-    
-      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-pro',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.1 // Consistent accurate parsing
-        }),
-      });
+      // Standard single-request processing - Use GPT-4o when available
+      const aiResponse = useGPT4
+        ? await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: GPT4_MODEL,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              response_format: { type: 'json_object' },
+              max_tokens: 4096
+            }),
+          })
+        : await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-pro',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.1
+            }),
+          });
 
       if (!aiResponse.ok) {
         const errorText = await aiResponse.text();
-        console.error('Gemini AI error:', aiResponse.status, errorText);
+        console.error(`${useGPT4 ? 'GPT-4o' : 'Gemini'} error:`, aiResponse.status, errorText);
         
         if (aiResponse.status === 429) {
           return new Response(
@@ -489,10 +554,10 @@ serve(async (req) => {
           );
         }
         
-        if (aiResponse.status === 402) {
+        if (aiResponse.status === 402 || aiResponse.status === 401) {
           return new Response(
-            JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }),
-            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'AI API error. Check API key configuration.' }),
+            { status: aiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         
