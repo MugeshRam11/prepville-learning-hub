@@ -84,33 +84,47 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       setConvertingToWord(true);
       setProcessingStage('Creating Word document...');
       
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/pdf-to-word`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            pageContents: extractedPageContents,
-            fileName: file.name
-          })
+      // Use supabase.functions.invoke for proper auth handling
+      const { data, error } = await supabase.functions.invoke('pdf-to-word', {
+        body: {
+          pageContents: extractedPageContents,
+          fileName: file.name
         }
-      );
+      });
       
-      if (!response.ok) {
-        throw new Error('PDF to Word conversion failed');
+      if (error) {
+        console.error('PDF to Word conversion error:', error);
+        throw new Error(error.message || 'PDF to Word conversion failed');
+      }
+      
+      // Convert response to blob if needed
+      let wordBlob: Blob;
+      if (data instanceof Blob) {
+        wordBlob = data;
+      } else if (data?.base64) {
+        // If response is base64 encoded
+        const byteCharacters = atob(data.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        wordBlob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      } else {
+        console.warn('Unexpected response format from pdf-to-word');
+        setConvertingToWord(false);
+        return null;
       }
 
-      const wordBlob = await response.blob();
       console.log('✅ Converted PDF to Word:', wordBlob.size, 'bytes');
       toast.success('PDF converted to Word successfully!');
       setConvertingToWord(false);
       return wordBlob;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Word document creation error:', error);
-      toast.error('Failed to create Word document');
+      toast.error('Failed to create Word document', {
+        description: error?.message || 'Unknown error'
+      });
       setConvertingToWord(false);
       setProcessingStage('');
       return null;
@@ -124,12 +138,18 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     setWordFileUrl(null);
     
     try {
+      // Validate file size (20MB max)
+      const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File too large: ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum size is 20MB.`);
+      }
+
       let content = '';
       let extractedText = '';
       let extractedImages: string[] = [];
       const fileType = file.type;
       const fileName = file.name.toLowerCase();
-      console.log('📄 Processing:', fileName, '| Type:', fileType);
+      console.log('📄 Processing:', fileName, '| Type:', fileType, '| Size:', (file.size / 1024).toFixed(1), 'KB');
       setProgress(20);
       
       // Handle PDF files - extract text first, then optionally create Word
@@ -183,40 +203,68 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       } else if (fileName.endsWith('.docx')) {
         // Extract text AND images from Word document via edge function
         setProgress(25);
-        const formData = new FormData();
-        formData.append('file', file);
-        toast.info('Extracting text and images from Word document...');
-
-        // Call edge function to extract images and text
-        const extractResponse = await fetch(`${SUPABASE_URL}/functions/v1/extract-doc-images`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-          },
-          body: formData
-        });
-        if (extractResponse.ok) {
-          const extractData = await extractResponse.json();
-          extractedText = extractData.text || '';
-          extractedImages = extractData.images || [];
-          content = extractedText;
-          console.log('✅ Word extraction complete:', {
-            textLength: extractedText.length,
-            imageCount: extractedImages.length
-          });
-          if (extractedImages.length > 0) {
-            toast.success(`Extracted ${extractedImages.length} image(s) from Word document!`);
+        try {
+          // Get session for proper auth
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData?.session?.access_token;
+          
+          if (!accessToken) {
+            throw new Error('Not authenticated. Please log in again.');
           }
-        } else {
-          // Fallback to text-only extraction
-          console.warn('Image extraction failed, falling back to text-only');
+
+          // Send file as FormData with proper auth token
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const extractResponse = await fetch(`${SUPABASE_URL}/functions/v1/extract-doc-images`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: formData
+          });
+          
+          if (extractResponse.ok) {
+            const extractData = await extractResponse.json();
+            extractedText = extractData.text || '';
+            extractedImages = extractData.images || [];
+            content = extractedText;
+            console.log('✅ Word extraction complete:', {
+              textLength: extractedText.length,
+              imageCount: extractedImages.length
+            });
+            if (extractedImages.length > 0) {
+              toast.success(`Extracted ${extractedImages.length} image(s) from Word document!`);
+            }
+          } else {
+            // Try to get error message from response
+            let errorMsg = 'Image extraction failed';
+            try {
+              const errorData = await extractResponse.json();
+              errorMsg = errorData.error || `Server error: ${extractResponse.status}`;
+            } catch {
+              errorMsg = `Server error: ${extractResponse.status}`;
+            }
+            console.warn('Image extraction failed:', errorMsg);
+            throw new Error(errorMsg);
+          }
+        } catch (extractError: any) {
+          console.warn('Edge function extraction failed, falling back to local extraction:', extractError);
+          toast.info('Using local text extraction...');
+          
+          // Fallback to text-only extraction using mammoth
           const arrayBuffer = await file.arrayBuffer();
           const textResult = await mammoth.extractRawText({
             arrayBuffer
           });
           extractedText = textResult.value;
           content = extractedText;
-          toast.info('Extracted text only (image extraction unavailable)');
+          
+          if (extractedText.length > 0) {
+            toast.success('Text extracted successfully (images not available)');
+          } else {
+            throw new Error('Could not extract text from Word document');
+          }
         }
         setProgress(35);
       } else if (fileName.endsWith('.pdf')) {

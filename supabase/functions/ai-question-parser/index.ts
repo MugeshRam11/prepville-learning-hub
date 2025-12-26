@@ -216,7 +216,29 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('📥 Incoming request:', {
+    method: req.method,
+    contentType: req.headers.get('content-type'),
+    url: req.url
+  });
+
   try {
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request format', 
+          details: 'Request body must be valid JSON',
+          success: false 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { 
       content, 
       fileType, 
@@ -226,7 +248,7 @@ serve(async (req) => {
       extractedImages = [],  // Array of image URLs from Word doc
       actionMode = 'parse',
       enableEnhancedParsing = true // Enable enhanced PDF parsing by default
-    } = await req.json();
+    } = requestBody;
     
     console.log('📥 Processing request:', { 
       fileName, 
@@ -240,8 +262,13 @@ serve(async (req) => {
     });
     
     if (!content && !extractedText) {
+      console.error('❌ No content provided in request');
       return new Response(
-        JSON.stringify({ error: 'No content provided' }),
+        JSON.stringify({ 
+          error: 'No content provided', 
+          details: 'Please provide either content or extractedText',
+          success: false 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
