@@ -40,6 +40,8 @@ import { toast } from 'sonner';
 import StatsCards from './StatsCards';
 import { useTestProgressSync } from '@/hooks/useTestProgressSync';
 import { useRealtimeTopicProgress } from '@/hooks/useRealtimeTopicProgress';
+import { motion } from 'framer-motion';
+
 
 // Import avatar images
 import coolCat from '@/assets/avatars/cool-cat.png';
@@ -290,46 +292,79 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
       <Header />
       
       <main className="flex-1 py-8">
         <div className="container max-w-7xl">
-          {/* Welcome Header */}
-          <div className="mb-8 animate-fade-in">
+          {/* Welcome Header with Enhanced Animations */}
+          <motion.div 
+            className="mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as const }}
+          >
             <div className="flex items-center justify-between flex-wrap gap-6">
               <div className="flex items-center gap-4">
-                <div className="relative group">
-                  <Avatar className="w-20 h-20 border-4 border-white shadow-xl ring-4 ring-[hsl(var(--adsavvy-blue))]/20 transition-all group-hover:scale-105">
+                <motion.div 
+                  className="relative group"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Avatar className="w-20 h-20 border-4 border-white shadow-xl ring-4 ring-primary/20 transition-all group-hover:ring-primary/40">
                     {studentData.avatarEmoji ? (
-                      <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] rounded-full text-white">
-                        <span className="drop-shadow-sm">{studentData.avatarEmoji}</span>
+                      <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-primary to-accent rounded-full text-white">
+                        <motion.span 
+                          className="drop-shadow-sm"
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                        >
+                          {studentData.avatarEmoji}
+                        </motion.span>
                       </div>
                     ) : studentData.avatar !== "/placeholder.svg" ? (
                       <AvatarImage src={studentData.avatar} className="object-cover" />
                     ) : (
-                      <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] text-white text-2xl font-bold">
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-2xl font-bold">
                         {studentData.name[0]}
                       </AvatarFallback>
                     )}
                   </Avatar>
                   <Button 
                     size="sm" 
-                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full p-0 bg-[hsl(var(--adsavvy-pink))] hover:bg-[hsl(var(--adsavvy-pink))]/90 shadow-lg transition-all hover:scale-110"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full p-0 bg-accent hover:bg-accent/90 shadow-lg transition-all hover:scale-110"
                     onClick={() => setShowAvatarCustomizer(true)}
                   >
                     ✏️
                   </Button>
-                </div>
+                </motion.div>
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(var(--adsavvy-blue))] to-[hsl(var(--adsavvy-pink))] bg-clip-text text-transparent">
-                    Welcome back, {studentData.name}! 
-                  </h1>
-                  <div className="flex items-center gap-3 mt-2">
+                  <motion.h1 
+                    className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    Welcome back, {studentData.name}! 👋
+                  </motion.h1>
+                  <motion.p 
+                    className="text-muted-foreground mt-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    You're building momentum — let's keep it going.
+                  </motion.p>
+                  <motion.div 
+                    className="flex items-center gap-3 mt-2"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="p-0 h-auto font-semibold text-[hsl(var(--adsavvy-blue))] hover:text-[hsl(var(--adsavvy-pink))] transition-colors"
+                      className="p-0 h-auto font-semibold text-primary hover:text-accent transition-colors"
                       onClick={() => navigate('/level-details')}
                     >
                       <Crown className="h-5 w-5 mr-1" />
@@ -337,29 +372,35 @@ const StudentDashboard = () => {
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                     {xpData && (
-                      <Badge className="text-xs bg-[hsl(var(--adsavvy-yellow))] text-gray-800 border-none">
+                      <Badge className="text-xs bg-accent/20 text-accent-foreground border-accent/30">
                         {xpData.total_xp} XP
                       </Badge>
                     )}
-                  </div>
+                  </motion.div>
                 </div>
               </div>
 
               {/* XP Progress Display */}
               {xpData && (
-                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-lg min-w-[280px] hover:shadow-xl transition-all">
+                <motion.div 
+                  className="bg-card rounded-2xl p-6 border border-border/50 shadow-lg min-w-[280px] hover:shadow-xl transition-all"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.02 }}
+                >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-gray-700">Progress to Level {(xpData.current_level || 1) + 1}</span>
-                    <span className="text-sm font-bold text-[hsl(var(--adsavvy-blue))]">{xpData.xp_to_next_level || 100} XP</span>
+                    <span className="text-sm font-semibold text-muted-foreground">Progress to Level {(xpData.current_level || 1) + 1}</span>
+                    <span className="text-sm font-bold text-primary">{xpData.xp_to_next_level || 100} XP</span>
                   </div>
                   <Progress 
                     value={xpData.xp_to_next_level ? ((xpData.total_xp - (xpData.total_xp - xpData.xp_to_next_level)) / xpData.xp_to_next_level) * 100 : 0} 
-                    className="h-4 bg-gray-100" 
+                    className="h-4 bg-muted" 
                   />
-                </div>
+                </motion.div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Stats Overview */}
           <StatsCards 

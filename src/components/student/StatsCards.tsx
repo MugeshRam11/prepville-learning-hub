@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Flame, Target, BookOpen, TrendingUp, Award, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Flame, Target, BookOpen, TrendingUp } from 'lucide-react';
 import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+
 interface StatsCardsProps {
   currentStreak: number;
   weeklyCompleted: number;
@@ -17,6 +17,7 @@ interface StatsCardsProps {
   quickTestSolved?: number;
   totalSolved?: number;
 }
+
 const StatsCards = ({
   currentStreak,
   weeklyCompleted,
@@ -28,32 +29,8 @@ const StatsCards = ({
   quickTestSolved = 0,
   totalSolved = 0
 }: StatsCardsProps) => {
-  const {
-    user
-  } = useAuth();
-  const [isResetting, setIsResetting] = useState(false);
-  const handleReset = async () => {
-    if (!user) return;
-    if (!confirm('Are you sure you want to reset all your progress? This will clear solved questions, streaks, weekly goals, and accuracy data.')) {
-      return;
-    }
-    setIsResetting(true);
-    try {
-      const {
-        error
-      } = await supabase.rpc('reset_user_progress_data', {
-        user_uuid: user.id
-      });
-      if (error) throw error;
-      toast.success('Progress reset successfully! Refresh the page to see updates.');
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (error) {
-      console.error('Error resetting progress:', error);
-      toast.error('Failed to reset progress');
-    } finally {
-      setIsResetting(false);
-    }
-  };
+  const { user } = useAuth();
+
   const animatedStreak = useAnimatedCounter({
     end: currentStreak || 0,
     duration: 1200
@@ -71,67 +48,186 @@ const StatsCards = ({
     end: accuracy,
     duration: 1500
   });
-  const animatedMockTest = useAnimatedCounter({
-    end: mockTestSolved,
-    duration: 1200
-  });
-  const animatedSubjectTest = useAnimatedCounter({
-    end: subjectTestSolved,
-    duration: 1200
-  });
-  const animatedQuickTest = useAnimatedCounter({
-    end: quickTestSolved,
-    duration: 1200
-  });
-  const animatedTotalSolved = useAnimatedCounter({
-    end: totalSolved,
-    duration: 1500
-  });
-  return <>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Your Stats</h2>
-        
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-6 animate-fade-in">
-        <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-pink))]/10 to-[hsl(var(--adsavvy-pink))]/5 border-[hsl(var(--adsavvy-pink))]/20 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-          <CardContent className="p-6 text-center">
-            <Flame className="w-10 h-10 text-[hsl(var(--adsavvy-pink))] mx-auto mb-3" />
-            <div className="text-3xl font-bold text-gray-800">{Math.round(animatedStreak)}</div>
-            <div className="text-sm font-medium text-gray-600 mt-1">Day Streak</div>
-          </CardContent>
-        </Card>
 
-        <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-yellow))]/30 to-[hsl(var(--adsavvy-yellow))]/10 border-[hsl(var(--adsavvy-yellow))]/30 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-          <CardContent className="p-6 text-center">
-            <Target className="w-10 h-10 text-yellow-600 mx-auto mb-3" />
-            <div className="text-3xl font-bold text-gray-800">
-              {Math.round(animatedWeeklyCompleted)}/{weeklyGoal}
-            </div>
-            <div className="text-sm font-medium text-gray-600 mt-1">Weekly Goal</div>
-          </CardContent>
-        </Card>
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        delay: i * 0.1,
+        duration: 0.5,
+        ease: [0.4, 0, 0.2, 1] as const
+      }
+    })
+  };
 
-        <Card className="bg-gradient-to-br from-[hsl(var(--adsavvy-blue))]/10 to-[hsl(var(--adsavvy-blue))]/5 border-[hsl(var(--adsavvy-blue))]/20 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-          <CardContent className="p-6 text-center">
-            <BookOpen className="w-10 h-10 text-[hsl(var(--adsavvy-blue))] mx-auto mb-3" />
-            <div className="text-3xl font-bold text-gray-800">{Math.round(animatedTotalQuestions)}</div>
-            <div className="text-sm font-medium text-gray-600 mt-1">Questions Solved</div>
-          </CardContent>
-        </Card>
+  const iconVariants = {
+    initial: { scale: 1 },
+    hover: { 
+      scale: 1.15,
+      rotate: [0, -10, 10, 0],
+      transition: { duration: 0.4 }
+    }
+  };
 
-        <Card className="bg-gradient-to-br from-purple-100/50 to-purple-50 border-purple-200 hover:shadow-lg transition-all hover:scale-105 rounded-2xl">
-          <CardContent className="p-6 text-center">
-            <TrendingUp className="w-10 h-10 text-purple-600 mx-auto mb-3" />
-            <div className="text-3xl font-bold text-gray-800">
-              {Math.round(animatedAccuracy)}%
-            </div>
-            <div className="text-sm font-medium text-gray-600 mt-1">Accuracy</div>
-          </CardContent>
-        </Card>
-      </div>
+  const stats = [
+    {
+      icon: Flame,
+      value: Math.round(animatedStreak),
+      label: 'Day Streak',
+      suffix: '',
+      gradientFrom: 'from-[hsl(var(--adsavvy-pink))]/15',
+      gradientTo: 'to-[hsl(var(--adsavvy-pink))]/5',
+      borderColor: 'border-[hsl(var(--adsavvy-pink))]/30',
+      iconColor: 'text-[hsl(var(--adsavvy-pink))]',
+      glowColor: 'hover:shadow-[0_0_30px_rgba(236,72,153,0.3)]',
+      isLarge: true
+    },
+    {
+      icon: Target,
+      value: `${Math.round(animatedWeeklyCompleted)}/${weeklyGoal}`,
+      label: 'Weekly Goal',
+      suffix: '',
+      gradientFrom: 'from-[hsl(var(--adsavvy-yellow))]/30',
+      gradientTo: 'to-[hsl(var(--adsavvy-yellow))]/10',
+      borderColor: 'border-[hsl(var(--adsavvy-yellow))]/40',
+      iconColor: 'text-yellow-600',
+      glowColor: 'hover:shadow-[0_0_30px_rgba(234,179,8,0.3)]',
+      isLarge: false
+    },
+    {
+      icon: BookOpen,
+      value: Math.round(animatedTotalQuestions),
+      label: 'Questions Solved',
+      suffix: '',
+      gradientFrom: 'from-[hsl(var(--adsavvy-blue))]/15',
+      gradientTo: 'to-[hsl(var(--adsavvy-blue))]/5',
+      borderColor: 'border-[hsl(var(--adsavvy-blue))]/30',
+      iconColor: 'text-[hsl(var(--adsavvy-blue))]',
+      glowColor: 'hover:shadow-[0_0_30px_rgba(59,130,246,0.3)]',
+      isLarge: false
+    },
+    {
+      icon: TrendingUp,
+      value: Math.round(animatedAccuracy),
+      label: 'Accuracy',
+      suffix: '%',
+      gradientFrom: 'from-purple-100/60',
+      gradientTo: 'to-purple-50',
+      borderColor: 'border-purple-200',
+      iconColor: 'text-purple-600',
+      glowColor: 'hover:shadow-[0_0_30px_rgba(147,51,234,0.3)]',
+      isLarge: true,
+      showRing: true,
+      ringValue: accuracy
+    }
+  ];
 
-      {/* Solved Questions by Category */}
+  return (
+    <>
+      <motion.div 
+        className="flex justify-between items-center mb-4"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h2 className="text-xl font-semibold text-foreground">Your Stats</h2>
+      </motion.div>
       
-    </>;
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            custom={index}
+            initial="hidden"
+            animate="visible"
+            variants={cardVariants}
+            whileHover={{ 
+              scale: 1.05,
+              y: -5,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <Card className={cn(
+              `bg-gradient-to-br ${stat.gradientFrom} ${stat.gradientTo} ${stat.borderColor} rounded-2xl transition-all duration-300 cursor-default`,
+              stat.glowColor
+            )}>
+              <CardContent className="p-6 text-center relative overflow-hidden">
+                {/* Subtle animated background glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                <motion.div
+                  variants={iconVariants}
+                  initial="initial"
+                  whileHover="hover"
+                  className="inline-block"
+                >
+                  <stat.icon className={cn(
+                    "w-10 h-10 mx-auto mb-3",
+                    stat.iconColor,
+                    stat.isLarge && "w-12 h-12"
+                  )} />
+                </motion.div>
+                
+                {stat.showRing ? (
+                  <div className="relative inline-block mb-1">
+                    {/* Circular progress ring for accuracy */}
+                    <svg className="w-20 h-20 mx-auto" viewBox="0 0 80 80">
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="35"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="6"
+                        className="text-purple-100"
+                      />
+                      <motion.circle
+                        cx="40"
+                        cy="40"
+                        r="35"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        className="text-purple-600"
+                        strokeDasharray={220}
+                        initial={{ strokeDashoffset: 220 }}
+                        animate={{ strokeDashoffset: 220 - (220 * (stat.ringValue || 0)) / 100 }}
+                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
+                        transform="rotate(-90 40 40)"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className={cn(
+                        "text-2xl font-bold text-foreground",
+                        stat.isLarge && "text-3xl"
+                      )}>
+                        {stat.value}{stat.suffix}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={cn(
+                    "text-3xl font-bold text-foreground tabular-nums",
+                    stat.isLarge && "text-4xl"
+                  )}>
+                    {stat.value}{stat.suffix}
+                  </div>
+                )}
+                
+                <div className="text-sm font-medium text-muted-foreground mt-1">
+                  {stat.label}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </>
+  );
 };
+
 export default StatsCards;
