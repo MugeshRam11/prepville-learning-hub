@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Loader2, CheckCircle, XCircle, Brain, FileSearch, ListChecks, Eye } from 'lucide-react';
@@ -10,17 +10,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import UploadProgressTracker from './UploadProgressTracker';
+import AIDocumentProcessingModal, { ProcessingStep, ExtractedImage } from './AIDocumentProcessingModal';
 
 // Configure PDF.js worker - use the correct path for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
 ).toString();
+
 interface QuestionUploadCardProps {
   mode: 'quick' | 'mock';
   onSuccess?: (data: any) => void;
 }
+
 type ActionMode = 'parse' | 'summarize' | 'quiz' | 'extract_data';
+
 const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   mode,
   onSuccess
@@ -33,6 +37,69 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
   const [processingStage, setProcessingStage] = useState<string>('');
   const [currentFile, setCurrentFile] = useState<{ name: string; size: number } | null>(null);
+  
+  // AI Document Processing Modal state
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(120);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [extractedImages, setExtractedImages] = useState<ExtractedImage[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const processingSteps: ProcessingStep[] = [
+    { id: 'upload', label: 'Upload', status: 'pending' },
+    { id: 'ocr', label: 'OCR & Parsing', status: 'pending' },
+    { id: 'structuring', label: 'Structuring', status: 'pending' },
+    { id: 'questions', label: 'Question Data', status: 'pending' },
+    { id: 'ready', label: 'Ready', status: 'pending' },
+  ];
+  
+  const [steps, setSteps] = useState<ProcessingStep[]>(processingSteps);
+  
+  // Timer effect for elapsed time
+  useEffect(() => {
+    if (uploading || convertingToWord) {
+      timerRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+        setEstimatedTimeRemaining(prev => Math.max(0, prev - 1));
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [uploading, convertingToWord]);
+  
+  // Update steps based on progress
+  useEffect(() => {
+    let newStep = 0;
+    if (progress >= 20) newStep = 1;
+    if (progress >= 40) newStep = 2;
+    if (progress >= 70) newStep = 3;
+    if (progress >= 100) newStep = 4;
+    
+    setCurrentStep(newStep);
+    setSteps(prev => prev.map((step, idx) => ({
+      ...step,
+      status: idx < newStep ? 'completed' : idx === newStep ? 'active' : 'pending'
+    })));
+  }, [progress]);
+  
+  // Reset modal state when upload starts
+  const resetModalState = () => {
+    setElapsedTime(0);
+    setEstimatedTimeRemaining(120);
+    setCurrentStep(0);
+    setExtractedImages([]);
+    setSteps(processingSteps);
+  };
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -140,6 +207,10 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     setWordFileUrl(null);
     setCurrentFile({ name: file.name, size: file.size });
     setProcessingStage('Uploading file...');
+    
+    // Show processing modal and reset state
+    resetModalState();
+    setShowProcessingModal(true);
     
     try {
       // Validate file size (20MB max)
@@ -364,8 +435,19 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                 console.log(`📊 Visual elements detected on page ${pageNum}:`, visionData.visual_elements || visionData.diagram);
                 
                 // Use the stored page image URL if available, otherwise upload
-                if (visionData.page_image_url) {
-                  pdfImages.push(visionData.page_image_url);
+                const imageUrl = visionData.page_image_url;
+                if (imageUrl) {
+                  pdfImages.push(imageUrl);
+                  
+                  // Add to extracted images for modal display
+                  setExtractedImages(prev => [...prev, {
+                    id: `img-${pageNum}-${prev.length + 1}`,
+                    url: imageUrl,
+                    pageNumber: pageNum,
+                    imageIndex: prev.filter(img => img.pageNumber === pageNum).length + 1,
+                    processed: true
+                  }]);
+                  
                   toast.success(`Extracted visual content from page ${pageNum}`);
                 } else {
                   // Fallback: Upload the full page as diagram with structured data
@@ -377,6 +459,16 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
                   
                   if (diagramUrl) {
                     pdfImages.push(diagramUrl);
+                    
+                    // Add to extracted images for modal display
+                    setExtractedImages(prev => [...prev, {
+                      id: `img-${pageNum}-${prev.length + 1}`,
+                      url: diagramUrl,
+                      pageNumber: pageNum,
+                      imageIndex: prev.filter(img => img.pageNumber === pageNum).length + 1,
+                      processed: true
+                    }]);
+                    
                     toast.success(`Extracted diagram from page ${pageNum}`);
                   }
                 }
@@ -817,6 +909,21 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             </div>
           </div>}
       </CardContent>
+      
+      {/* AI Document Processing Modal */}
+      <AIDocumentProcessingModal
+        open={showProcessingModal}
+        onOpenChange={setShowProcessingModal}
+        fileName={currentFile?.name || 'Document'}
+        fileSize={currentFile?.size || 0}
+        elapsedTime={elapsedTime}
+        estimatedTimeRemaining={estimatedTimeRemaining}
+        progress={progress}
+        currentStep={currentStep}
+        steps={steps}
+        extractedImages={extractedImages}
+        isProcessing={uploading || convertingToWord}
+      />
     </Card>;
 };
 export default QuestionUploadCard;
