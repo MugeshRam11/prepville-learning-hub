@@ -74,17 +74,22 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       return null;
     }
   };
+
+  // Supabase project configuration
+  const SUPABASE_URL = 'https://mvmciqmszakciijfdyos.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w';
+
   const convertPDFToWord = async (file: File, extractedPageContents: Array<{ pageNum: number; text: string }>): Promise<Blob | null> => {
     try {
       setConvertingToWord(true);
       setProcessingStage('Creating Word document...');
       
       const response = await fetch(
-        `https://mvmciqmszakciijfdyos.supabase.co/functions/v1/pdf-to-word`,
+        `${SUPABASE_URL}/functions/v1/pdf-to-word`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -183,10 +188,10 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         toast.info('Extracting text and images from Word document...');
 
         // Call edge function to extract images and text
-        const extractResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-doc-images`, {
+        const extractResponse = await fetch(`${SUPABASE_URL}/functions/v1/extract-doc-images`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
           },
           body: formData
         });
