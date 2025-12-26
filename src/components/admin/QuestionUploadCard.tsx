@@ -151,6 +151,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       let content = '';
       let extractedText = '';
       let extractedImages: string[] = [];
+      let pageImageUrls: string[] = [];  // NEW: For GPT-4 Vision
       const fileType = file.type;
       const fileName = file.name.toLowerCase();
       console.log('📄 Processing:', fileName, '| Type:', fileType, '| Size:', (file.size / 1024).toFixed(1), 'KB');
@@ -326,13 +327,14 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               const pageImageData = canvas.toDataURL('image/png');
               const pageBase64 = pageImageData.split(',')[1];
               
-              // Call Lovable AI edge function for vision extraction
+              // Call Lovable AI edge function for vision extraction with image storage
               console.log(`🤖 Calling Lovable AI for page ${pageNum}...`);
               const { data: visionData, error: visionError } = await supabase.functions.invoke('pdf-vision-extractor', {
                 body: {
                   imageBase64: pageBase64,
                   pageNumber: pageNum,
-                  fileName: fileName
+                  fileName: fileName,
+                  storePageImage: true  // NEW: Store page images for GPT-4 Vision
                 }
               });
               
@@ -344,28 +346,39 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               
               console.log(`✅ Lovable AI extraction for page ${pageNum}:`, visionData);
               
-              // Append extracted text
-              if (visionData.text) {
-                pdfText += `\n--- Page ${pageNum} (AI OCR) ---\n${visionData.text}`;
+              // Append extracted text (use raw_text from enhanced response)
+              if (visionData.raw_text || visionData.text) {
+                pdfText += `\n--- Page ${pageNum} (AI OCR) ---\n${visionData.raw_text || visionData.text}`;
               }
               
-              // Handle diagram extraction
-              if (visionData.diagram && visionData.diagram.type !== null) {
-                console.log(`📊 Diagram detected: ${visionData.diagram.type}`);
-                console.log(`📐 Shapes:`, visionData.diagram.shapes);
-                console.log(`🏷️ Labels:`, visionData.diagram.labels);
-                console.log(`📝 Blanks:`, visionData.diagram.blanks);
+              // NEW: Collect stored page image URL for GPT-4 Vision
+              if (visionData.page_image_url) {
+                pageImageUrls.push(visionData.page_image_url);
+                console.log(`📸 Stored page ${pageNum} image: ${visionData.page_image_url}`);
+              }
+              
+              // Handle visual elements / diagram extraction
+              const hasVisuals = visionData.has_visual_elements || (visionData.diagram && visionData.diagram.type !== null);
+              
+              if (hasVisuals) {
+                console.log(`📊 Visual elements detected on page ${pageNum}:`, visionData.visual_elements || visionData.diagram);
                 
-                // Upload the full page as diagram with structured data
-                const diagramUrl = await uploadImageToStorage(
-                  pageBase64,
-                  'image/png',
-                  `${fileName}-page${pageNum}-diagram`
-                );
-                
-                if (diagramUrl) {
-                  pdfImages.push(diagramUrl);
-                  toast.success(`Extracted ${visionData.diagram.type} from page ${pageNum} with ${visionData.diagram.labels?.length || 0} labels`);
+                // Use the stored page image URL if available, otherwise upload
+                if (visionData.page_image_url) {
+                  pdfImages.push(visionData.page_image_url);
+                  toast.success(`Extracted visual content from page ${pageNum}`);
+                } else {
+                  // Fallback: Upload the full page as diagram with structured data
+                  const diagramUrl = await uploadImageToStorage(
+                    pageBase64,
+                    'image/png',
+                    `${fileName}-page${pageNum}-diagram`
+                  );
+                  
+                  if (diagramUrl) {
+                    pdfImages.push(diagramUrl);
+                    toast.success(`Extracted diagram from page ${pageNum}`);
+                  }
                 }
               }
             } catch (error) {
@@ -376,9 +389,12 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             setProgress(35 + pageNum / numPages * 20);
           }
           
-          if (pdfImages.length > 0) {
+          // NEW: Store pageImageUrls for GPT-4 Vision
+          console.log(`📸 Collected ${pageImageUrls.length} page images for GPT-4 Vision`);
+          
+          if (pdfImages.length > 0 || pageImageUrls.length > 0) {
             extractedImages = pdfImages;
-            toast.success(`✅ Extracted ${pdfImages.length} diagram(s) from PDF using AI`);
+            toast.success(`✅ Extracted ${pdfImages.length} visual element(s) from PDF using AI`);
             
             if (isScannedPDF) {
               extractedText = '[Scanned PDF - AI OCR will extract text from images]';
@@ -429,7 +445,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         description: `Content: ${extractedText ? `${extractedText.length} chars` : 'preparing'}${extractedImages.length > 0 ? ` | ${extractedImages.length} images` : ''}`
       });
 
-      // Call AI parser function with action mode and extracted images
+      // Call AI parser function with action mode, extracted images, and page images for GPT-4 Vision
       const {
         data,
         error
@@ -441,6 +457,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           parseMode: mode,
           extractedText: extractedText || undefined,
           extractedImages: extractedImages.length > 0 ? extractedImages : undefined,
+          pageImages: pageImageUrls.length > 0 ? pageImageUrls : undefined,  // For GPT-4 Vision
           actionMode
         }
       });

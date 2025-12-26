@@ -1,13 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ============= RAW OCR EXTRACTION (Stage 1 of Pipeline) =============
-// This function extracts RAW OCR text from images
-// The output is then passed to GPT-4 for structuring (Stage 2)
+// ============= ENHANCED OCR EXTRACTION with Image Storage =============
+// This function:
+// 1. Extracts RAW OCR text from images using Gemini vision
+// 2. Detects and classifies visual elements (graphs, diagrams, tables)
+// 3. Stores page images to Supabase Storage for GPT-4 Vision access
+// 4. Returns structured data with image URLs for real-time AI sync
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,7 +19,13 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, pageNumber, fileName, extractionMode = 'raw' } = await req.json();
+    const { 
+      imageBase64, 
+      pageNumber, 
+      fileName, 
+      extractionMode = 'enhanced',
+      storePageImage = true  // New: Store page image for GPT-4 Vision
+    } = await req.json();
 
     if (!imageBase64) {
       return new Response(
@@ -25,50 +35,111 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log(`📄 [OCR Stage 1] Processing page ${pageNumber} of ${fileName}`);
-    console.log(`📊 Extraction mode: ${extractionMode}`);
+    console.log(`📄 [Enhanced OCR] Processing page ${pageNumber} of ${fileName}`);
+    console.log(`📊 Extraction mode: ${extractionMode}, Store image: ${storePageImage}`);
 
-    // RAW OCR PROMPT - Extracts text without structuring
-    // GPT-4 will handle structuring in Stage 2
-    const rawOcrPrompt = `### 🔥 RAW OCR EXTRACTION (Stage 1)
+    // STAGE 1: Store page image to Supabase Storage for GPT-4 Vision access
+    let storedImageUrl: string | null = null;
+    
+    if (storePageImage && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        // Convert base64 to blob
+        const byteCharacters = atob(imageBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
 
-You are a HIGH-ACCURACY OCR system. Your ONLY job is to extract ALL visible text from this image.
+        // Generate unique filename
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        const cleanFileName = (fileName || 'document').replace(/[^a-zA-Z0-9]/g, '_');
+        const storagePath = `pdf-pages/${cleanFileName}-page${pageNumber}-${timestamp}-${random}.png`;
+
+        // Upload to Supabase storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('question-images')
+          .upload(storagePath, blob, {
+            contentType: 'image/png',
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('question-images')
+            .getPublicUrl(storagePath);
+          
+          storedImageUrl = urlData.publicUrl;
+          console.log(`✅ Stored page ${pageNumber} image: ${storedImageUrl}`);
+        } else {
+          console.warn(`⚠️ Failed to store image: ${uploadError?.message}`);
+        }
+      } catch (storageError) {
+        console.warn('⚠️ Image storage failed:', storageError);
+        // Continue without storage - non-critical
+      }
+    }
+
+    // STAGE 2: Enhanced OCR + Visual Analysis with Gemini
+    const enhancedOcrPrompt = `### 🔥 ENHANCED OCR + VISUAL ANALYSIS (Stage 1)
+
+You are analyzing a PDF page image. Your job is to:
+1. Extract ALL visible text with HIGH ACCURACY (OCR)
+2. Detect and classify ALL visual elements (graphs, diagrams, tables, charts)
+3. Extract labels, values, and structure from visual elements
 
 ⚠️ CRITICAL RULES:
-1. Extract ALL text EXACTLY as it appears - no modifications
-2. Preserve line breaks and spacing
-3. Preserve mathematical symbols and equations exactly: ∪ ∩ ≤ ≥ √ π Σ ∫ etc.
-4. Do NOT interpret or explain anything
-5. Do NOT solve any problems
-6. Do NOT restructure or organize the text
-7. Include text from ALL areas: headers, footers, margins, tables, diagrams, boxes
-8. If text is unclear, include it with [unclear] marker
-9. Mark empty boxes or blanks as [BLANK]
-10. Note diagram presence but do NOT describe content
+1. Extract ALL text EXACTLY as it appears
+2. Preserve mathematical symbols: ∪ ∩ ≤ ≥ √ π Σ ∫ etc.
+3. Do NOT solve any problems
+4. Do NOT interpret meaning
+5. DETECT all graphs, diagrams, tables, charts
+6. EXTRACT labels and values from visual elements
+7. Mark blank spaces as [BLANK]
+8. Note any unclear text with [unclear]
 
 📋 OUTPUT FORMAT (JSON only):
 {
   "page_number": ${pageNumber},
-  "raw_text": "<all extracted text preserving original layout>",
+  "raw_text": "<all extracted text preserving layout>",
+  "has_visual_elements": true/false,
+  "visual_elements": [
+    {
+      "element_id": "visual_${pageNumber}_1",
+      "type": "venn_diagram|tree_diagram|bar_chart|line_graph|pie_chart|table|coordinate_graph|geometry_figure|other",
+      "position": "top|middle|bottom|left|right|center",
+      "labels": ["list", "of", "extracted", "labels"],
+      "values": ["extracted", "numerical", "values"],
+      "description": "brief structural description without interpretation",
+      "has_blanks": true/false,
+      "blank_positions": ["A", "B"] or []
+    }
+  ],
   "text_regions": [
     {
-      "region_type": "header|body|footer|table|diagram_label|margin",
+      "region_type": "question|header|footer|body|instruction|option|answer_key",
       "content": "text in this region",
-      "position": "top|middle|bottom|left|right",
       "confidence": "high|medium|low"
     }
   ],
-  "diagrams_detected": [
+  "question_boundaries": [
     {
-      "id": "diagram_${pageNumber}_1",
-      "type": "venn|tree|graph|table|chart|figure|unknown",
-      "position": "description of location on page",
-      "labels_visible": ["list", "of", "visible", "labels"],
-      "has_blank_spaces": true/false
+      "question_marker": "1. or Q1 or Question 1",
+      "position_in_text": "approximate position",
+      "has_associated_visual": true/false,
+      "visual_element_id": "visual_${pageNumber}_1" or null
     }
   ],
   "ocr_quality": "high|medium|low",
@@ -76,9 +147,9 @@ You are a HIGH-ACCURACY OCR system. Your ONLY job is to extract ALL visible text
 }
 
 ### INPUT: Page ${pageNumber} of ${fileName || 'document'}
-Extract ALL text from this exam/assessment page.`;
+Analyze this exam/assessment page comprehensively.`;
 
-    // Call Lovable AI for raw OCR extraction
+    // Call Gemini for enhanced OCR + visual analysis
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -91,7 +162,7 @@ Extract ALL text from this exam/assessment page.`;
           {
             role: 'user',
             content: [
-              { type: 'text', text: rawOcrPrompt },
+              { type: 'text', text: enhancedOcrPrompt },
               {
                 type: 'image_url',
                 image_url: {
@@ -151,40 +222,55 @@ Extract ALL text from this exam/assessment page.`;
       extractedData = {
         page_number: pageNumber,
         raw_text: content,
+        has_visual_elements: false,
+        visual_elements: [],
         text_regions: [],
-        diagrams_detected: [],
+        question_boundaries: [],
         ocr_quality: 'low',
         quality_notes: ['Failed to parse structured output, raw text preserved']
       };
     }
 
-    // Ensure consistent output structure
+    // Build normalized output with image URL
     const normalizedOutput = {
       page_number: extractedData.page_number || pageNumber,
       raw_text: extractedData.raw_text || '',
+      
+      // NEW: Stored image URL for GPT-4 Vision real-time sync
+      page_image_url: storedImageUrl,
+      
+      // Visual elements detection
+      has_visual_elements: extractedData.has_visual_elements || 
+        (extractedData.visual_elements && extractedData.visual_elements.length > 0),
+      visual_elements: extractedData.visual_elements || [],
+      
+      // Text regions for structure
       text_regions: extractedData.text_regions || [],
-      diagrams_detected: extractedData.diagrams_detected || [],
+      
+      // Question boundaries for parsing
+      question_boundaries: extractedData.question_boundaries || [],
+      
+      // OCR quality
       ocr_quality: extractedData.ocr_quality || 'medium',
       quality_notes: extractedData.quality_notes || [],
+      
       // Legacy fields for backward compatibility
       text: extractedData.raw_text || extractedData.text || '',
       diagram: {
-        type: extractedData.diagrams_detected?.[0]?.type || null,
+        type: extractedData.visual_elements?.[0]?.type || null,
         shapes: [],
-        labels: extractedData.diagrams_detected?.[0]?.labels_visible?.map((l: string, i: number) => ({
-          text: l,
-          context: 'extracted label'
-        })) || [],
-        blanks: extractedData.diagrams_detected?.flatMap((d: any) => 
-          d.has_blank_spaces ? ['blank_detected'] : []
+        labels: extractedData.visual_elements?.flatMap((v: any) => v.labels || []) || [],
+        blanks: extractedData.visual_elements?.flatMap((v: any) => 
+          v.has_blanks ? (v.blank_positions || ['blank_detected']) : []
         ) || []
       }
     };
 
-    console.log(`✅ [OCR Stage 1] Page ${pageNumber} complete:`, {
+    console.log(`✅ [Enhanced OCR] Page ${pageNumber} complete:`, {
       textLength: normalizedOutput.raw_text.length,
-      regionsCount: normalizedOutput.text_regions.length,
-      diagramsCount: normalizedOutput.diagrams_detected.length,
+      hasVisuals: normalizedOutput.has_visual_elements,
+      visualCount: normalizedOutput.visual_elements.length,
+      imageStored: !!storedImageUrl,
       quality: normalizedOutput.ocr_quality
     });
 
@@ -194,7 +280,7 @@ Extract ALL text from this exam/assessment page.`;
     );
 
   } catch (error) {
-    console.error('❌ [OCR Stage 1] Error:', error);
+    console.error('❌ [Enhanced OCR] Error:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error',

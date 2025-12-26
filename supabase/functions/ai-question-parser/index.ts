@@ -246,6 +246,7 @@ serve(async (req) => {
       fileName, 
       extractedText,
       extractedImages = [],  // Array of image URLs from Word doc
+      pageImages = [],       // NEW: Array of page image URLs for GPT-4 Vision
       actionMode = 'parse',
       enableEnhancedParsing = true // Enable enhanced PDF parsing by default
     } = requestBody;
@@ -258,8 +259,13 @@ serve(async (req) => {
       contentLength: content?.length,
       hasExtractedText: !!extractedText,
       extractedImagesCount: extractedImages?.length || 0,
+      pageImagesCount: pageImages?.length || 0,
       enhancedParsing: enableEnhancedParsing
     });
+    
+    // Merge pageImages into extractedImages for assignment
+    const allImages = [...(extractedImages || []), ...(pageImages || [])].filter(Boolean);
+    console.log(`📸 Total images available for assignment: ${allImages.length}`);
     
     if (!content && !extractedText) {
       console.error('❌ No content provided in request');
@@ -310,8 +316,8 @@ serve(async (req) => {
       );
     }
 
-    // Get appropriate prompts based on action mode
-    const systemPrompt = getSystemPrompt(actionMode, parseMode, extractedImages, documentStructure);
+    // Get appropriate prompts based on action mode - use merged allImages
+    const systemPrompt = getSystemPrompt(actionMode, parseMode, allImages, documentStructure);
     const userPrompt = getUserPrompt(
       actionMode, 
       parseMode, 
@@ -319,12 +325,18 @@ serve(async (req) => {
       fileType, 
       content, 
       processedContent, 
-      extractedImages,
+      allImages,
       documentStructure,
       chunkedData
     );
 
     console.log(`🤖 Using ${useGPT4 ? 'OpenAI GPT-4o' : 'Lovable AI (Gemini)'} for ${actionMode} (${parseMode} mode)...`);
+    
+    // NEW: Check if we have page images for GPT-4 Vision
+    const hasPageImagesForVision = pageImages && pageImages.length > 0 && useGPT4;
+    if (hasPageImagesForVision) {
+      console.log(`🎯 GPT-4 Vision mode: ${pageImages.length} page images will be sent for real-time visual analysis`);
+    }
     
     // Check if this is a scanned PDF with images that need OCR
     const isScannedPDFOCR = extractedImages && extractedImages.length > 0 && 
@@ -535,40 +547,83 @@ serve(async (req) => {
       finalParsedData = { questions: allQuestions };
       console.log(`✅ Merged ${allQuestions.length} questions from all chunks`);
     } else {
-      // Standard single-request processing - Use GPT-4o when available
-      const aiResponse = useGPT4
-        ? await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: GPT4_MODEL,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-              ],
-              response_format: { type: 'json_object' },
-              max_tokens: 4096
-            }),
-          })
-        : await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-pro',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-              ],
-              response_format: { type: 'json_object' },
-              temperature: 0.1
-            }),
+      // Standard single-request processing - Use GPT-4o Vision when page images are available
+      let aiResponse;
+      
+      // NEW: GPT-4o Vision mode when we have page images
+      if (hasPageImagesForVision) {
+        console.log(`🎯 Building GPT-4o Vision request with ${pageImages.length} page images...`);
+        
+        // Build multimodal message with text and images
+        const visionContent: any[] = [
+          { type: 'text', text: `${systemPrompt}\n\n${userPrompt}` }
+        ];
+        
+        // Add up to 5 page images for context (API limits)
+        const imagesToInclude = pageImages.slice(0, 5);
+        for (const imageUrl of imagesToInclude) {
+          visionContent.push({
+            type: 'image_url',
+            image_url: { url: imageUrl, detail: 'high' }
           });
+        }
+        
+        console.log(`📸 Including ${imagesToInclude.length} images in GPT-4o Vision request`);
+        
+        aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',  // Use gpt-4o for vision
+            messages: [
+              { 
+                role: 'user', 
+                content: visionContent 
+              }
+            ],
+            max_tokens: 4096
+          }),
+        });
+      } else if (useGPT4) {
+        // Standard GPT-4o text-only mode
+        aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: GPT4_MODEL,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: 'json_object' },
+            max_tokens: 4096
+          }),
+        });
+      } else {
+        // Fallback to Gemini
+        aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-pro',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.1
+          }),
+        });
+      }
 
       if (!aiResponse.ok) {
         const errorText = await aiResponse.text();
