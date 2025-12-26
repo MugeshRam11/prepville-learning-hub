@@ -40,9 +40,10 @@ interface EnhancedAITutorProps {
   isOpen: boolean;
   onClose: () => void;
   onAnswerCorrect?: () => void;
+  mode?: 'learner' | 'practice' | 'mock_exam';
 }
 
-export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCorrect }: EnhancedAITutorProps) => {
+export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCorrect, mode = 'learner' }: EnhancedAITutorProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -316,7 +317,7 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
     try {
       const { data, error } = await supabase.functions.invoke('chatbot', {
         body: {
-          mode: 'tutor',
+          mode: mode === 'mock_exam' ? 'mock_exam' : 'tutor',
           subject,
           userId: user?.id,
           question: {

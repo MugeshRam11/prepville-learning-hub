@@ -17,9 +17,10 @@ interface AITutorChatProps {
   subject: string;
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'learner' | 'practice' | 'mock_exam';
 }
 
-export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
+export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITutorChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +59,7 @@ export const AITutorChat = ({ subject, isOpen, onClose }: AITutorChatProps) => {
     try {
       const { data, error } = await supabase.functions.invoke('chatbot', {
         body: {
+          mode,
           subject,
           message: userMessage,
           conversationHistory: messages
