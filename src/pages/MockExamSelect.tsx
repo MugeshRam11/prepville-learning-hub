@@ -5,10 +5,14 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search } from 'lucide-react';
+import { Search, Sparkles, Play, GripVertical, MousePointer, Calculator, Grid3X3 } from 'lucide-react';
 import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
+import { motion } from 'framer-motion';
 
 const MockExamSelect = () => {
   const navigate = useNavigate();
@@ -154,6 +158,69 @@ const MockExamSelect = () => {
                 Choose from our collection of comprehensive mock examinations to test your knowledge and improve your skills.
               </p>
             </div>
+          </div>
+        </section>
+
+        {/* Interactive Demo Section */}
+        <section className="py-8 border-b border-border bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-pink-500/5">
+          <div className="container">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-4xl mx-auto"
+            >
+              <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                        Interactive Demo Test
+                        <Badge className="bg-gradient-to-r from-violet-500 to-purple-600 text-white">NEW</Badge>
+                      </h2>
+                      <p className="text-muted-foreground">Experience our next-generation interactive question types</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Feature highlights */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <Grid3X3 className="w-5 h-5 text-primary" />
+                      <span className="text-sm font-medium">Graph Plotting</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                      <GripVertical className="w-5 h-5 text-amber-600" />
+                      <span className="text-sm font-medium">Drag & Drop</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+                      <MousePointer className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-medium">Image Drop Zones</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                      <Calculator className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-medium">Smart Math Input</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                      <strong>5 Questions</strong> • <strong>20 marks</strong> • <strong>20 mins</strong> • IB MYP Mathematics (Grade 8-9)
+                    </div>
+                    <Button 
+                      size="lg"
+                      onClick={() => navigate('/mock-exams/interactive-demo')}
+                      className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
+                    >
+                      <Play className="w-5 h-5" />
+                      Try Interactive Demo
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </section>
 
