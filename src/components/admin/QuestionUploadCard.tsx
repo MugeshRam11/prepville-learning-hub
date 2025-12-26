@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import UploadProgressTracker from './UploadProgressTracker';
 
 // Configure PDF.js worker - use the correct path for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -31,6 +32,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [convertingToWord, setConvertingToWord] = useState(false);
   const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
   const [processingStage, setProcessingStage] = useState<string>('');
+  const [currentFile, setCurrentFile] = useState<{ name: string; size: number } | null>(null);
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -136,6 +138,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     setProgress(10);
     setParseResult(null);
     setWordFileUrl(null);
+    setCurrentFile({ name: file.name, size: file.size });
+    setProcessingStage('Uploading file...');
     
     try {
       // Validate file size (20MB max)
@@ -685,28 +689,24 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   return <Card>
       
       <CardContent className="space-y-6">
-        {/* Processing Stage Indicator */}
-        {(uploading || convertingToWord) && processingStage && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">{processingStage}</p>
-              {progress > 0 && (
-                <Progress value={progress} className="mt-2 h-2" />
-              )}
-            </div>
-          </div>
-        )}
+        {/* Upload Progress Tracker with Timer */}
+        <UploadProgressTracker
+          isUploading={uploading || convertingToWord}
+          progress={progress}
+          fileName={currentFile?.name}
+          fileSize={currentFile?.size}
+          stage={processingStage}
+        />
 
         {/* Download Converted Word File */}
-        {wordFileUrl && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        {wordFileUrl && !uploading && (
+          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600" />
                 <div>
-                  <p className="text-sm font-medium text-green-900">Word Document Ready</p>
-                  <p className="text-xs text-green-700">PDF successfully converted to Word format</p>
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100">Word Document Ready</p>
+                  <p className="text-xs text-green-700 dark:text-green-400">PDF successfully converted to Word format</p>
                 </div>
               </div>
               <a
@@ -725,19 +725,19 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           <label className="text-sm font-medium">Processing Action</label>
           <Tabs value={actionMode} onValueChange={v => setActionMode(v as ActionMode)} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="parse" className="flex items-center gap-2">
+              <TabsTrigger value="parse" className="flex items-center gap-2" disabled={uploading}>
                 <ListChecks className="w-4 h-4" />
                 <span className="hidden sm:inline">Parse</span>
               </TabsTrigger>
-              <TabsTrigger value="summarize" className="flex items-center gap-2">
+              <TabsTrigger value="summarize" className="flex items-center gap-2" disabled={uploading}>
                 <FileText className="w-4 h-4" />
                 
               </TabsTrigger>
-              <TabsTrigger value="quiz" className="flex items-center gap-2">
+              <TabsTrigger value="quiz" className="flex items-center gap-2" disabled={uploading}>
                 <Brain className="w-4 h-4" />
                 <span className="hidden sm:inline">Quiz</span>
               </TabsTrigger>
-              <TabsTrigger value="extract_data" className="flex items-center gap-2">
+              <TabsTrigger value="extract_data" className="flex items-center gap-2" disabled={uploading}>
                 <FileSearch className="w-4 h-4" />
                 <span className="hidden sm:inline">Extract</span>
               </TabsTrigger>
@@ -751,36 +751,32 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           </p>
         </div>
 
-        <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-            ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-          <input {...getInputProps()} />
-          <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          {uploading ? <div className="space-y-2">
-              <Loader2 className="w-6 h-6 mx-auto animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Processing with AI...</p>
-              <Progress value={progress} className="w-full max-w-xs mx-auto" />
-            </div> : <>
-              <p className="text-sm font-medium mb-1">
-                {isDragActive ? 'Drop file here' : 'Drag & drop or click to upload'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                PDF (auto-converts to Word), Word (with images), CSV, Images (OCR), Text | Max 20MB
-              </p>
-            </>}
-        </div>
+        {/* Dropzone - Hidden during upload */}
+        {!uploading && (
+          <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+              ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
+            <input {...getInputProps()} />
+            <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-sm font-medium mb-1">
+              {isDragActive ? 'Drop file here' : 'Drag & drop or click to upload'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              PDF (auto-converts to Word), Word (with images), CSV, Images (OCR), Text | Max 20MB
+            </p>
+          </div>
+        )}
 
-        {parseResult && <div className={`p-4 rounded-lg ${parseResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+        {parseResult && <div className={`p-4 rounded-lg ${parseResult.success ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800'}`}>
             <div className="flex items-start gap-3">
               {parseResult.success ? <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" /> : <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />}
               <div className="flex-1">
-                <p className={`font-medium ${parseResult.success ? 'text-green-900' : 'text-red-900'}`}>
+                <p className={`font-medium ${parseResult.success ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
                   {parseResult.success ? parseResult.actionMode === 'parse' ? `Success! Parsed ${parseResult.count} questions${parseResult.images?.length > 0 ? ` with ${parseResult.images.length} images` : ''}` : parseResult.actionMode === 'summarize' ? 'Summary created successfully!' : parseResult.actionMode === 'quiz' ? `Quiz generated with ${parseResult.count} questions!` : 'Data extracted successfully!' : `${parseResult.actionMode || 'Processing'} Failed`}
                 </p>
-                {!parseResult.success && <p className="text-sm text-red-700 mt-1">{parseResult.error}</p>}
+                {!parseResult.success && <p className="text-sm text-red-700 dark:text-red-400 mt-1">{parseResult.error}</p>}
                 {parseResult.success && parseResult.images && parseResult.images.length > 0 && (
                   <div className="mt-2">
-                    <p className="text-xs text-green-700">✓ Extracted {parseResult.images.length} image(s) from document</p>
+                    <p className="text-xs text-green-700 dark:text-green-400">✓ Extracted {parseResult.images.length} image(s) from document</p>
                   </div>
                 )}
                 {parseResult.success && parseResult.data && <div className="mt-2">
