@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Save, Check, Eye, Flag, ChevronRight, Lightbulb, ThumbsUp, ArrowRight, ZoomIn } from 'lucide-react';
+import { Save, Check, Eye, Flag, ChevronRight, Lightbulb, ThumbsUp, ArrowRight, ZoomIn, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EquationEditor from '@/components/admin/EquationEditor';
 import InteractiveGraphCanvas from './InteractiveGraphCanvas';
+import MathKeyboard from './MathKeyboard';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import type { Question } from '@/pages/MockExamStart';
@@ -45,6 +46,7 @@ const MockExamQuestion = ({
   const [showPreview, setShowPreview] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showMathKeyboard, setShowMathKeyboard] = useState(false);
   const [confidence, setConfidence] = useState<'low' | 'medium' | 'high' | null>(null);
 
   useEffect(() => {
@@ -261,6 +263,16 @@ const MockExamQuestion = ({
             </svg>
             {showGraph ? 'Hide Graph' : 'Show Graph Tool'}
           </Button>
+
+          <Button
+            variant={showMathKeyboard ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowMathKeyboard(!showMathKeyboard)}
+            className="gap-2"
+          >
+            <Calculator className="w-4 h-4" />
+            {showMathKeyboard ? 'Hide Math Keyboard' : 'Math Keyboard'}
+          </Button>
           
           <Button
             variant="outline"
@@ -317,6 +329,37 @@ const MockExamQuestion = ({
                   <InteractiveGraphCanvas 
                     showGrid={true}
                     allowDrawing={true}
+                  />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Math Keyboard Section */}
+        <AnimatePresence>
+          {showMathKeyboard && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <Card className="border-2 border-primary/30 bg-gradient-to-b from-primary/5 to-transparent">
+                <CardHeader className="pb-2">
+                  <h3 className="font-medium text-foreground flex items-center gap-2">
+                    <Calculator className="w-4 h-4 text-primary" />
+                    Smart Math Keyboard
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Use fractions, roots, powers, and symbols for your mathematical answers
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <MathKeyboard
+                    value={currentAnswer}
+                    onChange={handleAnswerChange}
+                    placeholder="Enter your mathematical expression..."
                   />
                 </CardContent>
               </Card>
