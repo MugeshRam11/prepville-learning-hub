@@ -196,97 +196,30 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Successfully extracted ${parsed.questions?.length || 0} questions`);
+    const questionCount = parsed.questions?.length || 0;
+    console.log(`Successfully extracted ${questionCount} questions`);
 
+    // Return in expected format for frontend
     return new Response(
-      JSON.stringify(parsed),
+      JSON.stringify({
+        success: true,
+        data: parsed,
+        questions: parsed.questions || [],
+        parsed_count: questionCount,
+        actionMode: 'parse'
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Parser error:', error);
     return new Response(
-      JSON.stringify({ error: error.message, questions: [] }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message, 
+        questions: [] 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
-function getSystemPrompt(parseMode: string, extractedImages: string[]): string {
-  const imageContext = extractedImages.length > 0
-    ? `\n\nAvailable images (${extractedImages.length}):\n${extractedImages.map((url, i) => `${i + 1}. ${url}`).join('\n')}\nAssign these URLs to relevant questions using the question_image_url field.`
-    : '';
-
-  if (parseMode === 'mock') {
-    return `You are an exam document parser. Extract ALL questions from the document.
-
-Return valid JSON with this structure:
-{
-  "test_metadata": {
-    "title": "string",
-    "subject": "mathematics|science|physics|chemistry|biology|language_literature|social_studies",
-    "topic": "string",
-    "total_marks": number,
-    "total_questions": number
-  },
-  "questions": [
-    {
-      "question_number": number,
-      "question_text": "string",
-      "question_image_url": "string or null",
-      "type": "mcq|descriptive|diagram",
-      "marks": number,
-      "difficulty": "easy|medium|hard",
-      "options": ["A) text", "B) text", "C) text", "D) text"] or null,
-      "correct_answer": "string or null",
-      "has_sub_questions": boolean,
-      "sub_questions": [{"label": "a", "text": "string", "marks": number, "answer": "string or null"}] or null
-    }
-  ]
-}${imageContext}
-
-CRITICAL: Return ONLY valid JSON, no markdown.`;
-  }
-
-  // Quick mode - simpler MCQ format
-  return `You are an educational document parser. Extract questions and convert to MCQ format.
-
-Return valid JSON:
-{
-  "quiz_metadata": {
-    "title": "string",
-    "subject": "mathematics|science|english|history",
-    "topic": "string",
-    "difficulty": "easy|medium|hard"
-  },
-  "questions": [
-    {
-      "question_text": "string",
-      "question_image_url": "string or null",
-      "options": ["A. text", "B. text", "C. text", "D. text"],
-      "correct_answer": "A|B|C|D",
-      "explanation": "string",
-      "difficulty": "easy|medium|hard"
-    }
-  ]
-}${imageContext}
-
-RULES:
-- Every question MUST have 4 MCQ options
-- If original is not MCQ, convert it to MCQ format
-- Flatten sub-questions into separate questions
-- Return ONLY valid JSON, no markdown`;
-}
-
-function getUserPrompt(parseMode: string, fileName: string | undefined, content: string, extractedImages: string[]): string {
-  const fileInfo = fileName ? `\nFile: ${fileName}` : '';
-  const imageInfo = extractedImages.length > 0 
-    ? `\n\n${extractedImages.length} images extracted - assign to relevant questions.`
-    : '';
-
-  return `Parse this document and extract ALL questions.${fileInfo}${imageInfo}
-
-DOCUMENT CONTENT:
-${content}
-
-Extract every question. Return pure JSON only.`;
-}

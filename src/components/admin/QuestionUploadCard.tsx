@@ -11,6 +11,7 @@ import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import UploadProgressTracker from './UploadProgressTracker';
 import AIDocumentProcessingModal, { ProcessingStep, ExtractedImage } from './AIDocumentProcessingModal';
+import QuestionPreviewEditor from './QuestionPreviewEditor';
 
 // Configure PDF.js worker - use the correct path for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -37,6 +38,11 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
   const [processingStage, setProcessingStage] = useState<string>('');
   const [currentFile, setCurrentFile] = useState<{ name: string; size: number } | null>(null);
+  
+  // Preview editor state
+  const [showPreviewEditor, setShowPreviewEditor] = useState(false);
+  const [pendingQuestions, setPendingQuestions] = useState<any[]>([]);
+  const [pendingMetadata, setPendingMetadata] = useState<any>(null);
   
   // AI Document Processing Modal state
   const [showProcessingModal, setShowProcessingModal] = useState(false);
@@ -547,7 +553,30 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       // Handle different action modes
       let savedData = null;
       if (actionMode === 'parse' || actionMode === 'quiz') {
-        savedData = await saveQuestions(data.data);
+        // Show preview editor instead of auto-saving
+        const questions = data.data?.questions || data.questions || [];
+        const metadata = data.data?.metadata || data.data?.test_metadata || {
+          title: currentFile?.name?.replace(/\.[^/.]+$/, '') || 'Imported Test',
+          subject: 'mathematics',
+          topic: 'General'
+        };
+        
+        setPendingQuestions(questions);
+        setPendingMetadata(metadata);
+        setShowPreviewEditor(true);
+        setShowProcessingModal(false);
+        
+        toast.info(`Extracted ${questions.length} questions - please review before saving`);
+        setProgress(100);
+        setParseResult({
+          success: true,
+          actionMode: data.actionMode || actionMode,
+          count: questions.length,
+          data: null,
+          images: extractedImages,
+          pending: true
+        });
+        return; // Don't proceed to save - wait for preview confirmation
       }
       setProgress(100);
       setParseResult({
@@ -757,6 +786,49 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       questions: data.questions
     };
   };
+
+  // Handle preview editor confirmation
+  const handlePreviewConfirm = async (questions: any[], metadata: any) => {
+    try {
+      setShowPreviewEditor(false);
+      toast.info('Saving questions...');
+      
+      const dataToSave = {
+        questions,
+        test_metadata: metadata,
+        quiz_metadata: metadata
+      };
+      
+      const savedData = await saveQuestions(dataToSave);
+      
+      setParseResult({
+        success: true,
+        actionMode: 'parse',
+        count: questions.length,
+        data: savedData,
+        images: []
+      });
+      
+      toast.success(`Successfully saved ${questions.length} questions!`);
+      
+      if (onSuccess && savedData) {
+        onSuccess(savedData);
+      }
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast.error('Failed to save questions', {
+        description: error?.message || 'Unknown error'
+      });
+    }
+  };
+
+  const handlePreviewCancel = () => {
+    setShowPreviewEditor(false);
+    setPendingQuestions([]);
+    setPendingMetadata(null);
+    setParseResult(null);
+    toast.info('Import cancelled');
+  };
   const {
     getRootProps,
     getInputProps,
@@ -907,6 +979,17 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         steps={steps}
         extractedImages={extractedImages}
         isProcessing={uploading || convertingToWord}
+      />
+      
+      {/* Question Preview Editor */}
+      <QuestionPreviewEditor
+        open={showPreviewEditor}
+        onOpenChange={setShowPreviewEditor}
+        questions={pendingQuestions}
+        metadata={pendingMetadata}
+        onConfirm={handlePreviewConfirm}
+        onCancel={handlePreviewCancel}
+        mode={mode}
       />
     </Card>;
 };
