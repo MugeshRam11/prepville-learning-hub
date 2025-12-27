@@ -11,6 +11,7 @@ interface UploadProgressTrackerProps {
   fileName?: string;
   fileSize?: number;
   stage?: string;
+  pageProgress?: { current: number; total: number } | null;
 }
 
 const UploadProgressTracker = ({ 
@@ -18,7 +19,8 @@ const UploadProgressTracker = ({
   progress, 
   fileName, 
   fileSize,
-  stage = 'Uploading file...'
+  stage = 'Uploading file...',
+  pageProgress
 }: UploadProgressTrackerProps) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
@@ -194,7 +196,11 @@ const UploadProgressTracker = ({
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
-                Elapsed time: <span className="font-mono font-medium text-foreground">{formatTime(elapsedSeconds)}</span>
+                {pageProgress ? (
+                  <>Page <span className="font-mono font-medium text-foreground">{pageProgress.current}/{pageProgress.total}</span> • <span className="font-mono">{formatTime(elapsedSeconds)}</span></>
+                ) : (
+                  <>Elapsed: <span className="font-mono font-medium text-foreground">{formatTime(elapsedSeconds)}</span></>
+                )}
               </span>
               <span className="font-medium text-primary">{Math.round(progress)}%</span>
             </div>

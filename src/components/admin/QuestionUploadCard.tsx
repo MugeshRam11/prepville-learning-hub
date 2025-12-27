@@ -36,6 +36,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [actionMode, setActionMode] = useState<ActionMode>('parse');
   const [processingStage, setProcessingStage] = useState<string>('');
   const [currentFile, setCurrentFile] = useState<{ name: string; size: number } | null>(null);
+  const [pageProgress, setPageProgress] = useState<{ current: number; total: number } | null>(null);
   
   // Preview editor state
   const [showPreviewEditor, setShowPreviewEditor] = useState(false);
@@ -109,6 +110,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     setParseResult(null);
     setCurrentFile({ name: file.name, size: file.size });
     setProcessingStage('Processing document...');
+    setPageProgress(null);
     
     try {
       // Validate file size (20MB max)
@@ -131,15 +133,17 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const numPages = Math.min(pdf.numPages, 10); // Limit to 10 pages
+        const numPages = Math.min(pdf.numPages, 15); // Increased to 15 pages
         
         console.log(`PDF has ${pdf.numPages} pages, processing ${numPages}`);
+        setPageProgress({ current: 0, total: numPages });
         
         for (let i = 1; i <= numPages; i++) {
-          setProcessingStage(`Converting page ${i}/${numPages} to image...`);
+          setProcessingStage(`📄 Converting page ${i}/${numPages} to image...`);
+          setPageProgress({ current: i, total: numPages });
           const pageImage = await pdfPageToImage(pdf, i);
           images.push(pageImage);
-          setProgress(15 + (i / numPages) * 35);
+          setProgress(15 + (i / numPages) * 25);
         }
         
         console.log(`Converted ${images.length} pages to images`);
@@ -170,10 +174,11 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         throw new Error('Could not extract sufficient content from document');
       }
 
-      setProgress(55);
-      setProcessingStage('🤖 GPT-4o Vision is analyzing pages...');
+      setProgress(45);
+      setProcessingStage(`🤖 GPT-4o Vision analyzing ${images.length} pages with CNN/RNN...`);
+      setPageProgress({ current: 0, total: images.length });
       toast.info(images.length > 0 
-        ? `🔍 GPT-4o Vision analyzing ${images.length} page(s)...` 
+        ? `🔍 GPT-4o Vision analyzing ${images.length} page(s) for questions & diagrams...` 
         : '🤖 GPT-4o is parsing questions...');
 
       // Call AI parser with images or text
@@ -236,6 +241,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     } finally {
       setUploading(false);
       setProcessingStage('');
+      setPageProgress(null);
     }
   };
   const fileToBase64 = (file: File): Promise<string> => {
@@ -443,6 +449,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           fileName={currentFile?.name}
           fileSize={currentFile?.size}
           stage={processingStage}
+          pageProgress={pageProgress}
         />
 
         {/* Action Mode Selection */}
