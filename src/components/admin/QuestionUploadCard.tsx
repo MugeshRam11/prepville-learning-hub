@@ -144,9 +144,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     }
   };
 
-  // Supabase project configuration
-  const SUPABASE_URL = 'https://mvmciqmszakciijfdyos.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12bWNpcW1zemFrY2lpamZkeW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjUzNjcsImV4cCI6MjA2NTMwMTM2N30.SVtqZR-q4nSYCwlFfMq7GUoaK2mtTVasv5Zt8dJFO9w';
+  // Get Supabase URL from environment - no hardcoded credentials
 
   const convertPDFToWord = async (file: File, extractedPageContents: Array<{ pageNum: number; text: string }>): Promise<Blob | null> => {
     try {
@@ -280,49 +278,35 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         // Extract text AND images from Word document via edge function
         setProgress(25);
         try {
-          // Get session for proper auth
-          const { data: sessionData } = await supabase.auth.getSession();
-          const accessToken = sessionData?.session?.access_token;
-          
-          if (!accessToken) {
-            throw new Error('Not authenticated. Please log in again.');
+          // Convert file to base64 for edge function
+          const arrayBuffer = await file.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < uint8Array.length; i++) {
+            binary += String.fromCharCode(uint8Array[i]);
           }
-
-          // Send file as FormData with proper auth token
-          const formData = new FormData();
-          formData.append('file', file);
+          const base64Content = btoa(binary);
           
-          const extractResponse = await fetch(`${SUPABASE_URL}/functions/v1/extract-doc-images`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: formData
+          // Use supabase.functions.invoke for proper auth handling
+          const { data: extractData, error: extractError } = await supabase.functions.invoke('extract-doc-images', {
+            body: {
+              fileBase64: base64Content,
+              fileName: file.name,
+              fileType: file.type
+            }
           });
           
-          if (extractResponse.ok) {
-            const extractData = await extractResponse.json();
-            extractedText = extractData.text || '';
-            extractedImages = extractData.images || [];
-            content = extractedText;
-            console.log('✅ Word extraction complete:', {
-              textLength: extractedText.length,
-              imageCount: extractedImages.length
-            });
-            if (extractedImages.length > 0) {
-              toast.success(`Extracted ${extractedImages.length} image(s) from Word document!`);
-            }
-          } else {
-            // Try to get error message from response
-            let errorMsg = 'Image extraction failed';
-            try {
-              const errorData = await extractResponse.json();
-              errorMsg = errorData.error || `Server error: ${extractResponse.status}`;
-            } catch {
-              errorMsg = `Server error: ${extractResponse.status}`;
-            }
-            console.warn('Image extraction failed:', errorMsg);
-            throw new Error(errorMsg);
+          if (extractError) throw new Error(extractError.message || 'Extraction failed');
+          
+          extractedText = extractData?.text || '';
+          extractedImages = extractData?.images || [];
+          content = extractedText;
+          console.log('✅ Word extraction complete:', {
+            textLength: extractedText.length,
+            imageCount: extractedImages.length
+          });
+          if (extractedImages.length > 0) {
+            toast.success(`Extracted ${extractedImages.length} image(s) from Word document!`);
           }
         } catch (extractError: any) {
           console.warn('Edge function extraction failed, falling back to local extraction:', extractError);
