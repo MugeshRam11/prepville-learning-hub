@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are an EXAM PAPER QUESTION EXTRACTOR using computer vision.
+const SYSTEM_PROMPT = `You are an EXAM PAPER QUESTION EXTRACTOR using advanced computer vision (CNN/RNN).
 
 Your task is ONLY to extract questions that are explicitly present in the uploaded exam paper.
 
@@ -27,10 +27,24 @@ QUESTION STRUCTURE PATTERNS TO RECOGNIZE:
 - "Question 1b (3 marks)" = sub-question with label "b" and 3 marks
 - Marks in parentheses indicate point value
 
-IMAGE/DIAGRAM HANDLING:
-- If a question references "the diagram", "the graph", "the figure", "the grid", "the box plot", note has_diagram: true
-- Read the diagram/graph content and describe it in diagram_description
-- Do NOT create questions from images alone
+CRITICAL - GRAPH/DIAGRAM/IMAGE EXTRACTION:
+When you see ANY visual element (graph, chart, diagram, grid, box plot, coordinate plane, shape, figure, table, number line, etc.):
+1. Set has_diagram: true
+2. Provide DETAILED diagram_description including:
+   - Type of visual (bar chart, line graph, coordinate grid, geometric shape, etc.)
+   - All axis labels and scales
+   - All data points, coordinates, or values shown
+   - Colors, shading, or patterns used
+   - Any labels, legends, or annotations
+   - Shapes and their positions/transformations
+   - Grid lines and their intervals
+3. For graphs: List exact coordinates of plotted points
+4. For shapes: Describe position, size, and any transformations shown
+5. For box plots: Include min, Q1, median, Q3, max values
+6. For tables: Transcribe all data in the table
+
+Example diagram_description:
+"Coordinate grid from -8 to 8 on both axes. Shape A is a triangle with vertices at (-6, 4), (-4, 4), (-5, 2). Shape B is a quadrilateral with vertices at (2, -1), (4, -1), (5, -3), (1, -3). Grid lines at every 1 unit."
 
 WHAT TO IGNORE:
 - Headers/footers (QuintoPrep, www.quintoprep.com, etc.)
@@ -58,7 +72,7 @@ Return ONLY valid JSON. No markdown. No explanation. No extra text.
       "marks": 6,
       "has_sub_questions": true,
       "has_diagram": true,
-      "diagram_description": "A coordinate grid showing shapes A and B",
+      "diagram_description": "DETAILED description of the visual with all data points, labels, coordinates",
       "difficulty": "medium",
       "sub_questions": [
         { "label": "a", "text": "exact sub-question text", "marks": 1 },
@@ -91,7 +105,7 @@ serve(async (req) => {
       // Process each page image
       for (let i = 0; i < images.length; i++) {
         const pageImage = images[i];
-        console.log(`Processing page ${i + 1}/${images.length}`);
+        console.log(`Processing page ${i + 1}/${images.length} with GPT-4o Vision...`);
         
         const messages = [
           { role: 'system', content: SYSTEM_PROMPT },
@@ -100,13 +114,26 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Extract ALL questions from this exam paper page (page ${i + 1}). Look carefully at the image for:
-- Question numbers and marks
-- Sub-questions (a, b, c, etc.)
-- Diagrams, graphs, grids, box plots
-- Mathematical expressions and formulas
+                text: `ANALYZE THIS EXAM PAGE (page ${i + 1}) WITH COMPUTER VISION.
 
-Return JSON with the questions found on this page only.`
+EXTRACT:
+1. Question numbers and marks
+2. Sub-questions (a, b, c, etc.)
+3. Mathematical expressions and formulas
+
+CRITICAL - FOR ANY VISUAL ELEMENTS (graphs, charts, diagrams, grids, shapes, tables):
+- Set has_diagram: true
+- In diagram_description, provide COMPLETE DATA:
+  * Graph type and axis labels/scales
+  * ALL plotted points with exact coordinates
+  * ALL shape vertices and positions
+  * ALL table data cells
+  * Colors, shading, patterns
+  * Grid intervals and range
+
+Example: "Coordinate grid (-8 to 8 both axes). Triangle A: vertices (-6,4), (-4,4), (-5,2). Rectangle B: vertices (2,-1), (4,-1), (4,-3), (2,-3)."
+
+Return JSON with questions found on this page.`
               },
               {
                 type: 'image_url',
@@ -146,6 +173,14 @@ Return JSON with the questions found on this page only.`
         try {
           const parsed = JSON.parse(pageContent);
           if (parsed.questions && Array.isArray(parsed.questions)) {
+            // Log diagram extractions
+            const diagramQuestions = parsed.questions.filter((q: any) => q.has_diagram);
+            if (diagramQuestions.length > 0) {
+              console.log(`Page ${i + 1}: Found ${diagramQuestions.length} questions with diagrams`);
+              diagramQuestions.forEach((q: any) => {
+                console.log(`  Q${q.question_number}: ${q.diagram_description?.substring(0, 100)}...`);
+              });
+            }
             allQuestions.push(...parsed.questions);
           }
           if (parsed.metadata && i === 0) {
@@ -173,7 +208,8 @@ Return JSON with the questions found on this page only.`
       });
 
       metadata.total_questions = uniqueQuestions.length;
-      console.log(`Vision extraction complete: ${uniqueQuestions.length} unique questions`);
+      const diagramCount = uniqueQuestions.filter((q: any) => q.has_diagram).length;
+      console.log(`Vision extraction complete: ${uniqueQuestions.length} unique questions, ${diagramCount} with diagrams`);
 
       return new Response(
         JSON.stringify({
@@ -181,6 +217,7 @@ Return JSON with the questions found on this page only.`
           data: { metadata, questions: uniqueQuestions },
           questions: uniqueQuestions,
           parsed_count: uniqueQuestions.length,
+          diagram_count: diagramCount,
           actionMode: 'parse'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
