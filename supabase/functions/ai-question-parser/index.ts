@@ -6,78 +6,87 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are an EXAM PAPER QUESTION EXTRACTOR using advanced computer vision (CNN/RNN).
+const SYSTEM_PROMPT = `You are an ADVANCED EXAM PAPER VISION ANALYZER with CNN/RNN capabilities for extracting questions AND visual content.
 
-Your task is ONLY to extract questions that are explicitly present in the uploaded exam paper.
+PRIMARY TASK: Extract ALL questions and FULLY DESCRIBE all visual elements (graphs, diagrams, images, charts, tables, shapes, coordinate grids).
 
-STRICT RULES (MANDATORY):
-- Do NOT create new questions
-- Do NOT infer missing questions
-- Do NOT rephrase or rewrite text
-- Do NOT summarize
-- Do NOT generate answers
-- Do NOT count examples or instructions as questions
+STRICT RULES:
+- Do NOT create new questions - only extract what's visible
+- Do NOT summarize or rephrase
+- DO extract and describe ALL visual content in detail
 
-You must behave like a scanner, not a teacher.
-If it is not clearly a question in the paper, IGNORE it.
+VISUAL EXTRACTION IS CRITICAL:
+For EVERY visual element you see (graph, chart, diagram, grid, shape, table, figure, number line, box plot, etc.):
 
-QUESTION STRUCTURE PATTERNS TO RECOGNIZE:
-- "Question 1 (6 marks)" = main question with total marks
-- "Question 1a (1 mark)" = sub-question with label "a" and 1 mark
-- "Question 1b (3 marks)" = sub-question with label "b" and 3 marks
-- Marks in parentheses indicate point value
+1. Set "has_diagram": true
+2. Provide EXTREMELY DETAILED "diagram_description" with:
 
-CRITICAL - GRAPH/DIAGRAM/IMAGE EXTRACTION:
-When you see ANY visual element (graph, chart, diagram, grid, box plot, coordinate plane, shape, figure, table, number line, etc.):
-1. Set has_diagram: true
-2. Provide DETAILED diagram_description including:
-   - Type of visual (bar chart, line graph, coordinate grid, geometric shape, etc.)
-   - All axis labels and scales
-   - All data points, coordinates, or values shown
-   - Colors, shading, or patterns used
-   - Any labels, legends, or annotations
-   - Shapes and their positions/transformations
-   - Grid lines and their intervals
-3. For graphs: List exact coordinates of plotted points
-4. For shapes: Describe position, size, and any transformations shown
-5. For box plots: Include min, Q1, median, Q3, max values
-6. For tables: Transcribe all data in the table
+FOR COORDINATE GRIDS/GRAPHS:
+- Grid range (e.g., x: -8 to 8, y: -8 to 8)
+- Grid line intervals
+- ALL plotted points with EXACT coordinates (x, y)
+- ALL shapes with vertex coordinates
+- Axis labels and scale
+- Any lines, curves, or functions shown
 
-Example diagram_description:
-"Coordinate grid from -8 to 8 on both axes. Shape A is a triangle with vertices at (-6, 4), (-4, 4), (-5, 2). Shape B is a quadrilateral with vertices at (2, -1), (4, -1), (5, -3), (1, -3). Grid lines at every 1 unit."
+FOR GEOMETRIC SHAPES:
+- Shape type (triangle, rectangle, polygon, etc.)
+- ALL vertex coordinates
+- Side lengths if shown
+- Angles if marked
+- Labels (A, B, C, etc.)
+- Transformations shown (rotation, reflection, translation)
 
-WHAT TO IGNORE:
-- Headers/footers (QuintoPrep, www.quintoprep.com, etc.)
-- "Scroll down to continue"
-- Formula sheets (unless part of a question)
-- Navigation instructions
-- Styling markers (B, I, U, x², Ω, Styles, etc.)
-- Worked examples
-- Instructions like "Use the tabs", "Click next"
+FOR BAR CHARTS/HISTOGRAMS:
+- X and Y axis labels and units
+- ALL bar values with exact heights
+- Categories/labels for each bar
+- Scale and intervals
 
-OUTPUT FORMAT (STRICT JSON ONLY):
-Return ONLY valid JSON. No markdown. No explanation. No extra text.
+FOR LINE GRAPHS:
+- Axis labels and scales
+- ALL data points with coordinates
+- Line connections
+- Legend if present
 
+FOR BOX PLOTS:
+- Minimum, Q1, Median, Q3, Maximum values
+- Scale and units
+- Labels
+
+FOR TABLES:
+- ALL column headers
+- ALL row labels
+- EVERY cell value
+
+FOR PIE CHARTS:
+- ALL segments with labels
+- Percentages or values for each
+
+EXAMPLE diagram_description:
+"Coordinate grid: x-axis from -8 to 8, y-axis from -8 to 8, grid lines every 1 unit. Shape A (blue triangle): vertices at (-6, 4), (-4, 4), (-5, 2). Shape B (red quadrilateral): vertices at (2, -1), (4, -1), (5, -3), (1, -3). Dashed line at x = 0 (y-axis) shown as line of reflection."
+
+QUESTION STRUCTURE:
+- "Question 1 (6 marks)" = main question
+- "Question 1a (1 mark)" = sub-question label "a"
+
+IGNORE:
+- Headers/footers, navigation, watermarks
+- Non-question content
+
+OUTPUT (JSON ONLY):
 {
-  "metadata": {
-    "title": "extracted title",
-    "subject": "mathematics",
-    "topic": "General",
-    "total_questions": number
-  },
+  "metadata": { "title": "...", "subject": "mathematics", "topic": "...", "total_questions": N },
   "questions": [
     {
       "question_number": 1,
-      "question_text": "exact text of the main question",
+      "question_text": "exact question text",
       "marks": 6,
       "has_sub_questions": true,
       "has_diagram": true,
-      "diagram_description": "DETAILED description of the visual with all data points, labels, coordinates",
+      "diagram_description": "COMPLETE visual description with all coordinates, values, labels",
       "difficulty": "medium",
-      "sub_questions": [
-        { "label": "a", "text": "exact sub-question text", "marks": 1 },
-        { "label": "b", "text": "exact sub-question text", "marks": 3 }
-      ]
+      "sub_questions": [{ "label": "a", "text": "...", "marks": 1 }]
     }
   ]
 }`;
@@ -114,26 +123,23 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `ANALYZE THIS EXAM PAGE (page ${i + 1}) WITH COMPUTER VISION.
+                text: `ANALYZE THIS EXAM PAGE (page ${i + 1}) WITH ADVANCED VISION.
 
-EXTRACT:
-1. Question numbers and marks
-2. Sub-questions (a, b, c, etc.)
-3. Mathematical expressions and formulas
+EXTRACT ALL QUESTIONS AND VISUAL CONTENT.
 
-CRITICAL - FOR ANY VISUAL ELEMENTS (graphs, charts, diagrams, grids, shapes, tables):
-- Set has_diagram: true
-- In diagram_description, provide COMPLETE DATA:
-  * Graph type and axis labels/scales
-  * ALL plotted points with exact coordinates
-  * ALL shape vertices and positions
-  * ALL table data cells
-  * Colors, shading, patterns
-  * Grid intervals and range
+FOR EVERY VISUAL ELEMENT (graph, diagram, chart, grid, shape, table, figure):
+1. Set "has_diagram": true
+2. In "diagram_description", provide COMPLETE DATA:
 
-Example: "Coordinate grid (-8 to 8 both axes). Triangle A: vertices (-6,4), (-4,4), (-5,2). Rectangle B: vertices (2,-1), (4,-1), (4,-3), (2,-3)."
+   COORDINATES/GRIDS: Grid range, intervals, ALL points (x,y), ALL shape vertices
+   SHAPES: Type, ALL vertices with coordinates, labels (A, B, C), colors
+   CHARTS: Axis labels, ALL values, categories, scale
+   TABLES: ALL headers, ALL cell values
+   BOX PLOTS: Min, Q1, Median, Q3, Max
 
-Return JSON with questions found on this page.`
+EXAMPLE: "Grid: x=-8 to 8, y=-8 to 8, interval=1. Triangle A: (-6,4), (-4,4), (-5,2) blue. Quadrilateral B: (2,-1), (4,-1), (5,-3), (1,-3) red. Reflection line: x=0."
+
+Return ONLY valid JSON with complete diagram descriptions.`
               },
               {
                 type: 'image_url',

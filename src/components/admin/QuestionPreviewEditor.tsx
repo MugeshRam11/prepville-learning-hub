@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3 } from 'lucide-react';
 
 interface SubQuestion {
   label: string;
@@ -23,6 +23,8 @@ interface ParsedQuestion {
   question_image_url?: string | null;
   marks: number;
   has_sub_questions: boolean;
+  has_diagram?: boolean;
+  diagram_description?: string;
   sub_questions?: SubQuestion[];
   difficulty?: string;
   category?: string;
@@ -255,7 +257,26 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                               Image
                             </Badge>
                           )}
+                          {q.has_diagram && (
+                            <Badge variant="outline" className="text-xs text-purple-600">
+                              <BarChart3 className="w-3 h-3 mr-1" />
+                              Diagram
+                            </Badge>
+                          )}
                         </div>
+
+                        {/* Diagram Description Inline */}
+                        {q.has_diagram && q.diagram_description && (
+                          <div className="mb-2 p-2 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
+                            <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
+                              <BarChart3 className="w-3 h-3" />
+                              Diagram/Graph Description:
+                            </div>
+                            <p className="text-xs text-purple-600 dark:text-purple-400 whitespace-pre-wrap">
+                              {q.diagram_description}
+                            </p>
+                          </div>
+                        )}
 
                         {editingIndex === index ? (
                           <div className="space-y-2">
