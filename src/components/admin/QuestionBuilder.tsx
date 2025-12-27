@@ -7,10 +7,11 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Minus, Upload, X } from 'lucide-react';
+import { Plus, Minus, Upload, X, BarChart3, AlertCircle } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import ImageUpload from './ImageUpload';
 import EquationEditor from './EquationEditor';
+import { Textarea } from '@/components/ui/textarea';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -22,7 +23,8 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
     difficulty: 'medium',
     word_limit: '',
     answer_key: '',
-    has_sub_questions: false
+    has_sub_questions: false,
+    diagram_description: ''
   });
 
   const resetNewQuestionData = () => {
@@ -34,7 +36,8 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
       difficulty: 'medium',
       word_limit: '',
       answer_key: '',
-      has_sub_questions: false
+      has_sub_questions: false,
+      diagram_description: ''
     });
   };
 
@@ -293,6 +296,31 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                 folder={`questions/question-${question.question_number}`}
               />
             </div>
+
+            {/* Diagram Description (from AI extraction) */}
+            {question.diagram_description && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <BarChart3 className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="text-sm font-medium text-purple-800">AI-Extracted Diagram Description</label>
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Editable</span>
+                    </div>
+                    <Textarea
+                      value={question.diagram_description}
+                      onChange={(e) => updateQuestion(question.id, 'diagram_description', e.target.value)}
+                      className="min-h-[80px] text-sm bg-white border-purple-200"
+                      placeholder="Diagram description extracted by AI..."
+                    />
+                    <p className="text-xs text-purple-600 mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Note: Upload the actual image above. This description helps when the original image is not available.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Question Settings */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

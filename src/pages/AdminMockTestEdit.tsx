@@ -69,6 +69,7 @@ const AdminMockTestEdit = () => {
         answer_key: q.answer_key || '',
         word_limit: q.word_limit?.toString() || '',
         difficulty: q.difficulty,
+        diagram_description: q.diagram_description || '',
         sub_questions: q.mock_sub_questions?.map(sq => ({
           id: sq.id,
           sub_question_label: sq.sub_question_label,
@@ -140,7 +141,8 @@ const AdminMockTestEdit = () => {
             marks: question.marks,
             answer_key: question.answer_key || null,
             word_limit: question.word_limit ? parseInt(question.word_limit) : null,
-            difficulty: question.difficulty
+            difficulty: question.difficulty,
+            diagram_description: question.diagram_description || null
           })
           .select()
           .single();
