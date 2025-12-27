@@ -353,7 +353,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         has_sub_questions: q.has_sub_questions || false,
         difficulty: q.difficulty || 'medium',
         category: q.question_type || 'mcq',
-        answer_key: q.correct_answer || ''
+        answer_key: q.correct_answer || '',
+        diagram_description: q.diagram_description || null
       }).select().single();
       if (questionError) throw questionError;
       if (q.sub_questions && q.sub_questions.length > 0) {

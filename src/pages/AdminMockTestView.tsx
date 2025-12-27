@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Edit, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, Trash2, BarChart3 } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 
 const AdminMockTestView = () => {
@@ -132,6 +132,18 @@ const AdminMockTestView = () => {
                       </div>
                     </div>
                     <p className="text-foreground mb-2">{question.question_text}</p>
+                    {/* Diagram Description */}
+                    {question.diagram_description && (
+                      <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
+                        <div className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
+                          <BarChart3 className="w-4 h-4" />
+                          Diagram/Graph Description:
+                        </div>
+                        <p className="text-sm text-purple-600 dark:text-purple-400 whitespace-pre-wrap">
+                          {question.diagram_description}
+                        </p>
+                      </div>
+                    )}
                     {question.question_image_url && (
                       <div className="mb-2">
                         <img src={question.question_image_url} alt="Question image" className="max-w-md rounded" />
