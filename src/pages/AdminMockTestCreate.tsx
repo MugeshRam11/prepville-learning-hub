@@ -86,6 +86,7 @@ const AdminMockTestCreate = () => {
       word_limit: q.word_limit?.toString() || '',
       difficulty: q.difficulty || 'medium',
       category: q.category || '',
+      diagram_description: q.diagram_description || '',
       sub_questions: q.sub_questions || []
     }));
 
@@ -158,7 +159,8 @@ const AdminMockTestCreate = () => {
             answer_key: question.answer_key || null,
             word_limit: question.word_limit ? parseInt(question.word_limit) : null,
             difficulty: question.difficulty,
-            category: question.category || null
+            category: question.category || null,
+            diagram_description: question.diagram_description || null
           })
           .select()
           .single();

@@ -367,6 +367,7 @@ export type Database = {
           answer_key: string | null
           category: string | null
           created_at: string
+          diagram_description: string | null
           difficulty: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions: boolean
           id: string
@@ -382,6 +383,7 @@ export type Database = {
           answer_key?: string | null
           category?: string | null
           created_at?: string
+          diagram_description?: string | null
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions?: boolean
           id?: string
@@ -397,6 +399,7 @@ export type Database = {
           answer_key?: string | null
           category?: string | null
           created_at?: string
+          diagram_description?: string | null
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions?: boolean
           id?: string
@@ -422,6 +425,7 @@ export type Database = {
         Row: {
           answer_key: string | null
           created_at: string
+          diagram_description: string | null
           id: string
           marks: number
           question_id: string
@@ -433,6 +437,7 @@ export type Database = {
         Insert: {
           answer_key?: string | null
           created_at?: string
+          diagram_description?: string | null
           id?: string
           marks?: number
           question_id: string
@@ -444,6 +449,7 @@ export type Database = {
         Update: {
           answer_key?: string | null
           created_at?: string
+          diagram_description?: string | null
           id?: string
           marks?: number
           question_id?: string
@@ -468,6 +474,7 @@ export type Database = {
           category: string | null
           created_at: string | null
           created_by: string | null
+          diagram_description: string | null
           difficulty: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions: boolean | null
           id: string
@@ -486,6 +493,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          diagram_description?: string | null
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions?: boolean | null
           id?: string
@@ -504,6 +512,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          diagram_description?: string | null
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
           has_sub_questions?: boolean | null
           id?: string

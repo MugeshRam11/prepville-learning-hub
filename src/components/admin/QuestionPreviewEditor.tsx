@@ -265,16 +265,25 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                           )}
                         </div>
 
-                        {/* Diagram Description Inline */}
-                        {q.has_diagram && q.diagram_description && (
+                        {/* Diagram Description Inline - Editable */}
+                        {q.has_diagram && (
                           <div className="mb-2 p-2 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
                             <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
                               <BarChart3 className="w-3 h-3" />
                               Diagram/Graph Description:
                             </div>
-                            <p className="text-xs text-purple-600 dark:text-purple-400 whitespace-pre-wrap">
-                              {q.diagram_description}
-                            </p>
+                            {editingIndex === index ? (
+                              <Textarea
+                                value={q.diagram_description || ''}
+                                onChange={(e) => updateQuestion(index, 'diagram_description', e.target.value)}
+                                className="text-xs min-h-[60px] bg-white dark:bg-background"
+                                placeholder="Describe the diagram/graph (coordinates, axes, shapes, etc.)"
+                              />
+                            ) : (
+                              <p className="text-xs text-purple-600 dark:text-purple-400 whitespace-pre-wrap">
+                                {q.diagram_description || 'No description available. Click edit to add one.'}
+                              </p>
+                            )}
                           </div>
                         )}
 
