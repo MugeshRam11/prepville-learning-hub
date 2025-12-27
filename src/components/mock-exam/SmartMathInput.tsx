@@ -44,6 +44,43 @@ const SmartMathInput: React.FC<SmartMathInputProps> = ({
     setDenominator('');
   };
 
+  // Safe math expression parser - replaces unsafe eval()
+  const safeParseMath = (expr: string): number | null => {
+    // Only allow digits, operators, decimal points, and slashes (for fractions)
+    const safePattern = /^[\d+\-*/().%\s]+$/;
+    if (!safePattern.test(expr)) return null;
+    
+    try {
+      // Handle percentage
+      let normalized = expr.replace(/%/g, '/100');
+      
+      // Handle fractions like "2/5"
+      const fractionMatch = normalized.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+      if (fractionMatch) {
+        const num = parseFloat(fractionMatch[1]);
+        const den = parseFloat(fractionMatch[2]);
+        if (den === 0) return null;
+        return num / den;
+      }
+      
+      // Handle simple decimals
+      const decimalMatch = normalized.match(/^-?\d+(?:\.\d+)?$/);
+      if (decimalMatch) {
+        return parseFloat(normalized);
+      }
+      
+      // Handle expressions like "40/100" (percentage converted)
+      const divisionMatch = normalized.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+      if (divisionMatch) {
+        return parseFloat(divisionMatch[1]) / parseFloat(divisionMatch[2]);
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   const isCorrect = () => {
     const answer = getFractionAnswer();
     const allAccepted = [expectedAnswer, ...acceptedFormats];
@@ -57,14 +94,15 @@ const SmartMathInput: React.FC<SmartMathInputProps> = ({
       // Direct match
       if (normalizedAnswer === normalizedAccepted) return true;
       
-      // Numerical comparison for decimals/percentages
-      try {
-        const answerNum = eval(normalizedAnswer.replace('%', '/100'));
-        const acceptedNum = eval(normalizedAccepted.replace('%', '/100'));
+      // Numerical comparison using safe parser
+      const answerNum = safeParseMath(normalizedAnswer);
+      const acceptedNum = safeParseMath(normalizedAccepted);
+      
+      if (answerNum !== null && acceptedNum !== null) {
         return Math.abs(answerNum - acceptedNum) < 0.001;
-      } catch {
-        return false;
       }
+      
+      return false;
     });
   };
 
