@@ -13,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const contentType = req.headers.get('content-type');
+    const contentType = req.headers.get('content-type') || '';
     
     // Handle JSON request for comprehensive PDF parsing
-    if (contentType?.includes('application/json')) {
+    if (contentType.includes('application/json')) {
       const { mode, pageImageUrl, pageNumber, pageText } = await req.json();
       
       if (mode === 'pdf-diagram-detection' && pageImageUrl) {
@@ -39,7 +39,7 @@ serve(async (req) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'google/gemini-2.5-flash', // Flash is faster and more reliable for JSON
+              model: 'google/gemini-2.5-flash',
               messages: [{
                 role: 'user',
                 content: [
@@ -107,16 +107,15 @@ RULES:
           
           // Sanitize JSON to remove control characters
           const sanitizedContent = content
-            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // Remove control chars
-            .replace(/\r?\n/g, ' ') // Replace actual newlines with spaces
-            .replace(/\t/g, ' ') // Replace tabs with spaces
-            .replace(/\s+/g, ' '); // Normalize whitespace
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+            .replace(/\r?\n/g, ' ')
+            .replace(/\t/g, ' ')
+            .replace(/\s+/g, ' ');
           
           let result;
           try {
             result = JSON.parse(sanitizedContent);
             
-            // Validate: if hasDiagram is true, diagrams array must not be empty
             if (result.hasDiagram === true && (!result.diagrams || result.diagrams.length === 0)) {
               console.warn('⚠️ AI returned hasDiagram=true but empty diagrams array, treating as no diagram');
               result.hasDiagram = false;
@@ -125,7 +124,6 @@ RULES:
           } catch (parseError) {
             console.error('❌ JSON parse error:', parseError);
             console.error('📄 Content snippet:', sanitizedContent.substring(0, 500));
-            // Fallback: no diagram detected
             result = { hasDiagram: false, diagrams: [], pageType: 'text_only' };
           }
           
@@ -246,9 +244,22 @@ Return JSON:
           );
         }
       }
+      
+      // JSON request but not a recognized mode - return error
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON request mode' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     // Handle FormData request for Word document processing
+    if (!contentType.includes('multipart/form-data')) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid content type. Expected multipart/form-data or application/json' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const formData = await req.formData();
     const file = formData.get('file') as File;
     
