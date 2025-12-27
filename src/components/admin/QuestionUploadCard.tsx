@@ -34,8 +34,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [progress, setProgress] = useState(0);
   const [parseResult, setParseResult] = useState<any>(null);
   const [actionMode, setActionMode] = useState<ActionMode>('parse');
-  const [convertingToWord, setConvertingToWord] = useState(false);
-  const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
   const [processingStage, setProcessingStage] = useState<string>('');
   const [currentFile, setCurrentFile] = useState<{ name: string; size: number } | null>(null);
   
@@ -43,69 +41,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [showPreviewEditor, setShowPreviewEditor] = useState(false);
   const [pendingQuestions, setPendingQuestions] = useState<any[]>([]);
   const [pendingMetadata, setPendingMetadata] = useState<any>(null);
-  
-  // AI Document Processing Modal state
-  const [showProcessingModal, setShowProcessingModal] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(120);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [extractedImages, setExtractedImages] = useState<ExtractedImage[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const processingSteps: ProcessingStep[] = [
-    { id: 'upload', label: 'Upload', status: 'pending' },
-    { id: 'ocr', label: 'OCR & Parsing', status: 'pending' },
-    { id: 'structuring', label: 'Structuring', status: 'pending' },
-    { id: 'questions', label: 'Question Data', status: 'pending' },
-    { id: 'ready', label: 'Ready', status: 'pending' },
-  ];
-  
-  const [steps, setSteps] = useState<ProcessingStep[]>(processingSteps);
-  
-  // Timer effect for elapsed time
-  useEffect(() => {
-    if (uploading || convertingToWord) {
-      timerRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
-        setEstimatedTimeRemaining(prev => Math.max(0, prev - 1));
-      }, 1000);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-    
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [uploading, convertingToWord]);
-  
-  // Update steps based on progress
-  useEffect(() => {
-    let newStep = 0;
-    if (progress >= 20) newStep = 1;
-    if (progress >= 40) newStep = 2;
-    if (progress >= 70) newStep = 3;
-    if (progress >= 100) newStep = 4;
-    
-    setCurrentStep(newStep);
-    setSteps(prev => prev.map((step, idx) => ({
-      ...step,
-      status: idx < newStep ? 'completed' : idx === newStep ? 'active' : 'pending'
-    })));
-  }, [progress]);
-  
-  // Reset modal state when upload starts
-  const resetModalState = () => {
-    setElapsedTime(0);
-    setEstimatedTimeRemaining(120);
-    setCurrentStep(0);
-    setExtractedImages([]);
-    setSteps(processingSteps);
-  };
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -150,509 +85,123 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     }
   };
 
-  // Get Supabase URL from environment - no hardcoded credentials
-
-  const convertPDFToWord = async (file: File, extractedPageContents: Array<{ pageNum: number; text: string }>): Promise<Blob | null> => {
-    try {
-      setConvertingToWord(true);
-      setProcessingStage('Creating Word document...');
-      
-      // Use supabase.functions.invoke for proper auth handling
-      const { data, error } = await supabase.functions.invoke('pdf-to-word', {
-        body: {
-          pageContents: extractedPageContents,
-          fileName: file.name
-        }
-      });
-      
-      if (error) {
-        console.error('PDF to Word conversion error:', error);
-        throw new Error(error.message || 'PDF to Word conversion failed');
-      }
-      
-      // Convert response to blob if needed
-      let wordBlob: Blob;
-      if (data instanceof Blob) {
-        wordBlob = data;
-      } else if (data?.base64) {
-        // If response is base64 encoded
-        const byteCharacters = atob(data.base64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        wordBlob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      } else {
-        console.warn('Unexpected response format from pdf-to-word');
-        setConvertingToWord(false);
-        return null;
-      }
-
-      console.log('✅ Converted PDF to Word:', wordBlob.size, 'bytes');
-      toast.success('PDF converted to Word successfully!');
-      setConvertingToWord(false);
-      return wordBlob;
-    } catch (error: any) {
-      console.error('Word document creation error:', error);
-      toast.error('Failed to create Word document', {
-        description: error?.message || 'Unknown error'
-      });
-      setConvertingToWord(false);
-      setProcessingStage('');
-      return null;
-    }
-  };
+  // Removed unused convertPDFToWord function
 
   const processFile = async (file: File) => {
     setUploading(true);
     setProgress(10);
     setParseResult(null);
-    setWordFileUrl(null);
     setCurrentFile({ name: file.name, size: file.size });
-    setProcessingStage('Uploading file...');
-    
-    // Show processing modal and reset state
-    resetModalState();
-    setShowProcessingModal(true);
+    setProcessingStage('Processing document...');
     
     try {
       // Validate file size (20MB max)
-      const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+      const MAX_FILE_SIZE = 20 * 1024 * 1024;
       if (file.size > MAX_FILE_SIZE) {
         throw new Error(`File too large: ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum size is 20MB.`);
       }
 
       let content = '';
-      let extractedText = '';
-      let extractedImages: string[] = [];
-      let pageImageUrls: string[] = [];  // NEW: For GPT-4 Vision
-      const fileType = file.type;
       const fileName = file.name.toLowerCase();
-      console.log('📄 Processing:', fileName, '| Type:', fileType, '| Size:', (file.size / 1024).toFixed(1), 'KB');
+      console.log('📄 Processing:', fileName, '| Size:', (file.size / 1024).toFixed(1), 'KB');
       setProgress(20);
       
-      // Handle PDF files - extract text first, then optionally create Word
-      let pdfPageContents: Array<{ pageNum: number; text: string }> = [];
+      // Simple text extraction based on file type
       if (fileName.endsWith('.pdf')) {
         setProcessingStage('Extracting text from PDF...');
-        toast.info('Processing PDF document...');
+        toast.info('Extracting PDF text...');
         
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({
-            data: arrayBuffer
-          }).promise;
-          const numPages = pdf.numPages;
-          
-          // Extract text from each page
-          for (let i = 1; i <= numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(' ');
-            pdfPageContents.push({
-              pageNum: i,
-              text: pageText
-            });
-            setProgress(20 + (i / numPages) * 15);
-          }
-          
-          extractedText = pdfPageContents.map(p => `--- Page ${p.pageNum} ---\n${p.text}`).join('\n\n');
-          content = extractedText;
-          
-          // Create Word document in background
-          setProcessingStage('Creating Word document...');
-          convertPDFToWord(file, pdfPageContents).catch(err => {
-            console.warn('Word conversion failed but continuing with parsing:', err);
-          });
-          
-          setProgress(35);
-        } catch (pdfError: any) {
-          console.error('PDF processing error:', pdfError);
-          toast.error('Failed to process PDF. Please try another file format.');
-          throw new Error(`PDF processing failed: ${pdfError.message}`);
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPages = pdf.numPages;
+        
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          content += `\n--- Page ${i} ---\n${pageText}`;
+          setProgress(20 + (i / numPages) * 30);
         }
-      }
-
-      // Enhanced document parsing with text AND image extraction
-      if (fileType === 'text/csv' || fileName.endsWith('.csv')) {
-        // Read CSV as text
-        content = await file.text();
-        extractedText = content;
-        console.log('✅ CSV text extracted:', content.substring(0, 200));
+        
       } else if (fileName.endsWith('.docx')) {
-        // Extract text AND images from Word document via edge function
-        setProgress(25);
-        try {
-          // Convert file to base64 for edge function
-          const arrayBuffer = await file.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
-          let binary = '';
-          for (let i = 0; i < uint8Array.length; i++) {
-            binary += String.fromCharCode(uint8Array[i]);
-          }
-          const base64Content = btoa(binary);
-          
-          // Use supabase.functions.invoke for proper auth handling
-          const { data: extractData, error: extractError } = await supabase.functions.invoke('extract-doc-images', {
-            body: {
-              fileBase64: base64Content,
-              fileName: file.name,
-              fileType: file.type
-            }
-          });
-          
-          if (extractError) throw new Error(extractError.message || 'Extraction failed');
-          
-          extractedText = extractData?.text || '';
-          extractedImages = extractData?.images || [];
-          content = extractedText;
-          console.log('✅ Word extraction complete:', {
-            textLength: extractedText.length,
-            imageCount: extractedImages.length
-          });
-          if (extractedImages.length > 0) {
-            toast.success(`Extracted ${extractedImages.length} image(s) from Word document!`);
-          }
-        } catch (extractError: any) {
-          console.warn('Edge function extraction failed, falling back to local extraction:', extractError);
-          toast.info('Using local text extraction...');
-          
-          // Fallback to text-only extraction using mammoth
-          const arrayBuffer = await file.arrayBuffer();
-          const textResult = await mammoth.extractRawText({
-            arrayBuffer
-          });
-          extractedText = textResult.value;
-          content = extractedText;
-          
-          if (extractedText.length > 0) {
-            toast.success('Text extracted successfully (images not available)');
-          } else {
-            throw new Error('Could not extract text from Word document');
-          }
-        }
-        setProgress(35);
-      } else if (fileName.endsWith('.pdf')) {
-        // Extract text from PDF using pdfjs with enhanced image extraction
-        setProgress(25);
-        toast.info('Processing PDF document...');
+        setProcessingStage('Extracting Word document...');
+        const arrayBuffer = await file.arrayBuffer();
+        const textResult = await mammoth.extractRawText({ arrayBuffer });
+        content = textResult.value;
+        setProgress(50);
         
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({
-            data: arrayBuffer
-          }).promise;
-          const numPages = pdf.numPages;
-          let pdfText = '';
-          const pdfImages: string[] = [];
-          
-          // First attempt: Extract text normally
-          for (let i = 1; i <= numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(' ');
-            pdfText += `\n--- Page ${i} ---\n${pageText}`;
-            setProgress(25 + i / numPages * 10);
-          }
-          
-          // Check if PDF is likely scanned (minimal text extracted)
-          const cleanText = pdfText.replace(/\s+/g, '').trim();
-          const isScannedPDF = cleanText.length < 100 * numPages; // Less than 100 chars per page
-          
-          // Lovable AI-powered OCR + diagram extraction
-          toast.info('🤖 Using Lovable AI vision to extract content...');
-          
-          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            
-            try {
-              // Render page at high quality for AI analysis
-              const scale = 2.5;
-              const viewport = page.getViewport({ scale });
-              const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d');
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-              
-              if (!context) continue;
-              
-              console.log(`📄 Rendering page ${pageNum} for Lovable AI vision...`);
-              
-              await page.render({
-                canvasContext: context,
-                viewport: viewport,
-              } as any).promise;
-              
-              // Convert to base64 for AI processing
-              const pageImageData = canvas.toDataURL('image/png');
-              const pageBase64 = pageImageData.split(',')[1];
-              
-              // Call Lovable AI edge function for vision extraction with image storage
-              console.log(`🤖 Calling Lovable AI for page ${pageNum}...`);
-              const { data: visionData, error: visionError } = await supabase.functions.invoke('pdf-vision-extractor', {
-                body: {
-                  imageBase64: pageBase64,
-                  pageNumber: pageNum,
-                  fileName: fileName,
-                  storePageImage: true  // NEW: Store page images for GPT-4 Vision
-                }
-              });
-              
-              if (visionError) {
-                console.error(`Vision extraction failed for page ${pageNum}:`, visionError);
-                toast.error(`Failed to extract content from page ${pageNum}`);
-                continue;
-              }
-              
-              console.log(`✅ Lovable AI extraction for page ${pageNum}:`, visionData);
-              
-              // Append extracted text (use raw_text from enhanced response)
-              if (visionData.raw_text || visionData.text) {
-                pdfText += `\n--- Page ${pageNum} (AI OCR) ---\n${visionData.raw_text || visionData.text}`;
-              }
-              
-              // NEW: Collect stored page image URL for GPT-4 Vision
-              if (visionData.page_image_url) {
-                pageImageUrls.push(visionData.page_image_url);
-                console.log(`📸 Stored page ${pageNum} image: ${visionData.page_image_url}`);
-              }
-              
-              // Handle visual elements / diagram extraction
-              const hasVisuals = visionData.has_visual_elements || (visionData.diagram && visionData.diagram.type !== null);
-              
-              if (hasVisuals) {
-                console.log(`📊 Visual elements detected on page ${pageNum}:`, visionData.visual_elements || visionData.diagram);
-                
-                // Use the stored page image URL if available, otherwise upload
-                const imageUrl = visionData.page_image_url;
-                if (imageUrl) {
-                  pdfImages.push(imageUrl);
-                  
-                  // Add to extracted images for modal display
-                  setExtractedImages(prev => [...prev, {
-                    id: `img-${pageNum}-${prev.length + 1}`,
-                    url: imageUrl,
-                    pageNumber: pageNum,
-                    imageIndex: prev.filter(img => img.pageNumber === pageNum).length + 1,
-                    processed: true
-                  }]);
-                  
-                  toast.success(`Extracted visual content from page ${pageNum}`);
-                } else {
-                  // Fallback: Upload the full page as diagram with structured data
-                  const diagramUrl = await uploadImageToStorage(
-                    pageBase64,
-                    'image/png',
-                    `${fileName}-page${pageNum}-diagram`
-                  );
-                  
-                  if (diagramUrl) {
-                    pdfImages.push(diagramUrl);
-                    
-                    // Add to extracted images for modal display
-                    setExtractedImages(prev => [...prev, {
-                      id: `img-${pageNum}-${prev.length + 1}`,
-                      url: diagramUrl,
-                      pageNumber: pageNum,
-                      imageIndex: prev.filter(img => img.pageNumber === pageNum).length + 1,
-                      processed: true
-                    }]);
-                    
-                    toast.success(`Extracted diagram from page ${pageNum}`);
-                  }
-                }
-              }
-            } catch (error) {
-              console.error(`Error processing page ${pageNum}:`, error);
-              toast.error(`Failed to process page ${pageNum}`);
-            }
-            
-            setProgress(35 + pageNum / numPages * 20);
-          }
-          
-          // NEW: Store pageImageUrls for GPT-4 Vision
-          console.log(`📸 Collected ${pageImageUrls.length} page images for GPT-4 Vision`);
-          
-          if (pdfImages.length > 0 || pageImageUrls.length > 0) {
-            extractedImages = pdfImages;
-            toast.success(`✅ Extracted ${pdfImages.length} visual element(s) from PDF using AI`);
-            
-            if (isScannedPDF) {
-              extractedText = '[Scanned PDF - AI OCR will extract text from images]';
-              content = extractedText;
-            } else {
-              extractedText = pdfText;
-              content = pdfText;
-            }
-          } else {
-            // No images extracted, just text
-            extractedText = pdfText;
-            content = pdfText;
-            console.log('✅ PDF text extracted:', pdfText.substring(0, 200));
-            toast.success(`Extracted text from ${numPages} PDF pages`);
-          }
-          
-          setProgress(55);
-        } catch (pdfError: any) {
-          console.error('PDF processing error:', pdfError);
-          toast.error('Failed to process PDF. Please try another file format.');
-          throw new Error(`PDF processing failed: ${pdfError.message}`);
-        }
-      } else if (fileType.includes('image')) {
-        // For images, send as base64 (AI will perform OCR)
-        const base64 = await fileToBase64(file);
-        content = base64;
-        extractedText = '[Image - AI will perform OCR]';
-        console.log('✅ Image prepared for OCR');
-        toast.info('Image uploaded - AI will extract text');
-      } else if (fileType === 'text/plain') {
-        // Plain text
-        content = await file.text();
-        extractedText = content;
-        console.log('✅ Plain text read');
       } else {
-        // Fallback: try to read as text
         content = await file.text();
-        extractedText = content;
+        setProgress(50);
       }
-      setProgress(40);
-      const actionDescriptions: Record<ActionMode, string> = {
-        parse: 'Parsing questions',
-        summarize: 'Creating summary',
-        quiz: 'Generating quiz',
-        extract_data: 'Extracting data'
-      };
-      toast.info(`🤖 AI is ${actionDescriptions[actionMode]}...`, {
-        description: `Content: ${extractedText ? `${extractedText.length} chars` : 'preparing'}${extractedImages.length > 0 ? ` | ${extractedImages.length} images` : ''}`
-      });
+      
+      if (!content || content.trim().length < 50) {
+        throw new Error('Could not extract sufficient text from document');
+      }
 
-      // Call AI parser function with action mode, extracted images, and page images for GPT-4 Vision
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('ai-question-parser', {
+      setProgress(60);
+      setProcessingStage('Sending to GPT-4o for parsing...');
+      toast.info('🤖 GPT-4o is parsing questions...');
+
+      // Call AI parser
+      const { data, error } = await supabase.functions.invoke('ai-question-parser', {
         body: {
           content,
-          fileType: file.type,
           fileName: file.name,
           parseMode: mode,
-          extractedText: extractedText || undefined,
-          extractedImages: extractedImages.length > 0 ? extractedImages : undefined,
-          pageImages: pageImageUrls.length > 0 ? pageImageUrls : undefined,  // For GPT-4 Vision
           actionMode
         }
       });
+      
       if (error) throw error;
-      setProgress(70);
+      setProgress(80);
+      
       if (!data || !data.success) {
-        throw new Error(data?.error || 'Failed to process document');
+        throw new Error(data?.error || 'Failed to parse document');
       }
-      setProgress(90);
 
-      // Handle different action modes
-      let savedData = null;
-      if (actionMode === 'parse' || actionMode === 'quiz') {
-        // Show preview editor instead of auto-saving
-        const questions = data.data?.questions || data.questions || [];
-        const metadata = data.data?.metadata || data.data?.test_metadata || {
-          title: currentFile?.name?.replace(/\.[^/.]+$/, '') || 'Imported Test',
-          subject: 'mathematics',
-          topic: 'General'
-        };
-        
-        setPendingQuestions(questions);
-        setPendingMetadata(metadata);
-        setShowPreviewEditor(true);
-        setShowProcessingModal(false);
-        
-        toast.info(`Extracted ${questions.length} questions - please review before saving`);
-        setProgress(100);
-        setParseResult({
-          success: true,
-          actionMode: data.actionMode || actionMode,
-          count: questions.length,
-          data: null,
-          images: extractedImages,
-          pending: true
-        });
-        return; // Don't proceed to save - wait for preview confirmation
-      }
+      // Show preview editor
+      const questions = data.data?.questions || data.questions || [];
+      const metadata = data.data?.metadata || {
+        title: file.name.replace(/\.[^/.]+$/, '') || 'Imported Test',
+        subject: 'mathematics',
+        topic: 'General'
+      };
+      
+      setPendingQuestions(questions);
+      setPendingMetadata(metadata);
+      setShowPreviewEditor(true);
+      
+      toast.success(`Extracted ${questions.length} questions - please review`);
       setProgress(100);
       setParseResult({
         success: true,
-        actionMode: data.actionMode,
-        count: data.parsed_count,
-        data: savedData || data.data,
-        images: extractedImages
+        actionMode: actionMode,
+        count: questions.length,
+        data: null,
+        images: [],
+        pending: true
       });
-      const successMessages: Record<ActionMode, string> = {
-        parse: `Successfully parsed ${data.parsed_count} questions${extractedImages.length > 0 ? ` with ${extractedImages.length} images` : ''}!`,
-        summarize: 'Document summarized successfully!',
-        quiz: `Generated ${data.parsed_count} quiz questions${extractedImages.length > 0 ? ` with ${extractedImages.length} images` : ''}!`,
-        extract_data: 'Data extracted successfully!'
-      };
-      toast.success(successMessages[actionMode]);
-      if (onSuccess && savedData) {
-        onSuccess(savedData);
-      }
+
     } catch (error: any) {
       console.error('Upload error:', error);
       
-      // Build specific error message based on error type
       let errorMessage = 'Failed to process file';
-      let errorDetails = '';
+      let errorDetails = error?.message || '';
       
-      const errorString = error?.message || error?.toString() || '';
-      
-      if (errorString.includes('Rate limit') || errorString.includes('429')) {
+      if (errorDetails.includes('Rate limit') || errorDetails.includes('429')) {
         errorMessage = 'Rate limit exceeded';
-        errorDetails = 'Too many requests. Please wait a moment and try again.';
-      } else if (errorString.includes('credits') || errorString.includes('402') || errorString.includes('Payment required')) {
-        errorMessage = 'AI credits exhausted';
-        errorDetails = 'Please add credits to your workspace to continue processing.';
-      } else if (errorString.includes('PDF processing failed')) {
-        errorMessage = 'PDF processing failed';
-        errorDetails = 'Could not extract content from PDF. Try converting to Word format first.';
-      } else if (errorString.includes('Failed to fetch') || errorString.includes('NetworkError') || errorString.includes('network')) {
-        errorMessage = 'Network error';
-        errorDetails = 'Unable to connect to the server. Please check your internet connection.';
-      } else if (errorString.includes('timeout') || errorString.includes('Timeout')) {
-        errorMessage = 'Request timed out';
-        errorDetails = 'The file is taking too long to process. Try a smaller file.';
-      } else if (errorString.includes('Invalid file') || errorString.includes('Unsupported')) {
-        errorMessage = 'Unsupported file format';
-        errorDetails = 'Please upload PDF, Word (.docx), CSV, or image files only.';
-      } else if (errorString.includes('File too large') || errorString.includes('size')) {
-        errorMessage = 'File too large';
-        errorDetails = 'Maximum file size is 20MB. Please upload a smaller file.';
-      } else if (errorString.includes('storage') || errorString.includes('bucket')) {
-        errorMessage = 'Storage error';
-        errorDetails = 'Failed to store extracted images. Please try again.';
-      } else if (errorString.includes('parse') || errorString.includes('JSON')) {
-        errorMessage = 'Parsing error';
-        errorDetails = 'AI could not parse the document structure. Try a clearer document.';
-      } else if (errorString.includes('No questions found') || errorString.includes('empty')) {
-        errorMessage = 'No content found';
-        errorDetails = 'The document appears to be empty or unreadable. Check the file content.';
-      } else if (errorString) {
-        // Show the actual error message if we have one
-        errorMessage = 'Processing error';
-        errorDetails = errorString.length > 100 ? errorString.substring(0, 100) + '...' : errorString;
+        errorDetails = 'Please wait a moment and try again.';
+      } else if (errorDetails.includes('OPENAI_API_KEY')) {
+        errorMessage = 'OpenAI API key not configured';
+        errorDetails = 'Please add your OpenAI API key in settings.';
       }
       
-      // Show detailed toast with error info
-      toast.error(errorMessage, {
-        description: errorDetails,
-        duration: 6000
-      });
-      
-      setParseResult({
-        success: false,
-        error: `${errorMessage}${errorDetails ? ': ' + errorDetails : ''}`
-      });
+      toast.error(errorMessage, { description: errorDetails, duration: 6000 });
+      setParseResult({ success: false, error: `${errorMessage}: ${errorDetails}` });
     } finally {
       setUploading(false);
+      setProcessingStage('');
     }
   };
   const fileToBase64 = (file: File): Promise<string> => {
@@ -852,38 +401,15 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     disabled: uploading
   });
   return <Card>
-      
       <CardContent className="space-y-6">
-        {/* Upload Progress Tracker with Timer */}
+        {/* Upload Progress */}
         <UploadProgressTracker
-          isUploading={uploading || convertingToWord}
+          isUploading={uploading}
           progress={progress}
           fileName={currentFile?.name}
           fileSize={currentFile?.size}
           stage={processingStage}
         />
-
-        {/* Download Converted Word File */}
-        {wordFileUrl && !uploading && (
-          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="text-sm font-medium text-green-900 dark:text-green-100">Word Document Ready</p>
-                  <p className="text-xs text-green-700 dark:text-green-400">PDF successfully converted to Word format</p>
-                </div>
-              </div>
-              <a
-                href={wordFileUrl}
-                download="converted-document.docx"
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-              >
-                Download Word
-              </a>
-            </div>
-          </div>
-        )}
 
         {/* Action Mode Selection */}
         <div className="space-y-2">
@@ -966,21 +492,16 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           </div>}
       </CardContent>
       
-      {/* AI Document Processing Modal */}
-      <AIDocumentProcessingModal
-        open={showProcessingModal}
-        onOpenChange={setShowProcessingModal}
-        fileName={currentFile?.name || 'Document'}
-        fileSize={currentFile?.size || 0}
-        elapsedTime={elapsedTime}
-        estimatedTimeRemaining={estimatedTimeRemaining}
-        progress={progress}
-        currentStep={currentStep}
-        steps={steps}
-        extractedImages={extractedImages}
-        isProcessing={uploading || convertingToWord}
+      {/* Question Preview Editor */}
+      <QuestionPreviewEditor
+        open={showPreviewEditor}
+        onOpenChange={setShowPreviewEditor}
+        questions={pendingQuestions}
+        metadata={pendingMetadata}
+        onConfirm={handlePreviewConfirm}
+        onCancel={handlePreviewCancel}
+        mode={mode}
       />
-      
       {/* Question Preview Editor */}
       <QuestionPreviewEditor
         open={showPreviewEditor}
