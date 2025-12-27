@@ -61,15 +61,15 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OCR_API_KEY = Deno.env.get('OCR_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!LOVABLE_API_KEY) {
-      console.error('❌ LOVABLE_API_KEY not configured');
+    if (!OCR_API_KEY) {
+      console.error('❌ OCR_API_KEY not configured');
       return new Response(
         JSON.stringify({ 
-          error: 'OCR service not configured', 
+          error: 'OCR API key not configured', 
           ocr_status: 'failed',
           page_number: pageNumber 
         }),
@@ -125,7 +125,7 @@ serve(async (req) => {
       }
     }
 
-    // STAGE 2: Pure OCR Extraction with Lovable API
+    // STAGE 2: Pure OCR Extraction with Mistral Pixtral API
     // This prompt is strictly for OCR - NO interpretation or reasoning
     const ocrPrompt = `STRICT OCR EXTRACTION - NO INTERPRETATION
 
@@ -167,14 +167,15 @@ IMPORTANT: Output ONLY the JSON. No explanations.`;
 
     while (retryCount <= maxRetries) {
       try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        // Use Mistral Pixtral API for OCR
+        const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Authorization': `Bearer ${OCR_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'pixtral-large-latest',
             messages: [
               {
                 role: 'user',
@@ -182,15 +183,13 @@ IMPORTANT: Output ONLY the JSON. No explanations.`;
                   { type: 'text', text: ocrPrompt },
                   {
                     type: 'image_url',
-                    image_url: {
-                      url: `data:image/png;base64,${imageBase64}`
-                    }
+                    image_url: `data:image/png;base64,${imageBase64}`
                   }
                 ]
               }
             ],
             max_tokens: 8000,
-            temperature: 0 // Zero temperature for consistent OCR output
+            temperature: 0
           }),
         });
 
