@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are an EXAM PAPER QUESTION EXTRACTOR.
+const SYSTEM_PROMPT = `You are an EXAM PAPER QUESTION EXTRACTOR using computer vision.
 
 Your task is ONLY to extract questions that are explicitly present in the uploaded exam paper.
 
@@ -28,22 +28,176 @@ QUESTION STRUCTURE PATTERNS TO RECOGNIZE:
 - Marks in parentheses indicate point value
 
 IMAGE/DIAGRAM HANDLING:
-- If a question references "the diagram", "the graph", "the figure", note has_diagram: true
+- If a question references "the diagram", "the graph", "the figure", "the grid", "the box plot", note has_diagram: true
+- Read the diagram/graph content and describe it in diagram_description
 - Do NOT create questions from images alone
 
 WHAT TO IGNORE:
 - Headers/footers (QuintoPrep, www.quintoprep.com, etc.)
 - "Scroll down to continue"
-- Formula sheets
+- Formula sheets (unless part of a question)
 - Navigation instructions
 - Styling markers (B, I, U, x², Ω, Styles, etc.)
+- Worked examples
+- Instructions like "Use the tabs", "Click next"
 
 OUTPUT FORMAT (STRICT JSON ONLY):
-Return ONLY valid JSON. No markdown. No explanation. No extra text.`;
+Return ONLY valid JSON. No markdown. No explanation. No extra text.
 
-function buildUserPrompt(parseMode: string, content: string, fileName?: string): string {
-  if (parseMode === 'mock') {
-    return `Extract ALL questions from this exam paper: ${fileName || 'document'}
+{
+  "metadata": {
+    "title": "extracted title",
+    "subject": "mathematics",
+    "topic": "General",
+    "total_questions": number
+  },
+  "questions": [
+    {
+      "question_number": 1,
+      "question_text": "exact text of the main question",
+      "marks": 6,
+      "has_sub_questions": true,
+      "has_diagram": true,
+      "diagram_description": "A coordinate grid showing shapes A and B",
+      "difficulty": "medium",
+      "sub_questions": [
+        { "label": "a", "text": "exact sub-question text", "marks": 1 },
+        { "label": "b", "text": "exact sub-question text", "marks": 3 }
+      ]
+    }
+  ]
+}`;
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { content, parseMode = 'mock', fileName, images } = await req.json();
+
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
+    }
+
+    // If images are provided, use Vision API
+    if (images && images.length > 0) {
+      console.log(`Processing ${images.length} page images with GPT-4o Vision`);
+      
+      const allQuestions: any[] = [];
+      let metadata = { title: fileName || 'Imported Test', subject: 'mathematics', topic: 'General', total_questions: 0 };
+      
+      // Process each page image
+      for (let i = 0; i < images.length; i++) {
+        const pageImage = images[i];
+        console.log(`Processing page ${i + 1}/${images.length}`);
+        
+        const messages = [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { 
+            role: 'user', 
+            content: [
+              {
+                type: 'text',
+                text: `Extract ALL questions from this exam paper page (page ${i + 1}). Look carefully at the image for:
+- Question numbers and marks
+- Sub-questions (a, b, c, etc.)
+- Diagrams, graphs, grids, box plots
+- Mathematical expressions and formulas
+
+Return JSON with the questions found on this page only.`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: pageImage.startsWith('data:') ? pageImage : `data:image/jpeg;base64,${pageImage}`,
+                  detail: 'high'
+                }
+              }
+            ]
+          }
+        ];
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages,
+            temperature: 0,
+            max_tokens: 4000,
+            response_format: { type: "json_object" }
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Vision API error for page ${i + 1}:`, response.status, errorText);
+          continue;
+        }
+
+        const data = await response.json();
+        const pageContent = data.choices?.[0]?.message?.content || '{}';
+        
+        try {
+          const parsed = JSON.parse(pageContent);
+          if (parsed.questions && Array.isArray(parsed.questions)) {
+            allQuestions.push(...parsed.questions);
+          }
+          if (parsed.metadata && i === 0) {
+            metadata = { ...metadata, ...parsed.metadata };
+          }
+        } catch (e) {
+          console.error(`Failed to parse page ${i + 1} response:`, e);
+        }
+      }
+
+      // Deduplicate and sort questions by question_number
+      const uniqueQuestions = allQuestions.reduce((acc, q) => {
+        const key = `${q.question_number}-${q.question_text?.substring(0, 50)}`;
+        if (!acc.map.has(key)) {
+          acc.map.set(key, true);
+          acc.list.push(q);
+        }
+        return acc;
+      }, { map: new Map(), list: [] as any[] }).list;
+
+      uniqueQuestions.sort((a, b) => {
+        const numA = parseInt(a.question_number) || 0;
+        const numB = parseInt(b.question_number) || 0;
+        return numA - numB;
+      });
+
+      metadata.total_questions = uniqueQuestions.length;
+      console.log(`Vision extraction complete: ${uniqueQuestions.length} unique questions`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: { metadata, questions: uniqueQuestions },
+          questions: uniqueQuestions,
+          parsed_count: uniqueQuestions.length,
+          actionMode: 'parse'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fallback to text-based parsing
+    if (!content || content.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No content provided', questions: [] }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Parsing ${content.length} chars in ${parseMode} mode using GPT-4o`);
+
+    const userPrompt = `Extract ALL questions from this exam paper: ${fileName || 'document'}
 
 Return JSON with this exact structure:
 {
@@ -77,49 +231,6 @@ PARSING RULES:
 
 DOCUMENT CONTENT:
 ${content}`;
-  }
-
-  return `Extract questions from this document. Return JSON:
-
-{
-  "questions": [
-    {
-      "question_text": "exact question text",
-      "options": ["A) option", "B) option", "C) option", "D) option"],
-      "correct_answer": "A",
-      "explanation": "",
-      "difficulty": "medium"
-    }
-  ]
-}
-
-DOCUMENT CONTENT:
-${content}`;
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { content, parseMode = 'quick', fileName } = await req.json();
-
-    if (!content || content.trim().length === 0) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No content provided', questions: [] }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY not configured');
-    }
-
-    console.log(`Parsing ${content.length} chars in ${parseMode} mode using GPT-4o`);
-
-    const userPrompt = buildUserPrompt(parseMode, content, fileName);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -162,19 +273,13 @@ serve(async (req) => {
     try {
       parsed = JSON.parse(aiContent);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError, 'Content:', aiContent.substring(0, 500));
-      
-      // Try to extract JSON from response
+      console.error('JSON parse error:', parseError);
       const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsed = JSON.parse(jsonMatch[0]);
       } else {
         return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: 'Failed to parse AI response',
-            questions: []
-          }),
+          JSON.stringify({ success: false, error: 'Failed to parse AI response', questions: [] }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -197,11 +302,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Parser error:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message, 
-        questions: [] 
-      }),
+      JSON.stringify({ success: false, error: error.message, questions: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

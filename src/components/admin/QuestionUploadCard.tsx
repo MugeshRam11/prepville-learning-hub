@@ -87,6 +87,22 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
 
   // Removed unused convertPDFToWord function
 
+  // Convert PDF page to base64 image
+  const pdfPageToImage = async (pdf: any, pageNum: number): Promise<string> => {
+    const page = await pdf.getPage(pageNum);
+    const scale = 2; // Higher scale for better OCR
+    const viewport = page.getViewport({ scale });
+    
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    
+    await page.render({ canvasContext: context, viewport }).promise;
+    
+    return canvas.toDataURL('image/jpeg', 0.9);
+  };
+
   const processFile = async (file: File) => {
     setUploading(true);
     setProgress(10);
@@ -101,52 +117,70 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         throw new Error(`File too large: ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum size is 20MB.`);
       }
 
-      let content = '';
       const fileName = file.name.toLowerCase();
       console.log('📄 Processing:', fileName, '| Size:', (file.size / 1024).toFixed(1), 'KB');
-      setProgress(20);
+      setProgress(15);
       
-      // Simple text extraction based on file type
+      let images: string[] = [];
+      let content = '';
+      
+      // For PDFs: Convert pages to images for Vision API
       if (fileName.endsWith('.pdf')) {
-        setProcessingStage('Extracting text from PDF...');
-        toast.info('Extracting PDF text...');
+        setProcessingStage('Converting PDF pages to images for Vision AI...');
+        toast.info('📸 Converting PDF to images for GPT-4o Vision...');
         
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const numPages = pdf.numPages;
+        const numPages = Math.min(pdf.numPages, 10); // Limit to 10 pages
+        
+        console.log(`PDF has ${pdf.numPages} pages, processing ${numPages}`);
         
         for (let i = 1; i <= numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          content += `\n--- Page ${i} ---\n${pageText}`;
-          setProgress(20 + (i / numPages) * 30);
+          setProcessingStage(`Converting page ${i}/${numPages} to image...`);
+          const pageImage = await pdfPageToImage(pdf, i);
+          images.push(pageImage);
+          setProgress(15 + (i / numPages) * 35);
         }
         
+        console.log(`Converted ${images.length} pages to images`);
+        
       } else if (fileName.endsWith('.docx')) {
+        // For Word docs: Try text extraction first
         setProcessingStage('Extracting Word document...');
         const arrayBuffer = await file.arrayBuffer();
         const textResult = await mammoth.extractRawText({ arrayBuffer });
         content = textResult.value;
         setProgress(50);
         
+      } else if (file.type.startsWith('image/')) {
+        // Direct image upload
+        setProcessingStage('Processing image...');
+        const base64 = await fileToBase64(file);
+        images.push(`data:${file.type};base64,${base64}`);
+        setProgress(50);
+        
       } else {
+        // Text files
         content = await file.text();
         setProgress(50);
       }
       
-      if (!content || content.trim().length < 50) {
-        throw new Error('Could not extract sufficient text from document');
+      // Check if we have content to process
+      if (images.length === 0 && (!content || content.trim().length < 50)) {
+        throw new Error('Could not extract sufficient content from document');
       }
 
-      setProgress(60);
-      setProcessingStage('Sending to GPT-4o for parsing...');
-      toast.info('🤖 GPT-4o is parsing questions...');
+      setProgress(55);
+      setProcessingStage('🤖 GPT-4o Vision is analyzing pages...');
+      toast.info(images.length > 0 
+        ? `🔍 GPT-4o Vision analyzing ${images.length} page(s)...` 
+        : '🤖 GPT-4o is parsing questions...');
 
-      // Call AI parser
+      // Call AI parser with images or text
       const { data, error } = await supabase.functions.invoke('ai-question-parser', {
         body: {
-          content,
+          content: content || null,
+          images: images.length > 0 ? images : null,
           fileName: file.name,
           parseMode: mode,
           actionMode
@@ -154,7 +188,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       });
       
       if (error) throw error;
-      setProgress(80);
+      setProgress(85);
       
       if (!data || !data.success) {
         throw new Error(data?.error || 'Failed to parse document');
@@ -172,7 +206,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       setPendingMetadata(metadata);
       setShowPreviewEditor(true);
       
-      toast.success(`Extracted ${questions.length} questions - please review`);
+      toast.success(`✅ Extracted ${questions.length} questions - please review`);
       setProgress(100);
       setParseResult({
         success: true,
