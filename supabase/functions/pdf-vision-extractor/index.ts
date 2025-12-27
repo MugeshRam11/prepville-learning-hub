@@ -56,12 +56,16 @@ serve(async (req) => {
       );
     }
 
+    const OCR_API_KEY = Deno.env.get('OCR_API_KEY');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!LOVABLE_API_KEY) {
-      console.error('❌ LOVABLE_API_KEY not configured');
+    // For OCR mode, prefer OCR_API_KEY; for enhanced mode, use LOVABLE_API_KEY
+    const apiKey = extractionMode === 'ocr' ? (OCR_API_KEY || LOVABLE_API_KEY) : LOVABLE_API_KEY;
+    
+    if (!apiKey) {
+      console.error('❌ API key not configured');
       return new Response(
         JSON.stringify({ error: 'OCR service not configured', ocr_status: 'failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -207,30 +211,39 @@ You are analyzing a PDF page image. Your job is to:
 
     while (retryCount <= maxRetries) {
       try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        // Use Mistral Pixtral for OCR mode, Lovable AI Gateway for enhanced mode
+        const apiUrl = extractionMode === 'ocr' && OCR_API_KEY
+          ? 'https://api.mistral.ai/v1/chat/completions'
+          : 'https://ai.gateway.lovable.dev/v1/chat/completions';
+        
+        const model = extractionMode === 'ocr' && OCR_API_KEY
+          ? 'pixtral-large-latest'
+          : 'google/gemini-2.5-flash';
+        
+        // Build image content based on API
+        const imageContent = extractionMode === 'ocr' && OCR_API_KEY
+          ? { type: 'image_url', image_url: `data:image/png;base64,${imageBase64}` }
+          : { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } };
+        
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model,
             messages: [
               {
                 role: 'user',
                 content: [
                   { type: 'text', text: prompt },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:image/png;base64,${imageBase64}`
-                    }
-                  }
+                  imageContent
                 ]
               }
             ],
             max_tokens: extractionMode === 'ocr' ? 8000 : 4000,
-            temperature: 0 // Zero temperature for consistent OCR
+            temperature: 0
           }),
         });
 
