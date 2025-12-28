@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import katex from 'katex';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { 
   Calculator, 
@@ -21,6 +22,13 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// DOMPurify configuration for math editor
+const PURIFY_CONFIG = {
+  ALLOWED_TAGS: ['span', 'div', 'br', 'strong', 'em', 'sup', 'sub'],
+  ALLOWED_ATTR: ['class', 'style', 'data-math-latex', 'data-display', 'contenteditable'],
+  ALLOW_DATA_ATTR: true,
+};
+
 interface MathRichEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -32,6 +40,11 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
   const editorRef = useRef<HTMLDivElement>(null);
   const [showToolbar, setShowToolbar] = useState(false);
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Sanitize HTML content
+  const sanitizeHtml = (html: string): string => {
+    return DOMPurify.sanitize(html, PURIFY_CONFIG);
+  };
 
   const renderKatexInto = useCallback((el: HTMLElement) => {
     if (!el) return;
@@ -336,7 +349,7 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
   useEffect(() => {
     if (editorRef.current && value !== undefined) {
       const processedContent = processContent(value);
-      editorRef.current.innerHTML = processedContent;
+      editorRef.current.innerHTML = sanitizeHtml(processedContent);
       renderKatexInto(editorRef.current);
     }
   }, [value, processContent, renderKatexInto]);

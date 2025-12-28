@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,12 +30,50 @@ interface EvaluationResponse {
   biasLevel: number;
 }
 
+// Helper function to validate authentication
+async function validateAuth(req: Request): Promise<{ user: any; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { user: null, error: 'Missing authorization header' };
+  }
+
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+  
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return { user: null, error: 'Server configuration error' };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const token = authHeader.replace('Bearer ', '');
+  
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return { user: null, error: 'Invalid authentication token' };
+  }
+
+  return { user, error: null };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Validate authentication
+    const { user, error: authError } = await validateAuth(req);
+    if (authError) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: authError }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
     const { questions }: { questions: EvaluationRequest[] } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -77,7 +116,7 @@ Respond ONLY with a JSON object:
   "biasLevel": <number between 0.0 and 1.0>
 }`;
 
-      console.log(`Evaluating question ${question.questionId}...`);
+      console.log(`Evaluating question ${question.questionId} for user ${user.id}...`);
 
       const messages: any[] = [
         { 
@@ -170,7 +209,7 @@ Respond ONLY with a JSON object:
       });
     }
 
-    console.log(`Evaluation complete for ${evaluations.length} questions`);
+    console.log(`Evaluation complete for ${evaluations.length} questions by user ${user.id}`);
 
     return new Response(
       JSON.stringify({ evaluations }),

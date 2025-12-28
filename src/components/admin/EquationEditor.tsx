@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,12 +19,23 @@ import {
 import copy from "copy-to-clipboard";
 import html2canvas from "html2canvas";
 
+// DOMPurify configuration for equation editor
+const PURIFY_CONFIG = {
+  ALLOWED_TAGS: ['span', 'div', 'br', 'sup', 'sub', 'strong', 'em'],
+  ALLOWED_ATTR: ['class', 'style', 'contenteditable'],
+};
+
 interface EquationEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
 }
+
+// Sanitize HTML content
+const sanitizeHtml = (html: string): string => {
+  return DOMPurify.sanitize(html, PURIFY_CONFIG);
+};
 
 export default function EquationEditor({ value, onChange, placeholder, className }: EquationEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -237,7 +249,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
   useEffect(() => {
     const editor = editorRef.current;
     if (editor && editor.innerHTML !== value) {
-      editor.innerHTML = value;
+      editor.innerHTML = sanitizeHtml(value);
     }
   }, [value]);
 

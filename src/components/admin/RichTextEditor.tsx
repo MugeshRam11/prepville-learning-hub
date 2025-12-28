@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +28,13 @@ declare global {
   }
 }
 
+// DOMPurify configuration for rich text editors
+const PURIFY_CONFIG = {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'span', 'div', 'ul', 'ol', 'li', 'sup', 'sub', 'font'],
+  ALLOWED_ATTR: ['style', 'class', 'data-latex', 'contenteditable', 'face', 'size', 'color'],
+  ALLOW_DATA_ATTR: true,
+};
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -43,10 +51,15 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   const [currentSize, setCurrentSize] = useState("16px");
   const isUpdatingRef = useRef(false);
 
+  // Sanitize HTML content before setting
+  const sanitizeHtml = (html: string): string => {
+    return DOMPurify.sanitize(html, PURIFY_CONFIG);
+  };
+
   // Only set initial value once on mount
   useEffect(() => {
     if (editorRef.current && !editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = value || '';
+      editorRef.current.innerHTML = sanitizeHtml(value || '');
     }
   }, []);
 

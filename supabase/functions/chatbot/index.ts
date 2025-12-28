@@ -8,6 +8,34 @@ const corsHeaders = {
 };
 
 // ============================================
+// AUTHENTICATION HELPER
+// ============================================
+async function validateAuth(req: Request): Promise<{ user: any; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { user: null, error: 'Missing authorization header' };
+  }
+
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+  
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return { user: null, error: 'Server configuration error' };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const token = authHeader.replace('Bearer ', '');
+  
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return { user: null, error: 'Invalid authentication token' };
+  }
+
+  return { user, error: null };
+}
+
+// ============================================
 // STRICT MODE DEFINITIONS - SERVER ENFORCED
 // ============================================
 type ChatMode = 'learner' | 'practice' | 'mock_exam' | 'evaluate' | 'evaluate_test';
@@ -171,6 +199,18 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const { user, error: authError } = await validateAuth(req);
+    if (authError) {
+      console.error('[Chatbot] Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: authError }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[Chatbot] Authenticated user:', user.id);
+
     const requestData = await req.json();
     const { 
       mode = 'learner',
