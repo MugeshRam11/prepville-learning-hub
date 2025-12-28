@@ -25,17 +25,23 @@ serve(async (req) => {
     // Extract JWT token
     const token = authHeader.replace('Bearer ', '');
     
-    // Create Supabase client
-    const supabaseClient = createClient(
+    // Create admin client with service role for all operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
 
     // Verify the JWT token and get user
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser(token);
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
       console.error('Auth error:', userError);
@@ -47,25 +53,35 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id, user.email);
 
-    // Check if user is admin
-    const { data: profile, error: profileError } = await supabaseClient
+    // Check if user is admin using service role client (bypasses RLS)
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     console.log('Profile check:', { profile, profileError, userId: user.id });
 
-    if (profileError) {
-      console.error('Profile fetch error:', profileError);
-      return new Response(JSON.stringify({ error: 'Failed to fetch profile', details: profileError.message }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
+    // If no profile found, check user_roles table as fallback
+    let isAdmin = profile?.role === 'admin';
+    
+    if (!profile) {
+      console.log('No profile found, checking user_roles table...');
+      const { data: userRole, error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (userRole) {
+        isAdmin = true;
+        console.log('Found admin role in user_roles table');
+      }
     }
 
-    if (!profile || profile.role !== 'admin') {
-      console.log('Access denied - not admin:', profile?.role);
+    if (!isAdmin) {
+      console.log('Access denied - not admin');
       return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
@@ -85,21 +101,17 @@ serve(async (req) => {
       });
     }
 
+    // Prevent self-deletion
+    if (userId === user.id) {
+      return new Response(JSON.stringify({ error: 'Cannot delete your own account' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
     console.log('Attempting to delete user:', userId);
 
-    // Create admin client with service role
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
-
-    // Delete the user
+    // Delete the user (this will cascade to profiles due to FK constraint)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {

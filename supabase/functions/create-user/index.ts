@@ -26,7 +26,14 @@ serve(async (req) => {
     );
 
     // Verify the request is from an authenticated admin user
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const token = authHeader.replace('Bearer ', '');
     
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
@@ -38,14 +45,36 @@ serve(async (req) => {
       );
     }
 
-    // Check if user is admin
+    console.log('Authenticated user:', user.id, user.email);
+
+    // Check if user is admin using service role client (bypasses RLS)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (profileError || profile?.role !== 'admin') {
+    console.log('Profile check:', { profile, profileError, userId: user.id });
+
+    // If no profile found, check user_roles table as fallback
+    let isAdmin = profile?.role === 'admin';
+    
+    if (!profile) {
+      console.log('No profile found, checking user_roles table...');
+      const { data: userRole, error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (userRole) {
+        isAdmin = true;
+        console.log('Found admin role in user_roles table');
+      }
+    }
+
+    if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -88,6 +117,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('User created successfully:', newUser.user.id, newUser.user.email);
 
     return new Response(
       JSON.stringify({ 
