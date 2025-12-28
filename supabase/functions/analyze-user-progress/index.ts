@@ -6,12 +6,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to validate authentication
+async function validateAuth(req: Request): Promise<{ user: any; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { user: null, error: 'Missing authorization header' };
+  }
+
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+  
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return { user: null, error: 'Server configuration error' };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const token = authHeader.replace('Bearer ', '');
+  
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return { user: null, error: 'Invalid authentication token' };
+  }
+
+  return { user, error: null };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Validate authentication
+    const { user, error: authError } = await validateAuth(req);
+    if (authError) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: authError }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -23,31 +59,46 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { userId } = await req.json();
 
-    if (!userId) {
-      throw new Error('User ID is required');
+    // Security: Users can only analyze their own progress unless they're admins
+    if (userId !== user.id) {
+      // Check if user is admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role !== 'admin') {
+        console.error('User attempted to access another user\'s data');
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Cannot access other user\'s data' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    console.log('Analyzing progress for user:', userId);
+    const targetUserId = userId || user.id;
+    console.log('Analyzing progress for user:', targetUserId, 'requested by:', user.id);
 
     // Fetch user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('first_name, email')
-      .eq('id', userId)
+      .eq('id', targetUserId)
       .single();
 
     // Fetch user XP and level
     const { data: xpData } = await supabase
       .from('user_xp')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .single();
 
     // Fetch struggle topics (weaknesses)
     const { data: struggleTopics } = await supabase
       .from('student_struggle_topics')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .order('struggle_count', { ascending: false })
       .limit(10);
 
@@ -55,7 +106,7 @@ serve(async (req) => {
     const { data: testAttempts } = await supabase
       .from('test_attempts')
       .select('*, tests(test_type, title)')
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .order('completed_at', { ascending: false })
       .limit(20);
 
@@ -71,7 +122,7 @@ serve(async (req) => {
     const { data: progressData } = await supabase
       .from('user_progress')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .single();
 
     // Prepare analysis data for AI

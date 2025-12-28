@@ -6,12 +6,63 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to validate authentication and admin role
+async function validateAdminAuth(req: Request): Promise<{ user: any; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { user: null, error: 'Missing authorization header' };
+  }
+
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    return { user: null, error: 'Server configuration error' };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const token = authHeader.replace('Bearer ', '');
+  
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return { user: null, error: 'Invalid authentication token' };
+  }
+
+  // Check if user is admin
+  const serviceSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: profile } = await serviceSupabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'admin') {
+    return { user: null, error: 'Admin access required' };
+  }
+
+  return { user, error: null };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Validate admin authentication
+    const { user, error: authError } = await validateAdminAuth(req);
+    if (authError) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: authError }),
+        { status: authError === 'Admin access required' ? 403 : 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Admin user uploading training data:', user.id);
+
     const { jsonlData } = await req.json();
     
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -100,7 +151,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Successfully inserted ${inserted} knowledge entries`);
+    console.log(`Successfully inserted ${inserted} knowledge entries by admin ${user.id}`);
 
     return new Response(
       JSON.stringify({ 
