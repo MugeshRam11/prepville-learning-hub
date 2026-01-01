@@ -209,14 +209,24 @@ const MockExamSelect = () => {
                     <div className="flex-1 text-sm text-muted-foreground">
                       <strong>5 Questions</strong> • <strong>20 marks</strong> • <strong>20 mins</strong> • IB MYP Mathematics (Grade 8-9)
                     </div>
-                    <Button 
-                      size="lg"
-                      onClick={() => navigate('/mock-exams/interactive-demo')}
-                      className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
-                    >
-                      <Play className="w-5 h-5" />
-                      Try Interactive Demo
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate('/mock-exams/interactive-demo')}
+                        className="gap-2"
+                      >
+                        <Play className="w-4 h-4" />
+                        Old Demo
+                      </Button>
+                      <Button 
+                        size="lg"
+                        onClick={() => navigate('/mock-exams/interactive')}
+                        className="gap-2 bg-gradient-to-r from-[#1e88e5] to-[#42a5f5] hover:opacity-90"
+                      >
+                        <Play className="w-5 h-5" />
+                        Start IB MYP Test
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
