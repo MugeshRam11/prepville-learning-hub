@@ -26,18 +26,82 @@ const MockExamSummary = () => {
   const {
     subject,
     topic,
+    title,
     answers,
     questions,
-    timeSpent
+    timeSpent,
+    isInteractive,
+    totalMarks: passedTotalMarks
   } = location.state || {};
 
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [isEvaluating, setIsEvaluating] = useState(true);
+  
   useEffect(() => {
-    if (subject && answers && questions) {
-      evaluateAnswers();
+    if ((subject || title) && answers && questions) {
+      if (isInteractive) {
+        evaluateInteractiveAnswers();
+      } else {
+        evaluateAnswers();
+      }
     }
   }, []);
+
+  // AI evaluation for interactive exams
+  const evaluateInteractiveAnswers = async () => {
+    setIsEvaluating(true);
+    try {
+      // Prepare answers for evaluation
+      const formattedAnswers = Object.entries(answers).map(([questionId, answer]) => {
+        const question = questions.find((q: any) => q.id === questionId);
+        return {
+          questionId,
+          answer,
+          questionType: question?.questionType || 'text_input'
+        };
+      });
+
+      console.log('Sending interactive answers for evaluation:', formattedAnswers);
+
+      const { data, error } = await supabase.functions.invoke('evaluate-interactive-answers', {
+        body: { 
+          answers: formattedAnswers,
+          testId: location.state?.testId
+        }
+      });
+
+      if (error) {
+        console.error('Interactive evaluation error:', error);
+        if (error.message?.includes('402') || error.message?.includes('credits')) {
+          toast.error('Out of AI credits. Please add credits in Settings → Workspace → Usage', {
+            duration: 8000,
+          });
+        } else {
+          toast.error('Failed to evaluate answers: ' + (error.message || 'Unknown error'));
+        }
+        throw error;
+      }
+
+      console.log('Interactive evaluation results:', data);
+      
+      // Map results to expected format
+      const mappedEvaluations = (data.results || []).map((r: any) => ({
+        questionId: r.questionId,
+        marksAwarded: r.marksAwarded,
+        totalMarks: r.totalMarks,
+        evaluationType: r.isCorrect ? 'correct' : r.partialCredit > 0 ? 'partial' : 'incorrect',
+        comment: r.feedback,
+        feedback: r.isCorrect ? 'Correct!' : r.partialCredit > 0 ? 'Partially correct' : 'Needs improvement'
+      }));
+
+      setEvaluations(mappedEvaluations);
+    } catch (error: any) {
+      console.error('Interactive evaluation error:', error);
+      toast.error('Failed to evaluate answers');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
 
   const evaluateAnswers = async () => {
     setIsEvaluating(true);
@@ -114,7 +178,7 @@ const MockExamSummary = () => {
     }
   };
 
-  if (!subject || !answers || !questions) {
+  if (!answers || !questions) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">No Results Found</h2>
@@ -124,15 +188,25 @@ const MockExamSummary = () => {
         </div>
       </div>;
   }
-  const totalQuestions = questions.reduce((total: number, q: Question) => {
-    return total + 1 + (q.subQuestions?.length || 0);
-  }, 0);
   
-  const attemptedCount = answers.length;
+  // Handle interactive exam format (object vs array)
+  const isInteractiveAnswers = !Array.isArray(answers);
+  const answersArray = isInteractiveAnswers 
+    ? Object.entries(answers).map(([questionId, answer]) => ({ questionId, content: answer, answer }))
+    : answers;
+  const totalQuestions = isInteractiveAnswers 
+    ? questions.length 
+    : questions.reduce((total: number, q: Question) => {
+        return total + 1 + (q.subQuestions?.length || 0);
+      }, 0);
+  
+  const attemptedCount = answersArray.length;
   const unattemptedCount = totalQuestions - attemptedCount;
   
   // Calculate total marks and awarded marks from AI evaluation
-  const totalMarks = evaluations.reduce((sum, ev) => sum + ev.totalMarks, 0);
+  const totalMarks = evaluations.length > 0 
+    ? evaluations.reduce((sum, ev) => sum + ev.totalMarks, 0)
+    : (passedTotalMarks || questions.reduce((sum: number, q: any) => sum + (q.marks || 0), 0));
   const awardedMarks = evaluations.reduce((sum, ev) => sum + ev.marksAwarded, 0);
   const scorePercentage = totalMarks > 0 ? Math.round((awardedMarks / totalMarks) * 100) : 0;
   
@@ -149,8 +223,13 @@ const MockExamSummary = () => {
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
   const getQuestionAnswer = (questionId: string, subQuestionId?: string) => {
+    if (isInteractiveAnswers) {
+      return answersArray.find((a: any) => a.questionId === questionId);
+    }
     return answers.find((a: Answer) => a.questionId === questionId && a.subQuestionId === subQuestionId);
   };
+  
+  const displayTitle = title || topic || subject || 'Mock Exam';
   return <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 bg-gradient-to-br from-green-50 to-blue-50 py-8">
@@ -160,8 +239,10 @@ const MockExamSummary = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Mock Exam Completed!</h1>
-            <p className="text-gray-600">{subject} - {topic}</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              {isInteractive ? 'Interactive Exam' : 'Mock Exam'} Completed!
+            </h1>
+            <p className="text-gray-600">{displayTitle}</p>
           </div>
 
           {/* Summary Cards */}

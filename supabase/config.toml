@@ -32,3 +32,9 @@ verify_jwt = true
 
 [functions.ocr-gpt4-structurer]
 verify_jwt = true
+
+[functions.evaluate-interactive-answers]
+verify_jwt = true
+
+[functions.detect-question-type]
+verify_jwt = true

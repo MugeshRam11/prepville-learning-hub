@@ -1,4 +1,5 @@
 // Maps database mock_questions to interactive question format
+import { supabase } from '@/integrations/supabase/client';
 import type { 
   InteractiveQuestion, 
   QuestionType,
@@ -26,6 +27,64 @@ interface DBSubQuestion {
   marks: number;
   sub_question_label: string;
   answer_key?: string;
+}
+
+interface AIDetectionResult {
+  questionId: string;
+  questionType: QuestionType;
+  confidence: number;
+  reasoning: string;
+}
+
+// Use AI to detect question types
+export async function detectQuestionTypesWithAI(questions: DBQuestion[]): Promise<Map<string, QuestionType>> {
+  const typeMap = new Map<string, QuestionType>();
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('detect-question-type', {
+      body: { 
+        questions: questions.map(q => ({
+          id: q.id,
+          question_text: q.question_text,
+          diagram_description: q.diagram_description,
+          marks: q.marks,
+          answer_key: q.answer_key
+        }))
+      }
+    });
+
+    if (error) {
+      console.error('AI detection error:', error);
+      // Fall back to rule-based detection
+      questions.forEach(q => {
+        typeMap.set(q.id, detectQuestionType(q));
+      });
+      return typeMap;
+    }
+
+    const results = data?.results as AIDetectionResult[];
+    if (results && Array.isArray(results)) {
+      results.forEach(result => {
+        typeMap.set(result.questionId, result.questionType);
+      });
+    }
+
+    // Fill in any missing with fallback
+    questions.forEach(q => {
+      if (!typeMap.has(q.id)) {
+        typeMap.set(q.id, detectQuestionType(q));
+      }
+    });
+
+  } catch (err) {
+    console.error('Failed to call AI detection:', err);
+    // Fall back to rule-based detection
+    questions.forEach(q => {
+      typeMap.set(q.id, detectQuestionType(q));
+    });
+  }
+
+  return typeMap;
 }
 
 // Detect question type based on content keywords and structure
@@ -255,7 +314,49 @@ export function mapDBQuestionToInteractive(question: DBQuestion, index: number):
   };
 }
 
-// Map array of DB questions to interactive questions
+// Map array of DB questions to interactive questions (sync version)
 export function mapDBQuestionsToInteractive(questions: DBQuestion[]): InteractiveQuestion[] {
   return questions.map((q, index) => mapDBQuestionToInteractive(q, index));
+}
+
+// Map array of DB questions with AI-powered type detection (async version)
+export async function mapDBQuestionsToInteractiveWithAI(questions: DBQuestion[]): Promise<InteractiveQuestion[]> {
+  // Get AI-detected types
+  const typeMap = await detectQuestionTypesWithAI(questions);
+  
+  return questions.map((question, index) => {
+    const questionType = typeMap.get(question.id) || detectQuestionType(question);
+    
+    let interactionData: any = undefined;
+    
+    switch (questionType) {
+      case 'graph_interaction':
+        interactionData = generateGraphData(question);
+        break;
+      case 'drag_drop_match':
+        interactionData = generateDragDropData(question);
+        break;
+      case 'step_builder':
+        interactionData = generateStepBuilderData(question);
+        break;
+      case 'math_input':
+        interactionData = generateMathInputData(question);
+        break;
+    }
+    
+    return {
+      id: question.id,
+      questionNumber: question.question_number || index + 1,
+      text: question.question_text,
+      marks: question.marks,
+      questionType,
+      interactionData,
+      hints: generateHints(question),
+      feedback: {
+        correct: 'Well done! Your answer is correct.',
+        partial: 'Partially correct. Review your answer.',
+        incorrect: 'Not quite right. Try again.'
+      }
+    };
+  });
 }

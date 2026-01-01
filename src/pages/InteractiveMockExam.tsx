@@ -9,7 +9,7 @@ import InteractiveExamSidebar from '@/components/mock-exam/InteractiveExamSideba
 import InteractiveExamQuestion from '@/components/mock-exam/InteractiveExamQuestion';
 
 import { mocktest2, type InteractiveMockTest, type InteractiveQuestion } from '@/data/mocktest2';
-import { mapDBQuestionsToInteractive } from '@/lib/interactiveQuestionMapper';
+import { mapDBQuestionsToInteractive, mapDBQuestionsToInteractiveWithAI } from '@/lib/interactiveQuestionMapper';
 
 const InteractiveMockExam = () => {
   const navigate = useNavigate();
@@ -33,9 +33,10 @@ const InteractiveMockExam = () => {
       try {
         // If questions are passed directly (from subject view), convert them
         if (passedQuestions && passedQuestions.length > 0) {
-          console.log('Converting passed questions to interactive format:', passedQuestions);
+          console.log('Converting passed questions to interactive format with AI:', passedQuestions);
           
-          const interactiveQuestions = mapDBQuestionsToInteractive(passedQuestions);
+          // Use AI-powered detection for better question type accuracy
+          const interactiveQuestions = await mapDBQuestionsToInteractiveWithAI(passedQuestions);
           const totalMarks = interactiveQuestions.reduce((sum, q) => sum + q.marks, 0);
           
           setTestData({
@@ -69,9 +70,10 @@ const InteractiveMockExam = () => {
           if (questionsError) throw questionsError;
 
           if (questionsData && questionsData.length > 0) {
-            console.log('Questions data found:', questionsData);
+            console.log('Questions data found, using AI detection:', questionsData);
             
-            const interactiveQuestions = mapDBQuestionsToInteractive(questionsData);
+            // Use AI-powered detection
+            const interactiveQuestions = await mapDBQuestionsToInteractiveWithAI(questionsData);
             const totalMarks = interactiveQuestions.reduce((sum, q) => sum + q.marks, 0);
             
             // Fetch test metadata
