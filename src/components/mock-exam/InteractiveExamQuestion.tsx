@@ -204,8 +204,25 @@ const InteractiveExamQuestion = ({
           </div>
         );
 
+      case 'text_input':
       default:
-        return null;
+        return (
+          <Card className="border-2 border-gray-200 bg-gray-50/30 dark:bg-gray-950/20">
+            <CardHeader className="pb-2">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <Badge className="bg-gray-500 text-white">Text Response</Badge>
+              </h3>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                className="w-full min-h-[200px] p-4 border rounded-lg bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Type your answer here..."
+                value={currentAnswer || ''}
+                onChange={(e) => onAnswerChange(question.id, e.target.value)}
+              />
+            </CardContent>
+          </Card>
+        );
     }
   };
 

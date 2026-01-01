@@ -1,28 +1,122 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 import InteractiveExamHeader from '@/components/mock-exam/InteractiveExamHeader';
 import InteractiveExamSidebar from '@/components/mock-exam/InteractiveExamSidebar';
 import InteractiveExamQuestion from '@/components/mock-exam/InteractiveExamQuestion';
 
-import { mocktest2, type InteractiveMockTest } from '@/data/mocktest2';
+import { mocktest2, type InteractiveMockTest, type InteractiveQuestion } from '@/data/mocktest2';
+import { mapDBQuestionsToInteractive } from '@/lib/interactiveQuestionMapper';
 
 const InteractiveMockExam = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get test data from location state or use default mocktest2
-  const testData: InteractiveMockTest = location.state?.testData || mocktest2;
+  // Get test data from location state
+  const { testId, subject, topic, title, questions: passedQuestions } = location.state || {};
   
+  const [testData, setTestData] = useState<InteractiveMockTest | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [answeredQuestions, setAnsweredQuestions] = useState<Set<string>>(new Set());
   const [startTime] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load questions from database or use default mocktest2
+  useEffect(() => {
+    const loadTestData = async () => {
+      setIsLoading(true);
+      
+      try {
+        // If questions are passed directly (from subject view), convert them
+        if (passedQuestions && passedQuestions.length > 0) {
+          console.log('Converting passed questions to interactive format:', passedQuestions);
+          
+          const interactiveQuestions = mapDBQuestionsToInteractive(passedQuestions);
+          const totalMarks = interactiveQuestions.reduce((sum, q) => sum + q.marks, 0);
+          
+          setTestData({
+            id: testId || 'dynamic-test',
+            title: title || topic || 'Interactive Model Test',
+            subject: subject || 'Mathematics',
+            board: 'IB',
+            grade: '8-9',
+            duration: 120, // 2 hours default
+            totalMarks,
+            questions: interactiveQuestions
+          });
+          
+          setIsLoading(false);
+          return;
+        }
+
+        // If testId is provided, fetch from database
+        if (testId) {
+          console.log('Loading test data for testId:', testId);
+          
+          const { data: questionsData, error: questionsError } = await supabase
+            .from('mock_questions')
+            .select(`
+              *,
+              mock_sub_questions (*)
+            `)
+            .eq('mock_test_id', testId)
+            .order('question_number');
+
+          if (questionsError) throw questionsError;
+
+          if (questionsData && questionsData.length > 0) {
+            console.log('Questions data found:', questionsData);
+            
+            const interactiveQuestions = mapDBQuestionsToInteractive(questionsData);
+            const totalMarks = interactiveQuestions.reduce((sum, q) => sum + q.marks, 0);
+            
+            // Fetch test metadata
+            const { data: testMeta } = await supabase
+              .from('mock_tests')
+              .select('title, subject, topic')
+              .eq('id', testId)
+              .single();
+            
+            setTestData({
+              id: testId,
+              title: testMeta?.title || title || 'Interactive Model Test',
+              subject: testMeta?.subject || subject || 'Mathematics',
+              board: 'IB',
+              grade: '8-9',
+              duration: 120,
+              totalMarks,
+              questions: interactiveQuestions
+            });
+            
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Default to mocktest2 demo data
+        console.log('Using default mocktest2 demo data');
+        setTestData(mocktest2);
+        
+      } catch (error) {
+        console.error('Error loading test data:', error);
+        toast.error('Failed to load test questions. Using demo data.');
+        setTestData(mocktest2);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTestData();
+  }, [testId, passedQuestions, title, topic, subject]);
 
   // Auto-save to localStorage
   useEffect(() => {
+    if (!testData) return;
+    
     const saveKey = `interactiveExam_${testData.id}`;
     const savedData = localStorage.getItem(saveKey);
     
@@ -31,9 +125,11 @@ const InteractiveMockExam = () => {
       setAnswers(savedAnswers);
       setAnsweredQuestions(new Set(answered));
     }
-  }, [testData.id]);
+  }, [testData?.id]);
 
   useEffect(() => {
+    if (!testData) return;
+    
     const saveKey = `interactiveExam_${testData.id}`;
     const interval = setInterval(() => {
       localStorage.setItem(saveKey, JSON.stringify({
@@ -43,7 +139,7 @@ const InteractiveMockExam = () => {
     }, 10000); // Auto-save every 10 seconds
 
     return () => clearInterval(interval);
-  }, [answers, answeredQuestions, testData.id]);
+  }, [answers, answeredQuestions, testData?.id]);
 
   const handleAnswerChange = (questionId: string, answer: any) => {
     setAnswers(prev => ({
@@ -65,10 +161,11 @@ const InteractiveMockExam = () => {
   };
 
   const handleNext = () => {
+    if (!testData) return;
+    
     if (currentQuestionIndex < testData.questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
-      // Last question - submit
       handleSubmit();
     }
   };
@@ -84,6 +181,8 @@ const InteractiveMockExam = () => {
   };
 
   const handleSubmit = () => {
+    if (!testData) return;
+    
     // Clear saved data
     localStorage.removeItem(`interactiveExam_${testData.id}`);
     
@@ -105,6 +204,23 @@ const InteractiveMockExam = () => {
 
     toast.success('Test submitted successfully!');
   };
+
+  // Loading state
+  if (isLoading || !testData) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-xl border border-blue-200">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Loading Interactive Test...
+          </h2>
+          <p className="text-gray-600">Preparing your questions...</p>
+        </div>
+      </div>
+    );
+  }
 
   const progressPercentage = (answeredQuestions.size / testData.questions.length) * 100;
   const currentQuestion = testData.questions[currentQuestionIndex];

@@ -7,7 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, FileText, Award, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, FileText, Award, Image as ImageIcon, Sparkles } from 'lucide-react';
+
 const MockExamSubjectView = () => {
   const {
     subject
@@ -82,6 +83,18 @@ const MockExamSubjectView = () => {
       }
     });
   };
+
+  const handleStartInteractiveTest = () => {
+    navigate('/mock-exams/interactive', {
+      state: {
+        subject: getSubjectLabel(subject || ''),
+        subjectKey: subject,
+        title: `Interactive ${getSubjectLabel(subject || '')} Test`,
+        topic: getSubjectLabel(subject || ''),
+        questions: questions
+      }
+    });
+  };
   if (loading) {
     return <div className="min-h-screen flex flex-col">
         <Header />
@@ -112,10 +125,21 @@ const MockExamSubjectView = () => {
                   {questions.length} questions available
                 </p>
               </div>
-              <Button onClick={handleStartTest} size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70" disabled={questions.length === 0}>
-                <FileText className="w-5 h-5 mr-2" />
-                Start Test
-              </Button>
+              <div className="flex gap-3">
+                <Button onClick={handleStartTest} size="lg" variant="outline" disabled={questions.length === 0}>
+                  <FileText className="w-5 h-5 mr-2" />
+                  Standard Test
+                </Button>
+                <Button 
+                  onClick={handleStartInteractiveTest} 
+                  size="lg" 
+                  className="bg-gradient-to-r from-[#1e88e5] to-[#42a5f5] hover:opacity-90 gap-2" 
+                  disabled={questions.length === 0}
+                >
+                  <Sparkles className="w-5 h-5" />
+                  Interactive Test
+                </Button>
+              </div>
             </div>
           </div>
         </section>
