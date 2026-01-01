@@ -36,85 +36,258 @@ async function validateAuth(req: Request): Promise<{ user: any; error: string | 
 }
 
 // ============================================
+// MYP MATHEMATICS COMMAND TERMS
+// ============================================
+const MYP_COMMAND_TERMS: Record<string, { definition: string; responseStyle: string }> = {
+  'annotate': {
+    definition: 'Add brief notes to a diagram or graph',
+    responseStyle: 'Add concise labels or notes without explanation'
+  },
+  'apply': {
+    definition: 'Use knowledge and understanding in response to a given situation or real circumstances',
+    responseStyle: 'Show application of concept to the specific problem'
+  },
+  'calculate': {
+    definition: 'Obtain a numerical answer showing the relevant stages in the working',
+    responseStyle: 'Show ALL intermediate steps with clear working. Display each step on new line'
+  },
+  'comment': {
+    definition: 'Give a judgment based on a given statement or result of a calculation',
+    responseStyle: 'Provide brief analytical judgment'
+  },
+  'construct': {
+    definition: 'Display information in a diagrammatic or logical form',
+    responseStyle: 'Present information as diagram description or logical structure'
+  },
+  'demonstrate': {
+    definition: 'Make clear by reasoning or evidence, illustrating with examples or practical application',
+    responseStyle: 'Focus on reasoning with practical examples'
+  },
+  'derive': {
+    definition: 'Manipulate a mathematical relationship to give a new equation or relationship',
+    responseStyle: 'Show step-by-step algebraic manipulation'
+  },
+  'describe': {
+    definition: 'Give a detailed account or picture of a situation, event, pattern, or process',
+    responseStyle: 'Provide detailed explanation of the pattern or process'
+  },
+  'discuss': {
+    definition: 'Offer a considered and balanced review with arguments supported by evidence',
+    responseStyle: 'Present multiple perspectives with supporting evidence'
+  },
+  'draw': {
+    definition: 'Represent by means of a labelled, accurate diagram or graph',
+    responseStyle: 'Describe diagram/graph with labels and accurate details'
+  },
+  'estimate': {
+    definition: 'Obtain an approximate value for an unknown quantity',
+    responseStyle: 'Provide approximation with reasoning for estimate'
+  },
+  'explain': {
+    definition: 'Give a detailed account including reasons or causes',
+    responseStyle: 'Focus on WHY - give reasons and causes, not just steps'
+  },
+  'identify': {
+    definition: 'Provide an answer from a number of possibilities. Recognize and state briefly',
+    responseStyle: 'Give ONLY the identified answer with NO explanation'
+  },
+  'justify': {
+    definition: 'Give valid reasons or evidence to support an answer or conclusion',
+    responseStyle: 'Provide evidence and logical reasoning to support the answer'
+  },
+  'label': {
+    definition: 'Add title, labels, or brief explanation(s) to a diagram or graph',
+    responseStyle: 'Provide labels without extended explanation'
+  },
+  'measure': {
+    definition: 'Obtain a value for a quantity',
+    responseStyle: 'Provide the measured value with appropriate units'
+  },
+  'organize': {
+    definition: 'Put ideas and information into a proper or systematic order',
+    responseStyle: 'Present information in logical, structured order'
+  },
+  'plot': {
+    definition: 'Mark the position of points on a diagram',
+    responseStyle: 'Describe point positions with coordinates'
+  },
+  'predict': {
+    definition: 'Give an expected result of an upcoming action or event',
+    responseStyle: 'Provide prediction with brief reasoning'
+  },
+  'prove': {
+    definition: 'Use a sequence of logical steps to obtain the required result in a formal way',
+    responseStyle: 'Use FORMAL logical structure: Given → Show → Therefore'
+  },
+  'select': {
+    definition: 'Choose from a list or group',
+    responseStyle: 'Give ONLY the selected answer with NO explanation'
+  },
+  'show': {
+    definition: 'Give the steps in a calculation or derivation',
+    responseStyle: 'Display ALL steps in the working clearly'
+  },
+  'sketch': {
+    definition: 'Represent by means of a diagram or graph showing general shape or relationship',
+    responseStyle: 'Describe the general shape with relevant features'
+  },
+  'solve': {
+    definition: 'Obtain the answer(s) using algebraic, numerical, or graphical methods',
+    responseStyle: 'Show complete solution with ALL steps using appropriate method'
+  },
+  'state': {
+    definition: 'Give a specific name, value, or other brief answer without explanation or calculation',
+    responseStyle: 'Give ONLY the answer with NO explanation, NO working'
+  },
+  'suggest': {
+    definition: 'Propose a solution, hypothesis, or other possible answer',
+    responseStyle: 'Offer a proposed solution with brief reasoning'
+  },
+  'trace': {
+    definition: 'Follow and record the action of an algorithm',
+    responseStyle: 'Show step-by-step execution of the algorithm'
+  },
+  'use': {
+    definition: 'Apply knowledge or rules to put theory into practice',
+    responseStyle: 'Apply the rule/theory to the specific situation'
+  },
+  'verify': {
+    definition: 'Provide evidence that validates the result',
+    responseStyle: 'Show evidence/check that confirms the result is correct'
+  },
+  'write down': {
+    definition: 'Obtain the answer(s), usually by extracting information. Little or no calculation required',
+    responseStyle: 'Give the answer directly with minimal or no working'
+  }
+};
+
+// Detect command term in text
+function detectCommandTerm(text: string): { term: string; definition: string; responseStyle: string } | null {
+  const lowerText = text.toLowerCase();
+  
+  // Check for each command term (check longer phrases first)
+  const sortedTerms = Object.keys(MYP_COMMAND_TERMS).sort((a, b) => b.length - a.length);
+  
+  for (const term of sortedTerms) {
+    // Match at word boundaries
+    const regex = new RegExp(`\\b${term}\\b`, 'i');
+    if (regex.test(lowerText)) {
+      return {
+        term,
+        definition: MYP_COMMAND_TERMS[term].definition,
+        responseStyle: MYP_COMMAND_TERMS[term].responseStyle
+      };
+    }
+  }
+  
+  return null;
+}
+
+// ============================================
+// LATEX FORMATTING RULES
+// ============================================
+const LATEX_SYSTEM_RULES = `
+LATEX FORMATTING - MANDATORY:
+All mathematical notation MUST be in LaTeX format. NEVER write math in plain text.
+
+RULES:
+- Use $...$ for inline math: $x^2 + 2x + 1$
+- Use $$...$$ for display/block math: $$\\frac{a}{b} = c$$
+- Common patterns:
+  • Fractions: $\\frac{numerator}{denominator}$
+  • Powers: $x^2$, $x^{10}$
+  • Subscripts: $x_1$, $a_{n+1}$
+  • Square roots: $\\sqrt{16}$, $\\sqrt[3]{27}$
+  • Greek letters: $\\pi$, $\\theta$, $\\alpha$
+  • Multiplication: $\\times$ or $\\cdot$
+  • Division: $\\div$ or $\\frac{a}{b}$
+  • Equals/inequalities: $=$, $\\neq$, $<$, $>$, $\\leq$, $\\geq$
+  • Plus/minus: $\\pm$
+  • Summation: $\\sum_{i=1}^{n}$
+  • Integral: $\\int_{a}^{b}$
+  • Limits: $\\lim_{x \\to 0}$
+  • Trigonometry: $\\sin$, $\\cos$, $\\tan$
+  • Logarithms: $\\log$, $\\ln$
+
+WRONG: x^2 + 2x + 1 = 0, sqrt(16) = 4, pi = 3.14
+CORRECT: $x^2 + 2x + 1 = 0$, $\\sqrt{16} = 4$, $\\pi \\approx 3.14$
+`;
+
+// ============================================
 // STRICT MODE DEFINITIONS - SERVER ENFORCED
 // ============================================
 type ChatMode = 'learner' | 'practice' | 'mock_exam' | 'evaluate' | 'evaluate_test';
 
 const MODE_SYSTEM_PROMPTS: Record<string, string> = {
-  learner: `You are a SMART STUDENT ASSISTANT, similar to ChatGPT in conversation style, but with STRICT learning rules.
+  learner: `You are an MYP MATHEMATICS SMART STUDENT ASSISTANT.
 
-Your goal is to HELP students THINK and LEARN, NOT to give answers.
+${LATEX_SYSTEM_RULES}
+
+MYP COMMAND TERM RECOGNITION:
+When a question contains a command term, respond STRICTLY according to its definition:
+- "State", "Identify", "Select", "Write down": Give ONLY the final response with NO explanation
+- "Calculate", "Solve", "Show": Include ALL intermediate steps
+- "Explain", "Justify", "Demonstrate": Focus on reasoning, not just answers
+- "Prove": Use formal logical structure (Given → Proof → Therefore)
+- "Describe": Give detailed account of pattern/process
+- "Derive": Show step-by-step algebraic manipulation
 
 LANGUAGE & STYLE ADAPTATION:
 - Automatically adapt to the user's language.
 - If user speaks English → reply in English.
 - If user uses Tamil + English mix → reply in Tanglish.
-- If user uses slang → reply casually but respectfully.
-- Match the user's tone (formal / casual / slang).
-- Be friendly, calm, and supportive like ChatGPT.
+- Match the user's tone (formal / casual).
+- Be friendly, calm, and supportive.
 
 ABSOLUTE RULES (NON-NEGOTIABLE):
-- NEVER give final answers.
-- NEVER provide exact numeric results.
-- NEVER fully solve the question.
-- NEVER bypass exam rules.
-- NEVER reveal step-by-step solutions end-to-end.
-
-If the user asks directly for an answer:
-→ Politely refuse and switch to guidance mode.
+- NEVER give final answers directly unless command term requires it.
+- NEVER bypass learning rules.
+- In student-assist mode, GUIDE the learner without revealing the answer.
 
 WHAT YOU ARE ALLOWED TO DO:
 - Ask guiding questions
 - Give hints (not solutions)
 - Break problems into small thinking steps
 - Explain concepts in simple words
-- Remind formulas WITHOUT applying numbers
+- Remind formulas using LaTeX WITHOUT applying numbers
 - Help the student find their own mistake
 
 ADAPTIVE GUIDANCE:
 - If user is confident → give minimal hints
 - If user is confused → slow down and simplify
 - If user is frustrated → encourage and reassure
-- If user is stuck → ask what step they reached
-
-IMAGE / GRAPH QUESTIONS:
-- Ask the user to describe what they see
-- Ask about axes, labels, shapes, or values
-- Do NOT interpret the full image for them
 
 OUTPUT STYLE:
 - Short, clear responses
 - One idea at a time
-- Conversational like ChatGPT
-- No long lectures unless the user asks`,
+- ALL math in LaTeX format`,
 
-  practice: `You are a SMART STUDENT ASSISTANT helping students practice and reinforce learning.
+  practice: `You are an MYP MATHEMATICS PRACTICE ASSISTANT.
+
+${LATEX_SYSTEM_RULES}
+
+MYP COMMAND TERM RECOGNITION:
+Respond STRICTLY according to the command term in the question:
+- "State", "Identify", "Select": Give ONLY the answer, NO explanation
+- "Calculate", "Solve", "Show": Show ALL working steps
+- "Explain", "Justify": Focus on reasoning and causes
+- "Prove": Use formal logical proof structure
 
 LANGUAGE & STYLE ADAPTATION:
 - Automatically adapt to the user's language and tone.
-- Be friendly, calm, and supportive like ChatGPT.
-
-ABSOLUTE RULES (NON-NEGOTIABLE):
-- NEVER give final answers.
-- NEVER provide exact numeric results.
-- NEVER fully solve the question.
+- Be friendly, calm, and supportive.
 
 WHAT YOU ARE ALLOWED TO DO:
 - Give stronger hints than learner mode
 - Break problems into smaller steps
 - Guide toward understanding with clearer direction
 - Help identify where their thinking went wrong
-- Remind formulas WITHOUT applying numbers
-
-ADAPTIVE GUIDANCE:
-- If user is confident → give minimal hints
-- If user is confused → slow down and simplify
-- If user is frustrated → encourage and reassure
+- Remind formulas using LaTeX
 
 OUTPUT STYLE:
 - Short, clear responses (2-4 sentences)
-- Conversational and supportive
-- No long lectures unless asked`,
+- ALL mathematical notation in LaTeX
+- Conversational and supportive`,
 
   mock_exam: `You are a strict exam monitor. This is a mock exam environment.
 
@@ -146,7 +319,6 @@ function validateResponse(response: string, mode: ChatMode): { valid: boolean; r
     /option [a-d] is (?:correct|right)/i,
     /you should (?:choose|select|pick) [a-d]/i,
     /the solution is/i,
-    /= \d+/,  // Direct numerical answers
     /(?:it's|its|it is) [a-d]\b/i,
   ];
   
@@ -159,7 +331,6 @@ function validateResponse(response: string, mode: ChatMode): { valid: boolean; r
     
     // Check for explicit correct/wrong statements
     if (/\b(correct|wrong|right answer|incorrect)\b/i.test(lowerResponse)) {
-      // Allow in context of explaining concepts, not evaluating student
       if (/your answer is (correct|wrong|incorrect)/i.test(lowerResponse)) {
         return { valid: false, reason: 'Response evaluates student answer directly' };
       }
@@ -167,7 +338,6 @@ function validateResponse(response: string, mode: ChatMode): { valid: boolean; r
   }
   
   if (mode === 'mock_exam') {
-    // Mock exam should only have minimal acknowledgments
     const allowedPhrases = [
       'recorded', 'proceeding', 'next question', 'select an answer', 
       'exam environment', 'submit your', 'time remaining'
@@ -326,7 +496,6 @@ serve(async (req) => {
 // MOCK EXAM HANDLER - NO AI CALLS
 // ============================================
 async function handleMockExam({ message, corsHeaders }: any) {
-  // Mock exam mode - NO AI involvement, just acknowledgments
   console.log('[MockExam] Answer recorded (no AI call)');
   
   return new Response(
@@ -379,7 +548,7 @@ async function callAI(
       model,
       messages,
       temperature: 0.7,
-      max_tokens: 300,
+      max_tokens: 500,
     }),
   });
 
@@ -415,9 +584,25 @@ async function guideTutoring({
   useOpenAI,
   corsHeaders
 }: any) {
-  const systemPrompt = MODE_SYSTEM_PROMPTS[mode] || MODE_SYSTEM_PROMPTS.learner;
+  const baseSystemPrompt = MODE_SYSTEM_PROMPTS[mode] || MODE_SYSTEM_PROMPTS.learner;
   
-  // Build context from OCR-parsed question data ONLY
+  // Detect MYP command term in the question or message
+  const questionText = question?.content || question?.text || message || '';
+  const detectedCommand = detectCommandTerm(questionText);
+  
+  let commandTermInstructions = '';
+  if (detectedCommand) {
+    console.log(`[MYP] Detected command term: "${detectedCommand.term}"`);
+    commandTermInstructions = `
+DETECTED COMMAND TERM: "${detectedCommand.term.toUpperCase()}"
+Definition: ${detectedCommand.definition}
+REQUIRED RESPONSE STYLE: ${detectedCommand.responseStyle}
+
+You MUST follow this response style exactly. Do not add extra explanation if the command term doesn't require it.
+`;
+  }
+
+  // Build context from OCR-parsed question data
   let questionContext = '';
   if (question) {
     questionContext = `
@@ -431,10 +616,13 @@ IMPORTANT: Only use the above question data. Do not invent or assume additional 
 `;
   }
 
+  const systemPrompt = baseSystemPrompt + commandTermInstructions;
+
   const userPrompt = `${questionContext}
 Student's message: "${message}"
 
-Respond following the rules for ${mode} mode. Keep response under 100 words.`;
+Respond following the rules for ${mode} mode.${detectedCommand ? ` Use the "${detectedCommand.term}" command term response style.` : ''}
+Remember: ALL mathematical expressions MUST use LaTeX formatting ($...$).`;
 
   try {
     let aiResponse = await callAI(systemPrompt, userPrompt, apiKey, useOpenAI, conversationHistory);
@@ -454,13 +642,14 @@ Respond following the rules for ${mode} mode. Keep response under 100 words.`;
       .replace(/"\s*\}/g, '');
 
     // Log for audit
-    console.log(`[Tutoring Response] Mode: ${mode}, Length: ${cleanedResponse.length}`);
+    console.log(`[Tutoring Response] Mode: ${mode}, Command: ${detectedCommand?.term || 'none'}, Length: ${cleanedResponse.length}`);
 
     return new Response(
       JSON.stringify({
         response: cleanedResponse,
         messageType: 'chat',
-        mode
+        mode,
+        detectedCommandTerm: detectedCommand?.term || null
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -495,19 +684,21 @@ async function evaluateAnswer({
   useOpenAI,
   corsHeaders 
 }: any) {
-  const systemPrompt = `You are an expert educational evaluator.
+  const systemPrompt = `You are an expert MYP Mathematics evaluator.
+
+${LATEX_SYSTEM_RULES}
 
 RULES:
 - Evaluate the student's answer against the correct answer
-- Provide constructive feedback
+- Provide constructive feedback using LaTeX for any mathematical notation
 - Give hints that guide without revealing the answer
 - Be encouraging
 
 Respond ONLY with a JSON object:
 {
   "evaluation": "correct|partially_correct|incorrect",
-  "feedback": "Brief feedback (1-2 sentences)",
-  "hint": "Guiding hint if incorrect (1 sentence) or null",
+  "feedback": "Brief feedback using LaTeX for math (1-2 sentences)",
+  "hint": "Guiding hint if incorrect using LaTeX (1 sentence) or null",
   "similarityScore": 0-100
 }`;
 
@@ -517,7 +708,7 @@ Correct Answer: ${question.correctAnswer}
 Student's Answer: ${studentAnswer}
 Attempt #: ${attemptNumber}
 
-Evaluate and respond with JSON only.`;
+Evaluate and respond with JSON only. Use LaTeX for all mathematical expressions.`;
 
   try {
     const aiResponse = await callAI(systemPrompt, userPrompt, apiKey, useOpenAI, conversationHistory);
@@ -581,7 +772,9 @@ async function evaluateTest({
   const validScore = Math.max(0, Math.min(100, score || 0));
   const validCorrect = Math.max(0, correctAnswers || 0);
 
-  const systemPrompt = `You are an expert educational evaluator analyzing test performance.
+  const systemPrompt = `You are an expert MYP Mathematics evaluator analyzing test performance.
+
+${LATEX_SYSTEM_RULES}
 
 Provide constructive analysis focusing on:
 - Overall performance assessment
