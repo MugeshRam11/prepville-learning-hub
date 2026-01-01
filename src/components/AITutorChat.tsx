@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Send, Loader2, MessageSquare, Menu } from 'lucide-react';
+import { X, Send, Loader2, MessageSquare, Calculator } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import EquationEditor from '@/components/admin/EquationEditor';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -108,11 +109,9 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
   };
 
   const renderMathText = (text: string) => {
-    // Check if the text contains LaTeX commands (starts with backslash)
     const hasLatex = /\\[a-zA-Z]+/.test(text);
     
     if (hasLatex) {
-      // If it's mostly LaTeX (no $ delimiters), render the entire text as LaTeX
       try {
         const html = katex.renderToString(text, {
           displayMode: false,
@@ -123,16 +122,14 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
         return <span dangerouslySetInnerHTML={{ __html: html }} />;
       } catch (error) {
         console.error('LaTeX rendering error:', error);
-        return <span className="text-red-500">LaTeX Error: {text}</span>;
+        return <span className="text-destructive">LaTeX Error: {text}</span>;
       }
     } else {
-      // Split text by $...$ patterns to find LaTeX equations in regular text
       const parts = text.split(/(\$[^$]+\$)/g);
       
       return parts.map((part, index) => {
         if (part.startsWith('$') && part.endsWith('$')) {
-          // This is a LaTeX equation
-          const equation = part.slice(1, -1); // Remove the $ symbols
+          const equation = part.slice(1, -1);
           try {
             const html = katex.renderToString(equation, {
               displayMode: false,
@@ -142,10 +139,9 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
             });
             return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
           } catch (error) {
-            return <span key={index} className="text-red-500">Error: {equation}</span>;
+            return <span key={index} className="text-destructive">Error: {equation}</span>;
           }
         } else {
-          // Regular text
           return <span key={index}>{part}</span>;
         }
       });
@@ -154,153 +150,294 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
 
   if (!isOpen) return null;
 
-  // Minimized floating button
+  // Minimized floating button with glow animation
   if (!isExpanded) {
     return (
-      <Button
-        onClick={() => setIsExpanded(true)}
-        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white shadow-2xl z-50 p-0 flex items-center justify-center"
-        size="icon"
+      <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0, opacity: 0 }}
+        className="fixed bottom-6 right-6 z-50"
       >
-        <MessageSquare className="w-6 h-6" />
-      </Button>
+        {/* Glow ring animation */}
+        <div className="absolute inset-0 rounded-full animate-ping bg-gradient-to-r from-blue-400 to-purple-500 opacity-30" />
+        <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 opacity-50 blur-md animate-pulse" />
+        
+        <motion.button
+          onClick={() => setIsExpanded(true)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white shadow-2xl flex items-center justify-center cursor-pointer border-2 border-white/20"
+        >
+          <MessageSquare className="w-7 h-7" />
+          
+          {/* Badge */}
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+            <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+          </span>
+        </motion.button>
+        
+        {/* Tooltip */}
+        <motion.div
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5 }}
+          className="absolute right-20 top-1/2 -translate-y-1/2 bg-background/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg whitespace-nowrap"
+        >
+          <p className="text-sm font-medium text-foreground">General Tutor</p>
+          <p className="text-xs text-muted-foreground">AI-powered assistance</p>
+        </motion.div>
+      </motion.div>
     );
   }
 
   // Expanded chat window
   return (
-    <div className="fixed bottom-4 right-4 w-96 max-h-[90vh] bg-background border border-border rounded-lg shadow-2xl flex flex-col z-50 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-blue-500 to-pink-500 shrink-0">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-white" />
-          <div>
-            <h3 className="font-semibold text-white">{subject} Tutor</h3>
-            <p className="text-xs text-white/80">AI-powered assistance</p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            setIsExpanded(false);
-            setShowMathEditor(false);
-          }}
-          className="text-white hover:bg-white/20"
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="fixed bottom-6 right-6 w-[380px] max-h-[85vh] bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
+      >
+        {/* Header with gradient */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="relative flex items-center justify-between p-4 shrink-0 overflow-hidden"
         >
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          {/* Gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+          
+          <div className="relative flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">{subject} Tutor</h3>
+              <p className="text-xs text-white/80">AI-powered assistance</p>
+            </div>
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              setIsExpanded(false);
+              setShowMathEditor(false);
+            }}
+            className="relative w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
           >
-            <div
-              className={`max-w-[80%] rounded-lg p-3 ${
-                msg.role === 'user'
-                  ? 'bg-gradient-to-r from-blue-500 to-pink-500 text-white'
-                  : 'bg-muted text-foreground'
-              }`}
-            >
-              <div className="text-sm whitespace-pre-wrap">{renderMathText(msg.content)}</div>
-            </div>
-          </div>
-        ))}
-        
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-lg p-3 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm text-muted-foreground">Tutor is thinking...</span>
-            </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
+            <X className="w-4 h-4 text-white" />
+          </motion.button>
+        </motion.div>
 
-      {/* Input */}
-      <div className={`border-t border-border bg-background shrink-0 transition-all duration-300 ${showMathEditor ? 'p-3' : 'p-4'}`}>
-        {!showMathEditor ? (
-          <div className="space-y-2">
-            <div className="flex gap-2 items-end">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask your question..."
-                className="flex-1 min-h-[60px] max-h-[120px] resize-none"
-              />
-              <div className="flex flex-col gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowMathEditor(true)}
-                  className="shrink-0"
-                  title="Open Math Editor"
-                >
-                  <Menu className="w-4 h-4" />
-                </Button>
-                <Button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
-                  className="bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white shrink-0"
-                  size="icon"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 bg-gradient-to-b from-background/50 to-background">
+          <AnimatePresence mode="popLayout">
+            {messages.map((msg, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: idx * 0.05 }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className="flex items-end gap-2 max-w-[85%]">
+                  {msg.role === 'assistant' && (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shrink-0 shadow-lg">
+                      <MessageSquare className="w-4 h-4 text-white" />
+                    </div>
                   )}
-                </Button>
+                  
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    className={`rounded-2xl p-3 shadow-sm ${
+                      msg.role === 'user'
+                        ? 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white rounded-br-md'
+                        : 'bg-muted/80 backdrop-blur-sm text-foreground rounded-bl-md border border-border/50'
+                    }`}
+                  >
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {renderMathText(msg.content)}
+                    </div>
+                  </motion.div>
+                  
+                  {msg.role === 'user' && (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center shrink-0 shadow-lg">
+                      <span className="text-white text-xs font-medium">You</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start"
+            >
+              <div className="flex items-end gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shrink-0 shadow-lg">
+                  <MessageSquare className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-md p-4 border border-border/50">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <motion.div
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
+                        className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                      />
+                      <motion.div
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }}
+                        className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+                      />
+                      <motion.div
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }}
+                        className="w-2 h-2 rounded-full bg-gradient-to-r from-pink-500 to-blue-500"
+                      />
+                    </div>
+                    <span className="text-sm text-muted-foreground ml-1">Thinking...</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Press Enter to send, Shift+Enter for new line. Click menu for math editor.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-start justify-between mb-2">
-              <h4 className="text-sm font-medium">Math Editor</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowMathEditor(false)}
-                className="h-6 text-xs"
+            </motion.div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input area */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border-t border-border/50 bg-background/80 backdrop-blur-sm shrink-0 p-4"
+        >
+          <AnimatePresence mode="wait">
+            {!showMathEditor ? (
+              <motion.div
+                key="text-input"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-3"
               >
-                Close Editor
-              </Button>
-            </div>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <EquationEditor
-                  value={input}
-                  onChange={(value) => setInput(value)}
-                  placeholder="Use the toolbar to insert math symbols..."
-                  className="min-h-[80px] max-h-[200px]"
-                />
-              </div>
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white shrink-0"
-                size="icon"
+                <div className="relative flex items-end gap-2">
+                  <div className="flex-1 relative">
+                    <Textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask your question..."
+                      className="min-h-[50px] max-h-[100px] resize-none pr-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowMathEditor(true)}
+                      className="absolute right-2 bottom-2 h-8 w-8 text-muted-foreground hover:text-foreground"
+                      title="Math Editor"
+                    >
+                      <Calculator className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      onClick={handleSend}
+                      disabled={!input.trim() || isLoading}
+                      className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 text-white shadow-lg disabled:opacity-50"
+                      size="icon"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </motion.div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Press Enter to send
+                  </p>
+                  <div className="flex gap-1">
+                    {['learner', 'practice', 'mock_exam'].map((m) => (
+                      <span
+                        key={m}
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          mode === m 
+                            ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-primary font-medium' 
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        {m === 'mock_exam' ? 'Exam' : m.charAt(0).toUpperCase() + m.slice(1)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="math-editor"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-3"
               >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="w-4 h-4 text-primary" />
+                    <h4 className="text-sm font-medium">Math Editor</h4>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMathEditor(false)}
+                    className="h-7 text-xs"
+                  >
+                    Close
+                  </Button>
+                </div>
+                
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <EquationEditor
+                      value={input}
+                      onChange={(value) => setInput(value)}
+                      placeholder="Use toolbar for math symbols..."
+                      className="min-h-[80px] max-h-[150px] rounded-xl"
+                    />
+                  </div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      onClick={handleSend}
+                      disabled={!input.trim() || isLoading}
+                      className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 hover:opacity-90 text-white shadow-lg"
+                      size="icon"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
