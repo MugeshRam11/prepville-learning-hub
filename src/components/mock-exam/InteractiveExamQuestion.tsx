@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Lightbulb, ChevronLeft, ChevronRight, Check, Menu, Undo2, Redo2, Copy, Eye, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -63,11 +63,27 @@ const InteractiveExamQuestion = ({
 }: InteractiveExamQuestionProps) => {
   const [showHint, setShowHint] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
+  const [showMathEditor, setShowMathEditor] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     setShowHint(false);
     setHintIndex(0);
+    setShowMathEditor(false);
   }, [question.id]);
+
+  const mathTemplates = [
+    { label: 'Fraction', symbol: '⁄' },
+    { label: 'Power', symbol: 'xⁿ' },
+    { label: 'Subscript', symbol: 'x₁' },
+    { label: 'Square Root', symbol: '√' },
+    { label: 'Nth Root', symbol: 'ⁿ√' },
+    { label: 'Sum', symbol: '∑' },
+    { label: 'Integral', symbol: '∫' },
+    { label: 'Limit', symbol: 'lim' },
+  ];
+
+  const mathSymbols = ['α', 'β', 'γ', 'π', '∞', '∂', '∇', '≤', '≥', '≠', '±', '÷', '×', '·'];
 
   const renderLatexContent = (text: string) => {
     const parts = text.split(/(\$[^$]+\$)/g);
@@ -235,6 +251,129 @@ const InteractiveExamQuestion = ({
       transition={{ duration: 0.3 }}
     >
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Math Editor Toggle Button */}
+        <div className="flex items-center justify-end mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowMathEditor(!showMathEditor)}
+            className="gap-2"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Collapsible Math Editor */}
+        <AnimatePresence>
+          {showMathEditor && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="mb-4"
+            >
+              <Card className="border border-border shadow-sm">
+                <CardContent className="p-4 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        Word-like Math Editor
+                      </Badge>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Undo2 className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Redo2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7"
+                      onClick={() => setShowMathEditor(false)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Math Templates */}
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">Math Templates</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {mathTemplates.map((template) => (
+                        <Button
+                          key={template.label}
+                          variant="outline"
+                          size="sm"
+                          className="text-sm font-normal"
+                        >
+                          {template.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Editable Area */}
+                  <div 
+                    contentEditable
+                    className="min-h-[100px] p-3 border-2 border-blue-200 dark:border-blue-800 rounded-lg bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    data-placeholder="Type your equation here..."
+                  />
+
+                  {/* Symbols */}
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Symbols</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {mathSymbols.map((symbol) => (
+                        <Button
+                          key={symbol}
+                          variant="outline"
+                          size="sm"
+                          className="w-9 h-9 text-lg font-normal p-0"
+                        >
+                          {symbol}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="gap-1 text-sm">
+                        <Copy className="w-3 h-3" />
+                        Copy
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-sm">
+                        LaTeX
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-sm">
+                        Unicode
+                      </Button>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1 text-sm"
+                      onClick={() => setShowPreview(!showPreview)}
+                    >
+                      <Eye className="w-3 h-3" />
+                      {showPreview ? 'Hide Preview' : 'Show Preview'}
+                    </Button>
+                  </div>
+
+                  {/* Tip */}
+                  <p className="text-xs text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                    ✨ Copy equations from Word or type directly. Fractions, powers, roots work visually.
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Question Card */}
         <motion.div
           initial={{ y: 10, opacity: 0 }}
