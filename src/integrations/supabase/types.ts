@@ -366,6 +366,7 @@ export type Database = {
         Row: {
           answer_key: string | null
           category: string | null
+          command_term: string | null
           created_at: string
           diagram_description: string | null
           difficulty: Database["public"]["Enums"]["question_difficulty"] | null
@@ -382,6 +383,7 @@ export type Database = {
         Insert: {
           answer_key?: string | null
           category?: string | null
+          command_term?: string | null
           created_at?: string
           diagram_description?: string | null
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
@@ -398,6 +400,7 @@ export type Database = {
         Update: {
           answer_key?: string | null
           category?: string | null
+          command_term?: string | null
           created_at?: string
           diagram_description?: string | null
           difficulty?: Database["public"]["Enums"]["question_difficulty"] | null
@@ -424,6 +427,7 @@ export type Database = {
       mock_sub_questions: {
         Row: {
           answer_key: string | null
+          command_term: string | null
           created_at: string
           diagram_description: string | null
           id: string
@@ -436,6 +440,7 @@ export type Database = {
         }
         Insert: {
           answer_key?: string | null
+          command_term?: string | null
           created_at?: string
           diagram_description?: string | null
           id?: string
@@ -448,6 +453,7 @@ export type Database = {
         }
         Update: {
           answer_key?: string | null
+          command_term?: string | null
           created_at?: string
           diagram_description?: string | null
           id?: string
@@ -472,6 +478,7 @@ export type Database = {
         Row: {
           answer_key: string | null
           category: string | null
+          command_term: string | null
           created_at: string | null
           created_by: string | null
           diagram_description: string | null
@@ -491,6 +498,7 @@ export type Database = {
         Insert: {
           answer_key?: string | null
           category?: string | null
+          command_term?: string | null
           created_at?: string | null
           created_by?: string | null
           diagram_description?: string | null
@@ -510,6 +518,7 @@ export type Database = {
         Update: {
           answer_key?: string | null
           category?: string | null
+          command_term?: string | null
           created_at?: string | null
           created_by?: string | null
           diagram_description?: string | null
@@ -531,6 +540,7 @@ export type Database = {
       mock_test_sub_question_bank: {
         Row: {
           answer_key: string | null
+          command_term: string | null
           created_at: string | null
           id: string
           marks: number
@@ -542,6 +552,7 @@ export type Database = {
         }
         Insert: {
           answer_key?: string | null
+          command_term?: string | null
           created_at?: string | null
           id?: string
           marks?: number
@@ -553,6 +564,7 @@ export type Database = {
         }
         Update: {
           answer_key?: string | null
+          command_term?: string | null
           created_at?: string | null
           id?: string
           marks?: number

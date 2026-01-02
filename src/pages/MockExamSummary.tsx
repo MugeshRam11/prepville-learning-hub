@@ -18,6 +18,9 @@ interface EvaluationResult {
   evaluationType: string;
   comment: string;
   feedback: string;
+  commandTermFollowed?: boolean;
+  commandTerm?: string | null;
+  missingElements?: string[];
 }
 
 const MockExamSummary = () => {
@@ -84,14 +87,17 @@ const MockExamSummary = () => {
 
       console.log('Interactive evaluation results:', data);
       
-      // Map results to expected format
+      // Map results to expected format with command term info
       const mappedEvaluations = (data.results || []).map((r: any) => ({
         questionId: r.questionId,
         marksAwarded: r.marksAwarded,
         totalMarks: r.totalMarks,
         evaluationType: r.isCorrect ? 'correct' : r.partialCredit > 0 ? 'partial' : 'incorrect',
         comment: r.feedback,
-        feedback: r.isCorrect ? 'Correct!' : r.partialCredit > 0 ? 'Partially correct' : 'Needs improvement'
+        feedback: r.isCorrect ? 'Correct!' : r.partialCredit > 0 ? 'Partially correct' : 'Needs improvement',
+        commandTermFollowed: r.commandTermFollowed,
+        commandTerm: r.commandTerm,
+        missingElements: r.missingElements || []
       }));
 
       setEvaluations(mappedEvaluations);
@@ -392,8 +398,35 @@ const MockExamSummary = () => {
                                   ? 'bg-yellow-50 border border-yellow-200' 
                                   : 'bg-red-50 border border-red-200'
                               }`}>
+                                {evaluation.commandTerm && (
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="outline" className="text-xs font-mono">
+                                      {evaluation.commandTerm}
+                                    </Badge>
+                                    {evaluation.commandTermFollowed === false && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Command term not followed
+                                      </Badge>
+                                    )}
+                                    {evaluation.commandTermFollowed === true && (
+                                      <Badge variant="default" className="text-xs bg-green-600">
+                                        Command term followed
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
                                 <p className="text-xs font-semibold mb-1">{evaluation.feedback}</p>
                                 <p className="text-sm">{evaluation.comment}</p>
+                                {evaluation.missingElements && evaluation.missingElements.length > 0 && (
+                                  <div className="mt-2 pt-2 border-t border-current/20">
+                                    <p className="text-xs font-medium text-gray-600 mb-1">Missing elements:</p>
+                                    <ul className="text-xs text-gray-600 list-disc list-inside">
+                                      {evaluation.missingElements.map((element, i) => (
+                                        <li key={i}>{element}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>;
