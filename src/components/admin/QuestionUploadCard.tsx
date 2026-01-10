@@ -199,24 +199,61 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         throw new Error(data?.error || 'Failed to parse document');
       }
 
-      // Show preview editor
-      const questions = data.data?.questions || data.questions || [];
-      const metadata = data.data?.metadata || {
+      // Handle PDR simple format (question_number, question_text, graph_description)
+      let questions = [];
+      let metadata = {
         title: file.name.replace(/\.[^/.]+$/, '') || 'Imported Test',
         subject: 'mathematics',
         topic: 'General'
       };
+
+      // Check if response is in PDR simple format
+      if (data.question_number !== undefined && data.question_text !== undefined) {
+        // Single question PDR format - convert to array format
+        const pdrQuestion = {
+          question_number: data.question_number === "not found" ? 1 : parseInt(data.question_number) || 1,
+          question_text: data.question_text || "unreadable",
+          marks: 1,
+          has_sub_questions: false,
+          has_diagram: data.graph_description && data.graph_description !== "none",
+          diagram_description: data.graph_description || "none",
+          difficulty: "medium"
+        };
+        questions = [pdrQuestion];
+        
+        // Also include all pages if available
+        if (data.all_pages && data.all_pages.length > 1) {
+          questions = data.all_pages.map((page: any, idx: number) => ({
+            question_number: page.question_number === "not found" ? idx + 1 : parseInt(page.question_number) || idx + 1,
+            question_text: page.question_text || "unreadable",
+            marks: 1,
+            has_sub_questions: false,
+            has_diagram: page.graph_description && page.graph_description !== "none",
+            diagram_description: page.graph_description || "none",
+            difficulty: "medium",
+            page: page.page || idx + 1
+          }));
+        }
+      } else {
+        // Legacy complex format
+        questions = data.data?.questions || data.questions || [];
+        if (data.data?.metadata) {
+          metadata = { ...metadata, ...data.data.metadata };
+        }
+      }
       
       setPendingQuestions(questions);
       setPendingMetadata(metadata);
       setShowPreviewEditor(true);
       
-      toast.success(`✅ Extracted ${questions.length} questions - please review`);
+      const graphCount = questions.filter((q: any) => q.has_diagram).length;
+      toast.success(`✅ Extracted ${questions.length} question(s)${graphCount > 0 ? ` with ${graphCount} diagram(s)` : ''} - please review`);
       setProgress(100);
       setParseResult({
         success: true,
         actionMode: actionMode,
         count: questions.length,
+        graphCount,
         data: null,
         images: [],
         pending: true
@@ -504,12 +541,20 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               {parseResult.success ? <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" /> : <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />}
               <div className="flex-1">
                 <p className={`font-medium ${parseResult.success ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
-                  {parseResult.success ? parseResult.actionMode === 'parse' ? `Success! Parsed ${parseResult.count} questions${parseResult.images?.length > 0 ? ` with ${parseResult.images.length} images` : ''}` : parseResult.actionMode === 'summarize' ? 'Summary created successfully!' : parseResult.actionMode === 'quiz' ? `Quiz generated with ${parseResult.count} questions!` : 'Data extracted successfully!' : `${parseResult.actionMode || 'Processing'} Failed`}
+                  {parseResult.success 
+                    ? parseResult.actionMode === 'parse' 
+                      ? `✅ Parsed ${parseResult.count} question(s)${parseResult.graphCount > 0 ? ` with ${parseResult.graphCount} diagram(s)` : ''}` 
+                      : parseResult.actionMode === 'summarize' 
+                        ? 'Summary created successfully!' 
+                        : parseResult.actionMode === 'quiz' 
+                          ? `Quiz generated with ${parseResult.count} questions!` 
+                          : 'Data extracted successfully!' 
+                    : `${parseResult.actionMode || 'Processing'} Failed`}
                 </p>
                 {!parseResult.success && <p className="text-sm text-red-700 dark:text-red-400 mt-1">{parseResult.error}</p>}
-                {parseResult.success && parseResult.images && parseResult.images.length > 0 && (
+                {parseResult.success && parseResult.graphCount > 0 && (
                   <div className="mt-2">
-                    <p className="text-xs text-green-700 dark:text-green-400">✓ Extracted {parseResult.images.length} image(s) from document</p>
+                    <p className="text-xs text-purple-700 dark:text-purple-400">📊 {parseResult.graphCount} diagram(s) detected with descriptions</p>
                   </div>
                 )}
                 {parseResult.success && parseResult.data && <div className="mt-2">
@@ -534,16 +579,6 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           </div>}
       </CardContent>
       
-      {/* Question Preview Editor */}
-      <QuestionPreviewEditor
-        open={showPreviewEditor}
-        onOpenChange={setShowPreviewEditor}
-        questions={pendingQuestions}
-        metadata={pendingMetadata}
-        onConfirm={handlePreviewConfirm}
-        onCancel={handlePreviewCancel}
-        mode={mode}
-      />
       {/* Question Preview Editor */}
       <QuestionPreviewEditor
         open={showPreviewEditor}

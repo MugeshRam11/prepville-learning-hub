@@ -148,6 +148,9 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
             <Check className="w-5 h-5 text-primary" />
             Review Extracted Questions ({selectedQuestions.size}/{questions.length} selected)
           </DialogTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            PDR Output: question_number, question_text, graph_description
+          </p>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col gap-4">
@@ -233,12 +236,12 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                       />
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            Q{q.question_number}
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Badge variant="outline" className="text-xs font-mono">
+                            question_number: {q.question_number}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {q.marks} mark{q.marks !== 1 ? 's' : ''}
+                            {q.marks || 1} mark{(q.marks || 1) !== 1 ? 's' : ''}
                           </Badge>
                           {q.difficulty && (
                             <Badge
@@ -257,7 +260,7 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                               Image
                             </Badge>
                           )}
-                          {q.has_diagram && (
+                          {(q.has_diagram || (q.diagram_description && q.diagram_description !== 'none')) && (
                             <Badge variant="outline" className="text-xs text-purple-600">
                               <BarChart3 className="w-3 h-3 mr-1" />
                               Diagram
@@ -265,12 +268,12 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                           )}
                         </div>
 
-                        {/* Diagram Description Inline - Editable */}
-                        {q.has_diagram && (
+                        {/* Graph/Diagram Description - PDR Field */}
+                        {(q.has_diagram || (q.diagram_description && q.diagram_description !== 'none')) && (
                           <div className="mb-2 p-2 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
                             <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
                               <BarChart3 className="w-3 h-3" />
-                              Diagram/Graph Description:
+                              graph_description (PDR):
                             </div>
                             {editingIndex === index ? (
                               <Textarea
@@ -280,10 +283,20 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                                 placeholder="Describe the diagram/graph (coordinates, axes, shapes, etc.)"
                               />
                             ) : (
-                              <p className="text-xs text-purple-600 dark:text-purple-400 whitespace-pre-wrap">
-                                {q.diagram_description || 'No description available. Click edit to add one.'}
+                              <p className="text-xs text-purple-600 dark:text-purple-400 whitespace-pre-wrap font-mono">
+                                "{q.diagram_description || 'none'}"
                               </p>
                             )}
+                          </div>
+                        )}
+
+                        {/* Show graph_description = "none" for questions without diagrams */}
+                        {!q.has_diagram && (!q.diagram_description || q.diagram_description === 'none') && (
+                          <div className="mb-2 p-2 bg-muted/50 border border-border rounded-md">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <BarChart3 className="w-3 h-3" />
+                              graph_description: <span className="font-mono">"none"</span>
+                            </div>
                           </div>
                         )}
 
@@ -326,7 +339,10 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm line-clamp-2">{q.question_text}</p>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-mono">question_text:</p>
+                            <p className="text-sm line-clamp-3">{q.question_text}</p>
+                          </div>
                         )}
 
                         {/* Sub-questions */}
