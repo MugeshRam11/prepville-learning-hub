@@ -69,11 +69,11 @@ STRICT RULES:
 - If text is unclear: parsing_verified=false
 - Return ONLY valid JSON`;
 
-// Use flash-lite for speed, flash for fallback
-const PRIMARY_MODEL = 'google/gemini-2.5-flash-lite';
-const FALLBACK_MODEL = 'google/gemini-2.5-flash';
-const PAGE_TIMEOUT = 15000;  // 15 seconds
-const MAX_PAGES_PER_REQUEST = 3;
+// Use gemini-2.5-flash for best Vision quality, pro as fallback for complex diagrams
+const PRIMARY_MODEL = 'google/gemini-2.5-flash';
+const FALLBACK_MODEL = 'google/gemini-2.5-pro';
+const PAGE_TIMEOUT = 30000;  // 30 seconds for high-res images
+const MAX_PAGES_PER_REQUEST = 2;  // Fewer pages but better quality
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 async function analyzePageWithVision(
@@ -102,13 +102,24 @@ async function analyzePageWithVision(
             content: [
               { 
                 type: 'text', 
-                text: `Page ${pageIndex + 1}: Extract ALL questions with exact text, marks, MCQ options (if any), graph/diagram bounding boxes, and interactive_type. Verify parsing accuracy.` 
+                text: `EXAM PAGE ${pageIndex + 1} - FULL IMAGE ANALYSIS:
+                
+1. Read ALL visible text exactly as shown
+2. For each question: extract number, text, marks, command term
+3. Detect ALL visuals: graphs, Venn diagrams, tree diagrams, tables, geometric figures
+4. For each visual: return bounding_box as {x_min, y_min, x_max, y_max} percentages
+5. Extract MCQ options A/B/C/D if present
+6. Identify interactive_type for each question
+7. Set parsing_verified=false if ANY text is unclear
+
+Return valid JSON only.` 
               },
               { type: 'image_url', image_url: { url: imageContent, detail: 'high' } }
             ]
           }
         ],
-        max_tokens: 2500
+        max_tokens: 4000,
+        temperature: 0.1  // Low temperature for accurate extraction
       }),
       signal: controller.signal
     });
