@@ -26,7 +26,7 @@ const CommandTermSelector: React.FC<CommandTermSelectorProps> = ({
   const selectedTerm = allTerms.find(t => t.term.toUpperCase() === value?.toUpperCase());
 
   return (
-    <Select value={value || ''} onValueChange={onChange} disabled={disabled}>
+    <Select value={value || 'none'} onValueChange={(v) => onChange(v === 'none' ? '' : v)} disabled={disabled}>
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Select Command Term">
           {selectedTerm && (
@@ -39,7 +39,7 @@ const CommandTermSelector: React.FC<CommandTermSelectorProps> = ({
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="max-h-[300px]">
-        <SelectItem value="">
+        <SelectItem value="none">
           <span className="text-muted-foreground">No command term</span>
         </SelectItem>
         {commandTermsData.map((category) => (
