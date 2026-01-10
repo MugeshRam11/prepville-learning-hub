@@ -6,48 +6,67 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Enhanced MCQ extraction prompt with strict verification
-const SYSTEM_PROMPT = `You are an exam question extraction AI. Extract questions with maximum accuracy.
+// Enhanced MCQ extraction prompt based on IB eAssessment patterns
+const SYSTEM_PROMPT = `You are an IB Mathematics eAssessment question extraction AI. Extract ALL questions with exact accuracy.
+
+QUESTION PATTERNS TO DETECT:
+1. DRAG & DROP: "Drag and drop", "Select the expressions", "Match", "Place in correct order", "Draggable expressions/items"
+2. VENN DIAGRAM: "Venn diagram", "Set A represents", "A ∩ B", "Complete the diagram", "Determine missing values"  
+3. COORDINATE GRAPH: "Plot", "Draw the graph", "Shade the region", "y = mx + c", coordinate axes visible
+4. PIE CHART: Percentage sectors, "pie chart shows", "distribution"
+5. TREE DIAGRAM: Branches showing probabilities, "probability tree", sequential outcomes
+6. TABLE FILL: Empty cells to complete, "Complete the table", data tables
+7. 3D GEOMETRY: "Volume", "Surface area", 3D shapes, isometric views
+8. MCQ/SELECTION: "Select", "Option A/B/C/D", "Choose", multiple options to pick from
+9. STEP BUILDER: "Show your working", "Step by step", multi-part calculation
+10. MATH INPUT: "Calculate", "Determine", "Find the value", "Solve", "Simplify"
 
 EXTRACTION RULES:
-1. Extract the first visible Question Number exactly as shown (e.g., "1", "1a", "2(i)")
-2. Extract the complete Question Text exactly as written - NO paraphrasing
-3. Detect reference visuals: Graph, Chart, Table, Diagram, Figure, Venn diagram, Tree diagram
-4. If visual exists: graph_found=true, return bounding_box as {x_min, y_min, x_max, y_max} percentages (0-100)
-5. If no visual: graph_found=false, bounding_box=null
-6. Extract MCQ options exactly as written (A, B, C, D)
-7. Detect interactive_type based on content:
-   - graph_plot: coordinate grids, plot points, draw lines, shade regions
-   - drag_drop: match items, drag to correct position, arrange
-   - image_drop: Venn diagrams, tree diagrams, label diagrams
-   - arrange_order: step-by-step solutions, sequence problems
-   - multiple_choice: MCQ with A/B/C/D options
-   - smart_math: calculate, solve, evaluate, simplify
-   - text_equation: written response, explain, describe
-8. VERIFY: Compare extracted text with visible text. If any blur, missing text, or doubt: parsing_verified=false
+1. Question Number: Extract EXACTLY as shown (e.g., "1a", "2(i)", "3b")
+2. Question Text: Copy VERBATIM - no paraphrasing
+3. Visual Detection: 
+   - graph_found=true if: coordinate grid, Venn, tree diagram, pie chart, 3D shape, geometric figure
+   - Return bounding_box as {x_min, y_min, x_max, y_max} percentages (0-100)
+4. Draggable Items: Extract ALL draggable expressions/options shown
+5. MCQ Options: Extract A, B, C, D options exactly
+6. Marks: From [2], (2 marks), (2), or "(X marks)" format
+
+INTERACTIVE TYPE MAPPING:
+- graph_plot: coordinate grids, plot points, draw lines, shade inequalities
+- drag_drop: match expressions, arrange items, select correct options, ratios
+- image_drop: Venn diagrams, tree diagrams, label geometric figures
+- arrange_order: step-by-step solutions, proof ordering
+- multiple_choice: Option A/B/C/D selection, "Select which"
+- smart_math: calculate, solve, evaluate, simplify, determine
+- text_equation: explain, describe, comment, justify
 
 RETURN FORMAT - Valid JSON only:
 {
   "questions": [
     {
       "question_number": "1a",
-      "question_text": "exact question text",
+      "question_text": "exact question text including any instructions",
       "marks": 2,
       "command_term": "Calculate",
-      "options": {"A": "", "B": "", "C": "", "D": ""} or null,
-      "graph_found": false,
-      "graph_bounding_box": null or {"x_min": 10, "y_min": 20, "x_max": 90, "y_max": 80},
-      "diagram_description": "description of visual if present",
-      "interactive_type": "smart_math",
+      "options": {"A": "option text", "B": "", "C": "", "D": ""} or null,
+      "draggable_items": ["item1", "item2"] or null,
+      "graph_found": true,
+      "graph_bounding_box": {"x_min": 10, "y_min": 20, "x_max": 90, "y_max": 80},
+      "diagram_description": "Venn diagram with sets A and B, showing intersection",
+      "diagram_type": "venn|coordinate_graph|tree|pie_chart|3d_shape|table|geometric",
+      "interactive_type": "drag_drop",
       "parsing_verified": true
     }
   ]
 }
 
 STRICT RULES:
-- Each sub-question (a,b,c,i,ii) = SEPARATE entry with parent reference
-- marks from [2], (2 marks), or (2)
-- Ignore headers, footers, page numbers, ads, decorations
+- Each sub-question (a,b,c,i,ii) = SEPARATE entry
+- Include parent_question reference (e.g., "1" for "1a")
+- marks from visible mark allocation
+- Extract ALL visible draggable expressions
+- Ignore headers, footers, page numbers, timers
+- If text is unclear: parsing_verified=false
 - Return ONLY valid JSON`;
 
 // Use flash-lite for speed, flash for fallback
