@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree } from 'lucide-react';
 import BoundingBoxOverlay from './BoundingBoxOverlay';
 import { useDiagramCropping } from '@/hooks/useDiagramCropping';
 import { toast } from 'sonner';
@@ -21,11 +21,12 @@ interface SubQuestion {
 }
 
 interface ParsedQuestion {
-  question_number: number;
+  question_number: number | string;
   question_text: string;
   question_image_url?: string | null;
   marks: number;
   has_sub_questions: boolean;
+  parent_question?: string | null; // For sub-question grouping
   graph_found?: boolean;
   graph_bounding_box?: {
     x_min: number;
@@ -91,8 +92,15 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [selectedQuestionForOverlay, setSelectedQuestionForOverlay] = useState<number | null>(null);
   
+  // Bulk cropping state
+  const [isBulkCropping, setIsBulkCropping] = useState(false);
+  const [bulkCropProgress, setBulkCropProgress] = useState({ current: 0, total: 0 });
+  
+  // View mode: 'flat' or 'grouped'
+  const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
+  
   // Diagram cropping hook
-  const { isCropping, isGenerating, uploadCroppedImage, generateMissingDiagram } = useDiagramCropping();
+  const { isCropping, isGenerating, uploadCroppedImage, cropFromSourceImage, generateMissingDiagram } = useDiagramCropping();
 
   // Sync state when props change
   React.useEffect(() => {
@@ -227,6 +235,93 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
     return sourceImages[pageIndex];
   };
 
+  // Get questions with diagrams that need cropping
+  const questionsWithDiagrams = questions.filter(
+    q => q.graph_found && q.graph_bounding_box && !q.question_image_url && getSourceImageForQuestion(q)
+  );
+
+  // Bulk crop all diagrams
+  const handleBulkCropDiagrams = async () => {
+    if (questionsWithDiagrams.length === 0) {
+      toast.info('No diagrams to crop');
+      return;
+    }
+
+    setIsBulkCropping(true);
+    setBulkCropProgress({ current: 0, total: questionsWithDiagrams.length });
+
+    const updated = [...questions];
+    let successCount = 0;
+
+    for (let i = 0; i < questionsWithDiagrams.length; i++) {
+      const q = questionsWithDiagrams[i];
+      const qIndex = questions.findIndex(x => x.question_number === q.question_number && x.page === q.page);
+      
+      if (qIndex === -1) continue;
+      
+      setBulkCropProgress({ current: i + 1, total: questionsWithDiagrams.length });
+      
+      const sourceImg = getSourceImageForQuestion(q);
+      if (!sourceImg || !q.graph_bounding_box) continue;
+
+      try {
+        const result = await cropFromSourceImage(
+          sourceImg,
+          q.graph_bounding_box,
+          q.question_number,
+          q.page || 1
+        );
+
+        if (result) {
+          updated[qIndex] = {
+            ...updated[qIndex],
+            question_image_url: result.url
+          };
+          successCount++;
+        }
+      } catch (e) {
+        console.error(`Failed to crop diagram for Q${q.question_number}:`, e);
+      }
+    }
+
+    setQuestions(updated);
+    setIsBulkCropping(false);
+    toast.success(`Cropped ${successCount}/${questionsWithDiagrams.length} diagrams`);
+  };
+
+  // Group questions by parent for hierarchical view
+  const groupedQuestions = React.useMemo(() => {
+    if (viewMode !== 'grouped') return null;
+
+    const groups: Map<string, { main: ParsedQuestion & { originalIndex: number } | null; subs: (ParsedQuestion & { originalIndex: number })[] }> = new Map();
+    
+    questions.forEach((q, index) => {
+      const qNum = String(q.question_number);
+      const parentMatch = q.parent_question || qNum.match(/^(\d+)/)?.[1];
+      const isMainQuestion = !q.parent_question && /^\d+$/.test(qNum);
+      
+      if (isMainQuestion) {
+        if (!groups.has(qNum)) {
+          groups.set(qNum, { main: { ...q, originalIndex: index }, subs: [] });
+        } else {
+          groups.get(qNum)!.main = { ...q, originalIndex: index };
+        }
+      } else {
+        const parentNum = parentMatch || qNum.match(/^(\d+)/)?.[1] || '0';
+        if (!groups.has(parentNum)) {
+          groups.set(parentNum, { main: null, subs: [] });
+        }
+        groups.get(parentNum)!.subs.push({ ...q, originalIndex: index });
+      }
+    });
+
+    return Array.from(groups.entries()).sort((a, b) => {
+      const numA = parseInt(a[0]) || 0;
+      const numB = parseInt(b[0]) || 0;
+      return numA - numB;
+    });
+  }, [questions, viewMode]);
+
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -288,13 +383,48 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
           </Card>
 
           {/* Selection Controls */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
             <Button variant="outline" size="sm" onClick={selectAll}>
               Select All
             </Button>
             <Button variant="outline" size="sm" onClick={deselectAll}>
               Deselect All
             </Button>
+            
+            {/* View Mode Toggle */}
+            <Button
+              variant={viewMode === 'grouped' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode(viewMode === 'flat' ? 'grouped' : 'flat')}
+              className="ml-2"
+            >
+              <FolderTree className="w-3 h-3 mr-1" />
+              {viewMode === 'grouped' ? 'Grouped' : 'Flat'} View
+            </Button>
+            
+            {/* Bulk Crop Diagrams */}
+            {questionsWithDiagrams.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkCropDiagrams}
+                disabled={isBulkCropping}
+                className="ml-auto border-purple-300 text-purple-600 hover:bg-purple-50"
+              >
+                {isBulkCropping ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Cropping {bulkCropProgress.current}/{bulkCropProgress.total}...
+                  </>
+                ) : (
+                  <>
+                    <Images className="w-3 h-3 mr-1" />
+                    Crop All Diagrams ({questionsWithDiagrams.length})
+                  </>
+                )}
+              </Button>
+            )}
+            
             {questions.length === 0 && (
               <div className="flex items-center gap-2 text-amber-600 ml-auto">
                 <AlertCircle className="w-4 h-4" />
@@ -306,7 +436,106 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
           {/* Questions List */}
           <ScrollArea className="flex-1 border rounded-lg">
             <div className="p-2 space-y-2">
-              {questions.map((q, index) => (
+              {/* Grouped View */}
+              {viewMode === 'grouped' && groupedQuestions && groupedQuestions.map(([parentNum, group]) => (
+                <Card key={parentNum} className="border-2 border-primary/30">
+                  <div className="p-3">
+                    {/* Parent Question Header */}
+                    <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+                      <FolderTree className="w-4 h-4 text-primary" />
+                      <span className="font-semibold text-primary">Question {parentNum}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {group.main ? 1 : 0} main + {group.subs.length} sub-questions
+                      </Badge>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        Total marks: {(group.main?.marks || 0) + group.subs.reduce((sum, s) => sum + (s.marks || 0), 0)}
+                      </span>
+                    </div>
+                    
+                    {/* Main Question */}
+                    {group.main && (
+                      <div className={`p-2 rounded mb-2 ${
+                        selectedQuestions.has(group.main.originalIndex)
+                          ? 'bg-primary/10 border border-primary/30'
+                          : 'bg-muted/50 opacity-60'
+                      }`}>
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            checked={selectedQuestions.has(group.main.originalIndex)}
+                            onCheckedChange={() => toggleQuestion(group.main!.originalIndex)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="text-xs font-mono">Q{group.main.question_number}</Badge>
+                              <Badge variant="secondary" className="text-xs">{group.main.marks || 1} marks</Badge>
+                              {group.main.graph_found && (
+                                <Badge variant="outline" className="text-xs text-purple-600">
+                                  <BarChart3 className="w-3 h-3 mr-1" />Graph
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm line-clamp-2">{group.main.question_text}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Sub-Questions */}
+                    {group.subs.length > 0 && (
+                      <div className="ml-4 border-l-2 border-primary/20 pl-3 space-y-2">
+                        {group.subs.map((sq) => (
+                          <div
+                            key={sq.originalIndex}
+                            className={`p-2 rounded ${
+                              selectedQuestions.has(sq.originalIndex)
+                                ? 'bg-primary/10 border border-primary/30'
+                                : 'bg-muted/30 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              <Checkbox
+                                checked={selectedQuestions.has(sq.originalIndex)}
+                                onCheckedChange={() => toggleQuestion(sq.originalIndex)}
+                                className="mt-1"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="outline" className="text-xs font-mono">{sq.question_number}</Badge>
+                                  <Badge variant="secondary" className="text-xs">{sq.marks || 1} marks</Badge>
+                                  {sq.graph_found && (
+                                    <Badge variant="outline" className="text-xs text-purple-600">
+                                      <BarChart3 className="w-3 h-3 mr-1" />Graph
+                                    </Badge>
+                                  )}
+                                  {sq.question_image_url && (
+                                    <Badge variant="outline" className="text-xs text-green-600">
+                                      <ImageIcon className="w-3 h-3 mr-1" />Image
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs line-clamp-2 text-muted-foreground">{sq.question_text}</p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => openBoundingBoxOverlay(sq.originalIndex)}
+                                disabled={!getSourceImageForQuestion(sq)}
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))}
+
+              {/* Flat View */}
+              {viewMode === 'flat' && questions.map((q, index) => (
                 <Card
                   key={index}
                   className={`transition-all ${
