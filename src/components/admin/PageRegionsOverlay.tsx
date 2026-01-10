@@ -159,6 +159,14 @@ const INTERACTIVE_TYPE_CONFIG: Record<string, {
     icon: PenTool,
     label: 'Text Answer',
     emoji: '📝'
+  },
+  table_input: { 
+    color: 'text-teal-700 dark:text-teal-300', 
+    bgColor: 'bg-teal-100/90 dark:bg-teal-900/80', 
+    borderColor: 'border-teal-500',
+    icon: Grid3X3,
+    label: 'Table Input',
+    emoji: '📋'
   }
 };
 

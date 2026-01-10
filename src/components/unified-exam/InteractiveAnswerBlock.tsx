@@ -21,7 +21,8 @@ import {
   ListOrdered,
   Hash,
   CheckSquare,
-  FileText
+  FileText,
+  Table2
 } from 'lucide-react';
 
 // Import interactive components
@@ -42,7 +43,8 @@ export type InteractiveType =
   | 'image_drop'
   | 'arrange_order'
   | 'smart_math'
-  | 'multiple_choice';
+  | 'multiple_choice'
+  | 'table_input';
 
 interface InteractiveAnswerBlockProps {
   questionId: string;
@@ -67,10 +69,31 @@ const TYPE_OPTIONS: { type: InteractiveType; label: string; icon: React.ReactNod
   { type: 'arrange_order', label: 'Arrange Order', icon: <ListOrdered className="w-4 h-4" /> },
   { type: 'smart_math', label: 'Smart Math', icon: <Hash className="w-4 h-4" /> },
   { type: 'multiple_choice', label: 'Multiple Choice', icon: <CheckSquare className="w-4 h-4" /> },
+  { type: 'table_input', label: 'Table Input', icon: <Table2 className="w-4 h-4" /> },
 ];
 
 // IB MYP eAssessment patterns for interactive type detection
 const INTERACTIVE_PATTERNS: { type: InteractiveType; patterns: RegExp[] }[] = [
+  // Table patterns - check first for table-based questions
+  { 
+    type: 'table_input', 
+    patterns: [
+      /complete\s+(?:the\s+)?table/i,
+      /fill\s+(?:in\s+)?(?:the\s+)?table/i,
+      /copy\s+and\s+complete/i,
+      /missing\s+values?\s+(?:in\s+)?(?:the\s+)?table/i,
+      /frequency\s+table/i,
+      /two[\s-]*way\s+table/i,
+      /contingency\s+table/i,
+      /complete\s+(?:the\s+)?(?:frequency|probability)\s+(?:distribution)?/i,
+      /input[\s-]*output\s+table/i,
+      /function\s+table/i,
+      /data\s+table/i,
+      /complete\s+(?:the\s+)?following\s+table/i,
+      /determine\s+(?:the\s+)?missing/i,
+      /fill\s+(?:in\s+)?(?:the\s+)?blank/i
+    ]
+  },
   // Graph/Coordinate interactions - highest priority for visual math
   { 
     type: 'graph_plot', 
@@ -168,6 +191,7 @@ function autoDetectType(questionText?: string, diagramDesc?: string, config?: An
   const text = `${questionText || ''} ${diagramDesc || ''}`.toLowerCase();
   
   // Check for explicit configs first
+  if (config?.tableConfig) return 'table_input';
   if (config?.graphConfig) return 'graph_plot';
   if (config?.dragDropConfig) return 'drag_drop';
   if (config?.imageDropConfig) return 'image_drop';
@@ -352,6 +376,73 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
                 {option.content}
               </button>
             ))}
+          </div>
+        );
+      }
+
+      case 'table_input': {
+        const tableConfig = config?.tableConfig || {
+          headers: ['x', 'f(x)'],
+          rows: [
+            { cells: [{ value: '1', editable: false }, { value: '', editable: true, correct: '2' }] },
+            { cells: [{ value: '2', editable: false }, { value: '', editable: true, correct: '4' }] },
+            { cells: [{ value: '3', editable: false }, { value: '', editable: true, correct: '6' }] }
+          ]
+        };
+        
+        const tableValue = value || {};
+        
+        const handleCellChange = (rowIndex: number, cellIndex: number, newValue: string) => {
+          const newTableValue = { ...tableValue };
+          if (!newTableValue[rowIndex]) {
+            newTableValue[rowIndex] = {};
+          }
+          newTableValue[rowIndex][cellIndex] = newValue;
+          onChange(newTableValue);
+        };
+        
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-border rounded-lg overflow-hidden">
+              <thead>
+                <tr className="bg-muted">
+                  {tableConfig.headers.map((header, idx) => (
+                    <th key={idx} className="border border-border px-4 py-2 text-sm font-semibold text-foreground">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableConfig.rows.map((row, rowIdx) => (
+                  <tr key={rowIdx} className="hover:bg-muted/30 transition-colors">
+                    {row.cells.map((cell, cellIdx) => (
+                      <td key={cellIdx} className="border border-border px-2 py-1">
+                        {cell.editable ? (
+                          <input
+                            type="text"
+                            value={tableValue[rowIdx]?.[cellIdx] || ''}
+                            onChange={(e) => handleCellChange(rowIdx, cellIdx, e.target.value)}
+                            disabled={disabled}
+                            className="w-full px-2 py-1 text-center bg-background border border-input rounded focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                            placeholder="?"
+                          />
+                        ) : (
+                          <span className="block text-center font-medium text-foreground">
+                            {cell.value}
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {tableConfig.tableType && (
+              <Badge variant="outline" className="mt-2 text-xs">
+                {tableConfig.tableType.replace('_', ' ')} table
+              </Badge>
+            )}
           </div>
         );
       }

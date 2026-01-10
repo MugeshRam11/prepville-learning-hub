@@ -8,7 +8,8 @@ export type AnswerBlockType =
   | 'image_drop'       // Image Drop / Image Select
   | 'arrange_order'    // Arrange / Order items
   | 'smart_math'       // Smart Math (step-based)
-  | 'multiple_choice'; // MCQ options
+  | 'multiple_choice'  // MCQ options
+  | 'table_input';     // Table completion/fill
 
 export interface AnswerBlockConfig {
   type: AnswerBlockType;
@@ -46,6 +47,12 @@ export interface AnswerBlockConfig {
   mcqConfig?: {
     options: { id: string; content: string; isCorrect?: boolean }[];
     allowMultiple?: boolean;
+  };
+  // Table input settings
+  tableConfig?: {
+    headers: string[];
+    rows: { cells: { value: string; editable: boolean; correct?: string }[] }[];
+    tableType?: 'frequency' | 'two_way' | 'function' | 'probability' | 'statistics' | 'data';
   };
 }
 
@@ -117,7 +124,8 @@ export const getAnswerBlockTypeLabel = (type: AnswerBlockType): string => {
     image_drop: 'Image Drop Zone',
     arrange_order: 'Arrange / Order',
     smart_math: 'Smart Math Input',
-    multiple_choice: 'Multiple Choice'
+    multiple_choice: 'Multiple Choice',
+    table_input: 'Table Input'
   };
   return labels[type];
 };
@@ -131,7 +139,8 @@ export const getAnswerBlockTypeIcon = (type: AnswerBlockType): string => {
     image_drop: '🖼️',
     arrange_order: '🔢',
     smart_math: '🤖',
-    multiple_choice: '☑️'
+    multiple_choice: '☑️',
+    table_input: '📋'
   };
   return icons[type];
 };

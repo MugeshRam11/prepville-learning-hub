@@ -532,14 +532,46 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         config.mcqConfig = { options, allowMultiple: false };
         break;
+        
+      case 'table_input':
+      case 'table_fill':
+        // Build table config from parsed table_data
+        if (q.table_data && Array.isArray(q.table_data) && q.table_data.length > 0) {
+          const headers = q.table_data[0] || [];
+          const rows = q.table_data.slice(1).map((row: string[]) => ({
+            cells: row.map((cellValue: string) => ({
+              value: cellValue || '',
+              editable: cellValue === '' || cellValue === '?' || cellValue === '...',
+              correct: '' // Will be filled by admin
+            }))
+          }));
+          
+          config.tableConfig = {
+            headers: headers,
+            rows: rows,
+            tableType: q.table_type || 'data'
+          };
+        } else {
+          // Default table structure
+          config.tableConfig = {
+            headers: ['x', 'f(x)'],
+            rows: [
+              { cells: [{ value: '1', editable: false }, { value: '', editable: true, correct: '' }] },
+              { cells: [{ value: '2', editable: false }, { value: '', editable: true, correct: '' }] },
+              { cells: [{ value: '3', editable: false }, { value: '', editable: true, correct: '' }] }
+            ],
+            tableType: 'function'
+          };
+        }
+        break;
     }
     
     return config;
   };
 
   // Map parsed interactive_type to database answer_block_type
-  const mapInteractiveToBlockType = (interactiveType?: string): string => {
-    if (!interactiveType) return 'text_equation';
+  const mapInteractiveToBlockType = (interactiveType?: string, hasTable?: boolean): string => {
+    if (!interactiveType) return hasTable ? 'table_input' : 'text_equation';
     
     const typeMap: Record<string, string> = {
       'graph_interaction': 'graph_plot',
@@ -554,10 +586,12 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       'smart_math': 'smart_math',
       'text_input': 'text_equation',
       'text_equation': 'text_equation',
-      'multiple_choice': 'multiple_choice'
+      'multiple_choice': 'multiple_choice',
+      'table_input': 'table_input',
+      'table_fill': 'table_input'
     };
     
-    return typeMap[interactiveType] || 'text_equation';
+    return typeMap[interactiveType] || (hasTable ? 'table_input' : 'text_equation');
   };
 
   const saveMockTestQuestions = async (data: any) => {

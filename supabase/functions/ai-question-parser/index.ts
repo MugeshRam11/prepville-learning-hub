@@ -15,11 +15,29 @@ QUESTION PATTERNS TO DETECT:
 3. COORDINATE GRAPH: "Plot", "Draw the graph", "Shade the region", "y = mx + c", coordinate axes visible
 4. PIE CHART: Percentage sectors, "pie chart shows", "distribution"
 5. TREE DIAGRAM: Branches showing probabilities, "probability tree", sequential outcomes
-6. TABLE FILL: Empty cells to complete, "Complete the table", data tables
+6. TABLE FILL: Empty cells to complete, "Complete the table", data tables, frequency tables, two-way tables
 7. 3D GEOMETRY: "Volume", "Surface area", 3D shapes, isometric views
 8. MCQ/SELECTION: "Select", "Option A/B/C/D", "Choose", multiple options to pick from
 9. STEP BUILDER: "Show your working", "Step by step", multi-part calculation
 10. MATH INPUT: "Calculate", "Determine", "Find the value", "Solve", "Simplify"
+
+TABLE DETECTION - CRITICAL:
+Detect ANY visible tables including:
+- Data tables with rows/columns
+- Frequency tables (value | frequency)
+- Two-way tables / contingency tables
+- Input-output function tables (x | f(x))
+- Probability distribution tables
+- Statistics tables (mean, median, mode)
+- Tally charts and frequency distributions
+- Tables with empty cells to fill
+
+For EACH detected table:
+1. Set has_table: true
+2. Extract table_data as 2D array: [["header1","header2"],["row1col1","row1col2"],...]
+3. Mark empty cells as "" (empty string)
+4. Identify table_type: "frequency" | "two_way" | "function" | "probability" | "statistics" | "data"
+5. Return table_bounding_box: {x_min, y_min, x_max, y_max} as percentages
 
 EXTRACTION RULES:
 1. Question Number: Extract EXACTLY as shown (e.g., "1a", "2(i)", "3b")
@@ -38,6 +56,7 @@ INTERACTIVE TYPE MAPPING:
 - arrange_order: step-by-step solutions, proof ordering
 - multiple_choice: Option A/B/C/D selection, "Select which"
 - smart_math: calculate, solve, evaluate, simplify, determine
+- table_input: complete table, fill missing values, frequency table, two-way table
 - text_equation: explain, describe, comment, justify
 
 RETURN FORMAT - Valid JSON only:
@@ -54,7 +73,11 @@ RETURN FORMAT - Valid JSON only:
       "graph_bounding_box": {"x_min": 10, "y_min": 20, "x_max": 90, "y_max": 80},
       "diagram_description": "Venn diagram with sets A and B, showing intersection",
       "diagram_type": "venn|coordinate_graph|tree|pie_chart|3d_shape|table|geometric",
-      "interactive_type": "drag_drop",
+      "has_table": true,
+      "table_data": [["x","f(x)"],["1","2"],["","5"]],
+      "table_type": "function",
+      "table_bounding_box": {"x_min": 20, "y_min": 30, "x_max": 80, "y_max": 60},
+      "interactive_type": "table_input",
       "parsing_verified": true
     }
   ]
@@ -65,6 +88,7 @@ STRICT RULES:
 - Include parent_question reference (e.g., "1" for "1a")
 - marks from visible mark allocation
 - Extract ALL visible draggable expressions
+- ALWAYS detect and extract tables with their data
 - Ignore headers, footers, page numbers, timers
 - If text is unclear: parsing_verified=false
 - Return ONLY valid JSON`;
@@ -170,7 +194,7 @@ function parseAIResponse(content: string): any[] {
 }
 
 // Map detected type to AnswerBlockType
-function mapInteractiveType(detected: string | undefined, questionText?: string): string {
+function mapInteractiveType(detected: string | undefined, questionText?: string, hasTable?: boolean): string {
   const typeMap: Record<string, string> = {
     'graph': 'graph_plot',
     'graph_plot': 'graph_plot',
@@ -203,8 +227,20 @@ function mapInteractiveType(detected: string | undefined, questionText?: string)
     'smart_math': 'smart_math',
     'mcq': 'multiple_choice',
     'multiple_choice': 'multiple_choice',
-    'select': 'multiple_choice'
+    'select': 'multiple_choice',
+    // Table types
+    'table': 'table_input',
+    'table_input': 'table_input',
+    'table_fill': 'table_input',
+    'frequency': 'table_input',
+    'two_way': 'table_input',
+    'complete_table': 'table_input'
   };
+  
+  // Check for explicit table flag first
+  if (hasTable) {
+    return 'table_input';
+  }
   
   if (detected) {
     const lower = detected.toLowerCase();
@@ -216,6 +252,13 @@ function mapInteractiveType(detected: string | undefined, questionText?: string)
   // Auto-detect from question text
   if (questionText) {
     const lower = questionText.toLowerCase();
+    // Table detection patterns - check first
+    if (lower.includes('complete the table') || lower.includes('fill in the table') || 
+        lower.includes('complete this table') || lower.includes('frequency table') ||
+        lower.includes('two-way table') || lower.includes('missing values in the table') ||
+        lower.includes('copy and complete')) {
+      return 'table_input';
+    }
     if (lower.includes('plot') || lower.includes('draw the graph') || lower.includes('shade')) return 'graph_plot';
     if (lower.includes('match') || lower.includes('drag') || lower.includes('arrange')) return 'drag_drop';
     if (lower.includes('venn') || lower.includes('tree diagram') || lower.includes('label')) return 'image_drop';
@@ -229,7 +272,8 @@ function mapInteractiveType(detected: string | undefined, questionText?: string)
 
 function flattenResults(questions: any[], pageIndex: number, imageContent: string): any[] {
   return questions.map(q => {
-    const interactiveType = mapInteractiveType(q.interactive_type || q.answer_type, q.question_text);
+    const hasTable = q.has_table || Boolean(q.table_data);
+    const interactiveType = mapInteractiveType(q.interactive_type || q.answer_type, q.question_text, hasTable);
     
     return {
       question_number: q.question_number || q.number || 'unknown',
@@ -246,10 +290,13 @@ function flattenResults(questions: any[], pageIndex: number, imageContent: strin
       graph_found: q.graph_found || q.has_diagram || Boolean(q.diagram_description || q.graph_bounding_box),
       graph_bounding_box: q.graph_bounding_box || null,
       graph_description: q.diagram_description || q.graph_description || null,
+      diagram_type: q.diagram_type || null,
       
-      // Table detection  
-      has_table: q.has_table || false,
+      // Table detection - enhanced
+      has_table: hasTable,
       table_data: q.table_data || null,
+      table_type: q.table_type || null,
+      table_bounding_box: q.table_bounding_box || null,
       
       // Interactive type mapping
       interactive_type: interactiveType,
