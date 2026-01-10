@@ -6,11 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, FileText, Database, Edit, Trash2, CheckCircle2, Sparkles, Eye } from 'lucide-react';
+import { Plus, Search, FileText, Database, Edit, Trash2, CheckCircle2, Sparkles, Eye, BookOpen } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
+import QuestionBankSelector from '@/components/admin/QuestionBankSelector';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 const AdminTests = () => {
   const navigate = useNavigate();
   const [tests, setTests] = useState([]);
@@ -19,6 +22,7 @@ const AdminTests = () => {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [showAIUpload, setShowAIUpload] = useState(false);
+  const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
   useEffect(() => {
     fetchTests();
@@ -177,6 +181,10 @@ const AdminTests = () => {
                     Activate All ({tests.filter(t => !t.is_active).length})
                   </Button>}
                 
+                <Button onClick={() => setShowQuestionBank(true)} variant="outline" className="border-violet-600 text-violet-600 hover:bg-violet-50">
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Load from Bank
+                </Button>
                 <Button onClick={() => navigate('/admin/quick-tests/create')} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Test
@@ -338,6 +346,23 @@ const AdminTests = () => {
             </div>}
         </div>
       </div>
+
+      {/* Question Bank Selector */}
+      <QuestionBankSelector
+        open={showQuestionBank}
+        onClose={() => setShowQuestionBank(false)}
+        onSelectQuestions={(selectedQuestions) => {
+          // For quick tests, we'd need to create the test with these questions
+          // For now, navigate to create with message
+          if (selectedQuestions.length > 0) {
+            toast.success(`${selectedQuestions.length} question(s) selected`, {
+              description: 'Navigate to Create New Test to use these questions'
+            });
+            navigate('/admin/quick-tests/create');
+          }
+          setShowQuestionBank(false);
+        }}
+      />
     </div>;
 };
 export default AdminTests;
