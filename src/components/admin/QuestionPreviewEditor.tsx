@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree, Table, FileImage, ListChecks } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree, Table, FileImage, ListChecks, Settings2 } from 'lucide-react';
 import BoundingBoxOverlay from './BoundingBoxOverlay';
 import PageRegionsOverlay from './PageRegionsOverlay';
+import TableBuilder, { TableConfig } from './TableBuilder';
 import { useDiagramCropping } from '@/hooks/useDiagramCropping';
 import { toast } from 'sonner';
 
@@ -60,6 +61,7 @@ interface ParsedQuestion {
   // Table data support
   has_table?: boolean;
   table_data?: string[][] | null;
+  table_config?: TableConfig | null;
   is_table?: boolean;
   is_diagram?: boolean;
   related_questions?: string[];
@@ -114,6 +116,9 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
   
   // View mode: 'flat' or 'grouped'
   const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
+  
+  // Table builder state
+  const [tableBuilderIndex, setTableBuilderIndex] = useState<number | null>(null);
   
   // Diagram cropping hook
   const { isCropping, isGenerating, uploadCroppedImage, cropFromSourceImage, generateMissingDiagram } = useDiagramCropping();
@@ -760,37 +765,73 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                           </div>
                         )}
 
-                        {/* Table Data Preview */}
-                        {q.table_data && q.table_data.length > 0 && (
+                        {/* Table Data Preview & Builder */}
+                        {(q.table_data && q.table_data.length > 0) || q.has_table || q.is_table ? (
                           <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md">
-                            <div className="flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
-                              <Table className="w-3 h-3" />
-                              table_data ({q.table_data.length} rows):
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+                                <Table className="w-3 h-3" />
+                                {q.table_data ? `table_data (${q.table_data.length} rows)` : 'Table Detected'}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 text-xs border-blue-300 text-blue-600 hover:bg-blue-100"
+                                onClick={() => setTableBuilderIndex(index)}
+                              >
+                                <Settings2 className="w-3 h-3 mr-1" />
+                                Edit Table Config
+                              </Button>
                             </div>
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full text-xs border-collapse">
-                                <tbody>
-                                  {q.table_data.slice(0, 5).map((row, rowIdx) => (
-                                    <tr key={rowIdx} className={rowIdx === 0 ? 'font-semibold bg-blue-100 dark:bg-blue-900/50' : ''}>
-                                      {row.map((cell, cellIdx) => (
-                                        <td key={cellIdx} className="border border-blue-200 dark:border-blue-700 px-2 py-1">
-                                          {cell}
+                            
+                            {/* Table Builder Modal */}
+                            {tableBuilderIndex === index && (
+                              <div className="mt-2">
+                                <TableBuilder
+                                  config={q.table_config || {
+                                    headers: q.table_data?.[0] || ['x', 'f(x)'],
+                                    rows: (q.table_data?.slice(1) || []).map(row => ({
+                                      cells: row.map((cell, idx) => ({
+                                        value: cell || '',
+                                        editable: idx > 0,
+                                        correct: ''
+                                      }))
+                                    })),
+                                    tableType: 'data'
+                                  }}
+                                  onChange={(config) => updateQuestion(index, 'table_config', config)}
+                                  onClose={() => setTableBuilderIndex(null)}
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Raw table preview when builder not open */}
+                            {tableBuilderIndex !== index && q.table_data && (
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full text-xs border-collapse">
+                                  <tbody>
+                                    {q.table_data.slice(0, 5).map((row, rowIdx) => (
+                                      <tr key={rowIdx} className={rowIdx === 0 ? 'font-semibold bg-blue-100 dark:bg-blue-900/50' : ''}>
+                                        {row.map((cell, cellIdx) => (
+                                          <td key={cellIdx} className="border border-blue-200 dark:border-blue-700 px-2 py-1">
+                                            {cell}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                    {q.table_data.length > 5 && (
+                                      <tr>
+                                        <td colSpan={q.table_data[0]?.length || 1} className="text-center text-blue-500 py-1">
+                                          ... {q.table_data.length - 5} more rows
                                         </td>
-                                      ))}
-                                    </tr>
-                                  ))}
-                                  {q.table_data.length > 5 && (
-                                    <tr>
-                                      <td colSpan={q.table_data[0]?.length || 1} className="text-center text-blue-500 py-1">
-                                        ... {q.table_data.length - 5} more rows
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        ) : null}
 
                         {/* Sub-questions */}
                         {q.has_sub_questions && q.sub_questions && q.sub_questions.length > 0 && (
