@@ -70,14 +70,14 @@ serve(async (req) => {
   try {
     const { content, parseMode = 'mock', fileName, images } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
     }
 
-    // If images are provided, use Vision API with Gemini
+    // If images are provided, use Vision API with GPT-4o
     if (images && images.length > 0) {
-      console.log(`Processing ${images.length} page images with Gemini Vision`);
+      console.log(`Processing ${images.length} page images with GPT-4o Vision`);
       
       const allQuestions: any[] = [];
       let metadata = { title: fileName || 'Imported Test', subject: 'mathematics', topic: 'General', total_questions: 0 };
@@ -85,9 +85,9 @@ serve(async (req) => {
       // Process each page image
       for (let i = 0; i < images.length; i++) {
         const pageImage = images[i];
-        console.log(`Processing page ${i + 1}/${images.length} with Gemini Vision...`);
+        console.log(`Processing page ${i + 1}/${images.length} with GPT-4o Vision...`);
         
-        // Prepare image content for Gemini
+        // Prepare image content for OpenAI
         const imageContent = pageImage.startsWith('data:') 
           ? pageImage 
           : `data:image/jpeg;base64,${pageImage}`;
@@ -117,22 +117,26 @@ Return ONLY valid JSON with complete data.`
               {
                 type: 'image_url',
                 image_url: {
-                  url: imageContent
+                  url: imageContent,
+                  detail: 'high'
                 }
               }
             ]
           }
         ];
 
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'gpt-4o',
             messages,
+            temperature: 0,
+            max_tokens: 4000,
+            response_format: { type: "json_object" }
           }),
         });
 
@@ -146,12 +150,6 @@ Return ONLY valid JSON with complete data.`
               { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
-          if (response.status === 402) {
-            return new Response(
-              JSON.stringify({ success: false, error: 'Payment required. Please add credits to your Lovable workspace.', questions: [] }),
-              { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
           continue;
         }
 
@@ -159,20 +157,7 @@ Return ONLY valid JSON with complete data.`
         const pageContent = data.choices?.[0]?.message?.content || '{}';
         
         try {
-          // Extract JSON from response (may be wrapped in markdown code blocks)
-          let jsonContent = pageContent;
-          const jsonMatch = pageContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-          if (jsonMatch) {
-            jsonContent = jsonMatch[1].trim();
-          } else {
-            // Try to find raw JSON object
-            const rawJsonMatch = pageContent.match(/\{[\s\S]*\}/);
-            if (rawJsonMatch) {
-              jsonContent = rawJsonMatch[0];
-            }
-          }
-          
-          const parsed = JSON.parse(jsonContent);
+          const parsed = JSON.parse(pageContent);
           if (parsed.questions && Array.isArray(parsed.questions)) {
             // Log diagram extractions
             const diagramQuestions = parsed.questions.filter((q: any) => q.has_diagram);
@@ -234,7 +219,7 @@ Return ONLY valid JSON with complete data.`
       );
     }
 
-    console.log(`Parsing ${content.length} chars in ${parseMode} mode using Gemini`);
+    console.log(`Parsing ${content.length} chars in ${parseMode} mode using GPT-4o`);
 
     const userPrompt = `Extract ALL questions from this exam paper: ${fileName || 'document'}
 
@@ -274,24 +259,27 @@ PARSING RULES:
 DOCUMENT CONTENT:
 ${content}`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
+        temperature: 0,
+        max_tokens: 8000,
+        response_format: { type: "json_object" }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Lovable AI Gateway error:', response.status, errorText);
+      console.error('OpenAI API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -299,42 +287,29 @@ ${content}`;
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Payment required. Please add credits to your Lovable workspace.', questions: [] }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       
-      throw new Error(`Lovable AI Gateway error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
     const aiContent = data.choices?.[0]?.message?.content || '';
 
-    console.log('Gemini response received, parsing JSON...');
+    console.log('GPT-4o response received, parsing JSON...');
 
     let parsed;
     try {
-      // Extract JSON from response (may be wrapped in markdown code blocks)
-      let jsonContent = aiContent;
-      const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        jsonContent = jsonMatch[1].trim();
-      } else {
-        const rawJsonMatch = aiContent.match(/\{[\s\S]*\}/);
-        if (rawJsonMatch) {
-          jsonContent = rawJsonMatch[0];
-        }
-      }
-      parsed = JSON.parse(jsonContent);
+      parsed = JSON.parse(aiContent);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      console.log('Raw AI response:', aiContent.substring(0, 500));
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to parse AI response', questions: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to parse AI response', questions: [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const questionCount = parsed.questions?.length || 0;
