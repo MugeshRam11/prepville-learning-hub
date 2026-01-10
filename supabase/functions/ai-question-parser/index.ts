@@ -6,90 +6,61 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are an ADVANCED EXAM PAPER VISION ANALYZER with CNN/RNN capabilities for extracting questions AND visual content.
+// PDR-compliant system prompt for exam question extraction
+const SYSTEM_PROMPT = `You are an exam question extractor AI with advanced vision capabilities.
 
-PRIMARY TASK: Extract ALL questions and FULLY DESCRIBE all visual elements (graphs, diagrams, images, charts, tables, shapes, coordinate grids).
+From the uploaded exam page image or document:
 
-STRICT RULES:
-- Do NOT create new questions - only extract what's visible
-- Do NOT summarize or rephrase
-- DO extract and describe ALL visual content in detail
+1. Extract the Question Number
+2. Extract the Main Question Text exactly as written
+3. If any graph, diagram, chart, figure, or visual element exists, describe it in detail with:
+   - Type (graph, chart, Venn diagram, geometry figure, coordinate grid, table, etc.)
+   - Visible labels, values, axis markings
+   - For coordinate grids: grid range, plotted points with exact (x,y) coordinates
+   - For shapes: vertices, side lengths, angles if marked
+   - For charts: axis labels, bar values, categories
+   - For tables: all headers and cell values
 
-VISUAL EXTRACTION IS CRITICAL:
-For EVERY visual element you see (graph, chart, diagram, grid, shape, table, figure, number line, box plot, etc.):
+4. Ignore UI elements such as:
+   - Timers, headers, footers
+   - Navigation buttons, sidebars
+   - Page decorations, watermarks
 
-1. Set "has_diagram": true
-2. Provide EXTREMELY DETAILED "diagram_description" with:
+5. Extract ALL visible questions, not just the first one
 
-FOR COORDINATE GRIDS/GRAPHS:
-- Grid range (e.g., x: -8 to 8, y: -8 to 8)
-- Grid line intervals
-- ALL plotted points with EXACT coordinates (x, y)
-- ALL shapes with vertex coordinates
-- Axis labels and scale
-- Any lines, curves, or functions shown
+QUESTION STRUCTURE RULES:
+- "Question 1 (6 marks)" = main question number 1 with 6 total marks
+- "Question 1a (1 mark)" = sub-question with label "a", 1 mark
+- Group sub-questions under their parent question
 
-FOR GEOMETRIC SHAPES:
-- Shape type (triangle, rectangle, polygon, etc.)
-- ALL vertex coordinates
-- Side lengths if shown
-- Angles if marked
-- Labels (A, B, C, etc.)
-- Transformations shown (rotation, reflection, translation)
-
-FOR BAR CHARTS/HISTOGRAMS:
-- X and Y axis labels and units
-- ALL bar values with exact heights
-- Categories/labels for each bar
-- Scale and intervals
-
-FOR LINE GRAPHS:
-- Axis labels and scales
-- ALL data points with coordinates
-- Line connections
-- Legend if present
-
-FOR BOX PLOTS:
-- Minimum, Q1, Median, Q3, Maximum values
-- Scale and units
-- Labels
-
-FOR TABLES:
-- ALL column headers
-- ALL row labels
-- EVERY cell value
-
-FOR PIE CHARTS:
-- ALL segments with labels
-- Percentages or values for each
-
-EXAMPLE diagram_description:
-"Coordinate grid: x-axis from -8 to 8, y-axis from -8 to 8, grid lines every 1 unit. Shape A (blue triangle): vertices at (-6, 4), (-4, 4), (-5, 2). Shape B (red quadrilateral): vertices at (2, -1), (4, -1), (5, -3), (1, -3). Dashed line at x = 0 (y-axis) shown as line of reflection."
-
-QUESTION STRUCTURE:
-- "Question 1 (6 marks)" = main question
-- "Question 1a (1 mark)" = sub-question label "a"
-
-IGNORE:
-- Headers/footers, navigation, watermarks
-- Non-question content
-
-OUTPUT (JSON ONLY):
+OUTPUT FORMAT (JSON ONLY):
 {
-  "metadata": { "title": "...", "subject": "mathematics", "topic": "...", "total_questions": N },
+  "metadata": {
+    "title": "extracted title or filename",
+    "subject": "mathematics",
+    "topic": "detected topic",
+    "total_questions": number
+  },
   "questions": [
     {
       "question_number": 1,
-      "question_text": "exact question text",
+      "question_text": "exact question text as written",
       "marks": 6,
       "has_sub_questions": true,
       "has_diagram": true,
-      "diagram_description": "COMPLETE visual description with all coordinates, values, labels",
+      "diagram_description": "Complete visual description with coordinates, values, labels",
       "difficulty": "medium",
-      "sub_questions": [{ "label": "a", "text": "...", "marks": 1 }]
+      "sub_questions": [
+        { "label": "a", "text": "exact sub-question text", "marks": 1 }
+      ]
     }
   ]
-}`;
+}
+
+ERROR HANDLING:
+- If question text is unreadable: question_text = "unreadable"
+- If question number not found: question_number = "not found"
+- If no graph/diagram: diagram_description = "none"`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -99,14 +70,14 @@ serve(async (req) => {
   try {
     const { content, parseMode = 'mock', fileName, images } = await req.json();
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // If images are provided, use Vision API
+    // If images are provided, use Vision API with Gemini
     if (images && images.length > 0) {
-      console.log(`Processing ${images.length} page images with GPT-4o Vision`);
+      console.log(`Processing ${images.length} page images with Gemini Vision`);
       
       const allQuestions: any[] = [];
       let metadata = { title: fileName || 'Imported Test', subject: 'mathematics', topic: 'General', total_questions: 0 };
@@ -114,8 +85,13 @@ serve(async (req) => {
       // Process each page image
       for (let i = 0; i < images.length; i++) {
         const pageImage = images[i];
-        console.log(`Processing page ${i + 1}/${images.length} with GPT-4o Vision...`);
+        console.log(`Processing page ${i + 1}/${images.length} with Gemini Vision...`);
         
+        // Prepare image content for Gemini
+        const imageContent = pageImage.startsWith('data:') 
+          ? pageImage 
+          : `data:image/jpeg;base64,${pageImage}`;
+
         const messages = [
           { role: 'system', content: SYSTEM_PROMPT },
           { 
@@ -123,7 +99,7 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `ANALYZE THIS EXAM PAGE (page ${i + 1}) WITH ADVANCED VISION.
+                text: `ANALYZE THIS EXAM PAGE (page ${i + 1}) WITH VISION AI.
 
 EXTRACT ALL QUESTIONS AND VISUAL CONTENT.
 
@@ -135,41 +111,47 @@ FOR EVERY VISUAL ELEMENT (graph, diagram, chart, grid, shape, table, figure):
    SHAPES: Type, ALL vertices with coordinates, labels (A, B, C), colors
    CHARTS: Axis labels, ALL values, categories, scale
    TABLES: ALL headers, ALL cell values
-   BOX PLOTS: Min, Q1, Median, Q3, Max
 
-EXAMPLE: "Grid: x=-8 to 8, y=-8 to 8, interval=1. Triangle A: (-6,4), (-4,4), (-5,2) blue. Quadrilateral B: (2,-1), (4,-1), (5,-3), (1,-3) red. Reflection line: x=0."
-
-Return ONLY valid JSON with complete diagram descriptions.`
+Return ONLY valid JSON with complete data.`
               },
               {
                 type: 'image_url',
                 image_url: {
-                  url: pageImage.startsWith('data:') ? pageImage : `data:image/jpeg;base64,${pageImage}`,
-                  detail: 'high'
+                  url: imageContent
                 }
               }
             ]
           }
         ];
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o',
+            model: 'google/gemini-2.5-flash',
             messages,
-            temperature: 0,
-            max_tokens: 4000,
-            response_format: { type: "json_object" }
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`Vision API error for page ${i + 1}:`, response.status, errorText);
+          
+          if (response.status === 429) {
+            return new Response(
+              JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again later.', questions: [] }),
+              { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          if (response.status === 402) {
+            return new Response(
+              JSON.stringify({ success: false, error: 'Payment required. Please add credits to your Lovable workspace.', questions: [] }),
+              { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
           continue;
         }
 
@@ -177,7 +159,20 @@ Return ONLY valid JSON with complete diagram descriptions.`
         const pageContent = data.choices?.[0]?.message?.content || '{}';
         
         try {
-          const parsed = JSON.parse(pageContent);
+          // Extract JSON from response (may be wrapped in markdown code blocks)
+          let jsonContent = pageContent;
+          const jsonMatch = pageContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (jsonMatch) {
+            jsonContent = jsonMatch[1].trim();
+          } else {
+            // Try to find raw JSON object
+            const rawJsonMatch = pageContent.match(/\{[\s\S]*\}/);
+            if (rawJsonMatch) {
+              jsonContent = rawJsonMatch[0];
+            }
+          }
+          
+          const parsed = JSON.parse(jsonContent);
           if (parsed.questions && Array.isArray(parsed.questions)) {
             // Log diagram extractions
             const diagramQuestions = parsed.questions.filter((q: any) => q.has_diagram);
@@ -194,6 +189,7 @@ Return ONLY valid JSON with complete diagram descriptions.`
           }
         } catch (e) {
           console.error(`Failed to parse page ${i + 1} response:`, e);
+          console.log('Raw response:', pageContent.substring(0, 500));
         }
       }
 
@@ -238,7 +234,7 @@ Return ONLY valid JSON with complete diagram descriptions.`
       );
     }
 
-    console.log(`Parsing ${content.length} chars in ${parseMode} mode using GPT-4o`);
+    console.log(`Parsing ${content.length} chars in ${parseMode} mode using Gemini`);
 
     const userPrompt = `Extract ALL questions from this exam paper: ${fileName || 'document'}
 
@@ -257,6 +253,7 @@ Return JSON with this exact structure:
       "marks": 6,
       "has_sub_questions": true,
       "has_diagram": false,
+      "diagram_description": "none",
       "difficulty": "medium",
       "sub_questions": [
         { "label": "a", "text": "exact sub-question text", "marks": 1 },
@@ -271,31 +268,30 @@ PARSING RULES:
 2. "Question Xa (N mark)" = sub-question with label "a", N marks
 3. Group sub-questions under their parent question
 4. If no sub-questions, set has_sub_questions: false and sub_questions: []
+5. If question text is unreadable, set question_text: "unreadable"
+6. If no diagram present, set diagram_description: "none"
 
 DOCUMENT CONTENT:
 ${content}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0,
-        max_tokens: 8000,
-        response_format: { type: "json_object" }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
+      console.error('Lovable AI Gateway error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -303,29 +299,42 @@ ${content}`;
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Payment required. Please add credits to your Lovable workspace.', questions: [] }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Lovable AI Gateway error: ${response.status}`);
     }
 
     const data = await response.json();
     const aiContent = data.choices?.[0]?.message?.content || '';
 
-    console.log('GPT-4o response received, parsing JSON...');
+    console.log('Gemini response received, parsing JSON...');
 
     let parsed;
     try {
-      parsed = JSON.parse(aiContent);
+      // Extract JSON from response (may be wrapped in markdown code blocks)
+      let jsonContent = aiContent;
+      const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[1].trim();
+      } else {
+        const rawJsonMatch = aiContent.match(/\{[\s\S]*\}/);
+        if (rawJsonMatch) {
+          jsonContent = rawJsonMatch[0];
+        }
+      }
+      parsed = JSON.parse(jsonContent);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      } else {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Failed to parse AI response', questions: [] }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      console.log('Raw AI response:', aiContent.substring(0, 500));
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to parse AI response', questions: [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const questionCount = parsed.questions?.length || 0;

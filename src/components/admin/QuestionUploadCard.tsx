@@ -129,7 +129,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       // For PDFs: Convert pages to images for Vision API
       if (fileName.endsWith('.pdf')) {
         setProcessingStage('Converting PDF pages to images for Vision AI...');
-        toast.info('📸 Converting PDF to images for GPT-4o Vision...');
+        toast.info('📸 Converting PDF to images for Gemini Vision...');
         
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -175,11 +175,11 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       }
 
       setProgress(45);
-      setProcessingStage(`🤖 GPT-4o Vision analyzing ${images.length} pages with CNN/RNN...`);
-      setPageProgress({ current: 0, total: images.length });
-      toast.info(images.length > 0 
-        ? `🔍 GPT-4o Vision analyzing ${images.length} page(s) for questions & diagrams...` 
-        : '🤖 GPT-4o is parsing questions...');
+        setProcessingStage(`🤖 Gemini Vision analyzing ${images.length} pages...`);
+        setPageProgress({ current: 0, total: images.length });
+        toast.info(images.length > 0 
+          ? `🔍 Gemini Vision analyzing ${images.length} page(s) for questions & diagrams...` 
+          : '🤖 Gemini AI is parsing questions...');
 
       // Call AI parser with images or text
       const { data, error } = await supabase.functions.invoke('ai-question-parser', {
@@ -231,9 +231,9 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       if (errorDetails.includes('Rate limit') || errorDetails.includes('429')) {
         errorMessage = 'Rate limit exceeded';
         errorDetails = 'Please wait a moment and try again.';
-      } else if (errorDetails.includes('OPENAI_API_KEY')) {
-        errorMessage = 'OpenAI API key not configured';
-        errorDetails = 'Please add your OpenAI API key in settings.';
+      } else if (errorDetails.includes('402') || errorDetails.includes('Payment')) {
+        errorMessage = 'Credits required';
+        errorDetails = 'Please add credits to your Lovable workspace.';
       }
       
       toast.error(errorMessage, { description: errorDetails, duration: 6000 });
