@@ -6,29 +6,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Ultra-fast system prompt
-const SYSTEM_PROMPT = `Extract exam questions. Return ONLY valid JSON:
-{"questions":[{"question_number":"1a","question_text":"...","marks":2,"command_term":"Calculate","has_diagram":false,"diagram_description":null,"interactive_type":"math_input"}]}
+// Enhanced MCQ extraction prompt with strict verification
+const SYSTEM_PROMPT = `You are an exam question extraction AI. Extract questions with maximum accuracy.
 
-RULES:
-- Each sub-question (a,b,c) = SEPARATE entry
-- Detect interactive_type: graph_plot, drag_drop, image_drop, arrange_order, math_input, multiple_choice, text_equation
-- marks from [2] or (2 marks)
-- Return VALID JSON only`;
+EXTRACTION RULES:
+1. Extract the first visible Question Number exactly as shown (e.g., "1", "1a", "2(i)")
+2. Extract the complete Question Text exactly as written - NO paraphrasing
+3. Detect reference visuals: Graph, Chart, Table, Diagram, Figure, Venn diagram, Tree diagram
+4. If visual exists: graph_found=true, return bounding_box as {x_min, y_min, x_max, y_max} percentages (0-100)
+5. If no visual: graph_found=false, bounding_box=null
+6. Extract MCQ options exactly as written (A, B, C, D)
+7. Detect interactive_type based on content:
+   - graph_plot: coordinate grids, plot points, draw lines, shade regions
+   - drag_drop: match items, drag to correct position, arrange
+   - image_drop: Venn diagrams, tree diagrams, label diagrams
+   - arrange_order: step-by-step solutions, sequence problems
+   - multiple_choice: MCQ with A/B/C/D options
+   - smart_math: calculate, solve, evaluate, simplify
+   - text_equation: written response, explain, describe
+8. VERIFY: Compare extracted text with visible text. If any blur, missing text, or doubt: parsing_verified=false
 
-// Only use fastest models
-const MODEL = 'google/gemini-2.5-flash-lite';
-const PAGE_TIMEOUT = 12000;  // 12 seconds
-const MAX_PAGES_PER_REQUEST = 3;  // Process max 3 pages at a time
+RETURN FORMAT - Valid JSON only:
+{
+  "questions": [
+    {
+      "question_number": "1a",
+      "question_text": "exact question text",
+      "marks": 2,
+      "command_term": "Calculate",
+      "options": {"A": "", "B": "", "C": "", "D": ""} or null,
+      "graph_found": false,
+      "graph_bounding_box": null or {"x_min": 10, "y_min": 20, "x_max": 90, "y_max": 80},
+      "diagram_description": "description of visual if present",
+      "interactive_type": "smart_math",
+      "parsing_verified": true
+    }
+  ]
+}
+
+STRICT RULES:
+- Each sub-question (a,b,c,i,ii) = SEPARATE entry with parent reference
+- marks from [2], (2 marks), or (2)
+- Ignore headers, footers, page numbers, ads, decorations
+- Return ONLY valid JSON`;
+
+// Use flash-lite for speed, flash for fallback
+const PRIMARY_MODEL = 'google/gemini-2.5-flash-lite';
+const FALLBACK_MODEL = 'google/gemini-2.5-flash';
+const PAGE_TIMEOUT = 15000;  // 15 seconds
+const MAX_PAGES_PER_REQUEST = 3;
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 async function analyzePageWithVision(
   apiKey: string,
   imageContent: string,
-  pageIndex: number
+  pageIndex: number,
+  useFallback: boolean = false
 ): Promise<any> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), PAGE_TIMEOUT);
+  const model = useFallback ? FALLBACK_MODEL : PRIMARY_MODEL;
 
   try {
     const response = await fetch(LOVABLE_AI_URL, {
@@ -38,18 +75,21 @@ async function analyzePageWithVision(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: model,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           {
             role: 'user',
             content: [
-              { type: 'text', text: `Page ${pageIndex + 1}: Extract questions, marks, interactive_type (graph_plot/drag_drop/math_input/etc)` },
-              { type: 'image_url', image_url: { url: imageContent, detail: 'low' } }
+              { 
+                type: 'text', 
+                text: `Page ${pageIndex + 1}: Extract ALL questions with exact text, marks, MCQ options (if any), graph/diagram bounding boxes, and interactive_type. Verify parsing accuracy.` 
+              },
+              { type: 'image_url', image_url: { url: imageContent, detail: 'high' } }
             ]
           }
         ],
-        max_tokens: 1500
+        max_tokens: 2500
       }),
       signal: controller.signal
     });
@@ -64,6 +104,13 @@ async function analyzePageWithVision(
 
   } catch (error: any) {
     clearTimeout(timeoutId);
+    
+    // Try fallback model on timeout or error
+    if (!useFallback && (error.name === 'AbortError' || error.message.includes('timeout'))) {
+      console.log(`Page ${pageIndex + 1}: Retrying with fallback model`);
+      return analyzePageWithVision(apiKey, imageContent, pageIndex, true);
+    }
+    
     throw error;
   }
 }
@@ -77,6 +124,7 @@ function parseAIResponse(content: string): any[] {
     if (Array.isArray(parsed)) return parsed;
     if (parsed.question_number) return [parsed];
   } catch {
+    // Try extracting JSON from markdown code blocks
     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
@@ -92,61 +140,99 @@ function parseAIResponse(content: string): any[] {
 }
 
 // Map detected type to AnswerBlockType
-function mapInteractiveType(detected: string | undefined): string {
+function mapInteractiveType(detected: string | undefined, questionText?: string): string {
   const typeMap: Record<string, string> = {
     'graph': 'graph_plot',
     'graph_plot': 'graph_plot',
     'graph_interaction': 'graph_plot',
     'plot': 'graph_plot',
     'coordinate': 'graph_plot',
+    'shade': 'graph_plot',
+    'draw': 'graph_plot',
     'drag': 'drag_drop',
     'drag_drop': 'drag_drop',
     'drag_drop_match': 'drag_drop',
     'match': 'drag_drop',
+    'arrange': 'drag_drop',
     'venn': 'image_drop',
     'image_drop': 'image_drop',
     'image_drop_zone': 'image_drop',
     'tree_diagram': 'image_drop',
-    'arrange': 'arrange_order',
-    'arrange_order': 'arrange_order',
+    'tree': 'image_drop',
+    'label': 'image_drop',
     'step': 'arrange_order',
-    'step_builder': 'arrange_order',
+    'arrange_order': 'arrange_order',
     'order': 'arrange_order',
+    'sequence': 'arrange_order',
     'math': 'smart_math',
     'math_input': 'smart_math',
     'calculate': 'smart_math',
+    'solve': 'smart_math',
+    'evaluate': 'smart_math',
+    'simplify': 'smart_math',
+    'smart_math': 'smart_math',
     'mcq': 'multiple_choice',
     'multiple_choice': 'multiple_choice',
     'select': 'multiple_choice'
   };
   
-  if (!detected) return 'text_equation';
+  if (detected) {
+    const lower = detected.toLowerCase();
+    for (const [key, value] of Object.entries(typeMap)) {
+      if (lower.includes(key)) return value;
+    }
+  }
   
-  const lower = detected.toLowerCase();
-  for (const [key, value] of Object.entries(typeMap)) {
-    if (lower.includes(key)) return value;
+  // Auto-detect from question text
+  if (questionText) {
+    const lower = questionText.toLowerCase();
+    if (lower.includes('plot') || lower.includes('draw the graph') || lower.includes('shade')) return 'graph_plot';
+    if (lower.includes('match') || lower.includes('drag') || lower.includes('arrange')) return 'drag_drop';
+    if (lower.includes('venn') || lower.includes('tree diagram') || lower.includes('label')) return 'image_drop';
+    if (lower.includes('calculate') || lower.includes('solve') || lower.includes('find the value')) return 'smart_math';
+    if (lower.includes('which of') || lower.includes('select') || lower.includes('choose')) return 'multiple_choice';
+    if (lower.includes('step') || lower.includes('show your working')) return 'arrange_order';
   }
   
   return 'text_equation';
 }
 
 function flattenResults(questions: any[], pageIndex: number, imageContent: string): any[] {
-  return questions.map(q => ({
-    question_number: q.question_number || q.number || 'unknown',
-    parent_question: q.parent_question || null,
-    question_text: q.question_text || q.text || '',
-    marks: q.marks || 1,
-    command_term: q.command_term || null,
-    has_sub_questions: false,
-    graph_found: q.has_diagram || Boolean(q.diagram_description),
-    graph_description: q.diagram_description || null,
-    has_table: q.has_table || false,
-    table_data: q.table_data || null,
-    interactive_type: mapInteractiveType(q.interactive_type || q.answer_type),
-    answer_block_type: mapInteractiveType(q.interactive_type || q.answer_type),
-    page: pageIndex + 1,
-    source_image: imageContent
-  }));
+  return questions.map(q => {
+    const interactiveType = mapInteractiveType(q.interactive_type || q.answer_type, q.question_text);
+    
+    return {
+      question_number: q.question_number || q.number || 'unknown',
+      parent_question: q.parent_question || null,
+      question_text: q.question_text || q.text || '',
+      marks: q.marks || 1,
+      command_term: q.command_term || null,
+      has_sub_questions: false,
+      
+      // MCQ options if present
+      options: q.options || null,
+      
+      // Graph/diagram detection
+      graph_found: q.graph_found || q.has_diagram || Boolean(q.diagram_description || q.graph_bounding_box),
+      graph_bounding_box: q.graph_bounding_box || null,
+      graph_description: q.diagram_description || q.graph_description || null,
+      
+      // Table detection  
+      has_table: q.has_table || false,
+      table_data: q.table_data || null,
+      
+      // Interactive type mapping
+      interactive_type: interactiveType,
+      answer_block_type: interactiveType,
+      
+      // Verification
+      parsing_verified: q.parsing_verified !== false,
+      
+      // Metadata
+      page: pageIndex + 1,
+      source_image: imageContent
+    };
+  });
 }
 
 serve(async (req) => {
@@ -171,6 +257,8 @@ serve(async (req) => {
       console.log(`Processing ${startPage + 1}-${endPage} of ${totalPages}`);
       
       const allQuestions: any[] = [];
+      let verifiedCount = 0;
+      let graphCount = 0;
       
       // Process pages sequentially to avoid resource limits
       for (let i = 0; i < pagesToProcess.length; i++) {
@@ -194,6 +282,13 @@ serve(async (req) => {
           console.log(`Page ${absolutePageIndex + 1}: ${questions.length} questions`);
           
           const pageResults = flattenResults(questions, absolutePageIndex, imageContent);
+          
+          // Count verified and graph questions
+          pageResults.forEach(q => {
+            if (q.parsing_verified) verifiedCount++;
+            if (q.graph_found) graphCount++;
+          });
+          
           allQuestions.push(...pageResults);
           
         } catch (e: any) {
@@ -206,20 +301,23 @@ serve(async (req) => {
             page: absolutePageIndex + 1,
             error: e.message,
             interactive_type: 'text_equation',
-            answer_block_type: 'text_equation'
+            answer_block_type: 'text_equation',
+            parsing_verified: false
           });
         }
       }
 
       const hasMorePages = endPage < totalPages;
       
-      console.log(`Done: ${allQuestions.length} entries`);
+      console.log(`Done: ${allQuestions.length} entries, ${verifiedCount} verified, ${graphCount} with graphs`);
 
       return new Response(
         JSON.stringify({
           success: true,
           all_pages: allQuestions,
           parsed_count: allQuestions.length,
+          verified_count: verifiedCount,
+          graph_count: graphCount,
           pagination: {
             start_page: startPage,
             end_page: endPage,
@@ -250,12 +348,12 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: PRIMARY_MODEL,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `Extract questions: ${content.substring(0, 3000)}` }
+          { role: 'user', content: `Extract ALL questions with exact text: ${content.substring(0, 5000)}` }
         ],
-        max_tokens: 1500
+        max_tokens: 2500
       }),
       signal: controller.signal
     });
@@ -275,7 +373,9 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         all_pages: allQuestions,
-        parsed_count: allQuestions.length
+        parsed_count: allQuestions.length,
+        verified_count: allQuestions.filter(q => q.parsing_verified).length,
+        graph_count: allQuestions.filter(q => q.graph_found).length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
