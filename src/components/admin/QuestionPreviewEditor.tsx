@@ -8,8 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree, Table } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree, Table, FileImage, ListChecks } from 'lucide-react';
 import BoundingBoxOverlay from './BoundingBoxOverlay';
+import PageRegionsOverlay from './PageRegionsOverlay';
 import { useDiagramCropping } from '@/hooks/useDiagramCropping';
 import { toast } from 'sonner';
 
@@ -62,6 +64,13 @@ interface ParsedQuestion {
   is_diagram?: boolean;
   related_questions?: string[];
   command_term?: string | null;
+  // Interactive type detection
+  interactive_type?: string;
+  answer_block_type?: string;
+  parsing_verified?: boolean;
+  options?: { A?: string; B?: string; C?: string; D?: string } | null;
+  draggable_items?: string[];
+  diagram_type?: string;
 }
 
 interface QuestionPreviewEditorProps {
