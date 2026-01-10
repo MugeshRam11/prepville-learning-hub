@@ -177,84 +177,110 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       }
 
       setProgress(45);
-        setProcessingStage(`🤖 GPT-4o Vision analyzing ${images.length} pages...`);
-        setPageProgress({ current: 0, total: images.length });
-        toast.info(images.length > 0 
-          ? `🔍 GPT-4o Vision analyzing ${images.length} page(s) for questions & diagrams...` 
-          : '🤖 GPT-4o is parsing questions...');
+      setProcessingStage(`🤖 AI Vision analyzing ${images.length} pages...`);
+      setPageProgress({ current: 0, total: images.length });
+      toast.info(images.length > 0 
+        ? `🔍 AI Vision analyzing ${images.length} page(s) for questions & diagrams...` 
+        : '🤖 AI is parsing questions...');
 
-      // Call AI parser with images or text
-      const { data, error } = await supabase.functions.invoke('ai-question-parser', {
-        body: {
-          content: content || null,
-          images: images.length > 0 ? images : null,
-          fileName: file.name,
-          parseMode: mode,
-          actionMode
+      // Process images with pagination to avoid resource limits
+      let allQuestions: any[] = [];
+      let startPage = 0;
+      let hasMorePages = true;
+      let batchNumber = 1;
+      
+      if (images.length > 0) {
+        while (hasMorePages) {
+          setProcessingStage(`🤖 Processing batch ${batchNumber} (pages ${startPage + 1}-${Math.min(startPage + 5, images.length)})...`);
+          setPageProgress({ current: startPage, total: images.length });
+          
+          const { data, error } = await supabase.functions.invoke('ai-question-parser', {
+            body: {
+              content: null,
+              images: images,
+              fileName: file.name,
+              parseMode: mode,
+              actionMode,
+              startPage
+            }
+          });
+          
+          if (error) throw error;
+          
+          if (!data || !data.success) {
+            throw new Error(data?.error || 'Failed to parse document');
+          }
+          
+          // Collect questions from this batch
+          if (data.all_pages && data.all_pages.length > 0) {
+            allQuestions.push(...data.all_pages);
+          }
+          
+          // Check pagination
+          hasMorePages = data.pagination?.has_more || false;
+          startPage = data.pagination?.next_start_page || images.length;
+          batchNumber++;
+          
+          setProgress(45 + (startPage / images.length) * 40);
         }
-      });
-      
-      if (error) throw error;
-      setProgress(85);
-      
-      if (!data || !data.success) {
-        throw new Error(data?.error || 'Failed to parse document');
+      } else {
+        // Text-only processing (single call)
+        const { data, error } = await supabase.functions.invoke('ai-question-parser', {
+          body: {
+            content: content || null,
+            images: null,
+            fileName: file.name,
+            parseMode: mode,
+            actionMode
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (!data || !data.success) {
+          throw new Error(data?.error || 'Failed to parse document');
+        }
+        
+        allQuestions = data.all_pages || [];
       }
+      
+      setProgress(85);
 
-      // Handle PDR format with bounding box (question_number, question_text, graph_found, graph_bounding_box)
-      let questions = [];
+      // Convert parsed results to question format
+      let questions = allQuestions.map((page: any, idx: number) => ({
+        question_number: page.question_number === "not found" ? idx + 1 : page.question_number,
+        question_text: page.question_text || "unreadable",
+        marks: page.marks || 1,
+        has_sub_questions: false,
+        graph_found: Boolean(page.graph_found),
+        graph_bounding_box: page.graph_bounding_box || null,
+        graph_type: page.graph_type || null,
+        graph_description: page.graph_description || null,
+        diagram_crop: page.diagram_crop || null,
+        has_table: page.has_table || false,
+        table_data: page.table_data || null,
+        command_term: page.command_term || null,
+        parent_question: page.parent_question || null,
+        difficulty: "medium",
+        page: page.page || idx + 1,
+        source_image: page.source_image || null
+      }));
+      
       let metadata = {
         title: file.name.replace(/\.[^/.]+$/, '') || 'Imported Test',
         subject: 'mathematics',
         topic: 'General'
       };
-
-      // Check if response is in PDR format
-      if (data.question_number !== undefined && data.question_text !== undefined) {
-        // Single question PDR format - convert to array format
-        const pdrQuestion = {
-          question_number: data.question_number === "not found" ? 1 : parseInt(data.question_number) || 1,
-          question_text: data.question_text || "unreadable",
-          marks: 1,
-          has_sub_questions: false,
-          graph_found: Boolean(data.graph_found),
-          graph_bounding_box: data.graph_bounding_box || null,
-          difficulty: "medium"
-        };
-        questions = [pdrQuestion];
-        
-        // Also include all pages if available
-        if (data.all_pages && data.all_pages.length > 1) {
-          questions = data.all_pages.map((page: any, idx: number) => ({
-            question_number: page.question_number === "not found" ? idx + 1 : parseInt(page.question_number) || idx + 1,
-            question_text: page.question_text || "unreadable",
-            marks: 1,
-            has_sub_questions: false,
-            graph_found: Boolean(page.graph_found),
-            graph_bounding_box: page.graph_bounding_box || null,
-            difficulty: "medium",
-            page: page.page || idx + 1
-          }));
-        }
-      } else {
-        // Legacy complex format
-        questions = data.data?.questions || data.questions || [];
-        if (data.data?.metadata) {
-          metadata = { ...metadata, ...data.data.metadata };
-        }
-      }
       
       setPendingQuestions(questions);
       setPendingMetadata(metadata);
       setShowPreviewEditor(true);
       
       const graphCount = questions.filter((q: any) => q.graph_found || q.has_diagram).length;
-      const fallbackUsed = data.fallback_triggered;
-      const modelsUsed = data.models_used?.join(', ') || 'gpt-4o';
+      const tableCount = questions.filter((q: any) => q.has_table).length;
       
       toast.success(
-        `✅ Extracted ${questions.length} question(s)${graphCount > 0 ? ` with ${graphCount} diagram(s)` : ''}`, 
-        { description: fallbackUsed ? `⚡ Auto-switched to faster model` : `Model: ${modelsUsed}` }
+        `✅ Extracted ${questions.length} question(s)${graphCount > 0 ? ` with ${graphCount} diagram(s)` : ''}${tableCount > 0 ? ` and ${tableCount} table(s)` : ''}`
       );
       setProgress(100);
       setParseResult({
@@ -262,11 +288,10 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         actionMode: actionMode,
         count: questions.length,
         graphCount,
+        tableCount,
         data: null,
         images: [],
-        pending: true,
-        modelsUsed,
-        fallbackTriggered: fallbackUsed
+        pending: true
       });
 
     } catch (error: any) {
