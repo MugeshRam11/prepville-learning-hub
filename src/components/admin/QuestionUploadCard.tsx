@@ -247,7 +247,13 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       setShowPreviewEditor(true);
       
       const graphCount = questions.filter((q: any) => q.graph_found || q.has_diagram).length;
-      toast.success(`✅ Extracted ${questions.length} question(s)${graphCount > 0 ? ` with ${graphCount} diagram(s)` : ''} - please review`);
+      const fallbackUsed = data.fallback_triggered;
+      const modelsUsed = data.models_used?.join(', ') || 'gpt-4o';
+      
+      toast.success(
+        `✅ Extracted ${questions.length} question(s)${graphCount > 0 ? ` with ${graphCount} diagram(s)` : ''}`, 
+        { description: fallbackUsed ? `⚡ Auto-switched to faster model` : `Model: ${modelsUsed}` }
+      );
       setProgress(100);
       setParseResult({
         success: true,
@@ -256,7 +262,9 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         graphCount,
         data: null,
         images: [],
-        pending: true
+        pending: true,
+        modelsUsed,
+        fallbackTriggered: fallbackUsed
       });
 
     } catch (error: any) {

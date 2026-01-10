@@ -30,6 +30,16 @@ interface ParsedQuestion {
     x_max: number;
     y_max: number;
   } | null;
+  diagram_crop?: {
+    source_image_index: number;
+    bbox: {
+      x_min: number;
+      y_min: number;
+      x_max: number;
+      y_max: number;
+    };
+    crop_instructions: string;
+  } | null;
   has_diagram?: boolean;
   diagram_description?: string;
   sub_questions?: SubQuestion[];
@@ -37,6 +47,7 @@ interface ParsedQuestion {
   category?: string;
   correct_answer?: string;
   page?: number;
+  model_used?: string;
 }
 
 interface QuestionPreviewEditorProps {
@@ -284,16 +295,30 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                         {/* Graph Bounding Box - PDR Field */}
                         {q.graph_found && (
                           <div className="mb-2 p-2 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
-                            <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
-                              <BarChart3 className="w-3 h-3" />
-                              graph_bounding_box (PDR):
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-300">
+                                <BarChart3 className="w-3 h-3" />
+                                graph_bounding_box (PDR):
+                              </div>
+                              {q.model_used && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 rounded text-purple-600 dark:text-purple-400">
+                                  {q.model_used}
+                                </span>
+                              )}
                             </div>
                             {q.graph_bounding_box ? (
-                              <div className="text-xs font-mono text-purple-600 dark:text-purple-400 grid grid-cols-2 gap-1">
-                                <span>x_min: {q.graph_bounding_box.x_min}%</span>
-                                <span>y_min: {q.graph_bounding_box.y_min}%</span>
-                                <span>x_max: {q.graph_bounding_box.x_max}%</span>
-                                <span>y_max: {q.graph_bounding_box.y_max}%</span>
+                              <div className="space-y-1">
+                                <div className="text-xs font-mono text-purple-600 dark:text-purple-400 grid grid-cols-2 gap-1">
+                                  <span>x_min: {q.graph_bounding_box.x_min}%</span>
+                                  <span>y_min: {q.graph_bounding_box.y_min}%</span>
+                                  <span>x_max: {q.graph_bounding_box.x_max}%</span>
+                                  <span>y_max: {q.graph_bounding_box.y_max}%</span>
+                                </div>
+                                {q.diagram_crop && (
+                                  <p className="text-[10px] text-purple-500 dark:text-purple-400 mt-1">
+                                    📐 {q.diagram_crop.crop_instructions}
+                                  </p>
+                                )}
                               </div>
                             ) : (
                               <p className="text-xs text-purple-600 dark:text-purple-400 font-mono">null</p>
