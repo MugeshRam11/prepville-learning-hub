@@ -1738,6 +1738,25 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_my_progress_summary: {
+        Args: never
+        Returns: {
+          avg_score_percentage: number
+          created_at: string
+          current_level: number
+          email: string
+          first_name: string
+          is_active: boolean
+          last_activity_date: string
+          last_login: string
+          last_name: string
+          longest_streak: number
+          role: string
+          total_tests_taken: number
+          total_xp: number
+          user_id: string
+        }[]
+      }
       get_platform_statistics: {
         Args: never
         Returns: {
