@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,9 @@ import {
   Hash,
   CheckSquare,
   FileText,
-  Table2
+  Table2,
+  Check,
+  X
 } from 'lucide-react';
 
 // Import interactive components
@@ -32,6 +34,7 @@ import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import MathKeyboard from '@/components/mock-exam/MathKeyboard';
+import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
@@ -59,6 +62,8 @@ interface InteractiveAnswerBlockProps {
   allowTypeChange?: boolean;
   questionText?: string;
   diagramDescription?: string;
+  showValidation?: boolean;
+  onValidate?: () => void;
 }
 
 const TYPE_OPTIONS: { type: InteractiveType; label: string; icon: React.ReactNode }[] = [
@@ -224,11 +229,22 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
   disabled = false,
   allowTypeChange = true,
   questionText,
-  diagramDescription
+  diagramDescription,
+  showValidation = false,
+  onValidate
 }) => {
   const autoType = autoDetectType(questionText, diagramDescription, config);
   const [currentType, setCurrentType] = useState<InteractiveType>(detectedType || autoType);
   const [showMathKeyboard, setShowMathKeyboard] = useState(false);
+  const [validationTriggered, setValidationTriggered] = useState(false);
+
+  // Validate table answers
+  const tableValidation = useCallback(() => {
+    if (currentType === 'table_input' && config?.tableConfig) {
+      return validateTableAnswers(config.tableConfig, value || {});
+    }
+    return null;
+  }, [currentType, config, value]);
 
   const getWordCount = (text: string): number => {
     if (!text) return 0;
@@ -391,6 +407,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         };
         
         const tableValue = value || {};
+        const validation = (showValidation || validationTriggered) ? validateTableAnswers(tableConfig, tableValue) : null;
         
         const handleCellChange = (rowIndex: number, cellIndex: number, newValue: string) => {
           const newTableValue = { ...tableValue };
@@ -400,48 +417,109 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
           newTableValue[rowIndex][cellIndex] = newValue;
           onChange(newTableValue);
         };
+
+        const getCellValidationClass = (rowIdx: number, cellIdx: number, isEditable: boolean) => {
+          if (!isEditable || !validation) return '';
+          const cellKey = `${rowIdx}-${cellIdx}`;
+          const result = validation.cellResults.get(cellKey);
+          
+          switch (result) {
+            case 'correct':
+              return 'ring-2 ring-green-500 bg-green-50 dark:bg-green-950/30';
+            case 'incorrect':
+              return 'ring-2 ring-red-500 bg-red-50 dark:bg-red-950/30';
+            default:
+              return '';
+          }
+        };
+
+        const getCellIcon = (rowIdx: number, cellIdx: number, isEditable: boolean) => {
+          if (!isEditable || !validation) return null;
+          const cellKey = `${rowIdx}-${cellIdx}`;
+          const result = validation.cellResults.get(cellKey);
+          
+          switch (result) {
+            case 'correct':
+              return <Check className="w-3 h-3 text-green-600 absolute -top-1 -right-1" />;
+            case 'incorrect':
+              return <X className="w-3 h-3 text-red-600 absolute -top-1 -right-1" />;
+            default:
+              return null;
+          }
+        };
         
         return (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-border rounded-lg overflow-hidden">
-              <thead>
-                <tr className="bg-muted">
-                  {tableConfig.headers.map((header, idx) => (
-                    <th key={idx} className="border border-border px-4 py-2 text-sm font-semibold text-foreground">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tableConfig.rows.map((row, rowIdx) => (
-                  <tr key={rowIdx} className="hover:bg-muted/30 transition-colors">
-                    {row.cells.map((cell, cellIdx) => (
-                      <td key={cellIdx} className="border border-border px-2 py-1">
-                        {cell.editable ? (
-                          <input
-                            type="text"
-                            value={tableValue[rowIdx]?.[cellIdx] || ''}
-                            onChange={(e) => handleCellChange(rowIdx, cellIdx, e.target.value)}
-                            disabled={disabled}
-                            className="w-full px-2 py-1 text-center bg-background border border-input rounded focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                            placeholder="?"
-                          />
-                        ) : (
-                          <span className="block text-center font-medium text-foreground">
-                            {cell.value}
-                          </span>
-                        )}
-                      </td>
+          <div className="space-y-3">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-border rounded-lg overflow-hidden">
+                <thead>
+                  <tr className="bg-muted">
+                    {tableConfig.headers.map((header, idx) => (
+                      <th key={idx} className="border border-border px-4 py-2 text-sm font-semibold text-foreground">
+                        {header}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {tableConfig.tableType && (
-              <Badge variant="outline" className="mt-2 text-xs">
-                {tableConfig.tableType.replace('_', ' ')} table
-              </Badge>
+                </thead>
+                <tbody>
+                  {tableConfig.rows.map((row, rowIdx) => (
+                    <tr key={rowIdx} className="hover:bg-muted/30 transition-colors">
+                      {row.cells.map((cell, cellIdx) => (
+                        <td key={cellIdx} className="border border-border px-2 py-1">
+                          {cell.editable ? (
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={tableValue[rowIdx]?.[cellIdx] || ''}
+                                onChange={(e) => handleCellChange(rowIdx, cellIdx, e.target.value)}
+                                disabled={disabled}
+                                className={`w-full px-2 py-1 text-center bg-background border border-input rounded focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${getCellValidationClass(rowIdx, cellIdx, true)}`}
+                                placeholder="?"
+                              />
+                              {getCellIcon(rowIdx, cellIdx, true)}
+                            </div>
+                          ) : (
+                            <span className="block text-center font-medium text-foreground">
+                              {cell.value}
+                            </span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              {tableConfig.tableType && (
+                <Badge variant="outline" className="text-xs">
+                  {tableConfig.tableType.replace('_', ' ')} table
+                </Badge>
+              )}
+              
+              {!showValidation && !validationTriggered && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setValidationTriggered(true);
+                    onValidate?.();
+                  }}
+                  className="text-xs"
+                >
+                  Check Answers
+                </Button>
+              )}
+            </div>
+            
+            {/* Validation Results */}
+            {(showValidation || validationTriggered) && validation && (
+              <TableAnswerValidator
+                tableConfig={tableConfig}
+                tableValue={tableValue}
+                showResults={true}
+              />
             )}
           </div>
         );
