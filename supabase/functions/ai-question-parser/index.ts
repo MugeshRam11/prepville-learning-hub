@@ -6,54 +6,82 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Enhanced system prompt for precise graph/diagram detection with CNN-like spatial analysis
+// Enhanced system prompt for detecting ALL questions with proper numbering (1, 1(i), 1(ii), 2, etc.)
 const SYSTEM_PROMPT = `You are a specialized exam content extraction AI with enhanced visual analysis capabilities.
 
 ## YOUR TASK
-Extract exam questions and detect diagrams/graphs with PRECISE bounding boxes from uploaded exam page images.
+Extract ALL exam questions from the page image. Questions are numbered like:
+- Main questions: 1, 2, 3, 4...
+- Sub-questions: 1(a), 1(b), 1(i), 1(ii), 1.a, 1.1, etc.
+- Nested: 1(a)(i), 1(b)(ii), etc.
 
-## GRAPH/DIAGRAM DETECTION (CRITICAL)
-You MUST detect and report bounding boxes for ANY of these visual elements:
+## CRITICAL: DETECT EVERY QUESTION
+You MUST find and extract ALL questions visible on the page:
+- Main numbered questions (1, 2, 3...)
+- ALL sub-parts (a, b, c OR i, ii, iii OR 1, 2, 3)
+- Each sub-question is a SEPARATE entry in the output
+
+## GRAPH/DIAGRAM DETECTION
+For EACH question, detect if it has an associated visual element:
 - Coordinate planes, grids, axes (x-y graphs)
 - Bar charts, line graphs, pie charts, histograms
 - Venn diagrams, tree diagrams, flow charts
 - Geometric figures (triangles, circles, shapes)
-- Box plots, scatter plots, data visualizations
 - Tables with data, matrices
-- Maps, images, illustrations
 - Any drawn or printed visual element
 
 ## BOUNDING BOX INSTRUCTIONS
-When a graph/diagram is detected:
+When a graph/diagram is detected for a question:
 1. Identify the EXACT boundaries of the visual element
-2. Exclude surrounding text/questions - ONLY the visual region
-3. Report coordinates as percentages (0-100) of image dimensions:
+2. Report coordinates as percentages (0-100) of image dimensions:
    - x_min: left edge percentage
    - y_min: top edge percentage  
    - x_max: right edge percentage
    - y_max: bottom edge percentage
-4. Be PRECISE - tight bounding box around visual only
 
-## OUTPUT FORMAT (JSON only)
+## OUTPUT FORMAT (JSON array - return ALL questions found)
 {
-  "question_number": "1" or "1a" or "not found",
-  "question_text": "extracted question text or 'unreadable'",
-  "graph_found": true/false,
-  "graph_type": "coordinate_plane|bar_chart|line_graph|pie_chart|venn_diagram|geometric|table|image|other|null",
-  "graph_bounding_box": {
-    "x_min": 15,
-    "y_min": 40,
-    "x_max": 85,
-    "y_max": 75
-  } or null,
-  "graph_description": "brief description of the visual element"
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "main question text",
+      "marks": 4,
+      "has_sub_questions": true,
+      "graph_found": false,
+      "graph_bounding_box": null,
+      "graph_type": null,
+      "graph_description": null
+    },
+    {
+      "question_number": "1(a)",
+      "parent_question": "1",
+      "question_text": "sub-question a text",
+      "marks": 2,
+      "has_sub_questions": false,
+      "graph_found": true,
+      "graph_type": "coordinate_plane",
+      "graph_bounding_box": {"x_min": 15, "y_min": 40, "x_max": 85, "y_max": 75},
+      "graph_description": "coordinate plane with x and y axes"
+    },
+    {
+      "question_number": "1(b)",
+      "parent_question": "1",
+      "question_text": "sub-question b text",
+      "marks": 2,
+      "graph_found": false,
+      "graph_bounding_box": null
+    }
+  ],
+  "total_questions_found": 3,
+  "page_has_diagrams": true
 }
 
 RULES:
-- Extract FIRST visible question only
-- If no visual: graph_found=false, graph_bounding_box=null
-- Be thorough - DO NOT miss diagrams
-- Focus on ACCURACY of bounding box coordinates`;
+- Extract EVERY visible question and sub-question
+- Each sub-question (a, b, i, ii) is a SEPARATE entry
+- Detect marks if shown (e.g., "[2]" or "[2 marks]")
+- Be thorough - DO NOT miss any questions or diagrams
+- Return valid JSON array with ALL questions`;
 
 // Primary and fallback models using Lovable AI Gateway (Gemini)
 const MODELS = {
@@ -101,16 +129,23 @@ async function analyzeImageWithVision(
               content: [
                 {
                   type: 'text',
-                  text: `ANALYZE EXAM PAGE ${pageIndex + 1} - EXTRACT QUESTION & DETECT ANY GRAPHS/DIAGRAMS
+                  text: `ANALYZE EXAM PAGE ${pageIndex + 1} - EXTRACT ALL QUESTIONS WITH THEIR NUMBERING
 
-CRITICAL: Carefully scan the ENTIRE image for any visual elements:
-- Look for graphs, charts, coordinate planes, grids
-- Check for geometric figures, diagrams, illustrations
-- Identify tables, box plots, Venn diagrams
-- Find any drawn or printed visual content
+CRITICAL INSTRUCTIONS:
+1. Find EVERY question on this page (1, 2, 3... AND sub-questions a, b, i, ii, etc.)
+2. Each sub-question (1a, 1b, 1(i), 1(ii)) is a SEPARATE entry
+3. Detect marks for each question (e.g., [2], [3 marks])
+4. For EACH question, check if it has an associated diagram/graph
+5. If a diagram exists, provide PRECISE bounding box coordinates
 
-If a visual element exists, provide PRECISE bounding box coordinates.
-The bounding box should tightly wrap ONLY the visual element, not surrounding text.
+Question numbering examples to detect:
+- "1." or "1)" → question_number: "1"
+- "(a)" or "a)" after question 1 → question_number: "1(a)"
+- "(i)" or "i)" after question 1 → question_number: "1(i)"
+- "2(a)(i)" → nested sub-question
+
+Return a JSON object with a "questions" array containing ALL questions found.
+Each question should have: question_number, question_text, marks, graph_found, graph_bounding_box, graph_type, graph_description.
 
 Return valid JSON only.`
                 },
@@ -243,41 +278,44 @@ serve(async (req) => {
           const aiContent = data.choices?.[0]?.message?.content || '{}';
           const parsed = parseAIResponse(aiContent);
           
-          console.log(`Page ${i + 1} extracted with ${model_used}:`, {
-            question_number: parsed.question_number,
-            graph_found: parsed.graph_found,
-            graph_type: parsed.graph_type,
-            has_bbox: !!parsed.graph_bounding_box
-          });
+          // Handle new multi-question format
+          const pageQuestions = parsed.questions || [parsed];
           
-          // Build comprehensive question data
-          const questionData: any = {
-            question_number: parsed.question_number || "not found",
-            question_text: parsed.question_text || "unreadable",
-            graph_found: Boolean(parsed.graph_found),
-            graph_bounding_box: parsed.graph_bounding_box || null,
-            graph_type: parsed.graph_type || null,
-            graph_description: parsed.graph_description || null,
-            page: i + 1,
-            model_used,
-            source_image: imageContent
-          };
+          console.log(`Page ${i + 1} extracted with ${model_used}: ${pageQuestions.length} questions found`);
           
-          // Enhanced crop metadata for graphs
-          if (parsed.graph_found && parsed.graph_bounding_box) {
-            const bbox = parsed.graph_bounding_box;
-            questionData.diagram_crop = {
-              source_image_index: i,
-              bbox: bbox,
-              crop_instructions: `Crop from (${bbox.x_min}%, ${bbox.y_min}%) to (${bbox.x_max}%, ${bbox.y_max}%)`,
-              estimated_size: {
-                width_percent: bbox.x_max - bbox.x_min,
-                height_percent: bbox.y_max - bbox.y_min
-              }
+          // Process each question from the page
+          for (const q of pageQuestions) {
+            const questionData: any = {
+              question_number: q.question_number || "not found",
+              question_text: q.question_text || "unreadable",
+              marks: q.marks || 1,
+              has_sub_questions: Boolean(q.has_sub_questions),
+              parent_question: q.parent_question || null,
+              graph_found: Boolean(q.graph_found),
+              graph_bounding_box: q.graph_bounding_box || null,
+              graph_type: q.graph_type || null,
+              graph_description: q.graph_description || null,
+              page: i + 1,
+              model_used,
+              source_image: imageContent
             };
+            
+            // Enhanced crop metadata for graphs
+            if (q.graph_found && q.graph_bounding_box) {
+              const bbox = q.graph_bounding_box;
+              questionData.diagram_crop = {
+                source_image_index: i,
+                bbox: bbox,
+                crop_instructions: `Crop from (${bbox.x_min}%, ${bbox.y_min}%) to (${bbox.x_max}%, ${bbox.y_max}%)`,
+                estimated_size: {
+                  width_percent: bbox.x_max - bbox.x_min,
+                  height_percent: bbox.y_max - bbox.y_min
+                }
+              };
+            }
+            
+            allQuestions.push(questionData);
           }
-          
-          allQuestions.push(questionData);
           
         } catch (e: any) {
           console.error(`Failed to process page ${i + 1}:`, e);
