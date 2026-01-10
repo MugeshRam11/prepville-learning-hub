@@ -89,20 +89,48 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
 
   // Removed unused convertPDFToWord function
 
-  // Convert PDF page to base64 image
+  // Convert PDF page to HIGH RESOLUTION base64 image for Vision AI
+  // Critical: Full resolution ensures graphs/diagrams are clearly visible
   const pdfPageToImage = async (pdf: any, pageNum: number): Promise<string> => {
     const page = await pdf.getPage(pageNum);
-    const scale = 2; // Higher scale for better OCR
+    
+    // Get original page dimensions
+    const defaultViewport = page.getViewport({ scale: 1 });
+    
+    // Calculate scale to achieve target resolution (2048px on longest side for Vision AI)
+    // Higher resolution = better graph/diagram detection
+    const TARGET_SIZE = 2048;
+    const longestSide = Math.max(defaultViewport.width, defaultViewport.height);
+    const scale = Math.min(TARGET_SIZE / longestSide, 3); // Cap at 3x to avoid memory issues
+    
     const viewport = page.getViewport({ scale });
+    
+    console.log(`📄 Page ${pageNum}: ${Math.round(viewport.width)}x${Math.round(viewport.height)}px (scale: ${scale.toFixed(2)})`);
     
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d')!;
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
     
-    await page.render({ canvasContext: context, viewport }).promise;
+    // White background for better OCR
+    context.fillStyle = '#FFFFFF';
+    context.fillRect(0, 0, canvas.width, canvas.height);
     
-    return canvas.toDataURL('image/jpeg', 0.9);
+    await page.render({ 
+      canvasContext: context, 
+      viewport,
+      // Enable text rendering for better OCR
+      renderInteractiveForms: true
+    }).promise;
+    
+    // Use PNG for better quality (no JPEG artifacts on diagrams)
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    // Log image size for debugging
+    const sizeKB = Math.round(dataUrl.length * 0.75 / 1024);
+    console.log(`📸 Page ${pageNum} image: ${sizeKB}KB`);
+    
+    return dataUrl;
   };
 
   const processFile = async (file: File) => {
