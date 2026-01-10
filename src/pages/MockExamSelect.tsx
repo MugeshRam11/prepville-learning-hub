@@ -161,7 +161,7 @@ const MockExamSelect = () => {
           </div>
         </section>
 
-        {/* Unified Exam Section - NEW */}
+        {/* Unified Exam Section - RECOMMENDED */}
         <section className="py-8 border-b border-border bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-cyan-500/5">
           <div className="container">
             <motion.div
@@ -185,29 +185,41 @@ const MockExamSelect = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Feature highlights */}
+                  {/* Interactive Feature highlights */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
                       <Grid3X3 className="w-5 h-5 text-emerald-600" />
-                      <span className="text-sm font-medium">All Question Types</span>
+                      <div>
+                        <span className="text-sm font-medium block">Graph Plotting</span>
+                        <span className="text-xs text-muted-foreground">Interactive diagrams</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-teal-500/5 border border-teal-500/10">
-                      <Layers className="w-5 h-5 text-teal-600" />
-                      <span className="text-sm font-medium">One Page Flow</span>
+                      <GripVertical className="w-5 h-5 text-teal-600" />
+                      <div>
+                        <span className="text-sm font-medium block">Drag & Drop</span>
+                        <span className="text-xs text-muted-foreground">Match answers</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
                       <MousePointer className="w-5 h-5 text-cyan-600" />
-                      <span className="text-sm font-medium">Scroll Navigation</span>
+                      <div>
+                        <span className="text-sm font-medium block">Image Zones</span>
+                        <span className="text-xs text-muted-foreground">Click to answer</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
                       <Calculator className="w-5 h-5 text-green-600" />
-                      <span className="text-sm font-medium">Auto-Save</span>
+                      <div>
+                        <span className="text-sm font-medium block">Smart Math</span>
+                        <span className="text-xs text-muted-foreground">LaTeX equations</span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
                     <div className="flex-1 text-sm text-muted-foreground">
-                      <strong>Unified Interface</strong> • Interactive + Standard answers • IB MYP Mathematics
+                      <strong>Unified Interface</strong> • Supports all interactive answer blocks • Auto-detects question types
                     </div>
                     <Button 
                       size="lg"
@@ -224,7 +236,7 @@ const MockExamSelect = () => {
           </div>
         </section>
 
-        {/* Interactive Demo Section (Legacy) */}
+        {/* Interactive Demo Section */}
         <section className="py-8 border-b border-border bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-pink-500/5">
           <div className="container">
             <motion.div
@@ -241,37 +253,41 @@ const MockExamSelect = () => {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                        Interactive Demo Test
-                        <Badge variant="outline" className="text-xs">Legacy Mode</Badge>
+                        Interactive Demo
+                        <Badge variant="outline" className="text-xs">Try Interactive Types</Badge>
                       </h2>
-                      <p className="text-muted-foreground text-sm">Original interactive question types demo</p>
+                      <p className="text-muted-foreground text-sm">Experience all interactive question formats with sample data</p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Feature highlights */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                      <Grid3X3 className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium">Graph Plotting</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                      <GripVertical className="w-5 h-5 text-amber-600" />
-                      <span className="text-sm font-medium">Drag & Drop</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
-                      <MousePointer className="w-5 h-5 text-green-600" />
-                      <span className="text-sm font-medium">Image Drop Zones</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
-                      <Calculator className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm font-medium">Smart Math Input</span>
-                    </div>
+                  {/* Demo features */}
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="gap-1">
+                      <Grid3X3 className="w-3 h-3" />
+                      Graph Canvas
+                    </Badge>
+                    <Badge variant="secondary" className="gap-1">
+                      <GripVertical className="w-3 h-3" />
+                      Drag-Drop Matcher
+                    </Badge>
+                    <Badge variant="secondary" className="gap-1">
+                      <MousePointer className="w-3 h-3" />
+                      Image Drop Zones
+                    </Badge>
+                    <Badge variant="secondary" className="gap-1">
+                      <Layers className="w-3 h-3" />
+                      Step Builder
+                    </Badge>
+                    <Badge variant="secondary" className="gap-1">
+                      <Calculator className="w-3 h-3" />
+                      Math Keyboard
+                    </Badge>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
                     <div className="flex-1 text-sm text-muted-foreground">
-                      <strong>5 Questions</strong> • <strong>20 marks</strong> • <strong>20 mins</strong> • IB MYP Mathematics (Grade 8-9)
+                      <strong>5 Sample Questions</strong> • <strong>20 marks</strong> • <strong>IB MYP Mathematics</strong>
                     </div>
                     <div className="flex gap-2">
                       <Button 
@@ -280,15 +296,14 @@ const MockExamSelect = () => {
                         className="gap-2"
                       >
                         <Play className="w-4 h-4" />
-                        Old Demo
+                        Try Demo
                       </Button>
                       <Button 
-                        variant="outline"
                         onClick={() => navigate('/mock-exams/interactive')}
-                        className="gap-2"
+                        className="gap-2 bg-gradient-to-r from-violet-500 to-purple-600"
                       >
-                        <Play className="w-4 h-4" />
-                        Interactive Mode
+                        <Sparkles className="w-4 h-4" />
+                        Full Interactive Mode
                       </Button>
                     </div>
                   </div>

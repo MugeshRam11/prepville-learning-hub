@@ -46,6 +46,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
     { id: 'tests', label: 'Quick Test', icon: FileText, path: '/admin/tests' },
     { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
+    { id: 'question-generator', label: 'Question Generator', icon: BookOpen, path: '/admin/question-generator' },
     { id: 'study-materials', label: 'Study Materials', icon: Upload, path: '/admin/study-materials' },
     { id: 'questions', label: 'Subject Questions', icon: FileQuestion, path: '/admin/questions' },
     { id: 'bulk-upload', label: 'Subject Q/A Bulk Upload', icon: Upload, path: '/admin/bulk-upload' },
