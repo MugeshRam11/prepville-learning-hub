@@ -8,7 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3 } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye } from 'lucide-react';
+import BoundingBoxOverlay from './BoundingBoxOverlay';
+import { useDiagramCropping } from '@/hooks/useDiagramCropping';
+import { toast } from 'sonner';
 
 interface SubQuestion {
   label: string;
@@ -30,6 +33,8 @@ interface ParsedQuestion {
     x_max: number;
     y_max: number;
   } | null;
+  graph_type?: string | null;
+  graph_description?: string | null;
   diagram_crop?: {
     source_image_index: number;
     bbox: {
@@ -48,6 +53,7 @@ interface ParsedQuestion {
   correct_answer?: string;
   page?: number;
   model_used?: string;
+  source_image?: string;
 }
 
 interface QuestionPreviewEditorProps {
@@ -62,6 +68,7 @@ interface QuestionPreviewEditorProps {
   onConfirm: (questions: ParsedQuestion[], metadata: any) => void;
   onCancel: () => void;
   mode: 'quick' | 'mock';
+  sourceImages?: string[];
 }
 
 const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
@@ -71,13 +78,21 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
   metadata: initialMetadata,
   onConfirm,
   onCancel,
-  mode
+  mode,
+  sourceImages = []
 }) => {
   const [questions, setQuestions] = useState<ParsedQuestion[]>(initialQuestions);
   const [metadata, setMetadata] = useState(initialMetadata || { title: '', subject: 'mathematics', topic: '' });
   const [selectedQuestions, setSelectedQuestions] = useState<Set<number>>(new Set(initialQuestions.map((_, i) => i)));
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  
+  // Bounding box overlay state
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [selectedQuestionForOverlay, setSelectedQuestionForOverlay] = useState<number | null>(null);
+  
+  // Diagram cropping hook
+  const { isCropping, isGenerating, uploadCroppedImage, generateMissingDiagram } = useDiagramCropping();
 
   // Sync state when props change
   React.useEffect(() => {
@@ -159,7 +174,60 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
 
   const validSubjects = ['mathematics', 'science', 'language_literature', 'social_studies', 'physics', 'chemistry', 'biology'];
 
+  // Open bounding box overlay for a question
+  const openBoundingBoxOverlay = (index: number) => {
+    setSelectedQuestionForOverlay(index);
+    setOverlayOpen(true);
+  };
+
+  // Handle cropped image from overlay
+  const handleCroppedImage = async (blob: Blob, questionIndex: number) => {
+    const q = questions[questionIndex];
+    const result = await uploadCroppedImage(blob, q.question_number, q.page || 1);
+    
+    if (result) {
+      const updated = [...questions];
+      updated[questionIndex] = {
+        ...updated[questionIndex],
+        question_image_url: result.url
+      };
+      setQuestions(updated);
+      setOverlayOpen(false);
+      toast.success('Diagram cropped and saved to question!');
+    }
+  };
+
+  // Handle AI-generated diagram for missing images
+  const handleGenerateDiagram = async (description: string, questionIndex: number) => {
+    const q = questions[questionIndex];
+    const result = await generateMissingDiagram(
+      description,
+      q.question_text,
+      q.question_number
+    );
+    
+    if (result) {
+      const updated = [...questions];
+      updated[questionIndex] = {
+        ...updated[questionIndex],
+        question_image_url: result.url,
+        graph_found: true
+      };
+      setQuestions(updated);
+      setOverlayOpen(false);
+      toast.success('AI diagram generated and saved to question!');
+    }
+  };
+
+  // Get source image for a question
+  const getSourceImageForQuestion = (q: ParsedQuestion): string | undefined => {
+    if (q.source_image) return q.source_image;
+    const pageIndex = (q.page || 1) - 1;
+    return sourceImages[pageIndex];
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
@@ -300,14 +368,28 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                                 <BarChart3 className="w-3 h-3" />
                                 graph_bounding_box (PDR):
                               </div>
-                              {q.model_used && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 rounded text-purple-600 dark:text-purple-400">
-                                  {q.model_used}
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1">
+                                {q.model_used && (
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 rounded text-purple-600 dark:text-purple-400">
+                                    {q.model_used}
+                                  </span>
+                                )}
+                                {/* View Overlay Button */}
+                                {getSourceImageForQuestion(q) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs text-purple-600 hover:text-purple-700"
+                                    onClick={() => openBoundingBoxOverlay(index)}
+                                  >
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    Preview
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             {q.graph_bounding_box ? (
-                              <div className="space-y-1">
+                              <div className="space-y-2">
                                 <div className="text-xs font-mono text-purple-600 dark:text-purple-400 grid grid-cols-2 gap-1">
                                   <span>x_min: {q.graph_bounding_box.x_min}%</span>
                                   <span>y_min: {q.graph_bounding_box.y_min}%</span>
@@ -315,13 +397,39 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                                   <span>y_max: {q.graph_bounding_box.y_max}%</span>
                                 </div>
                                 {q.diagram_crop && (
-                                  <p className="text-[10px] text-purple-500 dark:text-purple-400 mt-1">
+                                  <p className="text-[10px] text-purple-500 dark:text-purple-400">
                                     📐 {q.diagram_crop.crop_instructions}
                                   </p>
+                                )}
+                                {/* Crop & Save Button */}
+                                {getSourceImageForQuestion(q) && !q.question_image_url && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs border-purple-300 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/50"
+                                    onClick={() => openBoundingBoxOverlay(index)}
+                                  >
+                                    <Crop className="w-3 h-3 mr-1" />
+                                    Crop & Save Diagram
+                                  </Button>
+                                )}
+                                {q.question_image_url && (
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                                      <Check className="w-3 h-3 mr-1" />
+                                      Image saved
+                                    </Badge>
+                                  </div>
                                 )}
                               </div>
                             ) : (
                               <p className="text-xs text-purple-600 dark:text-purple-400 font-mono">null</p>
+                            )}
+                            {/* Graph description */}
+                            {q.graph_description && (
+                              <p className="text-[10px] text-purple-500 dark:text-purple-400 mt-1 italic">
+                                📊 {q.graph_description}
+                              </p>
                             )}
                           </div>
                         )}
@@ -329,9 +437,23 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                         {/* Show graph_found = false for questions without graphs */}
                         {!q.graph_found && (
                           <div className="mb-2 p-2 bg-muted/50 border border-border rounded-md">
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <BarChart3 className="w-3 h-3" />
-                              graph_found: <span className="font-mono">false</span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <BarChart3 className="w-3 h-3" />
+                                graph_found: <span className="font-mono">false</span>
+                              </div>
+                              {/* Generate diagram button for questions without detected graphs */}
+                              {q.diagram_description && getSourceImageForQuestion(q) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => openBoundingBoxOverlay(index)}
+                                >
+                                  <Wand2 className="w-3 h-3 mr-1" />
+                                  Generate Diagram
+                                </Button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -479,6 +601,27 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Bounding Box Overlay for diagram preview and cropping */}
+    {selectedQuestionForOverlay !== null && (
+      <BoundingBoxOverlay
+        open={overlayOpen}
+        onOpenChange={(open) => {
+          setOverlayOpen(open);
+          if (!open) setSelectedQuestionForOverlay(null);
+        }}
+        sourceImage={getSourceImageForQuestion(questions[selectedQuestionForOverlay]) || ''}
+        boundingBox={questions[selectedQuestionForOverlay]?.graph_bounding_box || null}
+        graphType={questions[selectedQuestionForOverlay]?.graph_type}
+        graphDescription={questions[selectedQuestionForOverlay]?.graph_description || questions[selectedQuestionForOverlay]?.diagram_description}
+        pageNumber={questions[selectedQuestionForOverlay]?.page || 1}
+        onCrop={(blob) => handleCroppedImage(blob, selectedQuestionForOverlay)}
+        onGenerateImage={(desc) => handleGenerateDiagram(desc, selectedQuestionForOverlay)}
+        isCropping={isCropping}
+        isGenerating={isGenerating}
+      />
+    )}
+  </>
   );
 };
 
