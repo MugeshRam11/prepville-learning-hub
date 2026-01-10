@@ -131,26 +131,20 @@ export function useDiagramCropping() {
   const generateMissingDiagram = async (
     description: string,
     questionText: string,
-    questionNumber: number | string
+    questionNumber: number | string,
+    diagramType?: string
   ): Promise<CropResult | null> => {
     setIsGenerating(true);
     
     try {
-      const prompt = `Create a clear, educational diagram for an exam question.
-      
-Question context: ${questionText}
-
-Diagram description: ${description}
-
-Style requirements:
-- Clean, professional educational style
-- Clear labels and annotations
-- High contrast for readability
-- Mathematical precision if graphs/charts
-- Suitable for exam paper printing`;
-
+      // The edge function now handles enhanced prompt generation based on diagram type
       const { data, error } = await supabase.functions.invoke('generate-diagram', {
-        body: { prompt, questionNumber }
+        body: { 
+          prompt: description, 
+          questionNumber,
+          questionText,
+          diagramType
+        }
       });
       
       if (error) {

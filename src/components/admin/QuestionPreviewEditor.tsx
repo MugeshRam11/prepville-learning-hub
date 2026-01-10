@@ -203,7 +203,8 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
     const result = await generateMissingDiagram(
       description,
       q.question_text,
-      q.question_number
+      q.question_number,
+      q.graph_type || undefined // Pass the detected graph type
     );
     
     if (result) {
