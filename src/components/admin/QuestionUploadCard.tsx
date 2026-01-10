@@ -42,6 +42,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
   const [showPreviewEditor, setShowPreviewEditor] = useState(false);
   const [pendingQuestions, setPendingQuestions] = useState<any[]>([]);
   const [pendingMetadata, setPendingMetadata] = useState<any>(null);
+  const [sourceImages, setSourceImages] = useState<string[]>([]);
   const uploadImageToStorage = async (base64Data: string, contentType: string, sourceFileName: string): Promise<string | null> => {
     try {
       // Convert base64 to blob
@@ -147,6 +148,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         }
         
         console.log(`Converted ${images.length} pages to images`);
+        setSourceImages(images); // Store for bounding box overlay
         
       } else if (fileName.endsWith('.docx')) {
         // For Word docs: Try text extraction first
@@ -596,6 +598,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         onConfirm={handlePreviewConfirm}
         onCancel={handlePreviewCancel}
         mode={mode}
+        sourceImages={sourceImages}
       />
     </Card>;
 };
