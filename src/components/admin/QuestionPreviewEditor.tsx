@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree, Table } from 'lucide-react';
 import BoundingBoxOverlay from './BoundingBoxOverlay';
 import { useDiagramCropping } from '@/hooks/useDiagramCropping';
 import { toast } from 'sonner';
@@ -55,6 +55,13 @@ interface ParsedQuestion {
   page?: number;
   model_used?: string;
   source_image?: string;
+  // Table data support
+  has_table?: boolean;
+  table_data?: string[][] | null;
+  is_table?: boolean;
+  is_diagram?: boolean;
+  related_questions?: string[];
+  command_term?: string | null;
 }
 
 interface QuestionPreviewEditorProps {
@@ -583,6 +590,17 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                               Graph Detected
                             </Badge>
                           )}
+                          {(q.has_table || q.is_table) && (
+                            <Badge variant="outline" className="text-xs text-blue-600">
+                              <Table className="w-3 h-3 mr-1" />
+                              Table
+                            </Badge>
+                          )}
+                          {q.command_term && (
+                            <Badge variant="outline" className="text-xs text-green-600">
+                              {q.command_term}
+                            </Badge>
+                          )}
                           {q.page && (
                             <Badge variant="outline" className="text-xs">
                               Page {q.page}
@@ -730,6 +748,38 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground font-mono">question_text:</p>
                             <p className="text-sm line-clamp-3">{q.question_text}</p>
+                          </div>
+                        )}
+
+                        {/* Table Data Preview */}
+                        {q.table_data && q.table_data.length > 0 && (
+                          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <div className="flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
+                              <Table className="w-3 h-3" />
+                              table_data ({q.table_data.length} rows):
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full text-xs border-collapse">
+                                <tbody>
+                                  {q.table_data.slice(0, 5).map((row, rowIdx) => (
+                                    <tr key={rowIdx} className={rowIdx === 0 ? 'font-semibold bg-blue-100 dark:bg-blue-900/50' : ''}>
+                                      {row.map((cell, cellIdx) => (
+                                        <td key={cellIdx} className="border border-blue-200 dark:border-blue-700 px-2 py-1">
+                                          {cell}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                  {q.table_data.length > 5 && (
+                                    <tr>
+                                      <td colSpan={q.table_data[0]?.length || 1} className="text-center text-blue-500 py-1">
+                                        ... {q.table_data.length - 5} more rows
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         )}
 
