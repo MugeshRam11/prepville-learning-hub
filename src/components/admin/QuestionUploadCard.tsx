@@ -199,7 +199,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         throw new Error(data?.error || 'Failed to parse document');
       }
 
-      // Handle PDR simple format (question_number, question_text, graph_description)
+      // Handle PDR format with bounding box (question_number, question_text, graph_found, graph_bounding_box)
       let questions = [];
       let metadata = {
         title: file.name.replace(/\.[^/.]+$/, '') || 'Imported Test',
@@ -207,7 +207,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         topic: 'General'
       };
 
-      // Check if response is in PDR simple format
+      // Check if response is in PDR format
       if (data.question_number !== undefined && data.question_text !== undefined) {
         // Single question PDR format - convert to array format
         const pdrQuestion = {
@@ -215,8 +215,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           question_text: data.question_text || "unreadable",
           marks: 1,
           has_sub_questions: false,
-          has_diagram: data.graph_description && data.graph_description !== "none",
-          diagram_description: data.graph_description || "none",
+          graph_found: Boolean(data.graph_found),
+          graph_bounding_box: data.graph_bounding_box || null,
           difficulty: "medium"
         };
         questions = [pdrQuestion];
@@ -228,8 +228,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
             question_text: page.question_text || "unreadable",
             marks: 1,
             has_sub_questions: false,
-            has_diagram: page.graph_description && page.graph_description !== "none",
-            diagram_description: page.graph_description || "none",
+            graph_found: Boolean(page.graph_found),
+            graph_bounding_box: page.graph_bounding_box || null,
             difficulty: "medium",
             page: page.page || idx + 1
           }));
@@ -246,7 +246,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       setPendingMetadata(metadata);
       setShowPreviewEditor(true);
       
-      const graphCount = questions.filter((q: any) => q.has_diagram).length;
+      const graphCount = questions.filter((q: any) => q.graph_found || q.has_diagram).length;
       toast.success(`✅ Extracted ${questions.length} question(s)${graphCount > 0 ? ` with ${graphCount} diagram(s)` : ''} - please review`);
       setProgress(100);
       setParseResult({
