@@ -156,9 +156,17 @@ const INTERACTIVE_PATTERNS = {
   table_fill: [
     /complete\s+(?:the\s+)?table/i,
     /fill\s+(?:in\s+)?(?:the\s+)?table/i,
-    /missing\s+values/i,
-    /determine\s+(?:the\s+)?missing/i,
-    /frequency\s+table/i
+    /copy\s+and\s+complete/i,
+    /missing\s+values?\s+(?:in\s+)?(?:the\s+)?table/i,
+    /frequency\s+table/i,
+    /two[\s-]*way\s+table/i,
+    /contingency\s+table/i,
+    /complete\s+(?:the\s+)?(?:frequency|probability)\s+(?:distribution)?/i,
+    /input[\s-]*output\s+table/i,
+    /function\s+table/i,
+    /data\s+table/i,
+    /complete\s+(?:the\s+)?following\s+table/i,
+    /determine\s+(?:the\s+)?missing/i
   ]
 };
 
@@ -257,9 +265,9 @@ export function detectQuestionType(question: DBQuestion): QuestionType {
     return 'step_builder';
   }
   
-  // 7. Table Fill - complete tables
+  // 7. Table Fill - complete tables - return specific table_input type
   if (checkPatterns(INTERACTIVE_PATTERNS.table_fill) || question.has_table) {
-    return 'math_input';
+    return 'math_input'; // Will be converted to table_input in the block type mapper
   }
   
   // 8. Math Input - calculations, probability, determine values
