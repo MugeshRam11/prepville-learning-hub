@@ -435,6 +435,131 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       questions: data.questions
     };
   };
+  // Build answer block config from parsed question data
+  const buildAnswerBlockConfig = (q: any) => {
+    const interactiveType = q.interactive_type || q.answer_block_type;
+    if (!interactiveType) return null;
+    
+    const config: any = { type: interactiveType };
+    
+    switch (interactiveType) {
+      case 'graph_plot':
+      case 'graph_interaction':
+        config.graphConfig = {
+          showGrid: true,
+          xRange: [-10, 10],
+          yRange: [-10, 10],
+          allowPoints: true,
+          allowLines: true,
+          allowShading: q.question_text?.toLowerCase().includes('shade')
+        };
+        break;
+        
+      case 'drag_drop':
+      case 'drag_drop_match':
+        // Extract draggable items from question
+        const items: any[] = [];
+        const targets: any[] = [];
+        
+        if (q.draggable_items && Array.isArray(q.draggable_items)) {
+          q.draggable_items.forEach((item: string, i: number) => {
+            items.push({ id: `item-${i}`, content: item, isLatex: item.includes('$') });
+          });
+        }
+        
+        // Default items if none found
+        if (items.length === 0) {
+          items.push(
+            { id: 'item-1', content: 'Expression A', isLatex: false },
+            { id: 'item-2', content: 'Expression B', isLatex: false }
+          );
+        }
+        
+        // Create matching targets
+        items.forEach((_, i) => {
+          targets.push({ id: `target-${i}`, label: `Drop Zone ${i + 1}`, correctItemId: `item-${i}` });
+        });
+        
+        config.dragDropConfig = { items, targets };
+        break;
+        
+      case 'image_drop':
+      case 'image_drop_zone':
+        config.imageDropConfig = {
+          imageUrl: q.question_image_url || '',
+          dropZones: [
+            { id: 'zone-1', x: 30, y: 30, label: 'A' },
+            { id: 'zone-2', x: 70, y: 30, label: 'B' },
+            { id: 'zone-3', x: 50, y: 70, label: 'C' }
+          ],
+          draggableLabels: [
+            { id: 'label-1', content: 'Label 1' },
+            { id: 'label-2', content: 'Label 2' },
+            { id: 'label-3', content: 'Label 3' }
+          ]
+        };
+        break;
+        
+      case 'arrange_order':
+      case 'step_builder':
+        const steps = q.sub_questions?.map((sq: any, i: number) => ({
+          id: `step-${i}`,
+          content: sq.text || sq.sub_question_text,
+          correctOrder: i + 1
+        })) || [
+          { id: 'step-1', content: 'Step 1', correctOrder: 1 },
+          { id: 'step-2', content: 'Step 2', correctOrder: 2 }
+        ];
+        config.arrangeConfig = { items: steps };
+        break;
+        
+      case 'smart_math':
+      case 'math_input':
+        config.smartMathConfig = {
+          expectedAnswer: q.correct_answer || '',
+          acceptedFormats: ['decimal', 'fraction', 'percentage'],
+          showStepBuilder: q.command_term?.toLowerCase() === 'show that'
+        };
+        break;
+        
+      case 'multiple_choice':
+        const options = [];
+        if (q.options) {
+          if (q.options.A) options.push({ id: 'opt-a', content: q.options.A, isCorrect: q.correct_answer === 'A' });
+          if (q.options.B) options.push({ id: 'opt-b', content: q.options.B, isCorrect: q.correct_answer === 'B' });
+          if (q.options.C) options.push({ id: 'opt-c', content: q.options.C, isCorrect: q.correct_answer === 'C' });
+          if (q.options.D) options.push({ id: 'opt-d', content: q.options.D, isCorrect: q.correct_answer === 'D' });
+        }
+        config.mcqConfig = { options, allowMultiple: false };
+        break;
+    }
+    
+    return config;
+  };
+
+  // Map parsed interactive_type to database answer_block_type
+  const mapInteractiveToBlockType = (interactiveType?: string): string => {
+    if (!interactiveType) return 'text_equation';
+    
+    const typeMap: Record<string, string> = {
+      'graph_interaction': 'graph_plot',
+      'graph_plot': 'graph_plot',
+      'drag_drop_match': 'drag_drop',
+      'drag_drop': 'drag_drop',
+      'image_drop_zone': 'image_drop',
+      'image_drop': 'image_drop',
+      'step_builder': 'arrange_order',
+      'arrange_order': 'arrange_order',
+      'math_input': 'smart_math',
+      'smart_math': 'smart_math',
+      'text_input': 'text_equation',
+      'text_equation': 'text_equation',
+      'multiple_choice': 'multiple_choice'
+    };
+    
+    return typeMap[interactiveType] || 'text_equation';
+  };
+
   const saveMockTestQuestions = async (data: any) => {
     const {
       data: {
@@ -460,7 +585,12 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       created_by: user.id
     }).select().single();
     if (mockTestError) throw mockTestError;
+    
     for (const q of data.questions) {
+      // Determine answer block type from interactive_type
+      const answerBlockType = mapInteractiveToBlockType(q.interactive_type || q.answer_block_type);
+      const answerBlockConfig = buildAnswerBlockConfig(q);
+      
       const {
         data: question,
         error: questionError
@@ -472,25 +602,39 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         marks: q.marks || 1,
         has_sub_questions: q.has_sub_questions || false,
         difficulty: q.difficulty || 'medium',
-        category: q.question_type || 'mcq',
+        category: q.category || q.question_type || 'general',
         answer_key: q.correct_answer || '',
-        diagram_description: q.diagram_description || null
+        diagram_description: q.diagram_description || null,
+        command_term: q.command_term || null,
+        // Add interactive type mapping
+        answer_block_type: answerBlockType,
+        answer_block_config: answerBlockConfig ? JSON.stringify(answerBlockConfig) : null
       }).select().single();
       if (questionError) throw questionError;
+      
       if (q.sub_questions && q.sub_questions.length > 0) {
-        const subQuestions = q.sub_questions.map((sq: any) => ({
-          question_id: question.id,
-          sub_question_label: sq.label,
-          sub_question_text: sq.text,
-          marks: sq.marks || 1,
-          answer_key: sq.answer || ''
-        }));
+        const subQuestions = q.sub_questions.map((sq: any) => {
+          const subAnswerBlockType = mapInteractiveToBlockType(sq.interactive_type || sq.answer_block_type);
+          const subAnswerBlockConfig = buildAnswerBlockConfig(sq);
+          
+          return {
+            question_id: question.id,
+            sub_question_label: sq.label,
+            sub_question_text: sq.text || sq.sub_question_text,
+            marks: sq.marks || 1,
+            answer_key: sq.answer || sq.correct_answer || '',
+            command_term: sq.command_term || null,
+            answer_block_type: subAnswerBlockType,
+            answer_block_config: subAnswerBlockConfig ? JSON.stringify(subAnswerBlockConfig) : null
+          };
+        });
         const {
           error: subQError
         } = await supabase.from('mock_sub_questions').insert(subQuestions);
         if (subQError) throw subQError;
       }
     }
+    
     return {
       mockTest,
       questions: data.questions

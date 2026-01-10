@@ -46,7 +46,7 @@ interface PageRegionsOverlayProps {
   className?: string;
 }
 
-// Interactive type colors and icons
+// Interactive type colors and icons - includes all parser and block types
 const INTERACTIVE_TYPE_CONFIG: Record<string, { 
   color: string; 
   bgColor: string; 
@@ -55,6 +55,7 @@ const INTERACTIVE_TYPE_CONFIG: Record<string, {
   label: string;
   emoji: string;
 }> = {
+  // Parser-detected types
   graph_plot: { 
     color: 'text-blue-700 dark:text-blue-300', 
     bgColor: 'bg-blue-100/90 dark:bg-blue-900/80', 
@@ -62,6 +63,14 @@ const INTERACTIVE_TYPE_CONFIG: Record<string, {
     icon: Grid3X3,
     label: 'Graph Plot',
     emoji: '📊'
+  },
+  graph_interaction: { 
+    color: 'text-blue-700 dark:text-blue-300', 
+    bgColor: 'bg-blue-100/90 dark:bg-blue-900/80', 
+    borderColor: 'border-blue-500',
+    icon: Grid3X3,
+    label: 'Graph Interaction',
+    emoji: '📈'
   },
   drag_drop: { 
     color: 'text-purple-700 dark:text-purple-300', 
@@ -71,13 +80,29 @@ const INTERACTIVE_TYPE_CONFIG: Record<string, {
     label: 'Drag & Drop',
     emoji: '🎯'
   },
+  drag_drop_match: { 
+    color: 'text-purple-700 dark:text-purple-300', 
+    bgColor: 'bg-purple-100/90 dark:bg-purple-900/80', 
+    borderColor: 'border-purple-500',
+    icon: Move,
+    label: 'Drag & Match',
+    emoji: '🔀'
+  },
   image_drop: { 
     color: 'text-green-700 dark:text-green-300', 
     bgColor: 'bg-green-100/90 dark:bg-green-900/80', 
     borderColor: 'border-green-500',
     icon: GitBranch,
     label: 'Venn/Tree',
-    emoji: '🔀'
+    emoji: '🌳'
+  },
+  image_drop_zone: { 
+    color: 'text-green-700 dark:text-green-300', 
+    bgColor: 'bg-green-100/90 dark:bg-green-900/80', 
+    borderColor: 'border-green-500',
+    icon: GitBranch,
+    label: 'Interactive Diagram',
+    emoji: '📌'
   },
   smart_math: { 
     color: 'text-orange-700 dark:text-orange-300', 
@@ -86,6 +111,14 @@ const INTERACTIVE_TYPE_CONFIG: Record<string, {
     icon: Calculator,
     label: 'Math Input',
     emoji: '🧮'
+  },
+  math_input: { 
+    color: 'text-orange-700 dark:text-orange-300', 
+    bgColor: 'bg-orange-100/90 dark:bg-orange-900/80', 
+    borderColor: 'border-orange-500',
+    icon: Calculator,
+    label: 'Smart Math',
+    emoji: '🔢'
   },
   multiple_choice: { 
     color: 'text-cyan-700 dark:text-cyan-300', 
@@ -103,6 +136,14 @@ const INTERACTIVE_TYPE_CONFIG: Record<string, {
     label: 'Step Order',
     emoji: '📋'
   },
+  step_builder: { 
+    color: 'text-pink-700 dark:text-pink-300', 
+    bgColor: 'bg-pink-100/90 dark:bg-pink-900/80', 
+    borderColor: 'border-pink-500',
+    icon: List,
+    label: 'Step Builder',
+    emoji: '🪜'
+  },
   text_equation: { 
     color: 'text-gray-700 dark:text-gray-300', 
     bgColor: 'bg-gray-100/90 dark:bg-gray-800/80', 
@@ -110,6 +151,14 @@ const INTERACTIVE_TYPE_CONFIG: Record<string, {
     icon: PenTool,
     label: 'Text/Equation',
     emoji: '✏️'
+  },
+  text_input: { 
+    color: 'text-gray-700 dark:text-gray-300', 
+    bgColor: 'bg-gray-100/90 dark:bg-gray-800/80', 
+    borderColor: 'border-gray-500',
+    icon: PenTool,
+    label: 'Text Answer',
+    emoji: '📝'
   }
 };
 

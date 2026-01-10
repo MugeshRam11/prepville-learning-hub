@@ -69,7 +69,101 @@ const TYPE_OPTIONS: { type: InteractiveType; label: string; icon: React.ReactNod
   { type: 'multiple_choice', label: 'Multiple Choice', icon: <CheckSquare className="w-4 h-4" /> },
 ];
 
-// Auto-detect interactive type from question content
+// IB MYP eAssessment patterns for interactive type detection
+const INTERACTIVE_PATTERNS: { type: InteractiveType; patterns: RegExp[] }[] = [
+  // Graph/Coordinate interactions - highest priority for visual math
+  { 
+    type: 'graph_plot', 
+    patterns: [
+      /plot\s+(?:the\s+)?point/i,
+      /draw\s+(?:the\s+)?(?:graph|line|curve)/i,
+      /sketch\s+(?:the\s+)?graph/i,
+      /on\s+the\s+(?:coordinate|cartesian)\s+plane/i,
+      /x[\s-]*axis|y[\s-]*axis/i,
+      /graph\s+(?:of\s+)?(?:f|g|h)\s*\(/i,
+      /shade\s+(?:the\s+)?region/i,
+      /line\s+of\s+best\s+fit/i,
+      /scatter\s+(?:plot|graph|diagram)/i,
+      /coordinate\s+grid/i,
+      /draw.*perpendicular|draw.*parallel/i
+    ]
+  },
+  // Drag & Drop matching
+  { 
+    type: 'drag_drop', 
+    patterns: [
+      /drag\s+(?:and\s+)?drop/i,
+      /draggable/i,
+      /place\s+(?:them\s+)?in\s+(?:the\s+)?correct/i,
+      /select\s+.*and\s+place/i,
+      /label\s+.*by\s+placing/i,
+      /match\s+(?:the\s+)?(?:following|pairs?|items?)/i,
+      /pair\s+(?:the|each)/i,
+      /select\s+(?:the\s+)?figure/i,
+      /move\s+(?:the\s+)?(?:labels?|items?)/i
+    ]
+  },
+  // Interactive diagrams (Venn, Tree, etc.)
+  { 
+    type: 'image_drop', 
+    patterns: [
+      /venn\s+diagram/i,
+      /complete\s+(?:the\s+)?venn/i,
+      /tree\s+diagram/i,
+      /complete\s+(?:the\s+)?tree/i,
+      /probability\s+tree/i,
+      /set\s+a.*set\s+b/i,
+      /a\s*[∩∪]\s*b/i,
+      /intersection|union/i,
+      /click\s+(?:on\s+)?(?:the\s+)?(?:region|area|zone)/i,
+      /label\s+(?:the\s+)?diagram/i
+    ]
+  },
+  // Step builder / Arrange order
+  { 
+    type: 'arrange_order', 
+    patterns: [
+      /arrange\s+(?:the\s+)?(?:steps?|following)/i,
+      /correct\s+order/i,
+      /order\s+(?:the\s+)?(?:steps?|following)/i,
+      /sequence\s+(?:the\s+)?(?:steps?|following)/i,
+      /show\s+(?:your\s+)?working/i,
+      /show\s+that/i,
+      /prove\s+that/i,
+      /verify\s+(?:that|your)/i,
+      /step[\s-]*by[\s-]*step/i
+    ]
+  },
+  // Multiple choice with images/options
+  { 
+    type: 'multiple_choice', 
+    patterns: [
+      /select\s+(?:the\s+)?(?:correct|best|appropriate)/i,
+      /choose\s+(?:the\s+)?(?:correct|best)/i,
+      /which\s+(?:of\s+)?(?:the\s+)?following/i,
+      /option\s+(?:a|b|c|d)/i,
+      /\(a\).*\(b\).*\(c\)/i,
+      /circle\s+(?:the\s+)?(?:correct|answer)/i
+    ]
+  },
+  // Smart Math input - calculations
+  { 
+    type: 'smart_math', 
+    patterns: [
+      /calculate/i,
+      /find\s+(?:the\s+)?(?:value|exact|probability)/i,
+      /solve\s+(?:for|the)/i,
+      /evaluate/i,
+      /determine\s+(?:the\s+)?(?:value|equation)/i,
+      /what\s+is\s+(?:the\s+)?(?:value|probability)/i,
+      /compute/i,
+      /work\s+out/i,
+      /express\s+.*(?:in\s+)?(?:simplest|standard)\s+form/i
+    ]
+  }
+];
+
+// Auto-detect interactive type from question content with enhanced patterns
 function autoDetectType(questionText?: string, diagramDesc?: string, config?: AnswerBlockConfig): InteractiveType {
   const text = `${questionText || ''} ${diagramDesc || ''}`.toLowerCase();
   
@@ -81,20 +175,16 @@ function autoDetectType(questionText?: string, diagramDesc?: string, config?: An
   if (config?.smartMathConfig) return 'smart_math';
   if (config?.mcqConfig) return 'multiple_choice';
   
-  // Pattern-based detection
-  const patterns: [RegExp, InteractiveType][] = [
-    [/plot|draw.*graph|sketch.*graph|coordinate.*plane|x-axis|y-axis/i, 'graph_plot'],
-    [/drag.*drop|match.*pair|place.*correct|label.*diagram/i, 'drag_drop'],
-    [/venn.*diagram|tree.*diagram|complete.*diagram/i, 'image_drop'],
-    [/arrange|order|sequence|correct.*order|show.*steps/i, 'arrange_order'],
-    [/calculate|solve|find.*value|evaluate|determine.*value/i, 'smart_math'],
-    [/select.*option|choose.*correct|which.*following|option.*a.*option.*b/i, 'multiple_choice'],
-  ];
-  
-  for (const [pattern, type] of patterns) {
-    if (pattern.test(text)) return type;
+  // Pattern-based detection with priority ordering
+  for (const { type, patterns } of INTERACTIVE_PATTERNS) {
+    for (const pattern of patterns) {
+      if (pattern.test(text)) {
+        return type;
+      }
+    }
   }
   
+  // Default to text/equation for general questions
   return 'text_equation';
 }
 
