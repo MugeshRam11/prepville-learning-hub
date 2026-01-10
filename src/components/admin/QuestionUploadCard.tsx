@@ -246,7 +246,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       
       setProgress(85);
 
-      // Convert parsed results to question format
+      // Convert parsed results to question format with interactive types
       let questions = allQuestions.map((page: any, idx: number) => ({
         question_number: page.question_number === "not found" ? idx + 1 : page.question_number,
         question_text: page.question_text || "unreadable",
@@ -263,7 +263,14 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         parent_question: page.parent_question || null,
         difficulty: "medium",
         page: page.page || idx + 1,
-        source_image: page.source_image || null
+        source_image: page.source_image || null,
+        // MCQ options
+        options: page.options || null,
+        // Interactive type detection
+        interactive_type: page.interactive_type || page.answer_block_type || 'text_equation',
+        answer_block_type: page.answer_block_type || page.interactive_type || 'text_equation',
+        // Parsing verification
+        parsing_verified: page.parsing_verified !== false
       }));
       
       let metadata = {
@@ -278,10 +285,21 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       
       const graphCount = questions.filter((q: any) => q.graph_found || q.has_diagram).length;
       const tableCount = questions.filter((q: any) => q.has_table).length;
+      const verifiedCount = questions.filter((q: any) => q.parsing_verified).length;
+      const interactiveTypes = [...new Set(questions.map((q: any) => q.interactive_type))];
       
-      toast.success(
-        `✅ Extracted ${questions.length} question(s)${graphCount > 0 ? ` with ${graphCount} diagram(s)` : ''}${tableCount > 0 ? ` and ${tableCount} table(s)` : ''}`
-      );
+      // Show detailed success message
+      let successMsg = `✅ Extracted ${questions.length} question(s)`;
+      if (graphCount > 0) successMsg += ` | ${graphCount} diagram(s)`;
+      if (tableCount > 0) successMsg += ` | ${tableCount} table(s)`;
+      if (verifiedCount < questions.length) {
+        successMsg += ` | ${verifiedCount}/${questions.length} verified`;
+      }
+      
+      toast.success(successMsg, {
+        description: `Interactive types: ${interactiveTypes.join(', ')}`
+      });
+      
       setProgress(100);
       setParseResult({
         success: true,
@@ -289,6 +307,8 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         count: questions.length,
         graphCount,
         tableCount,
+        verifiedCount,
+        interactiveTypes,
         data: null,
         images: [],
         pending: true
