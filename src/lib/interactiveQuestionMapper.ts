@@ -42,116 +42,123 @@ interface AIDetectionResult {
   reasoning: string;
 }
 
-// Learned patterns from IB MYP eAssessment PDFs
+// Enhanced IB MYP eAssessment patterns for interactive type detection
 const INTERACTIVE_PATTERNS = {
-  // Drag & Drop patterns (from 7-2.pdf, 4-2.pdf)
+  // Drag & Drop patterns (from 7-2.pdf, 4-2.pdf, 6-2.pdf)
   drag_drop: [
-    'drag and drop',
-    'draggable',
-    'place them in the correct',
-    'select the .* and place',
-    'label the .* by placing',
-    'match the',
-    'pair the'
+    /drag\s+(?:and\s+)?drop/i,
+    /draggable/i,
+    /place\s+(?:them\s+)?in\s+(?:the\s+)?correct/i,
+    /select\s+.*and\s+place/i,
+    /label\s+.*by\s+placing/i,
+    /match\s+(?:the\s+)?(?:following|pairs?|items?)/i,
+    /pair\s+(?:the|each)/i,
+    /select\s+(?:the\s+)?figure/i,
+    /move\s+(?:the\s+)?(?:labels?|items?)/i,
+    /drag\s+(?:the\s+)?expressions?/i
   ],
   
   // Venn Diagram interactive (from 3-2.pdf, 4-2.pdf)
   venn_diagram: [
-    'venn diagram',
-    'complete the venn',
-    'set a .* set b',
-    'a ∩ b',
-    'a ∪ b',
-    'intersection',
-    'union'
+    /venn\s+diagram/i,
+    /complete\s+(?:the\s+)?venn/i,
+    /set\s+a.*set\s+b/i,
+    /a\s*[∩∪]\s*b/i,
+    /intersection|union/i,
+    /\bA\s*∩\s*B\b|\bA\s*∪\s*B\b/i
   ],
   
-  // Graph/Coordinate Plane (common pattern)
+  // Graph/Coordinate Plane (from 5-3.pdf, 8-2.pdf, 9-2.pdf)
   graph_interaction: [
-    'plot the point',
-    'draw the graph',
-    'draw the line',
-    'draw a line of best fit',
-    'sketch the graph',
-    'on the coordinate',
-    'x-axis',
-    'y-axis',
-    'cartesian plane',
-    'coordinate plane',
-    'graph of f(x)',
-    'graph below'
+    /plot\s+(?:the\s+)?point/i,
+    /draw\s+(?:the\s+)?(?:graph|line|curve)/i,
+    /sketch\s+(?:the\s+)?graph/i,
+    /on\s+the\s+(?:coordinate|cartesian)\s+plane/i,
+    /x[\s-]*axis|y[\s-]*axis/i,
+    /graph\s+(?:of\s+)?(?:f|g|h)\s*\(/i,
+    /shade\s+(?:the\s+)?region/i,
+    /line\s+of\s+best\s+fit/i,
+    /scatter\s+(?:plot|graph|diagram)/i,
+    /coordinate\s+grid/i,
+    /draw.*perpendicular|draw.*parallel/i,
+    /graph\s+below/i,
+    /using\s+the\s+graph/i
   ],
   
-  // Multiple Choice with figures (from 7-2.pdf)
+  // Multiple Choice with figures (from 7-2.pdf, 7_1-2.pdf)
   multiple_choice: [
-    'select the figure',
-    'option a',
-    'option b',
-    'option c',
-    'choose the correct',
-    'which of the following',
-    'select the correct'
+    /select\s+(?:the\s+)?(?:correct|best|appropriate)/i,
+    /choose\s+(?:the\s+)?(?:correct|best)/i,
+    /which\s+(?:of\s+)?(?:the\s+)?following/i,
+    /option\s+(?:a|b|c|d)/i,
+    /\(a\).*\(b\).*\(c\)/i,
+    /circle\s+(?:the\s+)?(?:correct|answer)/i
   ],
   
-  // Tree Diagram / Probability (from 4-2.pdf)
+  // Tree Diagram / Probability (from 4-2.pdf, 5-3.pdf)
   tree_diagram: [
-    'tree diagram',
-    'complete the tree',
-    'probability tree',
-    'first ball',
-    'second ball'
+    /tree\s+diagram/i,
+    /complete\s+(?:the\s+)?tree/i,
+    /probability\s+tree/i,
+    /first\s+(?:ball|spin|draw)/i,
+    /second\s+(?:ball|spin|draw)/i
   ],
   
-  // Function transformation (from 4-2.pdf)
+  // Function transformation (from 4-2.pdf, 8-2.pdf)
   transformation: [
-    'transformed',
-    'transformation',
-    'f(x) is transformed',
-    'translated',
-    'reflected',
-    'stretched',
-    'compressed'
+    /transformed/i,
+    /transformation/i,
+    /f\s*\(\s*x\s*\)\s+is\s+transformed/i,
+    /translated/i,
+    /reflected/i,
+    /stretched/i,
+    /compressed/i
   ],
   
-  // Box-and-whisker / Statistics (from 3-2.pdf)
+  // Box-and-whisker / Statistics (from 3-2.pdf, 6-2.pdf)
   statistics: [
-    'box-and-whisker',
-    'box plot',
-    'cumulative frequency',
-    'histogram',
-    'median',
-    'interquartile range',
-    'quartile'
+    /box[\s-]*and[\s-]*whisker/i,
+    /box\s+plot/i,
+    /cumulative\s+frequency/i,
+    /histogram/i,
+    /median/i,
+    /interquartile\s+range/i,
+    /quartile/i,
+    /frequency\s+table/i
   ],
   
   // Step-by-step / Working (common pattern)
   step_builder: [
-    'show that',
-    'show your working',
-    'arrange the steps',
-    'correct order',
-    'prove that',
-    'verify'
+    /show\s+that/i,
+    /show\s+(?:your\s+)?working/i,
+    /arrange\s+(?:the\s+)?steps/i,
+    /correct\s+order/i,
+    /prove\s+that/i,
+    /verify/i,
+    /step[\s-]*by[\s-]*step/i
   ],
   
   // Math calculation input
   math_input: [
-    'calculate',
-    'find the value',
-    'solve for',
-    'evaluate',
-    'determine',
-    'find the probability',
-    'find the exact',
-    'what is the'
+    /calculate/i,
+    /find\s+(?:the\s+)?(?:value|exact|probability)/i,
+    /solve\s+(?:for|the)/i,
+    /evaluate/i,
+    /determine\s+(?:the\s+)?(?:value|equation)/i,
+    /what\s+is\s+(?:the\s+)?(?:value|probability)/i,
+    /compute/i,
+    /work\s+out/i,
+    /express\s+.*(?:in\s+)?(?:simplest|standard)\s+form/i,
+    /write\s+(?:the\s+)?(?:value|answer)/i
   ],
   
   // Table/Grid completion
   table_fill: [
-    'complete the table',
-    'fill in the table',
-    'missing values',
-    'determine the missing'
+    /complete\s+(?:the\s+)?table/i,
+    /fill\s+(?:in\s+)?(?:the\s+)?table/i,
+    /missing\s+values/i,
+    /determine\s+(?:the\s+)?missing/i,
+    /frequency\s+table/i
   ]
 };
 
@@ -213,12 +220,9 @@ export function detectQuestionType(question: DBQuestion): QuestionType {
   const graphType = (question.graph_type || '').toLowerCase();
   const combined = `${text} ${diagramDesc} ${graphType}`;
   
-  // Check each pattern category
-  const checkPatterns = (patterns: string[]): boolean => {
-    return patterns.some(pattern => {
-      const regex = new RegExp(pattern, 'i');
-      return regex.test(combined);
-    });
+  // Check each pattern category - now works with RegExp arrays
+  const checkPatterns = (patterns: RegExp[]): boolean => {
+    return patterns.some(pattern => pattern.test(combined));
   };
   
   // Priority order for detection
