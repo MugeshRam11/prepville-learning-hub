@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { UnifiedQuestion, UnifiedAnswer, getDefaultAnswerBlockType } from '@/types/answerBlock';
+import { UnifiedQuestion, UnifiedAnswer, getDefaultAnswerBlockType, AnswerBlockType } from '@/types/answerBlock';
 import AnswerBlock from './AnswerBlock';
+import InteractiveAnswerBlock from './InteractiveAnswerBlock';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -13,6 +14,29 @@ interface UnifiedQuestionCardProps {
   answers: UnifiedAnswer[];
   onAnswerChange: (questionId: string, value: any, subQuestionId?: string) => void;
   interactiveMode?: boolean;
+}
+
+// Map interactiveType to AnswerBlockType
+function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undefined {
+  if (!interactiveType) return undefined;
+  
+  const typeMap: Record<string, AnswerBlockType> = {
+    'graph_interaction': 'graph_plot',
+    'graph_plot': 'graph_plot',
+    'drag_drop_match': 'drag_drop',
+    'drag_drop': 'drag_drop',
+    'image_drop_zone': 'image_drop',
+    'image_drop': 'image_drop',
+    'step_builder': 'arrange_order',
+    'arrange_order': 'arrange_order',
+    'math_input': 'smart_math',
+    'smart_math': 'smart_math',
+    'text_input': 'text_equation',
+    'text_equation': 'text_equation',
+    'multiple_choice': 'multiple_choice'
+  };
+  
+  return typeMap[interactiveType] || 'text_equation';
 }
 
 // Helper to render LaTeX content
@@ -179,15 +203,17 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
 
                   {/* Answer block for sub-question */}
                   <div className="ml-11">
-                    <AnswerBlock
+                    <InteractiveAnswerBlock
                       questionId={question.id}
                       subQuestionId={subQ.id}
-                      answerType={subQ.answerBlockType || getDefaultAnswerBlockType()}
+                      detectedType={mapToAnswerBlockType(subQ.interactiveType) || subQ.answerBlockType}
                       config={subQ.answerBlockConfig}
                       value={getAnswer(question.id, subQ.id)}
                       onChange={(value) => onAnswerChange(question.id, value, subQ.id)}
                       wordLimit={subQ.wordLimit}
                       placeholder={`Enter your answer for part ${subQ.label}...`}
+                      questionText={subQ.text}
+                      allowTypeChange={interactiveMode}
                     />
                   </div>
                 </div>
@@ -195,14 +221,17 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
             </div>
           ) : (
             // Render single answer block for main question
-            <AnswerBlock
+            <InteractiveAnswerBlock
               questionId={question.id}
-              answerType={question.answerBlockType || getDefaultAnswerBlockType()}
+              detectedType={mapToAnswerBlockType(question.interactiveType) || question.answerBlockType}
               config={question.answerBlockConfig}
               value={getAnswer(question.id)}
               onChange={(value) => onAnswerChange(question.id, value)}
               wordLimit={question.wordLimit}
               placeholder="Enter your answer here..."
+              questionText={question.questionText}
+              diagramDescription={question.diagramDescription}
+              allowTypeChange={interactiveMode}
             />
           )}
         </CardContent>
