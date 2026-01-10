@@ -7,11 +7,13 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Minus, Upload, X, BarChart3, AlertCircle } from 'lucide-react';
+import { Plus, Minus, Upload, X, BarChart3, AlertCircle, Blocks } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import ImageUpload from './ImageUpload';
 import EquationEditor from './EquationEditor';
 import { Textarea } from '@/components/ui/textarea';
+import AnswerBlockTypeSelector, { AnswerBlockType } from './AnswerBlockTypeSelector';
+import CommandTermSelector from './CommandTermSelector';
 
 const QuestionBuilder = ({ questions, setQuestions }) => {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -24,7 +26,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
     word_limit: '',
     answer_key: '',
     has_sub_questions: false,
-    diagram_description: ''
+    diagram_description: '',
+    command_term: '',
+    answer_block_type: 'text_equation' as AnswerBlockType,
+    answer_block_config: {}
   });
 
   const resetNewQuestionData = () => {
@@ -37,7 +42,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
       word_limit: '',
       answer_key: '',
       has_sub_questions: false,
-      diagram_description: ''
+      diagram_description: '',
+      command_term: '',
+      answer_block_type: 'text_equation' as AnswerBlockType,
+      answer_block_config: {}
     });
   };
 
@@ -53,6 +61,9 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
       word_limit: newQuestionData.word_limit,
       difficulty: newQuestionData.difficulty,
       category: newQuestionData.category,
+      command_term: newQuestionData.command_term,
+      answer_block_type: newQuestionData.answer_block_type,
+      answer_block_config: newQuestionData.answer_block_config,
       sub_questions: []
     };
     setQuestions([...questions, newQuestion]);
@@ -84,7 +95,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
           sub_question_image_url: '',
           marks: 1,
           answer_key: '',
-          word_limit: ''
+          word_limit: '',
+          command_term: '',
+          answer_block_type: 'text_equation' as AnswerBlockType,
+          answer_block_config: {}
         };
         return {
           ...q,
@@ -323,7 +337,7 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             )}
 
             {/* Question Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Category</label>
                 <Select
@@ -375,7 +389,33 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                   placeholder="Optional"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Command Term</label>
+                <CommandTermSelector
+                  value={question.command_term || ''}
+                  onChange={(value) => updateQuestion(question.id, 'command_term', value)}
+                />
+              </div>
             </div>
+
+            {/* Answer Block Type (only for questions without sub-questions) */}
+            {!question.has_sub_questions && (
+              <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Blocks className="w-5 h-5 text-violet-600 mt-0.5" />
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-violet-800 block mb-2">Answer Block Type</label>
+                    <AnswerBlockTypeSelector
+                      value={question.answer_block_type || 'text_equation'}
+                      onChange={(value) => updateQuestion(question.id, 'answer_block_type', value)}
+                    />
+                    <p className="text-xs text-violet-600 mt-2">
+                      Choose how students will answer this question in the unified exam interface.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Answer Key */}
             <div>
@@ -473,6 +513,27 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                             placeholder="Optional"
                           />
                         </div>
+                      </div>
+
+                      {/* Command Term for Sub-question */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Command Term</label>
+                        <CommandTermSelector
+                          value={subQuestion.command_term || ''}
+                          onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'command_term', value)}
+                        />
+                      </div>
+
+                      {/* Answer Block Type for Sub-question */}
+                      <div className="bg-violet-50 border border-violet-200 rounded-lg p-3">
+                        <label className="block text-xs font-medium mb-1 text-violet-800 flex items-center gap-1">
+                          <Blocks className="w-3 h-3" />
+                          Answer Block Type
+                        </label>
+                        <AnswerBlockTypeSelector
+                          value={subQuestion.answer_block_type || 'text_equation'}
+                          onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'answer_block_type', value)}
+                        />
                       </div>
 
                       <div>

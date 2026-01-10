@@ -364,6 +364,8 @@ export type Database = {
       }
       mock_questions: {
         Row: {
+          answer_block_config: Json | null
+          answer_block_type: string | null
           answer_key: string | null
           category: string | null
           command_term: string | null
@@ -381,6 +383,8 @@ export type Database = {
           word_limit: number | null
         }
         Insert: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           category?: string | null
           command_term?: string | null
@@ -398,6 +402,8 @@ export type Database = {
           word_limit?: number | null
         }
         Update: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           category?: string | null
           command_term?: string | null
@@ -426,6 +432,8 @@ export type Database = {
       }
       mock_sub_questions: {
         Row: {
+          answer_block_config: Json | null
+          answer_block_type: string | null
           answer_key: string | null
           command_term: string | null
           created_at: string
@@ -439,6 +447,8 @@ export type Database = {
           word_limit: number | null
         }
         Insert: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           command_term?: string | null
           created_at?: string
@@ -452,6 +462,8 @@ export type Database = {
           word_limit?: number | null
         }
         Update: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           command_term?: string | null
           created_at?: string
@@ -476,6 +488,8 @@ export type Database = {
       }
       mock_test_question_bank: {
         Row: {
+          answer_block_config: Json | null
+          answer_block_type: string | null
           answer_key: string | null
           category: string | null
           command_term: string | null
@@ -496,6 +510,8 @@ export type Database = {
           word_limit: number | null
         }
         Insert: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           category?: string | null
           command_term?: string | null
@@ -516,6 +532,8 @@ export type Database = {
           word_limit?: number | null
         }
         Update: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           category?: string | null
           command_term?: string | null
@@ -539,6 +557,8 @@ export type Database = {
       }
       mock_test_sub_question_bank: {
         Row: {
+          answer_block_config: Json | null
+          answer_block_type: string | null
           answer_key: string | null
           command_term: string | null
           created_at: string | null
@@ -551,6 +571,8 @@ export type Database = {
           word_limit: number | null
         }
         Insert: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           command_term?: string | null
           created_at?: string | null
@@ -563,6 +585,8 @@ export type Database = {
           word_limit?: number | null
         }
         Update: {
+          answer_block_config?: Json | null
+          answer_block_type?: string | null
           answer_key?: string | null
           command_term?: string | null
           created_at?: string | null
