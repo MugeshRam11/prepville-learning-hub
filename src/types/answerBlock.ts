@@ -65,6 +65,8 @@ export interface UnifiedQuestion {
   answerBlockType?: AnswerBlockType;
   answerBlockConfig?: AnswerBlockConfig;
   subQuestions?: UnifiedSubQuestion[];
+  // Interactive question type (detected from AI parser)
+  interactiveType?: 'graph_interaction' | 'drag_drop_match' | 'image_drop_zone' | 'step_builder' | 'math_input' | 'text_input';
 }
 
 export interface UnifiedSubQuestion {
@@ -79,6 +81,8 @@ export interface UnifiedSubQuestion {
   // Each sub-question has its own answer block type
   answerBlockType: AnswerBlockType;
   answerBlockConfig?: AnswerBlockConfig;
+  // Interactive question type
+  interactiveType?: 'graph_interaction' | 'drag_drop_match' | 'image_drop_zone' | 'step_builder' | 'math_input' | 'text_input';
 }
 
 export interface UnifiedExamData {

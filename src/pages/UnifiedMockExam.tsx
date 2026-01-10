@@ -4,6 +4,9 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Sparkles, FileText } from 'lucide-react';
 
 import UnifiedExamHeader from '@/components/unified-exam/UnifiedExamHeader';
 import UnifiedExamSidebar from '@/components/unified-exam/UnifiedExamSidebar';
@@ -15,6 +18,13 @@ import {
   UnifiedAnswer,
   getDefaultAnswerBlockType 
 } from '@/types/answerBlock';
+
+import { 
+  mapDBQuestionsToInteractive, 
+  detectQuestionType,
+  getQuestionTypeLabel 
+} from '@/lib/interactiveQuestionMapper';
+import type { QuestionType } from '@/data/mocktest2';
 
 const UnifiedMockExam = () => {
   const navigate = useNavigate();
@@ -29,24 +39,61 @@ const UnifiedMockExam = () => {
   const [activeSubQuestionId, setActiveSubQuestionId] = useState<string | null>(null);
   const [startTime] = useState(new Date());
   
+  // Interactive mode toggle
+  const [interactiveMode, setInteractiveMode] = useState(true);
+  const [detectedQuestionTypes, setDetectedQuestionTypes] = useState<Map<string, QuestionType>>(new Map());
+  
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const mainContentRef = useRef<HTMLDivElement>(null);
 
-  // Map database questions to unified format
+  // Map database questions to unified format with interactive type detection
   const mapDBQuestionsToUnified = (dbQuestions: any[]): UnifiedQuestion[] => {
+    const typeMap = new Map<string, QuestionType>();
+    
     return dbQuestions.map((q, index) => {
-      const subQuestions = q.mock_sub_questions?.map((sq: any, sqIndex: number) => ({
-        id: sq.id,
-        label: sq.sub_question_label || String.fromCharCode(97 + sqIndex), // a, b, c...
-        text: sq.sub_question_text,
-        imageUrl: sq.sub_question_image_url,
-        marks: sq.marks || 1,
-        commandTerm: sq.command_term,
-        wordLimit: sq.word_limit,
-        answerKey: sq.answer_key,
-        answerBlockType: sq.answer_block_type || getDefaultAnswerBlockType(),
-        answerBlockConfig: sq.answer_block_config ? JSON.parse(sq.answer_block_config) : undefined
-      })) || [];
+      // Detect question type for interactive mode
+      const detectedType = detectQuestionType({
+        id: q.id,
+        question_text: q.question_text,
+        marks: q.marks,
+        question_number: q.question_number,
+        diagram_description: q.diagram_description,
+        question_image_url: q.question_image_url,
+        answer_key: q.answer_key,
+        command_term: q.command_term,
+        graph_type: q.graph_type,
+        has_table: q.has_table
+      });
+      
+      typeMap.set(q.id, detectedType);
+      
+      const subQuestions = q.mock_sub_questions?.map((sq: any, sqIndex: number) => {
+        // Detect sub-question type too
+        const subType = detectQuestionType({
+          id: sq.id,
+          question_text: sq.sub_question_text,
+          marks: sq.marks,
+          question_number: sqIndex + 1,
+          answer_key: sq.answer_key,
+          command_term: sq.command_term
+        });
+        
+        typeMap.set(sq.id, subType);
+        
+        return {
+          id: sq.id,
+          label: sq.sub_question_label || String.fromCharCode(97 + sqIndex), // a, b, c...
+          text: sq.sub_question_text,
+          imageUrl: sq.sub_question_image_url,
+          marks: sq.marks || 1,
+          commandTerm: sq.command_term,
+          wordLimit: sq.word_limit,
+          answerKey: sq.answer_key,
+          answerBlockType: sq.answer_block_type || getDefaultAnswerBlockType(),
+          answerBlockConfig: sq.answer_block_config ? JSON.parse(sq.answer_block_config) : undefined,
+          interactiveType: subType
+        };
+      }) || [];
 
       return {
         id: q.id,
@@ -62,7 +109,8 @@ const UnifiedMockExam = () => {
         diagramDescription: q.diagram_description,
         answerBlockType: q.answer_block_type || getDefaultAnswerBlockType(),
         answerBlockConfig: q.answer_block_config ? JSON.parse(q.answer_block_config) : undefined,
-        subQuestions
+        subQuestions,
+        interactiveType: detectedType
       };
     });
   };
@@ -395,6 +443,47 @@ const UnifiedMockExam = () => {
         onSubmit={handleSubmit}
       />
 
+      {/* Interactive Mode Toggle Bar */}
+      <div className="flex items-center justify-between px-6 py-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-b">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="interactive-mode"
+              checked={interactiveMode}
+              onCheckedChange={setInteractiveMode}
+            />
+            <Label htmlFor="interactive-mode" className="flex items-center gap-2 cursor-pointer">
+              {interactiveMode ? (
+                <>
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <span className="font-medium text-purple-700 dark:text-purple-300">Interactive Mode</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 text-gray-600" />
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Standard Mode</span>
+                </>
+              )}
+            </Label>
+          </div>
+          {interactiveMode && (
+            <span className="text-xs text-muted-foreground">
+              Graphs, Drag & Drop, Math Input enabled
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {examData.questions.slice(0, 3).map(q => (
+            <span key={q.id} className="px-2 py-1 bg-white dark:bg-gray-800 rounded border text-[10px]">
+              Q{q.questionNumber}: {getQuestionTypeLabel((q as any).interactiveType || 'text_input')}
+            </span>
+          ))}
+          {examData.questions.length > 3 && (
+            <span className="text-[10px]">+{examData.questions.length - 3} more</span>
+          )}
+        </div>
+      </div>
+
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Scrollable question area */}
@@ -410,6 +499,7 @@ const UnifiedMockExam = () => {
                 question={question}
                 answers={answers}
                 onAnswerChange={handleAnswerChange}
+                interactiveMode={interactiveMode}
               />
             ))}
           </div>
