@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, Sparkles, Play, GripVertical, MousePointer, Calculator, Grid3X3 } from 'lucide-react';
+import { Search, Sparkles, Play, GripVertical, MousePointer, Calculator, Grid3X3, Layers } from 'lucide-react';
 import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
 import { motion } from 'framer-motion';
 
@@ -161,26 +161,90 @@ const MockExamSelect = () => {
           </div>
         </section>
 
-        {/* Interactive Demo Section */}
-        <section className="py-8 border-b border-border bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-pink-500/5">
+        {/* Unified Exam Section - NEW */}
+        <section className="py-8 border-b border-border bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-cyan-500/5">
           <div className="container">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="max-w-4xl mx-auto"
             >
-              <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
+              <Card className="overflow-hidden border-2 border-emerald-500/30 bg-gradient-to-br from-card via-card to-emerald-500/5">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                      <Layers className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                        Unified Mock Exam
+                        <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">RECOMMENDED</Badge>
+                      </h2>
+                      <p className="text-muted-foreground">All questions on one scrollable page - IB exam style flow</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Feature highlights */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                      <Grid3X3 className="w-5 h-5 text-emerald-600" />
+                      <span className="text-sm font-medium">All Question Types</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-teal-500/5 border border-teal-500/10">
+                      <Layers className="w-5 h-5 text-teal-600" />
+                      <span className="text-sm font-medium">One Page Flow</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
+                      <MousePointer className="w-5 h-5 text-cyan-600" />
+                      <span className="text-sm font-medium">Scroll Navigation</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+                      <Calculator className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-medium">Auto-Save</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                      <strong>Unified Interface</strong> • Interactive + Standard answers • IB MYP Mathematics
+                    </div>
+                    <Button 
+                      size="lg"
+                      onClick={() => navigate('/mock-exams/unified')}
+                      className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90"
+                    >
+                      <Play className="w-5 h-5" />
+                      Start Unified Exam
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Interactive Demo Section (Legacy) */}
+        <section className="py-8 border-b border-border bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-pink-500/5">
+          <div className="container">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="max-w-4xl mx-auto"
+            >
+              <Card className="overflow-hidden border border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white">
                       <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                         Interactive Demo Test
-                        <Badge className="bg-gradient-to-r from-violet-500 to-purple-600 text-white">NEW</Badge>
+                        <Badge variant="outline" className="text-xs">Legacy Mode</Badge>
                       </h2>
-                      <p className="text-muted-foreground">Experience our next-generation interactive question types</p>
+                      <p className="text-muted-foreground text-sm">Original interactive question types demo</p>
                     </div>
                   </div>
                 </CardHeader>
@@ -219,12 +283,12 @@ const MockExamSelect = () => {
                         Old Demo
                       </Button>
                       <Button 
-                        size="lg"
+                        variant="outline"
                         onClick={() => navigate('/mock-exams/interactive')}
-                        className="gap-2 bg-gradient-to-r from-[#1e88e5] to-[#42a5f5] hover:opacity-90"
+                        className="gap-2"
                       >
-                        <Play className="w-5 h-5" />
-                        Start IB MYP Test
+                        <Play className="w-4 h-4" />
+                        Interactive Mode
                       </Button>
                     </div>
                   </div>

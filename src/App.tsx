@@ -48,6 +48,7 @@ import QuestionBuilder from "./pages/QuestionBuilder";
 import UploadDemo1 from "./pages/UploadDemo1";
 import InteractiveMockDemo from "./pages/InteractiveMockDemo";
 import InteractiveMockExam from "./pages/InteractiveMockExam";
+import UnifiedMockExam from "./pages/UnifiedMockExam";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CopyPasteProtection from "./components/CopyPasteProtection";
 
@@ -135,6 +136,16 @@ const App = () => (
           <Route path="/mock-exams/interactive" element={
             <ProtectedRoute requiresSubscription>
               <InteractiveMockExam />
+            </ProtectedRoute>
+          } />
+          <Route path="/mock-exams/unified" element={
+            <ProtectedRoute requiresSubscription>
+              <UnifiedMockExam />
+            </ProtectedRoute>
+          } />
+          <Route path="/mock-exams/unified/:testId" element={
+            <ProtectedRoute requiresSubscription>
+              <UnifiedMockExam />
             </ProtectedRoute>
           } />
           <Route path="/subjects" element={
