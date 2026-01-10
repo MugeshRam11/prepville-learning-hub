@@ -23,12 +23,20 @@ interface ParsedQuestion {
   question_image_url?: string | null;
   marks: number;
   has_sub_questions: boolean;
+  graph_found?: boolean;
+  graph_bounding_box?: {
+    x_min: number;
+    y_min: number;
+    x_max: number;
+    y_max: number;
+  } | null;
   has_diagram?: boolean;
   diagram_description?: string;
   sub_questions?: SubQuestion[];
   difficulty?: string;
   category?: string;
   correct_answer?: string;
+  page?: number;
 }
 
 interface QuestionPreviewEditorProps {
@@ -149,7 +157,7 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
             Review Extracted Questions ({selectedQuestions.size}/{questions.length} selected)
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            PDR Output: question_number, question_text, graph_description
+            PDR Output: question_number, question_text, graph_found, graph_bounding_box
           </p>
         </DialogHeader>
 
@@ -260,42 +268,45 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                               Image
                             </Badge>
                           )}
-                          {(q.has_diagram || (q.diagram_description && q.diagram_description !== 'none')) && (
+                          {q.graph_found && (
                             <Badge variant="outline" className="text-xs text-purple-600">
                               <BarChart3 className="w-3 h-3 mr-1" />
-                              Diagram
+                              Graph Detected
+                            </Badge>
+                          )}
+                          {q.page && (
+                            <Badge variant="outline" className="text-xs">
+                              Page {q.page}
                             </Badge>
                           )}
                         </div>
 
-                        {/* Graph/Diagram Description - PDR Field */}
-                        {(q.has_diagram || (q.diagram_description && q.diagram_description !== 'none')) && (
+                        {/* Graph Bounding Box - PDR Field */}
+                        {q.graph_found && (
                           <div className="mb-2 p-2 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
                             <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
                               <BarChart3 className="w-3 h-3" />
-                              graph_description (PDR):
+                              graph_bounding_box (PDR):
                             </div>
-                            {editingIndex === index ? (
-                              <Textarea
-                                value={q.diagram_description || ''}
-                                onChange={(e) => updateQuestion(index, 'diagram_description', e.target.value)}
-                                className="text-xs min-h-[60px] bg-white dark:bg-background"
-                                placeholder="Describe the diagram/graph (coordinates, axes, shapes, etc.)"
-                              />
+                            {q.graph_bounding_box ? (
+                              <div className="text-xs font-mono text-purple-600 dark:text-purple-400 grid grid-cols-2 gap-1">
+                                <span>x_min: {q.graph_bounding_box.x_min}%</span>
+                                <span>y_min: {q.graph_bounding_box.y_min}%</span>
+                                <span>x_max: {q.graph_bounding_box.x_max}%</span>
+                                <span>y_max: {q.graph_bounding_box.y_max}%</span>
+                              </div>
                             ) : (
-                              <p className="text-xs text-purple-600 dark:text-purple-400 whitespace-pre-wrap font-mono">
-                                "{q.diagram_description || 'none'}"
-                              </p>
+                              <p className="text-xs text-purple-600 dark:text-purple-400 font-mono">null</p>
                             )}
                           </div>
                         )}
 
-                        {/* Show graph_description = "none" for questions without diagrams */}
-                        {!q.has_diagram && (!q.diagram_description || q.diagram_description === 'none') && (
+                        {/* Show graph_found = false for questions without graphs */}
+                        {!q.graph_found && (
                           <div className="mb-2 p-2 bg-muted/50 border border-border rounded-md">
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <BarChart3 className="w-3 h-3" />
-                              graph_description: <span className="font-mono">"none"</span>
+                              graph_found: <span className="font-mono">false</span>
                             </div>
                           </div>
                         )}
