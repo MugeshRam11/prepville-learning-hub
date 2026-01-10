@@ -21,8 +21,10 @@ import {
   CheckCircle2,
   Grid3X3,
   ImageIcon,
-  Calculator
+  Calculator,
+  Trash2
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const AdminQuestionGenerator = () => {
   const [activeTab, setActiveTab] = useState('upload');
@@ -353,6 +355,8 @@ const QuestionBankViewer = () => {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ subject: 'all', search: '' });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   React.useEffect(() => {
     fetchQuestions();
@@ -369,7 +373,7 @@ const QuestionBankViewer = () => {
         `)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (filter.subject !== 'all') {
         const validSubjects = ['mathematics', 'science', 'language_literature', 'social_studies', 'physics', 'chemistry', 'biology'] as const;
@@ -397,6 +401,86 @@ const QuestionBankViewer = () => {
     }
     return true;
   });
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredQuestions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredQuestions.map(q => q.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} question(s)? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      // First delete sub-questions
+      const { error: subError } = await supabase
+        .from('mock_test_sub_question_bank')
+        .delete()
+        .in('question_bank_id', Array.from(selectedIds));
+
+      if (subError) throw subError;
+
+      // Then delete main questions
+      const { error } = await supabase
+        .from('mock_test_question_bank')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`🗑️ Deleted ${selectedIds.size} question(s) from bank`);
+      setSelectedIds(new Set());
+      await fetchQuestions();
+    } catch (error: any) {
+      console.error('Error deleting questions:', error);
+      toast.error('Failed to delete questions', { description: error?.message });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteSingle = async (id: string) => {
+    if (!confirm('Delete this question from the bank?')) return;
+
+    try {
+      // Delete sub-questions first
+      await supabase
+        .from('mock_test_sub_question_bank')
+        .delete()
+        .eq('question_bank_id', id);
+
+      // Delete main question
+      const { error } = await supabase
+        .from('mock_test_question_bank')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Question deleted');
+      await fetchQuestions();
+    } catch (error: any) {
+      console.error('Error deleting question:', error);
+      toast.error('Failed to delete question');
+    }
+  };
 
   return (
     <Card>
@@ -437,6 +521,36 @@ const QuestionBankViewer = () => {
           </Select>
         </div>
 
+        {/* Bulk Actions */}
+        {filteredQuestions.length > 0 && (
+          <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSelectAll}
+              >
+                {selectedIds.size === filteredQuestions.length ? 'Deselect All' : 'Select All'}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size} of {filteredQuestions.length} selected
+              </span>
+            </div>
+            {selectedIds.size > 0 && (
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={deleting}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleting ? 'Deleting...' : `Delete Selected (${selectedIds.size})`}
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Questions List */}
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
@@ -451,23 +565,53 @@ const QuestionBankViewer = () => {
             {filteredQuestions.map((q) => (
               <div 
                 key={q.id}
-                className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                className={`p-4 rounded-lg border transition-colors cursor-pointer ${
+                  selectedIds.has(q.id) 
+                    ? 'bg-primary/5 border-primary' 
+                    : 'bg-card hover:bg-accent/50'
+                }`}
+                onClick={() => toggleSelection(q.id)}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline">{q.subject}</Badge>
-                      <Badge className="bg-muted">{q.topic}</Badge>
-                      <Badge variant="secondary">{q.difficulty}</Badge>
-                      <Badge className="bg-primary/10 text-primary">{q.marks} marks</Badge>
+                  <div className="flex items-start gap-3 flex-1">
+                    <Checkbox
+                      checked={selectedIds.has(q.id)}
+                      onCheckedChange={() => toggleSelection(q.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline">{q.subject}</Badge>
+                        <Badge className="bg-muted">{q.topic}</Badge>
+                        <Badge variant="secondary">{q.difficulty}</Badge>
+                        <Badge className="bg-primary/10 text-primary">{q.marks} marks</Badge>
+                        {q.question_image_url && (
+                          <Badge className="bg-blue-500/10 text-blue-600">
+                            <ImageIcon className="w-3 h-3 mr-1" />
+                            Has Image
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm line-clamp-2">{q.question_text}</p>
+                      {q.mock_test_sub_question_bank?.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {q.mock_test_sub_question_bank.length} sub-question(s)
+                        </p>
+                      )}
                     </div>
-                    <p className="text-sm line-clamp-2">{q.question_text}</p>
-                    {q.mock_test_sub_question_bank?.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {q.mock_test_sub_question_bank.length} sub-question(s)
-                      </p>
-                    )}
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSingle(q.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             ))}
