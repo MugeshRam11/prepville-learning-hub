@@ -12,6 +12,7 @@ interface UnifiedQuestionCardProps {
   question: UnifiedQuestion;
   answers: UnifiedAnswer[];
   onAnswerChange: (questionId: string, value: any, subQuestionId?: string) => void;
+  interactiveMode?: boolean;
 }
 
 // Helper to render LaTeX content
@@ -57,7 +58,8 @@ const renderLatexContent = (text: string): React.ReactNode => {
 const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
   question,
   answers,
-  onAnswerChange
+  onAnswerChange,
+  interactiveMode = true
 }) => {
   const getAnswer = (questionId: string, subQuestionId?: string) => {
     const answer = answers.find(
