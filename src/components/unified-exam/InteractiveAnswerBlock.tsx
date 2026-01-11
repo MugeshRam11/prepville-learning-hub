@@ -270,17 +270,27 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         );
 
       case 'drag_drop': {
-        const dragDropItems = config?.dragDropConfig?.items || [
-          { id: 'item-1', content: '6 : 4', isLatex: false, color: 'red' as const },
-          { id: 'item-2', content: '24 : 36', isLatex: false, color: 'blue' as const },
-          { id: 'item-3', content: '1 : 3', isLatex: false, color: 'green' as const }
-        ];
-        const rawSlots = config?.dragDropConfig?.targets || [
-          { id: 'slot-1', label: 'Puzzle 1', correctItemId: 'item-1' },
-          { id: 'slot-2', label: 'Puzzle 2', correctItemId: 'item-2' },
-          { id: 'slot-3', label: 'Puzzle 3', correctItemId: 'item-3' }
-        ];
-        const puzzleSlots = rawSlots.map(t => ({ 
+        // Support multiple config formats: dragDropConfig or direct draggableItems/dropTargets
+        const dragDropConfig = config?.dragDropConfig;
+        const directConfig = config as any; // For configs that have items at top level
+        
+        const dragDropItems = dragDropConfig?.items || 
+          directConfig?.draggableItems || 
+          [
+            { id: 'item-1', content: '6 : 4', isLatex: false, color: 'red' as const },
+            { id: 'item-2', content: '24 : 36', isLatex: false, color: 'blue' as const },
+            { id: 'item-3', content: '1 : 3', isLatex: false, color: 'green' as const }
+          ];
+        
+        const rawSlots = dragDropConfig?.targets || 
+          directConfig?.dropTargets || 
+          [
+            { id: 'slot-1', label: 'Puzzle 1', correctItemId: 'item-1' },
+            { id: 'slot-2', label: 'Puzzle 2', correctItemId: 'item-2' },
+            { id: 'slot-3', label: 'Puzzle 3', correctItemId: 'item-3' }
+          ];
+        
+        const puzzleSlots = rawSlots.map((t: any) => ({ 
           ...t, 
           correctItemId: t.correctItemId || '',
           shape: 'notch' as const
