@@ -403,9 +403,11 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     }).select().single();
     if (testError) throw testError;
     const questions = data.questions.map((q: any, idx: number) => {
-      const isMCQ = q.options && q.options.length > 0;
+      const isMCQ = q.options && (q.options.A || q.options.B || q.options.C || q.options.D);
+      const hasArrayOptions = Array.isArray(q.options) && q.options.length > 0;
+      
       let correctAnswer = null;
-      if (isMCQ) {
+      if (isMCQ || hasArrayOptions) {
         const answerChar = q.correct_answer?.charAt(0)?.toUpperCase();
         if (['A', 'B', 'C', 'D'].includes(answerChar)) {
           correctAnswer = answerChar;
@@ -413,16 +415,47 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
           correctAnswer = 'A';
         }
       }
+      
+      // Handle both object and array option formats
+      let optionA = '', optionB = '', optionC = '', optionD = '';
+      if (isMCQ) {
+        optionA = q.options?.A || '';
+        optionB = q.options?.B || '';
+        optionC = q.options?.C || '';
+        optionD = q.options?.D || '';
+      } else if (hasArrayOptions) {
+        optionA = q.options?.[0] || '';
+        optionB = q.options?.[1] || '';
+        optionC = q.options?.[2] || '';
+        optionD = q.options?.[3] || '';
+      }
+      
+      // Add image indicator to option text if option is image-based
+      if (q.option_images) {
+        if (q.option_images.A && q.option_descriptions?.A) {
+          optionA = `[Image: ${q.option_descriptions.A}]`;
+        }
+        if (q.option_images.B && q.option_descriptions?.B) {
+          optionB = `[Image: ${q.option_descriptions.B}]`;
+        }
+        if (q.option_images.C && q.option_descriptions?.C) {
+          optionC = `[Image: ${q.option_descriptions.C}]`;
+        }
+        if (q.option_images.D && q.option_descriptions?.D) {
+          optionD = `[Image: ${q.option_descriptions.D}]`;
+        }
+      }
+      
       return {
         test_id: test.id,
         question_text: q.question_text,
         question_image_url: q.question_image_url || null,
-        option_a: q.options?.[0] || '',
-        option_b: q.options?.[1] || '',
-        option_c: q.options?.[2] || '',
-        option_d: q.options?.[3] || '',
+        option_a: optionA,
+        option_b: optionB,
+        option_c: optionC,
+        option_d: optionD,
         correct_answer: correctAnswer,
-        explanation: isMCQ ? q.explanation : `Answer: ${q.correct_answer}\n\n${q.explanation || ''}`,
+        explanation: (isMCQ || hasArrayOptions) ? q.explanation : `Answer: ${q.correct_answer}\n\n${q.explanation || ''}`,
         difficulty_level: q.difficulty || 'medium'
       };
     });

@@ -46,7 +46,9 @@ EXTRACTION RULES:
    - graph_found=true if: coordinate grid, Venn, tree diagram, pie chart, 3D shape, geometric figure
    - Return bounding_box as {x_min, y_min, x_max, y_max} percentages (0-100)
 4. Draggable Items: Extract ALL draggable expressions/options shown
-5. MCQ Options: Extract A, B, C, D options exactly
+5. MCQ Options: Extract A, B, C, D options exactly. For IMAGE-BASED options:
+   - Set option_images: {"A": true, "B": true, ...} if options are visual figures
+   - Include option_descriptions: {"A": "Triangle with 28cm side", "B": "Rectangle rotated"} 
 6. Marks: From [2], (2 marks), (2), or "(X marks)" format
 
 INTERACTIVE TYPE MAPPING:
@@ -68,6 +70,9 @@ RETURN FORMAT - Valid JSON only:
       "marks": 2,
       "command_term": "Calculate",
       "options": {"A": "option text", "B": "", "C": "", "D": ""} or null,
+      "option_images": {"A": true, "B": true, "C": true, "D": false} or null,
+      "option_descriptions": {"A": "Figure showing...", "B": "Diagram with..."} or null,
+      "option_bounding_boxes": {"A": {"x_min": 0, "y_min": 0, "x_max": 50, "y_max": 50}} or null,
       "draggable_items": ["item1", "item2"] or null,
       "graph_found": true,
       "graph_bounding_box": {"x_min": 10, "y_min": 20, "x_max": 90, "y_max": 80},
