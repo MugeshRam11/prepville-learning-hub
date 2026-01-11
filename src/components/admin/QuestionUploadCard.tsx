@@ -163,10 +163,16 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const numPages = Math.min(pdf.numPages, 15); // Increased to 15 pages
+        const MAX_PAGES = 50; // Maximum pages to process
+        const numPages = Math.min(pdf.numPages, MAX_PAGES);
         
         console.log(`PDF has ${pdf.numPages} pages, processing ${numPages}`);
         setPageProgress({ current: 0, total: numPages });
+        
+        // Notify user if PDF has more pages than limit
+        if (pdf.numPages > MAX_PAGES) {
+          toast.warning(`PDF has ${pdf.numPages} pages. Processing first ${MAX_PAGES} pages only.`);
+        }
         
         for (let i = 1; i <= numPages; i++) {
           setProcessingStage(`📄 Converting page ${i}/${numPages} to image...`);
