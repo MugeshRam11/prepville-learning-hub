@@ -216,7 +216,8 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
     isInSlot?: boolean;
     slotColor?: 'red' | 'blue' | 'green' | 'orange' | 'purple';
   }) => {
-    const colorStyle = PUZZLE_COLORS[slotColor || item.color];
+    const colorKey = slotColor || item.color || 'blue';
+    const colorStyle = PUZZLE_COLORS[colorKey] || PUZZLE_COLORS.blue;
     
     return (
       <div 
