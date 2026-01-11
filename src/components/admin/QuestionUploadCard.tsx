@@ -277,6 +277,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       // Convert parsed results to question format with interactive types
       let questions = allQuestions.map((page: any, idx: number) => ({
         question_number: page.question_number === "not found" ? idx + 1 : page.question_number,
+        parent_question: page.parent_question || null,
         question_text: page.question_text || "unreadable",
         marks: page.marks || 1,
         has_sub_questions: false,
@@ -284,16 +285,22 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         graph_bounding_box: page.graph_bounding_box || null,
         graph_type: page.graph_type || null,
         graph_description: page.graph_description || null,
+        diagram_type: page.diagram_type || null,
         diagram_crop: page.diagram_crop || null,
         has_table: page.has_table || false,
         table_data: page.table_data || null,
+        table_type: page.table_type || null,
+        table_bounding_box: page.table_bounding_box || null,
         command_term: page.command_term || null,
-        parent_question: page.parent_question || null,
         difficulty: "medium",
         page: page.page || idx + 1,
         source_image: page.source_image || null,
         // MCQ options
         options: page.options || null,
+        option_images: page.option_images || null,
+        option_descriptions: page.option_descriptions || null,
+        // Draggable items
+        draggable_items: page.draggable_items || null,
         // Interactive type detection
         interactive_type: page.interactive_type || page.answer_block_type || 'text_equation',
         answer_block_type: page.answer_block_type || page.interactive_type || 'text_equation',
@@ -315,6 +322,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       const tableCount = questions.filter((q: any) => q.has_table).length;
       const verifiedCount = questions.filter((q: any) => q.parsing_verified).length;
       const interactiveTypes = [...new Set(questions.map((q: any) => q.interactive_type))];
+      const diagramTypes = [...new Set(questions.filter((q: any) => q.diagram_type).map((q: any) => q.diagram_type))];
       
       // Show detailed success message
       let successMsg = `✅ Extracted ${questions.length} question(s)`;
@@ -325,7 +333,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       }
       
       toast.success(successMsg, {
-        description: `Interactive types: ${interactiveTypes.join(', ')}`
+        description: `Types: ${interactiveTypes.join(', ')}${diagramTypes.length > 0 ? ` | Diagrams: ${diagramTypes.join(', ')}` : ''}`
       });
       
       setProgress(100);
@@ -335,6 +343,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         count: questions.length,
         graphCount,
         tableCount,
+        diagramTypes,
         verifiedCount,
         interactiveTypes,
         data: null,
