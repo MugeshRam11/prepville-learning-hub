@@ -5,9 +5,12 @@ import Footer from '@/components/Footer';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import QuizProgress from '@/components/quiz/QuizProgress';
 import QuizQuestion from '@/components/quiz/QuizQuestion';
+import InteractiveQuizQuestion from '@/components/quiz/InteractiveQuizQuestion';
 import QuizResults from '@/components/quiz/QuizResults';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Sparkles } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useProgressTracking } from '@/hooks/useProgressTracking';
 import { useXPSystem } from '@/hooks/useXPSystem';
 import { supabase } from '@/integrations/supabase/client';
@@ -403,6 +406,62 @@ const mockQuizData = {
   }
 };
 
+// Helper function to detect diagram type from question text
+const detectDiagramType = (questionText: string, imageUrl?: string | null): 'graph' | 'venn' | 'geometry' | 'coordinate' | 'chart' | 'other' | undefined => {
+  if (!imageUrl) return undefined;
+  const text = questionText.toLowerCase();
+  
+  if (/venn\s+diagram|set\s+[ab]|intersection|union/.test(text)) return 'venn';
+  if (/graph|plot|curve|line|parabola|equation|f\(x\)|y\s*=/.test(text)) return 'graph';
+  if (/coordinate|x-axis|y-axis|cartesian|point/.test(text)) return 'coordinate';
+  if (/triangle|rectangle|circle|angle|perimeter|area|geometry/.test(text)) return 'geometry';
+  if (/histogram|bar\s+chart|pie\s+chart|frequency/.test(text)) return 'chart';
+  
+  return 'other';
+};
+
+// Helper to extract image URL from option text (if embedded)
+const extractOptionImage = (optionText: string): string | undefined => {
+  if (!optionText) return undefined;
+  // Check if option contains an image URL pattern
+  const imageMatch = optionText.match(/https?:\/\/[^\s]+\.(png|jpg|jpeg|gif|webp|svg)/i);
+  return imageMatch ? imageMatch[0] : undefined;
+};
+
+// Generate contextual hints based on question content
+const generateQuestionHints = (questionText: string): string[] => {
+  const text = questionText.toLowerCase();
+  const hints: string[] = [];
+  
+  if (/calculate|find|determine/.test(text)) {
+    hints.push('Identify the formula you need to use');
+    hints.push('Substitute the given values carefully');
+  }
+  if (/simplify|expression/.test(text)) {
+    hints.push('Look for like terms to combine');
+    hints.push('Apply the order of operations (PEMDAS)');
+  }
+  if (/solve|equation/.test(text)) {
+    hints.push('Isolate the variable on one side');
+    hints.push('Perform the same operation on both sides');
+  }
+  if (/probability/.test(text)) {
+    hints.push('Count the total number of outcomes');
+    hints.push('Identify favorable outcomes');
+  }
+  if (/graph|plot/.test(text)) {
+    hints.push('Check the scale of the axes');
+    hints.push('Identify key points like intercepts');
+  }
+  
+  if (hints.length === 0) {
+    hints.push('Read the question carefully');
+    hints.push('Eliminate obviously wrong answers');
+  }
+  
+  return hints;
+};
+
 const Quiz = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
@@ -416,6 +475,7 @@ const Quiz = () => {
   const [progressUpdated, setProgressUpdated] = useState(false);
   const [quizData, setQuizData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [interactiveMode, setInteractiveMode] = useState(true); // New: Interactive mode toggle
 
   // Fetch quiz from database if UUID format, otherwise use mock data
   useEffect(() => {
@@ -454,19 +514,28 @@ const Quiz = () => {
 
           if (questionsError) throw questionsError;
 
-          // Format data to match quiz structure
+          // Format data to match quiz structure with image support
           const formattedQuiz = {
             title: test.title,
             subject: test.test_type || 'General',
             topic: test.description || '',
             timeMinutes: test.time_limit_minutes || 10,
+            hasImages: questions?.some(q => q.question_image_url) || false,
             questions: questions?.map((q, idx) => ({
               id: idx + 1,
               question: q.question_text,
-              options: [q.option_a, q.option_b, q.option_c, q.option_d],
-              correctAnswer: q.correct_answer ? q.correct_answer.charCodeAt(0) - 65 : 0, // Convert 'A' to 0, 'B' to 1, etc.
+              questionImageUrl: q.question_image_url || undefined,
+              graphImageUrl: q.question_image_url || undefined,
+              diagramType: detectDiagramType(q.question_text, q.question_image_url),
+              options: [
+                { text: q.option_a, imageUrl: extractOptionImage(q.option_a) },
+                { text: q.option_b, imageUrl: extractOptionImage(q.option_b) },
+                { text: q.option_c, imageUrl: extractOptionImage(q.option_c) },
+                { text: q.option_d, imageUrl: extractOptionImage(q.option_d) }
+              ],
+              correctAnswer: q.correct_answer ? q.correct_answer.charCodeAt(0) - 65 : 0,
               explanation: q.explanation || undefined,
-              image: q.question_image_url || undefined
+              hints: generateQuestionHints(q.question_text)
             })) || []
           };
 
@@ -703,6 +772,9 @@ const Quiz = () => {
     );
   }
 
+  // Check if question has images for interactive mode benefit
+  const hasImageQuestions = quizData.hasImages || quizData.questions.some((q: any) => q.questionImageUrl || q.graphImageUrl);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -714,20 +786,54 @@ const Quiz = () => {
             onBack={() => navigate('/quick-practice')}
           />
 
+          {/* Interactive Mode Toggle */}
+          {hasImageQuestions && (
+            <div className="flex items-center justify-end gap-3 mb-4 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <Label htmlFor="interactive-mode" className="text-sm font-medium">
+                  Interactive Mode
+                </Label>
+              </div>
+              <Switch
+                id="interactive-mode"
+                checked={interactiveMode}
+                onCheckedChange={setInteractiveMode}
+              />
+            </div>
+          )}
+
           <QuizProgress
             currentQuestion={currentQuestion}
             totalQuestions={quizData.questions.length}
           />
 
-          <QuizQuestion
-            question={currentQ}
-            selectedAnswer={selectedAnswers[currentQuestion]}
-            onAnswerSelect={handleAnswerSelect}
-            onNext={handleNextQuestion}
-            onPrevious={handlePreviousQuestion}
-            isFirstQuestion={currentQuestion === 0}
-            isLastQuestion={currentQuestion === quizData.questions.length - 1}
-          />
+          {interactiveMode && hasImageQuestions ? (
+            <InteractiveQuizQuestion
+              question={currentQ}
+              selectedAnswer={selectedAnswers[currentQuestion]}
+              onAnswerSelect={handleAnswerSelect}
+              onNext={handleNextQuestion}
+              onPrevious={handlePreviousQuestion}
+              isFirstQuestion={currentQuestion === 0}
+              isLastQuestion={currentQuestion === quizData.questions.length - 1}
+            />
+          ) : (
+            <QuizQuestion
+              question={{
+                ...currentQ,
+                options: currentQ.options?.map((opt: any) => 
+                  typeof opt === 'string' ? opt : opt.text
+                ) || []
+              }}
+              selectedAnswer={selectedAnswers[currentQuestion]}
+              onAnswerSelect={handleAnswerSelect}
+              onNext={handleNextQuestion}
+              onPrevious={handlePreviousQuestion}
+              isFirstQuestion={currentQuestion === 0}
+              isLastQuestion={currentQuestion === quizData.questions.length - 1}
+            />
+          )}
         </div>
       </main>
       <Footer />
