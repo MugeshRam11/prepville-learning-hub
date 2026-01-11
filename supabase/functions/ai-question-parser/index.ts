@@ -1,109 +1,292 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Enhanced MCQ extraction prompt based on IB eAssessment patterns
-const SYSTEM_PROMPT = `You are an IB Mathematics eAssessment question extraction AI. Extract ALL questions with exact accuracy.
+// ============================================
+// ENHANCED IB MATHEMATICS QUESTION PARSER v3
+// Features:
+// 1. Extracts ALL questions per page (1a, 1b, 2, 3a, 3b, etc.)
+// 2. Detects multiple diagrams per page with precise bounding boxes
+// 3. Extracts structured table data (headers, rows, empty cells)
+// 4. Pattern-based interactive type detection
+// 5. Saves parsing patterns for learning
+// ============================================
 
-QUESTION PATTERNS TO DETECT:
-1. DRAG & DROP: "Drag and drop", "Select the expressions", "Match", "Place in correct order", "Draggable expressions/items"
-2. VENN DIAGRAM: "Venn diagram", "Set A represents", "A ∩ B", "Complete the diagram", "Determine missing values"  
-3. COORDINATE GRAPH: "Plot", "Draw the graph", "Shade the region", "y = mx + c", coordinate axes visible
-4. PIE CHART: Percentage sectors, "pie chart shows", "distribution"
-5. TREE DIAGRAM: Branches showing probabilities, "probability tree", sequential outcomes
-6. TABLE FILL: Empty cells to complete, "Complete the table", data tables, frequency tables, two-way tables
-7. 3D GEOMETRY: "Volume", "Surface area", 3D shapes, isometric views
-8. MCQ/SELECTION: "Select", "Option A/B/C/D", "Choose", multiple options to pick from
-9. STEP BUILDER: "Show your working", "Step by step", multi-part calculation
-10. MATH INPUT: "Calculate", "Determine", "Find the value", "Solve", "Simplify"
+const SYSTEM_PROMPT = `You are an IB Mathematics eAssessment question parser. Extract ALL questions from each page with EXACT accuracy.
 
-TABLE DETECTION - CRITICAL:
-Detect ANY visible tables including:
-- Data tables with rows/columns
-- Frequency tables (value | frequency)
-- Two-way tables / contingency tables
-- Input-output function tables (x | f(x))
-- Probability distribution tables
-- Statistics tables (mean, median, mode)
-- Tally charts and frequency distributions
-- Tables with empty cells to fill
+CRITICAL RULES:
+1. Extract EVERY question and sub-question visible (1a, 1b, 1c, 2, 3a, 3b, 3c, 3d, 3e, etc.)
+2. Each sub-question (a, b, c, i, ii) is a SEPARATE entry in the array
+3. Return question_number EXACTLY as shown: "1a", "1b", "2", "3a", "3b", etc.
+4. Set parent_question for sub-questions: "1" for "1a", "3" for "3a", etc.
 
-For EACH detected table:
+QUESTION NUMBER PATTERNS:
+- Main questions: "1", "2", "3", "Question 1", "Q1"
+- Sub-questions: "1a", "1b", "1c", "1(a)", "1(i)", "(a)", "(b)", "(i)", "(ii)"
+- Nested: "1a(i)", "1a(ii)", "2b(i)"
+- Extract the label shown: "Question 1a" → "1a", "(b)" after "2" → "2b"
+
+DIAGRAM DETECTION - CRITICAL:
+Detect ALL visual elements on each page:
+1. VENN DIAGRAMS: Overlapping circles, sets A/B, intersections A∩B, unions A∪B
+   - diagram_type: "venn"
+   - Look for: "Set A represents", "A ∩ B", "Complete the Venn diagram"
+   
+2. COORDINATE GRAPHS: x-y axes, grid lines, plotted functions, shaded regions
+   - diagram_type: "coordinate_graph"
+   - Look for: f(x), y=mx+c, "Plot", "Draw", "Shade the region"
+   
+3. TABLES: Any grid with rows/columns, data tables, frequency tables
+   - diagram_type: "table"
+   - has_table: true
+   - Extract table_data as 2D array
+   
+4. TREE DIAGRAMS: Branching probability structures
+   - diagram_type: "tree"
+   
+5. PIE CHARTS: Circular segments with percentages
+   - diagram_type: "pie_chart"
+   
+6. GEOMETRIC FIGURES: Triangles, circles, 3D shapes, angles
+   - diagram_type: "geometric"
+   
+7. BOX PLOTS: Box-and-whisker diagrams, quartiles
+   - diagram_type: "box_plot"
+   
+8. BAR/HISTOGRAM: Vertical/horizontal bars, frequency distributions
+   - diagram_type: "bar_chart"
+
+For EACH diagram, return bounding_box as percentages (0-100):
+{
+  "x_min": 10,  // Left edge percentage
+  "y_min": 20,  // Top edge percentage  
+  "x_max": 90,  // Right edge percentage
+  "y_max": 80   // Bottom edge percentage
+}
+
+TABLE EXTRACTION - CRITICAL:
+For ANY table visible on the page:
 1. Set has_table: true
-2. Extract table_data as 2D array: [["header1","header2"],["row1col1","row1col2"],...]
-3. Mark empty cells as "" (empty string)
-4. Identify table_type: "frequency" | "two_way" | "function" | "probability" | "statistics" | "data"
-5. Return table_bounding_box: {x_min, y_min, x_max, y_max} as percentages
+2. Extract table_data as 2D array: [["Header1","Header2"],["Row1Col1","Row1Col2"],...]
+3. Mark empty cells requiring student input as "" or "[BLANK]"
+4. Identify table_type: "frequency" | "two_way" | "function" | "data" | "probability"
+5. Include table_bounding_box with x_min, y_min, x_max, y_max
 
-EXTRACTION RULES:
-1. Question Number: Extract EXACTLY as shown (e.g., "1a", "2(i)", "3b")
-2. Question Text: Copy VERBATIM - no paraphrasing
-3. Visual Detection: 
-   - graph_found=true if: coordinate grid, Venn, tree diagram, pie chart, 3D shape, geometric figure
-   - Return bounding_box as {x_min, y_min, x_max, y_max} percentages (0-100)
-4. Draggable Items: Extract ALL draggable expressions/options shown
-5. MCQ Options: Extract A, B, C, D options exactly. For IMAGE-BASED options:
-   - Set option_images: {"A": true, "B": true, ...} if options are visual figures
-   - Include option_descriptions: {"A": "Triangle with 28cm side", "B": "Rectangle rotated"} 
-6. Marks: From [2], (2 marks), (2), or "(X marks)" format
+Example table extraction:
+A frequency table showing: | Grade | 1 | 2 | 3 | 4 |
+                          | Count | 3 | 5 | 8 | 4 |
+Should extract as: [["Grade","1","2","3","4"],["Count","3","5","8","4"]]
 
 INTERACTIVE TYPE MAPPING:
-- graph_plot: coordinate grids, plot points, draw lines, shade inequalities
-- drag_drop: match expressions, arrange items, select correct options, ratios
-- image_drop: Venn diagrams, tree diagrams, label geometric figures
-- arrange_order: step-by-step solutions, proof ordering
-- multiple_choice: Option A/B/C/D selection, "Select which"
-- smart_math: calculate, solve, evaluate, simplify, determine
-- table_input: complete table, fill missing values, frequency table, two-way table
-- text_equation: explain, describe, comment, justify
+Based on question content, set interactive_type to:
+- "drag_drop": Match expressions, arrange items, "Drag and drop", "Place in correct order"
+- "image_drop": Venn diagrams, tree diagrams, label diagrams, "Complete the Venn diagram"
+- "graph_plot": Plot points, draw graphs, shade regions, "Plot the function"
+- "table_input": Complete tables, fill missing values, frequency tables
+- "smart_math": Calculate, solve, evaluate, simplify, determine, find the value
+- "multiple_choice": Select option A/B/C/D, "Which of the following"
+- "arrange_order": Step-by-step solutions, proof ordering
+- "text_equation": Explain, describe, comment, justify, short answer
 
-RETURN FORMAT - Valid JSON only:
+DRAGGABLE ITEMS EXTRACTION:
+When "Drag and drop" or "Draggable" appears:
+- Extract ALL draggable items/expressions listed
+- Return as draggable_items array: ["3x+4", "2x+1+x+3", "(4x+2)-(x-2)"]
+
+MCQ OPTIONS EXTRACTION:
+When options A/B/C/D are present:
+- Extract options: {"A": "text", "B": "text", "C": "text", "D": "text"}
+- If options are images: option_images: {"A": true, "B": true, ...}
+- Include descriptions: option_descriptions: {"A": "Triangle with 28cm", ...}
+
+MARKS EXTRACTION:
+- Look for: "[2]", "(2 marks)", "(2)", "2 marks"
+- Default to 1 if not specified
+
+RETURN FORMAT (JSON only):
 {
   "questions": [
     {
       "question_number": "1a",
-      "question_text": "exact question text including any instructions",
+      "parent_question": "1",
+      "question_text": "Exact question text verbatim",
       "marks": 2,
-      "command_term": "Calculate",
-      "options": {"A": "option text", "B": "", "C": "", "D": ""} or null,
-      "option_images": {"A": true, "B": true, "C": true, "D": false} or null,
-      "option_descriptions": {"A": "Figure showing...", "B": "Diagram with..."} or null,
-      "option_bounding_boxes": {"A": {"x_min": 0, "y_min": 0, "x_max": 50, "y_max": 50}} or null,
-      "draggable_items": ["item1", "item2"] or null,
+      "command_term": "Calculate|Determine|Find|Explain|Describe|Show|State|Sketch",
+      
       "graph_found": true,
+      "diagram_type": "venn|coordinate_graph|tree|pie_chart|geometric|table|box_plot",
+      "diagram_description": "Detailed description of what the diagram shows",
       "graph_bounding_box": {"x_min": 10, "y_min": 20, "x_max": 90, "y_max": 80},
-      "diagram_description": "Venn diagram with sets A and B, showing intersection",
-      "diagram_type": "venn|coordinate_graph|tree|pie_chart|3d_shape|table|geometric",
+      
       "has_table": true,
-      "table_data": [["x","f(x)"],["1","2"],["","5"]],
-      "table_type": "function",
-      "table_bounding_box": {"x_min": 20, "y_min": 30, "x_max": 80, "y_max": 60},
-      "interactive_type": "table_input",
+      "table_data": [["Header1","Header2"],["Val1","Val2"]],
+      "table_type": "frequency|two_way|function|data|probability",
+      "table_bounding_box": {"x_min": 15, "y_min": 30, "x_max": 85, "y_max": 60},
+      
+      "options": {"A": "option A text", "B": "option B text"} or null,
+      "option_images": {"A": true, "B": false} or null,
+      "option_descriptions": {"A": "Description of image A"} or null,
+      "draggable_items": ["item1", "item2", "item3"] or null,
+      
+      "interactive_type": "smart_math",
       "parsing_verified": true
     }
-  ]
+  ],
+  "detected_patterns": {
+    "has_venn_diagrams": true,
+    "has_coordinate_graphs": false,
+    "has_tables": true,
+    "has_drag_drop": true,
+    "total_diagrams": 3,
+    "question_numbering_style": "1a,1b,2,3a"
+  }
 }
 
-STRICT RULES:
-- Each sub-question (a,b,c,i,ii) = SEPARATE entry
-- Include parent_question reference (e.g., "1" for "1a")
-- marks from visible mark allocation
-- Extract ALL visible draggable expressions
-- ALWAYS detect and extract tables with their data
-- Ignore headers, footers, page numbers, timers
-- If text is unclear: parsing_verified=false
-- Return ONLY valid JSON`;
+STRICT VALIDATION:
+- Return ONLY valid JSON
+- Each visible question/sub-question = ONE entry
+- If text is unclear: parsing_verified = false
+- Never invent questions not visible on page
+- Ignore headers, footers, page numbers, timer elements`;
 
-// Use gemini-2.5-flash for best Vision quality, pro as fallback for complex diagrams
+// Models configuration
 const PRIMARY_MODEL = 'google/gemini-2.5-flash';
 const FALLBACK_MODEL = 'google/gemini-2.5-pro';
-const PAGE_TIMEOUT = 30000;  // 30 seconds for high-res images
-const MAX_PAGES_PER_REQUEST = 2;  // Fewer pages but better quality
+const PAGE_TIMEOUT = 45000;  // 45 seconds for complex pages
+const MAX_PAGES_PER_REQUEST = 3;  // Process 3 pages per batch
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+
+// IB pattern detection for automatic type mapping
+const INTERACTIVE_PATTERNS = {
+  drag_drop: [
+    /drag\s*(and|&)?\s*drop/i,
+    /draggable/i,
+    /match\s*(the|each)?/i,
+    /place\s*(in|the)\s*(correct|right)/i,
+    /arrange\s*(in|the)\s*order/i,
+    /select\s*the\s*expressions?/i,
+    /identify\s*(the)?\s*(two|three|four)\s*expressions?/i,
+  ],
+  image_drop: [
+    /complete\s*(the)?\s*venn/i,
+    /venn\s*diagram/i,
+    /label\s*(the)?\s*(diagram|figure)/i,
+    /tree\s*diagram/i,
+    /complete\s*(the)?\s*(diagram|figure)/i,
+    /insert\s*(your)?\s*answers?\s*(in|into)\s*(the)?\s*diagram/i,
+    /determine\s*(the)?\s*missing\s*values?\s*(and)?\s*complete/i,
+  ],
+  graph_plot: [
+    /plot\s*(the)?\s*(point|graph|function)/i,
+    /draw\s*(the)?\s*(graph|line|curve)/i,
+    /shade\s*(the)?\s*(region|area)/i,
+    /sketch\s*(the)?\s*(graph|function)/i,
+    /on\s*(the)?\s*(graph|axes|grid)/i,
+    /coordinate\s*(plane|grid|system)/i,
+    /y\s*=\s*[\w\d\+\-\*\/\^]+/i,
+    /f\s*\(\s*x\s*\)/i,
+  ],
+  table_input: [
+    /complete\s*(the)?\s*table/i,
+    /fill\s*(in)?\s*(the)?\s*table/i,
+    /missing\s*values?\s*(in|from)?\s*(the)?\s*table/i,
+    /frequency\s*table/i,
+    /two-?way\s*table/i,
+    /copy\s*(and)?\s*complete/i,
+    /input\s*output\s*table/i,
+  ],
+  multiple_choice: [
+    /which\s*(of\s*(the|these))?\s*(following)?/i,
+    /select\s*(the)?\s*(correct|best|right)/i,
+    /choose\s*(the)?/i,
+    /option\s*[A-D]/i,
+  ],
+  smart_math: [
+    /calculate/i,
+    /determine/i,
+    /find\s*(the)?\s*(value|length|area|volume)/i,
+    /solve/i,
+    /evaluate/i,
+    /simplify/i,
+    /show\s*(that|working)/i,
+    /work\s*out/i,
+    /compute/i,
+  ],
+  arrange_order: [
+    /step\s*by\s*step/i,
+    /show\s*(your)?\s*working/i,
+    /proof/i,
+    /in\s*order/i,
+    /sequence\s*(of)?\s*steps/i,
+  ],
+  text_equation: [
+    /explain/i,
+    /describe/i,
+    /comment/i,
+    /justify/i,
+    /state/i,
+    /write\s*down/i,
+    /interpret/i,
+  ]
+};
+
+// Detect interactive type from question text
+function detectInteractiveType(text: string, hasTable: boolean, diagramType: string | null): string {
+  if (!text) return 'text_equation';
+  
+  const lowerText = text.toLowerCase();
+  
+  // Check for explicit table requirements
+  if (hasTable || /complete\s*(the)?\s*table/i.test(text)) {
+    return 'table_input';
+  }
+  
+  // Check for Venn/tree diagrams
+  if (diagramType === 'venn' || diagramType === 'tree') {
+    return 'image_drop';
+  }
+  
+  // Check for coordinate graphs
+  if (diagramType === 'coordinate_graph' && /plot|draw|shade|sketch/i.test(text)) {
+    return 'graph_plot';
+  }
+  
+  // Check all patterns
+  for (const [type, patterns] of Object.entries(INTERACTIVE_PATTERNS)) {
+    for (const pattern of patterns) {
+      if (pattern.test(text)) {
+        return type;
+      }
+    }
+  }
+  
+  return 'text_equation';
+}
+
+// Extract command term from question text
+function extractCommandTerm(text: string): string | null {
+  const commandTerms = [
+    'Calculate', 'Determine', 'Find', 'Solve', 'Evaluate', 'Simplify',
+    'Show', 'Prove', 'Demonstrate', 'Explain', 'Describe', 'Comment',
+    'Justify', 'State', 'Write', 'Sketch', 'Draw', 'Plot', 'Compare',
+    'Contrast', 'Identify', 'Classify', 'Predict', 'Suggest', 'Outline',
+    'Analyse', 'Analyze', 'Discuss', 'Examine', 'Interpret', 'Apply'
+  ];
+  
+  for (const term of commandTerms) {
+    const regex = new RegExp(`\\b${term}\\b`, 'i');
+    if (regex.test(text)) {
+      return term;
+    }
+  }
+  
+  return null;
+}
 
 async function analyzePageWithVision(
   apiKey: string,
@@ -131,24 +314,26 @@ async function analyzePageWithVision(
             content: [
               { 
                 type: 'text', 
-                text: `EXAM PAGE ${pageIndex + 1} - FULL IMAGE ANALYSIS:
-                
-1. Read ALL visible text exactly as shown
-2. For each question: extract number, text, marks, command term
-3. Detect ALL visuals: graphs, Venn diagrams, tree diagrams, tables, geometric figures
-4. For each visual: return bounding_box as {x_min, y_min, x_max, y_max} percentages
-5. Extract MCQ options A/B/C/D if present
-6. Identify interactive_type for each question
-7. Set parsing_verified=false if ANY text is unclear
+                text: `EXAM PAGE ${pageIndex + 1} - EXTRACT ALL QUESTIONS:
 
-Return valid JSON only.` 
+INSTRUCTIONS:
+1. Read EVERY question number visible: 1a, 1b, 1c, 2, 3a, 3b, 3c, 3d, 3e...
+2. Each sub-question (a, b, c) = SEPARATE JSON entry
+3. Detect ALL diagrams: Venn, graphs, tables, geometric figures
+4. For each diagram: provide precise bounding_box percentages
+5. Extract table data as 2D arrays
+6. Identify interactive type for each question
+
+CRITICAL: Do NOT merge sub-questions. "1a", "1b", "1c" = 3 separate entries.
+
+Return valid JSON only with the "questions" array.` 
               },
               { type: 'image_url', image_url: { url: imageContent, detail: 'high' } }
             ]
           }
         ],
-        max_tokens: 4000,
-        temperature: 0.1  // Low temperature for accurate extraction
+        max_tokens: 6000,
+        temperature: 0.1
       }),
       signal: controller.signal
     });
@@ -156,6 +341,8 @@ Return valid JSON only.`
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error ${response.status}:`, errorText);
       throw new Error(`API: ${response.status}`);
     }
 
@@ -166,7 +353,7 @@ Return valid JSON only.`
     
     // Try fallback model on timeout or error
     if (!useFallback && (error.name === 'AbortError' || error.message.includes('timeout'))) {
-      console.log(`Page ${pageIndex + 1}: Retrying with fallback model`);
+      console.log(`Page ${pageIndex + 1}: Retrying with fallback model ${FALLBACK_MODEL}`);
       return analyzePageWithVision(apiKey, imageContent, pageIndex, true);
     }
     
@@ -174,14 +361,21 @@ Return valid JSON only.`
   }
 }
 
-function parseAIResponse(content: string): any[] {
+function parseAIResponse(content: string): { questions: any[], patterns: any } {
   try {
     const parsed = JSON.parse(content);
     if (parsed.questions && Array.isArray(parsed.questions)) {
-      return parsed.questions;
+      return { 
+        questions: parsed.questions, 
+        patterns: parsed.detected_patterns || {} 
+      };
     }
-    if (Array.isArray(parsed)) return parsed;
-    if (parsed.question_number) return [parsed];
+    if (Array.isArray(parsed)) {
+      return { questions: parsed, patterns: {} };
+    }
+    if (parsed.question_number) {
+      return { questions: [parsed], patterns: {} };
+    }
   } catch {
     // Try extracting JSON from markdown code blocks
     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/\{[\s\S]*\}/);
@@ -189,17 +383,24 @@ function parseAIResponse(content: string): any[] {
       try {
         const json = jsonMatch[1] || jsonMatch[0];
         const parsed = JSON.parse(json.trim());
-        if (parsed.questions) return parsed.questions;
-        if (Array.isArray(parsed)) return parsed;
-        return [parsed];
+        if (parsed.questions) {
+          return { 
+            questions: parsed.questions, 
+            patterns: parsed.detected_patterns || {} 
+          };
+        }
+        if (Array.isArray(parsed)) {
+          return { questions: parsed, patterns: {} };
+        }
+        return { questions: [parsed], patterns: {} };
       } catch {}
     }
   }
-  return [];
+  return { questions: [], patterns: {} };
 }
 
-// Map detected type to AnswerBlockType
-function mapInteractiveType(detected: string | undefined, questionText?: string, hasTable?: boolean): string {
+// Map detected type to valid AnswerBlockType
+function mapToAnswerBlockType(detected: string | undefined, questionText?: string, hasTable?: boolean, diagramType?: string): string {
   const typeMap: Record<string, string> = {
     'graph': 'graph_plot',
     'graph_plot': 'graph_plot',
@@ -233,20 +434,35 @@ function mapInteractiveType(detected: string | undefined, questionText?: string,
     'mcq': 'multiple_choice',
     'multiple_choice': 'multiple_choice',
     'select': 'multiple_choice',
-    // Table types
     'table': 'table_input',
     'table_input': 'table_input',
     'table_fill': 'table_input',
     'frequency': 'table_input',
     'two_way': 'table_input',
-    'complete_table': 'table_input'
+    'complete_table': 'table_input',
+    'text': 'text_equation',
+    'text_equation': 'text_equation',
+    'explain': 'text_equation',
+    'describe': 'text_equation'
   };
   
-  // Check for explicit table flag first
+  // Priority 1: Explicit table flag
   if (hasTable) {
     return 'table_input';
   }
   
+  // Priority 2: Diagram type mapping
+  if (diagramType === 'venn' || diagramType === 'tree') {
+    return 'image_drop';
+  }
+  if (diagramType === 'coordinate_graph') {
+    // Check if it requires interaction
+    if (questionText && /plot|draw|shade|sketch/i.test(questionText)) {
+      return 'graph_plot';
+    }
+  }
+  
+  // Priority 3: Detected type from AI
   if (detected) {
     const lower = detected.toLowerCase();
     for (const [key, value] of Object.entries(typeMap)) {
@@ -254,22 +470,9 @@ function mapInteractiveType(detected: string | undefined, questionText?: string,
     }
   }
   
-  // Auto-detect from question text
+  // Priority 4: Pattern detection from question text
   if (questionText) {
-    const lower = questionText.toLowerCase();
-    // Table detection patterns - check first
-    if (lower.includes('complete the table') || lower.includes('fill in the table') || 
-        lower.includes('complete this table') || lower.includes('frequency table') ||
-        lower.includes('two-way table') || lower.includes('missing values in the table') ||
-        lower.includes('copy and complete')) {
-      return 'table_input';
-    }
-    if (lower.includes('plot') || lower.includes('draw the graph') || lower.includes('shade')) return 'graph_plot';
-    if (lower.includes('match') || lower.includes('drag') || lower.includes('arrange')) return 'drag_drop';
-    if (lower.includes('venn') || lower.includes('tree diagram') || lower.includes('label')) return 'image_drop';
-    if (lower.includes('calculate') || lower.includes('solve') || lower.includes('find the value')) return 'smart_math';
-    if (lower.includes('which of') || lower.includes('select') || lower.includes('choose')) return 'multiple_choice';
-    if (lower.includes('step') || lower.includes('show your working')) return 'arrange_order';
+    return detectInteractiveType(questionText, false, diagramType || null);
   }
   
   return 'text_equation';
@@ -278,26 +481,55 @@ function mapInteractiveType(detected: string | undefined, questionText?: string,
 function flattenResults(questions: any[], pageIndex: number, imageContent: string): any[] {
   return questions.map(q => {
     const hasTable = q.has_table || Boolean(q.table_data);
-    const interactiveType = mapInteractiveType(q.interactive_type || q.answer_type, q.question_text, hasTable);
+    const diagramType = q.diagram_type || null;
+    const interactiveType = mapToAnswerBlockType(
+      q.interactive_type || q.answer_type, 
+      q.question_text, 
+      hasTable,
+      diagramType
+    );
+    const commandTerm = q.command_term || extractCommandTerm(q.question_text || '');
+    
+    // Normalize question number
+    let questionNumber = q.question_number || q.number || 'unknown';
+    if (typeof questionNumber === 'string') {
+      // Remove "Question" prefix: "Question 1a" → "1a"
+      questionNumber = questionNumber.replace(/^question\s*/i, '').trim();
+    }
+    
+    // Extract parent question number
+    let parentQuestion = q.parent_question || null;
+    if (!parentQuestion && typeof questionNumber === 'string') {
+      const match = questionNumber.match(/^(\d+)/);
+      if (match && questionNumber.length > match[1].length) {
+        parentQuestion = match[1];
+      }
+    }
     
     return {
-      question_number: q.question_number || q.number || 'unknown',
-      parent_question: q.parent_question || null,
+      question_number: questionNumber,
+      parent_question: parentQuestion,
       question_text: q.question_text || q.text || '',
       marks: q.marks || 1,
-      command_term: q.command_term || null,
+      command_term: commandTerm,
       has_sub_questions: false,
       
-      // MCQ options if present
+      // MCQ options
       options: q.options || null,
+      option_images: q.option_images || null,
+      option_descriptions: q.option_descriptions || null,
+      option_bounding_boxes: q.option_bounding_boxes || null,
       
-      // Graph/diagram detection
-      graph_found: q.graph_found || q.has_diagram || Boolean(q.diagram_description || q.graph_bounding_box),
+      // Draggable items
+      draggable_items: q.draggable_items || null,
+      
+      // Diagram detection
+      graph_found: q.graph_found || Boolean(q.diagram_type || q.graph_bounding_box || q.diagram_description),
       graph_bounding_box: q.graph_bounding_box || null,
       graph_description: q.diagram_description || q.graph_description || null,
-      diagram_type: q.diagram_type || null,
+      diagram_type: diagramType,
       
-      // Table detection - enhanced
+      // Table detection
       has_table: hasTable,
       table_data: q.table_data || null,
       table_type: q.table_type || null,
@@ -315,6 +547,54 @@ function flattenResults(questions: any[], pageIndex: number, imageContent: strin
       source_image: imageContent
     };
   });
+}
+
+// Save parsing patterns to admin_settings for learning
+async function saveParsingPatterns(patterns: any, questions: any[]) {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) return;
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Compile statistics
+    const stats = {
+      total_questions: questions.length,
+      interactive_types: questions.reduce((acc: any, q) => {
+        const type = q.interactive_type || 'unknown';
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {}),
+      diagram_types: questions.reduce((acc: any, q) => {
+        if (q.diagram_type) {
+          acc[q.diagram_type] = (acc[q.diagram_type] || 0) + 1;
+        }
+        return acc;
+      }, {}),
+      tables_found: questions.filter(q => q.has_table).length,
+      diagrams_found: questions.filter(q => q.graph_found).length,
+      verified_count: questions.filter(q => q.parsing_verified).length,
+      ...patterns,
+      last_updated: new Date().toISOString()
+    };
+    
+    // Upsert to admin_settings
+    await supabase.from('admin_settings').upsert({
+      setting_key: 'ai_parser_patterns',
+      setting_type: 'json',
+      setting_value: stats,
+      description: 'Learned patterns from AI question parser',
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'setting_key'
+    });
+    
+    console.log('Saved parsing patterns:', JSON.stringify(stats).substring(0, 200));
+  } catch (e) {
+    console.error('Failed to save patterns:', e);
+  }
 }
 
 serve(async (req) => {
@@ -336,13 +616,15 @@ serve(async (req) => {
       const endPage = Math.min(startPage + MAX_PAGES_PER_REQUEST, totalPages);
       const pagesToProcess = images.slice(startPage, endPage);
       
-      console.log(`Processing ${startPage + 1}-${endPage} of ${totalPages}`);
+      console.log(`📄 Processing pages ${startPage + 1}-${endPage} of ${totalPages}`);
       
       const allQuestions: any[] = [];
+      const allPatterns: any = {};
       let verifiedCount = 0;
       let graphCount = 0;
+      let tableCount = 0;
       
-      // Process pages sequentially to avoid resource limits
+      // Process pages sequentially to avoid rate limits
       for (let i = 0; i < pagesToProcess.length; i++) {
         const absolutePageIndex = startPage + i;
         const pageImage = pagesToProcess[i];
@@ -352,6 +634,8 @@ serve(async (req) => {
           : `data:image/jpeg;base64,${pageImage}`;
 
         try {
+          console.log(`🔍 Analyzing page ${absolutePageIndex + 1}...`);
+          
           const data = await analyzePageWithVision(
             LOVABLE_API_KEY,
             imageContent,
@@ -359,26 +643,30 @@ serve(async (req) => {
           );
           
           const aiContent = data.choices?.[0]?.message?.content || '{}';
-          const questions = parseAIResponse(aiContent);
+          const { questions, patterns } = parseAIResponse(aiContent);
           
-          console.log(`Page ${absolutePageIndex + 1}: ${questions.length} questions`);
+          console.log(`✅ Page ${absolutePageIndex + 1}: ${questions.length} questions extracted`);
+          
+          // Merge patterns
+          Object.assign(allPatterns, patterns);
           
           const pageResults = flattenResults(questions, absolutePageIndex, imageContent);
           
-          // Count verified and graph questions
+          // Count statistics
           pageResults.forEach(q => {
             if (q.parsing_verified) verifiedCount++;
             if (q.graph_found) graphCount++;
+            if (q.has_table) tableCount++;
           });
           
           allQuestions.push(...pageResults);
           
         } catch (e: any) {
-          console.error(`Page ${absolutePageIndex + 1}:`, e.message);
+          console.error(`❌ Page ${absolutePageIndex + 1} error:`, e.message);
           
           allQuestions.push({
             question_number: `page_${absolutePageIndex + 1}_error`,
-            question_text: `Failed to parse page ${absolutePageIndex + 1}`,
+            question_text: `Failed to parse page ${absolutePageIndex + 1}: ${e.message}`,
             graph_found: false,
             page: absolutePageIndex + 1,
             error: e.message,
@@ -391,7 +679,17 @@ serve(async (req) => {
 
       const hasMorePages = endPage < totalPages;
       
-      console.log(`Done: ${allQuestions.length} entries, ${verifiedCount} verified, ${graphCount} with graphs`);
+      // Save patterns for learning (async, non-blocking)
+      saveParsingPatterns(allPatterns, allQuestions).catch(console.error);
+      
+      // Log summary
+      const interactiveTypes = [...new Set(allQuestions.map(q => q.interactive_type))];
+      const diagramTypes = [...new Set(allQuestions.filter(q => q.diagram_type).map(q => q.diagram_type))];
+      
+      console.log(`📊 Summary: ${allQuestions.length} questions, ${verifiedCount} verified`);
+      console.log(`   Diagrams: ${graphCount} | Tables: ${tableCount}`);
+      console.log(`   Types: ${interactiveTypes.join(', ')}`);
+      console.log(`   Diagram types: ${diagramTypes.join(', ') || 'none'}`);
 
       return new Response(
         JSON.stringify({
@@ -400,6 +698,9 @@ serve(async (req) => {
           parsed_count: allQuestions.length,
           verified_count: verifiedCount,
           graph_count: graphCount,
+          table_count: tableCount,
+          interactive_types: interactiveTypes,
+          diagram_types: diagramTypes,
           pagination: {
             start_page: startPage,
             end_page: endPage,
@@ -412,10 +713,10 @@ serve(async (req) => {
       );
     }
 
-    // Text-based parsing
+    // Text-based parsing fallback
     if (!content || content.trim().length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: 'No content' }),
+        JSON.stringify({ success: false, error: 'No content provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -433,9 +734,9 @@ serve(async (req) => {
         model: PRIMARY_MODEL,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `Extract ALL questions with exact text: ${content.substring(0, 5000)}` }
+          { role: 'user', content: `Extract ALL questions from this text. Each sub-question (a,b,c) = separate entry:\n\n${content.substring(0, 8000)}` }
         ],
-        max_tokens: 2500
+        max_tokens: 4000
       }),
       signal: controller.signal
     });
@@ -448,8 +749,11 @@ serve(async (req) => {
 
     const data = await response.json();
     const aiContent = data.choices?.[0]?.message?.content || '';
-    const questions = parseAIResponse(aiContent);
+    const { questions, patterns } = parseAIResponse(aiContent);
     const allQuestions = flattenResults(questions, 0, '');
+    
+    // Save patterns
+    saveParsingPatterns(patterns, allQuestions).catch(console.error);
 
     return new Response(
       JSON.stringify({
@@ -457,13 +761,24 @@ serve(async (req) => {
         all_pages: allQuestions,
         parsed_count: allQuestions.length,
         verified_count: allQuestions.filter(q => q.parsing_verified).length,
-        graph_count: allQuestions.filter(q => q.graph_found).length
+        graph_count: allQuestions.filter(q => q.graph_found).length,
+        table_count: allQuestions.filter(q => q.has_table).length,
+        interactive_types: [...new Set(allQuestions.map(q => q.interactive_type))]
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('Error:', error.message);
+    console.error('Parser error:', error.message);
+    
+    // Handle rate limits
+    if (error.message?.includes('429') || error.message?.includes('rate')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Rate limit exceeded. Please wait and try again.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
