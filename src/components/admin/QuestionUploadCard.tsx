@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Loader2, CheckCircle, XCircle, Brain, FileSearch, ListChecks, Eye } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle, XCircle, Brain, FileSearch, ListChecks, Eye, Crop } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import UploadProgressTracker from './UploadProgressTracker';
 import AIDocumentProcessingModal, { ProcessingStep, ExtractedImage } from './AIDocumentProcessingModal';
 import QuestionPreviewEditor from './QuestionPreviewEditor';
+import { useAutoDiagramCropper } from '@/hooks/useAutoDiagramCropper';
 
 // Configure PDF.js worker - use the correct path for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -499,27 +500,39 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         
       case 'drag_drop':
       case 'drag_drop_match':
-        // Extract draggable items from question
+        // Extract draggable items from question with puzzle colors
         const items: any[] = [];
         const targets: any[] = [];
+        const puzzleColors = ['red', 'blue', 'green', 'orange', 'purple'] as const;
         
         if (q.draggable_items && Array.isArray(q.draggable_items)) {
           q.draggable_items.forEach((item: string, i: number) => {
-            items.push({ id: `item-${i}`, content: item, isLatex: item.includes('$') });
+            items.push({ 
+              id: `item-${i}`, 
+              content: item, 
+              isLatex: item.includes('$') || item.includes('\\'),
+              color: puzzleColors[i % puzzleColors.length]
+            });
           });
         }
         
-        // Default items if none found
+        // Default items if none found - ratio matching example
         if (items.length === 0) {
           items.push(
-            { id: 'item-1', content: 'Expression A', isLatex: false },
-            { id: 'item-2', content: 'Expression B', isLatex: false }
+            { id: 'item-1', content: '6 : 4', isLatex: false, color: 'red' },
+            { id: 'item-2', content: '24 : 36', isLatex: false, color: 'blue' },
+            { id: 'item-3', content: '1 : 3', isLatex: false, color: 'green' }
           );
         }
         
-        // Create matching targets
+        // Create matching puzzle slots
         items.forEach((_, i) => {
-          targets.push({ id: `target-${i}`, label: `Drop Zone ${i + 1}`, correctItemId: `item-${i}` });
+          targets.push({ 
+            id: `slot-${i}`, 
+            label: `Puzzle ${i + 1}`, 
+            correctItemId: `item-${i}`,
+            shape: 'notch'
+          });
         });
         
         config.dragDropConfig = { items, targets };

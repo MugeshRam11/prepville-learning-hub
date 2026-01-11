@@ -29,7 +29,7 @@ import {
 
 // Import interactive components
 import InteractiveGraphCanvas from '@/components/mock-exam/InteractiveGraphCanvas';
-import DragDropMatcher from '@/components/mock-exam/DragDropMatcher';
+import PuzzleDragDrop from '@/components/mock-exam/PuzzleDragDrop';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
@@ -271,26 +271,28 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
 
       case 'drag_drop': {
         const dragDropItems = config?.dragDropConfig?.items || [
-          { id: 'item-1', content: 'Item A', isLatex: false },
-          { id: 'item-2', content: 'Item B', isLatex: false },
-          { id: 'item-3', content: 'Item C', isLatex: false }
+          { id: 'item-1', content: '6 : 4', isLatex: false, color: 'red' as const },
+          { id: 'item-2', content: '24 : 36', isLatex: false, color: 'blue' as const },
+          { id: 'item-3', content: '1 : 3', isLatex: false, color: 'green' as const }
         ];
-        const rawTargets = config?.dragDropConfig?.targets || [
-          { id: 'target-1', label: 'Drop Zone 1', correctItemId: 'item-1' },
-          { id: 'target-2', label: 'Drop Zone 2', correctItemId: 'item-2' },
-          { id: 'target-3', label: 'Drop Zone 3', correctItemId: 'item-3' }
+        const rawSlots = config?.dragDropConfig?.targets || [
+          { id: 'slot-1', label: 'Puzzle 1', correctItemId: 'item-1' },
+          { id: 'slot-2', label: 'Puzzle 2', correctItemId: 'item-2' },
+          { id: 'slot-3', label: 'Puzzle 3', correctItemId: 'item-3' }
         ];
-        const dragDropTargets = rawTargets.map(t => ({ 
+        const puzzleSlots = rawSlots.map(t => ({ 
           ...t, 
-          correctItemId: t.correctItemId || '' 
+          correctItemId: t.correctItemId || '',
+          shape: 'notch' as const
         }));
         
         return (
-          <DragDropMatcher
+          <PuzzleDragDrop
             items={dragDropItems}
-            targets={dragDropTargets}
+            slots={puzzleSlots}
             onMatchesChange={(matches) => onChange(matches)}
-            showFeedback={false}
+            showFeedback={showValidation}
+            puzzleTitle={questionText || "Match the equivalent values"}
           />
         );
       }
