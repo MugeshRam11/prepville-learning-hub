@@ -14,6 +14,7 @@ import BoundingBoxOverlay from './BoundingBoxOverlay';
 import PageRegionsOverlay from './PageRegionsOverlay';
 import TableBuilder, { TableConfig } from './TableBuilder';
 import { useDiagramCropping } from '@/hooks/useDiagramCropping';
+import { useAutoDiagramCropper } from '@/hooks/useAutoDiagramCropper';
 import { toast } from 'sonner';
 
 interface SubQuestion {
@@ -120,8 +121,9 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
   // Table builder state
   const [tableBuilderIndex, setTableBuilderIndex] = useState<number | null>(null);
   
-  // Diagram cropping hook
+  // Diagram cropping hooks
   const { isCropping, isGenerating, uploadCroppedImage, cropFromSourceImage, generateMissingDiagram } = useDiagramCropping();
+  const { autoCropAllDiagrams, extractDiagramsFromParsedData, progress: autoCropProgress } = useAutoDiagramCropper();
 
   // Sync state when props change
   React.useEffect(() => {
