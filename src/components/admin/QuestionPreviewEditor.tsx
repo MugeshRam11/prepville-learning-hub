@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,13 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree, Table, FileImage, ListChecks, Settings2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Check, X, Edit2, Trash2, Save, ChevronDown, ChevronUp, AlertCircle, Image as ImageIcon, BarChart3, Crop, Wand2, Eye, Images, Loader2, FolderTree, Table, FileImage, ListChecks, Settings2, RefreshCw, Sparkles, ImagePlus, AlertTriangle, CheckCircle2, ScrollText } from 'lucide-react';
 import BoundingBoxOverlay from './BoundingBoxOverlay';
 import PageRegionsOverlay from './PageRegionsOverlay';
 import TableBuilder, { TableConfig } from './TableBuilder';
 import { useDiagramCropping } from '@/hooks/useDiagramCropping';
 import { useAutoDiagramCropper } from '@/hooks/useAutoDiagramCropper';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SubQuestion {
   label: string;
@@ -30,7 +32,7 @@ interface ParsedQuestion {
   question_image_url?: string | null;
   marks: number;
   has_sub_questions: boolean;
-  parent_question?: string | null; // For sub-question grouping
+  parent_question?: string | null;
   graph_found?: boolean;
   graph_bounding_box?: {
     x_min: number;
@@ -59,7 +61,6 @@ interface ParsedQuestion {
   page?: number;
   model_used?: string;
   source_image?: string;
-  // Table data support
   has_table?: boolean;
   table_data?: string[][] | null;
   table_config?: TableConfig | null;
@@ -67,7 +68,6 @@ interface ParsedQuestion {
   is_diagram?: boolean;
   related_questions?: string[];
   command_term?: string | null;
-  // Interactive type detection
   interactive_type?: string;
   answer_block_type?: string;
   parsing_verified?: boolean;
@@ -120,6 +120,15 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
   
   // Table builder state
   const [tableBuilderIndex, setTableBuilderIndex] = useState<number | null>(null);
+  
+  // Re-parse and generate states
+  const [reparsingIndex, setReparsingIndex] = useState<number | null>(null);
+  const [generatingImageIndex, setGeneratingImageIndex] = useState<number | null>(null);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  
+  // Scroll ref for scrolling to questions
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const questionRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   
   // Diagram cropping hooks
   const { isCropping, isGenerating, uploadCroppedImage, cropFromSourceImage, generateMissingDiagram } = useDiagramCropping();
@@ -258,10 +267,154 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
     return sourceImages[pageIndex];
   };
 
+  // Questions needing attention (missing images, unusual parsing)
+  const questionsNeedingAttention = questions.filter(
+    q => (q.graph_found && !q.question_image_url) || !q.parsing_verified || q.question_text?.includes('error')
+  );
+
   // Get questions with diagrams that need cropping
   const questionsWithDiagrams = questions.filter(
     q => q.graph_found && q.graph_bounding_box && !q.question_image_url && getSourceImageForQuestion(q)
   );
+
+  // Get questions with diagrams that need AI generation (no bounding box)
+  const questionsNeedingGeneration = questions.filter(
+    q => q.graph_found && !q.graph_bounding_box && !q.question_image_url
+  );
+
+  // Scroll to a specific question
+  const scrollToQuestion = (index: number) => {
+    const element = questionRefs.current.get(index);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Re-parse a single question from its source image
+  const handleReparseQuestion = async (index: number) => {
+    const q = questions[index];
+    const sourceImage = getSourceImageForQuestion(q);
+    
+    if (!sourceImage) {
+      toast.error('No source image available for re-parsing');
+      return;
+    }
+    
+    setReparsingIndex(index);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-question-parser', {
+        body: {
+          images: [sourceImage],
+          startPage: 0,
+          focusQuestion: q.question_number
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.all_pages?.[0]) {
+        const reparsed = data.all_pages[0];
+        const updated = [...questions];
+        updated[index] = {
+          ...updated[index],
+          question_text: reparsed.question_text || q.question_text,
+          marks: reparsed.marks || q.marks,
+          graph_found: reparsed.graph_found ?? q.graph_found,
+          graph_bounding_box: reparsed.graph_bounding_box || q.graph_bounding_box,
+          diagram_type: reparsed.diagram_type || q.diagram_type,
+          command_term: reparsed.command_term || q.command_term,
+          interactive_type: reparsed.interactive_type || q.interactive_type,
+          parsing_verified: true
+        };
+        setQuestions(updated);
+        toast.success(`Question ${q.question_number} re-parsed successfully`);
+      }
+    } catch (error: any) {
+      console.error('Re-parse error:', error);
+      toast.error('Failed to re-parse question');
+    } finally {
+      setReparsingIndex(null);
+    }
+  };
+
+  // Generate missing image for a question using AI
+  const handleGenerateImage = async (index: number) => {
+    const q = questions[index];
+    setGeneratingImageIndex(index);
+    
+    try {
+      const description = q.graph_description || q.diagram_description || 
+        `Mathematical diagram for: ${q.question_text.substring(0, 200)}`;
+      
+      const result = await generateMissingDiagram(
+        description,
+        q.question_text,
+        q.question_number,
+        q.graph_type || q.diagram_type || undefined
+      );
+      
+      if (result) {
+        const updated = [...questions];
+        updated[index] = {
+          ...updated[index],
+          question_image_url: result.url,
+          graph_found: true
+        };
+        setQuestions(updated);
+        toast.success(`Image generated for Question ${q.question_number}`);
+      }
+    } catch (error: any) {
+      console.error('Generate image error:', error);
+      toast.error('Failed to generate image');
+    } finally {
+      setGeneratingImageIndex(null);
+    }
+  };
+
+  // Generate all missing images
+  const handleGenerateAllMissingImages = async () => {
+    if (questionsNeedingGeneration.length === 0) {
+      toast.info('No questions need image generation');
+      return;
+    }
+    
+    setIsGeneratingAll(true);
+    let successCount = 0;
+    
+    for (const q of questionsNeedingGeneration) {
+      const index = questions.findIndex(x => x.question_number === q.question_number && x.page === q.page);
+      if (index === -1) continue;
+      
+      try {
+        const description = q.graph_description || q.diagram_description || 
+          `Mathematical diagram for: ${q.question_text.substring(0, 200)}`;
+        
+        const result = await generateMissingDiagram(
+          description,
+          q.question_text,
+          q.question_number,
+          q.graph_type || q.diagram_type || undefined
+        );
+        
+        if (result) {
+          const updated = [...questions];
+          updated[index] = {
+            ...updated[index],
+            question_image_url: result.url,
+            graph_found: true
+          };
+          setQuestions(updated);
+          successCount++;
+        }
+      } catch (e) {
+        console.error(`Failed to generate image for Q${q.question_number}:`, e);
+      }
+    }
+    
+    setIsGeneratingAll(false);
+    toast.success(`Generated ${successCount}/${questionsNeedingGeneration.length} images`);
+  };
 
   // Bulk crop all diagrams
   const handleBulkCropDiagrams = async () => {
@@ -346,42 +499,72 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
   }, [questions, viewMode]);
 
   return (
+    <TooltipProvider>
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2">
-            <Check className="w-5 h-5 text-primary" />
+            <CheckCircle2 className="w-5 h-5 text-green-600" />
             Review Extracted Questions ({selectedQuestions.size}/{questions.length} selected)
           </DialogTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            PDR Output: question_number, question_text, graph_found, graph_bounding_box
-          </p>
+          
+          {/* Status Summary Bar */}
+          <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 rounded-full border border-green-200 dark:border-green-800">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>{questions.filter(q => q.parsing_verified !== false).length} Verified</span>
+            </div>
+            {questionsWithDiagrams.length > 0 && (
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 rounded-full border border-purple-200 dark:border-purple-800">
+                <Crop className="w-3 h-3" />
+                <span>{questionsWithDiagrams.length} Ready to Crop</span>
+              </div>
+            )}
+            {questionsNeedingGeneration.length > 0 && (
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800">
+                <Sparkles className="w-3 h-3" />
+                <span>{questionsNeedingGeneration.length} Need Images</span>
+              </div>
+            )}
+            {questionsNeedingAttention.length > 0 && (
+              <button 
+                onClick={() => questionsNeedingAttention[0] && scrollToQuestion(questions.indexOf(questionsNeedingAttention[0]))}
+                className="flex items-center gap-1.5 px-2 py-1 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded-full border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+              >
+                <AlertTriangle className="w-3 h-3" />
+                <span>{questionsNeedingAttention.length} Need Attention</span>
+              </button>
+            )}
+          </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col gap-4">
-          {/* Metadata Section */}
-          <Card className="flex-shrink-0">
-            <CardHeader className="py-3">
-              <CardTitle className="text-sm">Test Metadata</CardTitle>
+        <div className="flex-1 overflow-hidden flex flex-col gap-3">
+          {/* Metadata Section - Collapsible */}
+          <Card className="flex-shrink-0 border-primary/20">
+            <CardHeader className="py-2 px-4">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ScrollText className="w-4 h-4 text-primary" />
+                Test Metadata
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-3 gap-3 py-2">
+            <CardContent className="grid grid-cols-3 gap-3 py-2 px-4">
               <div>
-                <label className="text-xs font-medium mb-1 block">Title</label>
+                <label className="text-xs font-medium mb-1 block text-muted-foreground">Title</label>
                 <Input
                   value={metadata.title || ''}
                   onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
                   placeholder="Test title"
-                  className="h-8 text-sm"
+                  className="h-9 text-sm"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block">Subject</label>
+                <label className="text-xs font-medium mb-1 block text-muted-foreground">Subject</label>
                 <Select
                   value={metadata.subject || 'mathematics'}
                   onValueChange={(v) => setMetadata({ ...metadata, subject: v })}
                 >
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -394,62 +577,110 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                 </Select>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block">Topic</label>
+                <label className="text-xs font-medium mb-1 block text-muted-foreground">Topic</label>
                 <Input
                   value={metadata.topic || ''}
                   onChange={(e) => setMetadata({ ...metadata, topic: e.target.value })}
                   placeholder="Topic"
-                  className="h-8 text-sm"
+                  className="h-9 text-sm"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Selection Controls */}
-          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-            <Button variant="outline" size="sm" onClick={selectAll}>
-              Select All
-            </Button>
-            <Button variant="outline" size="sm" onClick={deselectAll}>
-              Deselect All
-            </Button>
+          {/* Action Toolbar */}
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap p-2 bg-muted/30 rounded-lg border">
+            {/* Selection Controls */}
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" onClick={selectAll} className="h-8">
+                Select All
+              </Button>
+              <Button variant="outline" size="sm" onClick={deselectAll} className="h-8">
+                Deselect All
+              </Button>
+            </div>
+            
+            <div className="w-px h-6 bg-border mx-1" />
             
             {/* View Mode Toggle */}
-            <Button
-              variant={viewMode === 'grouped' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode(viewMode === 'flat' ? 'grouped' : 'flat')}
-              className="ml-2"
-            >
-              <FolderTree className="w-3 h-3 mr-1" />
-              {viewMode === 'grouped' ? 'Grouped' : 'Flat'} View
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={viewMode === 'grouped' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode(viewMode === 'flat' ? 'grouped' : 'flat')}
+                  className="h-8"
+                >
+                  <FolderTree className="w-3.5 h-3.5 mr-1.5" />
+                  {viewMode === 'grouped' ? 'Grouped' : 'Flat'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle between flat list and grouped by parent question</TooltipContent>
+            </Tooltip>
             
-            {/* Bulk Crop Diagrams */}
-            {questionsWithDiagrams.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkCropDiagrams}
-                disabled={isBulkCropping}
-                className="ml-auto border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                {isBulkCropping ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    Cropping {bulkCropProgress.current}/{bulkCropProgress.total}...
-                  </>
-                ) : (
-                  <>
-                    <Images className="w-3 h-3 mr-1" />
-                    Crop All Diagrams ({questionsWithDiagrams.length})
-                  </>
-                )}
-              </Button>
-            )}
+            <div className="flex-1" />
+            
+            {/* Bulk Actions */}
+            <div className="flex items-center gap-2">
+              {/* Bulk Crop Diagrams */}
+              {questionsWithDiagrams.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBulkCropDiagrams}
+                      disabled={isBulkCropping}
+                      className="h-8 border-purple-300 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                    >
+                      {isBulkCropping ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          {bulkCropProgress.current}/{bulkCropProgress.total}
+                        </>
+                      ) : (
+                        <>
+                          <Crop className="w-3.5 h-3.5 mr-1.5" />
+                          Crop All ({questionsWithDiagrams.length})
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Auto-crop all detected diagrams from source pages</TooltipContent>
+                </Tooltip>
+              )}
+              
+              {/* Generate All Missing Images */}
+              {questionsNeedingGeneration.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateAllMissingImages}
+                      disabled={isGeneratingAll}
+                      className="h-8 border-amber-300 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    >
+                      {isGeneratingAll ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                          Generate Images ({questionsNeedingGeneration.length})
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>AI-generate missing diagrams for all questions</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
             
             {questions.length === 0 && (
-              <div className="flex items-center gap-2 text-amber-600 ml-auto">
+              <div className="flex items-center gap-2 text-amber-600">
                 <AlertCircle className="w-4 h-4" />
                 <span className="text-sm">No questions extracted</span>
               </div>
@@ -561,10 +792,13 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
               {viewMode === 'flat' && questions.map((q, index) => (
                 <Card
                   key={index}
+                  ref={(el) => { if (el) questionRefs.current.set(index, el); }}
                   className={`transition-all ${
                     selectedQuestions.has(index)
                       ? 'border-primary/50 bg-primary/5'
                       : 'border-border opacity-60'
+                  } ${!q.parsing_verified ? 'ring-2 ring-amber-400/50' : ''} ${
+                    q.graph_found && !q.question_image_url ? 'border-l-4 border-l-amber-400' : ''
                   }`}
                 >
                   <div className="p-3">
@@ -873,23 +1107,91 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setEditingIndex(editingIndex === index ? null : index)}
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => deleteQuestion(index)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        {/* Action buttons row */}
+                        <div className="flex items-center gap-1">
+                          {/* Re-parse button */}
+                          {getSourceImageForQuestion(q) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleReparseQuestion(index)}
+                                  disabled={reparsingIndex === index}
+                                >
+                                  {reparsingIndex === index ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Re-parse this question from source</TooltipContent>
+                            </Tooltip>
+                          )}
+                          
+                          {/* Generate image button (only if graph found but no image) */}
+                          {q.graph_found && !q.question_image_url && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                  onClick={() => handleGenerateImage(index)}
+                                  disabled={generatingImageIndex === index}
+                                >
+                                  {generatingImageIndex === index ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Generate missing image with AI</TooltipContent>
+                            </Tooltip>
+                          )}
+                          
+                          {/* Edit button */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setEditingIndex(editingIndex === index ? null : index)}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit question</TooltipContent>
+                          </Tooltip>
+                          
+                          {/* Delete button */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={() => deleteQuestion(index)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete question</TooltipContent>
+                          </Tooltip>
+                        </div>
+                        
+                        {/* Status indicator */}
+                        {!q.parsing_verified && (
+                          <span className="text-[10px] text-amber-600 flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            Unverified
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -918,16 +1220,26 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
           </ScrollArea>
         </div>
 
-        <DialogFooter className="gap-2 flex-shrink-0">
-          <Button variant="outline" onClick={onCancel}>
-            <X className="w-4 h-4 mr-2" />
+        <DialogFooter className="gap-2 flex-shrink-0 pt-3 border-t bg-muted/30 -mx-6 px-6 -mb-6 pb-6 rounded-b-lg">
+          <div className="flex-1 text-xs text-muted-foreground">
+            {questionsWithDiagrams.length + questionsNeedingGeneration.length > 0 && (
+              <span className="flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3 text-amber-500" />
+                {questionsWithDiagrams.length + questionsNeedingGeneration.length} questions may need images
+              </span>
+            )}
+          </div>
+          <Button variant="outline" onClick={onCancel} className="gap-2">
+            <X className="w-4 h-4" />
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={selectedQuestions.size === 0}
+            className="gap-2 bg-primary hover:bg-primary/90"
+            size="lg"
           >
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="w-4 h-4" />
             Save {selectedQuestions.size} Question{selectedQuestions.size !== 1 ? 's' : ''}
           </Button>
         </DialogFooter>
@@ -954,6 +1266,7 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
       />
     )}
   </>
+  </TooltipProvider>
   );
 };
 
