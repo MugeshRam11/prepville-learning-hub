@@ -46,13 +46,25 @@ const UnifiedMockExam = () => {
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const mainContentRef = useRef<HTMLDivElement>(null);
 
+  // Helper to safely parse JSON config
+  const safeParseConfig = (config: any) => {
+    if (!config) return undefined;
+    if (typeof config === 'object') return config;
+    try {
+      return JSON.parse(config);
+    } catch {
+      return undefined;
+    }
+  };
+
   // Map database questions to unified format with interactive type detection
   const mapDBQuestionsToUnified = (dbQuestions: any[]): UnifiedQuestion[] => {
     const typeMap = new Map<string, QuestionType>();
     
     return dbQuestions.map((q, index) => {
-      // Detect question type for interactive mode
-      const detectedType = detectQuestionType({
+      // Use explicit answer_block_type if provided, otherwise detect
+      const explicitType = q.answer_block_type;
+      const detectedType = explicitType || detectQuestionType({
         id: q.id,
         question_text: q.question_text,
         marks: q.marks,
@@ -68,8 +80,9 @@ const UnifiedMockExam = () => {
       typeMap.set(q.id, detectedType);
       
       const subQuestions = q.mock_sub_questions?.map((sq: any, sqIndex: number) => {
-        // Detect sub-question type too
-        const subType = detectQuestionType({
+        // Use explicit sub-question type if provided
+        const subExplicitType = sq.answer_block_type;
+        const subType = subExplicitType || detectQuestionType({
           id: sq.id,
           question_text: sq.sub_question_text,
           marks: sq.marks,
@@ -90,7 +103,7 @@ const UnifiedMockExam = () => {
           wordLimit: sq.word_limit,
           answerKey: sq.answer_key,
           answerBlockType: sq.answer_block_type || getDefaultAnswerBlockType(),
-          answerBlockConfig: sq.answer_block_config ? JSON.parse(sq.answer_block_config) : undefined,
+          answerBlockConfig: safeParseConfig(sq.answer_block_config),
           interactiveType: subType
         };
       }) || [];
@@ -108,7 +121,7 @@ const UnifiedMockExam = () => {
         answerKey: q.answer_key,
         diagramDescription: q.diagram_description,
         answerBlockType: q.answer_block_type || getDefaultAnswerBlockType(),
-        answerBlockConfig: q.answer_block_config ? JSON.parse(q.answer_block_config) : undefined,
+        answerBlockConfig: safeParseConfig(q.answer_block_config),
         subQuestions,
         interactiveType: detectedType
       };

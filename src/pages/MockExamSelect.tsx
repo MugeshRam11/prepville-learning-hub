@@ -10,9 +10,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, Sparkles, Play, GripVertical, MousePointer, Calculator, Grid3X3, Layers } from 'lucide-react';
+import { Search, Sparkles, Play, GripVertical, MousePointer, Calculator, Grid3X3, Layers, Puzzle } from 'lucide-react';
 import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
 import { motion } from 'framer-motion';
+import { loadPuzzleSampleTest } from '@/data/puzzleDragDropSampleTest';
 
 const MockExamSelect = () => {
   const navigate = useNavigate();
@@ -131,6 +132,20 @@ const MockExamSelect = () => {
     navigate(`/mock-exams/subject/${subjectKey}`);
   };
 
+  const handleStartPuzzleDemo = () => {
+    const sampleTest = loadPuzzleSampleTest();
+    navigate('/mock-exams/unified', {
+      state: {
+        testId: sampleTest.testId,
+        title: sampleTest.title,
+        subject: sampleTest.subject,
+        topic: sampleTest.topic,
+        questions: sampleTest.questions
+      }
+    });
+    toast.success('🧩 Puzzle Challenge loaded! Try the drag & drop questions.');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -228,6 +243,81 @@ const MockExamSelect = () => {
                     >
                       <Play className="w-5 h-5" />
                       Start Unified Exam
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Puzzle Drag & Drop Challenge Section */}
+        <section className="py-8 border-b border-border bg-gradient-to-r from-orange-500/5 via-amber-500/5 to-yellow-500/5">
+          <div className="container">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="max-w-4xl mx-auto"
+            >
+              <Card className="overflow-hidden border-2 border-orange-500/30 bg-gradient-to-br from-card via-card to-orange-500/5">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white">
+                      <Puzzle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                        Puzzle Challenge
+                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-600 text-white">NEW</Badge>
+                      </h2>
+                      <p className="text-muted-foreground">Interactive puzzle-style drag & drop matching questions</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Puzzle features */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                      <div className="w-4 h-4 rounded-full bg-orange-500" />
+                      <span className="text-sm font-medium">Ratio Matching</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                      <div className="w-4 h-4 rounded-full bg-cyan-500" />
+                      <span className="text-sm font-medium">Equation Graphs</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
+                      <div className="w-4 h-4 rounded-full bg-pink-500" />
+                      <span className="text-sm font-medium">Probability</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-xl border border-orange-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="flex -space-x-2">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">6:4</div>
+                        <div className="w-8 h-8 rounded-full bg-cyan-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">3:4</div>
+                        <div className="w-8 h-8 rounded-full bg-pink-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">4:3</div>
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                          Interlocking puzzle pieces with glow effects & animations!
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                      <strong>6 Questions</strong> • <strong>25 marks</strong> • Ratios, Equations, Probability, Geometry
+                    </div>
+                    <Button 
+                      size="lg"
+                      onClick={handleStartPuzzleDemo}
+                      className="gap-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:opacity-90"
+                    >
+                      <Puzzle className="w-5 h-5" />
+                      Start Puzzle Challenge
                     </Button>
                   </div>
                 </CardContent>
