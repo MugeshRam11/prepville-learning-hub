@@ -1,9 +1,8 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X, Plus, GripVertical, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExamQuestion } from './types';
-import { Button } from '@/components/ui/button';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -37,18 +36,15 @@ const QuestionTab: React.FC<QuestionTabProps> = ({
   };
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
       className={cn(
-        "relative flex flex-col min-w-[120px] max-w-[160px] rounded-t-lg border-2 overflow-hidden cursor-pointer transition-all group",
+        "relative flex flex-col min-w-[100px] sm:min-w-[120px] max-w-[140px] sm:max-w-[160px] rounded-t-lg border-2 overflow-hidden cursor-pointer transition-all group",
         isActive 
           ? "bg-card border-primary/50 border-b-0 shadow-sm" 
           : "bg-muted/50 border-border hover:border-primary/30 hover:bg-muted",
-        isDragging && "opacity-50 z-50"
+        isDragging && "opacity-50 z-50 shadow-lg"
       )}
       onClick={onClick}
     >
@@ -82,13 +78,13 @@ const QuestionTab: React.FC<QuestionTabProps> = ({
         </div>
         
         {/* Mini thumbnail/preview */}
-        <div className="h-12 bg-muted/50 rounded border border-border/50 flex items-center justify-center">
+        <div className="h-10 sm:h-12 bg-muted/50 rounded border border-border/50 flex items-center justify-center">
           {question.components.length > 0 ? (
             <div className="flex flex-wrap gap-0.5 p-1">
               {question.components.slice(0, 4).map((comp, i) => (
                 <div 
                   key={i} 
-                  className="w-3 h-3 rounded-sm bg-primary/20 border border-primary/30"
+                  className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-sm bg-primary/20 border border-primary/30"
                 />
               ))}
               {question.components.length > 4 && (
@@ -120,12 +116,9 @@ const QuestionTab: React.FC<QuestionTabProps> = ({
 
       {/* Active indicator bar */}
       {isActive && (
-        <motion.div 
-          layoutId="activeTab"
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-        />
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
       )}
-    </motion.div>
+    </div>
   );
 };
 
@@ -146,28 +139,26 @@ const QuestionTabs: React.FC<QuestionTabsProps> = ({
   onDeleteQuestion,
 }) => {
   return (
-    <div className="flex items-end gap-1 px-4 pb-0 overflow-x-auto scrollbar-thin">
-      <AnimatePresence mode="popLayout">
-        {questions.map((question, index) => (
-          <QuestionTab
-            key={question.id}
-            question={question}
-            index={index}
-            isActive={question.id === activeQuestionId}
-            onClick={() => onSelectQuestion(question.id)}
-            onDelete={() => onDeleteQuestion(question.id)}
-          />
-        ))}
-      </AnimatePresence>
+    <div className="flex items-end gap-1 px-2 sm:px-4 pb-0 overflow-x-auto scrollbar-thin">
+      {questions.map((question, index) => (
+        <QuestionTab
+          key={question.id}
+          question={question}
+          index={index}
+          isActive={question.id === activeQuestionId}
+          onClick={() => onSelectQuestion(question.id)}
+          onDelete={() => onDeleteQuestion(question.id)}
+        />
+      ))}
       
       {/* Add new question button */}
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onAddQuestion}
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-muted hover:bg-accent border-2 border-dashed border-border hover:border-primary/50 transition-colors mb-1"
+        className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-muted hover:bg-accent border-2 border-dashed border-border hover:border-primary/50 transition-colors mb-1 shrink-0"
       >
-        <Plus className="w-5 h-5 text-muted-foreground" />
+        <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
       </motion.button>
     </div>
   );
