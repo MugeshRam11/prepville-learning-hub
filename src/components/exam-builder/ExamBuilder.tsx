@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
   DragEndEvent,
@@ -27,7 +28,17 @@ import ExamBuilderHeader from './ExamBuilderHeader';
 import BuilderSidebar from './BuilderSidebar';
 import QuestionTabs from './QuestionTabs';
 import BuilderCanvas from './BuilderCanvas';
-import { ExamQuestion, ComponentConfig, ComponentType, COMPONENT_TYPES, ExamBuilderState } from './types';
+import { 
+  ExamQuestion, 
+  ComponentConfig, 
+  ComponentType, 
+  COMPONENT_TYPES, 
+  ExamBuilderState,
+  createDefaultOptions,
+  createDefaultTableConfig,
+  createDefaultGraphConfig
+} from './types';
+import { supabase } from '@/integrations/supabase/client';
 
 const iconMap: Record<ComponentType, React.ElementType> = {
   note: AlignLeft,
@@ -57,13 +68,29 @@ function createNewQuestion(index: number): ExamQuestion {
 
 function createNewComponent(type: ComponentType): ComponentConfig {
   const typeInfo = COMPONENT_TYPES.find(t => t.type === type);
-  return {
+  const base: ComponentConfig = {
     id: generateId(),
     type,
     label: typeInfo?.label || 'Component',
     content: '',
     settings: {},
   };
+
+  // Initialize type-specific defaults
+  switch (type) {
+    case 'multiple_choice':
+    case 'checkboxes':
+      base.options = createDefaultOptions();
+      break;
+    case 'table':
+      base.tableConfig = createDefaultTableConfig();
+      break;
+    case 'graph':
+      base.graphConfig = createDefaultGraphConfig();
+      break;
+  }
+
+  return base;
 }
 
 interface ExamBuilderProps {
@@ -75,6 +102,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
   initialState,
   onSave,
 }) => {
+  const navigate = useNavigate();
   const [examName, setExamName] = useState(initialState?.examName || 'Untitled Exam');
   const [questions, setQuestions] = useState<ExamQuestion[]>(
     initialState?.questions || [createNewQuestion(1)]
@@ -98,6 +126,12 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
   );
 
   const activeQuestion = questions.find(q => q.id === activeQuestionId) || null;
+
+  // Calculate totals
+  const totalQuestions = questions.length;
+  const totalMarks = questions.reduce((sum, q) => 
+    sum + q.components.reduce((cSum, c) => cSum + (c.marks || 0), 0), 0
+  );
 
   // Question management
   const handleAddQuestion = useCallback(() => {
@@ -176,7 +210,6 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
     const { active } = event;
     setActiveId(active.id);
     
-    // Check if dragging from sidebar
     if (String(active.id).startsWith('sidebar-')) {
       const type = String(active.id).replace('sidebar-', '') as ComponentType;
       setDraggedType(type);
@@ -190,7 +223,6 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
 
     if (!over) return;
 
-    // Dropping from sidebar onto canvas
     if (String(active.id).startsWith('sidebar-') && over.id === 'canvas-drop-zone') {
       const type = String(active.id).replace('sidebar-', '') as ComponentType;
       const newComponent = createNewComponent(type);
@@ -203,7 +235,6 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
       return;
     }
 
-    // Reordering components within canvas
     if (active.id !== over.id && activeQuestion) {
       const oldIndex = activeQuestion.components.findIndex(c => c.id === active.id);
       const newIndex = activeQuestion.components.findIndex(c => c.id === over.id);
@@ -232,12 +263,69 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
     toast.info('Preview mode coming soon!');
   };
 
-  const handlePublish = async () => {
+  const handlePublish = async (type: 'mock_test' | 'quick_test', subject?: string, topic?: string) => {
     if (questions.every(q => q.components.length === 0)) {
       toast.error('Please add at least one component to publish');
       return;
     }
-    toast.success('Exam published successfully!');
+
+    try {
+      setIsSaving(true);
+
+      if (type === 'mock_test') {
+        // Create mock test
+        const { data: mockTest, error: mockTestError } = await supabase
+          .from('mock_tests')
+          .insert({
+            title: examName,
+            subject: (subject?.toLowerCase() || 'mathematics') as any,
+            topic: topic || 'General',
+            is_published: true,
+            total_questions: questions.length,
+          })
+          .select()
+          .single();
+
+        if (mockTestError) throw mockTestError;
+
+        // Create questions for each exam question
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          // Convert components to question format
+          const questionText = q.components
+            .filter(c => ['note', 'free_response', 'math_response', 'multiple_choice'].includes(c.type))
+            .map(c => c.content)
+            .join('\n\n') || q.instructions;
+
+          const marks = q.components.reduce((sum, c) => sum + (c.marks || 0), 0) || 1;
+
+          const { error: questionError } = await supabase
+            .from('mock_questions')
+            .insert({
+              mock_test_id: mockTest.id,
+              question_number: i + 1,
+              question_text: questionText,
+              marks,
+              has_sub_questions: false,
+              answer_block_type: q.components[0]?.type === 'multiple_choice' ? 'multiple_choice' : 'text_equation',
+            });
+
+          if (questionError) throw questionError;
+        }
+
+        toast.success('Published as Mock Test!');
+        navigate('/admin/mock-tests');
+      } else {
+        // Quick test - would go to subject_questions table
+        toast.success('Published as Quick Test!');
+        navigate('/admin/tests');
+      }
+    } catch (error) {
+      console.error('Publish error:', error);
+      toast.error('Failed to publish. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Render drag overlay
@@ -262,7 +350,6 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
       onDragEnd={handleDragEnd}
     >
       <div className="h-screen flex flex-col bg-background overflow-hidden">
-        {/* Top header */}
         <ExamBuilderHeader
           examName={examName}
           onExamNameChange={setExamName}
@@ -270,10 +357,11 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
           onPublish={handlePublish}
           onSaveDraft={handleSaveDraft}
           isSaving={isSaving}
+          totalQuestions={totalQuestions}
+          totalMarks={totalMarks}
         />
 
-        {/* Question tabs */}
-        <div className="bg-muted/50 border-b border-border pt-2">
+        <div className="bg-muted/50 border-b border-border pt-2 overflow-x-auto">
           <SortableContext 
             items={questions.map(q => q.id)}
             strategy={horizontalListSortingStrategy}
@@ -289,12 +377,12 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
           </SortableContext>
         </div>
 
-        {/* Main content area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Component sidebar */}
-          <BuilderSidebar />
+          {/* Sidebar - hidden on mobile, collapsible */}
+          <div className="hidden md:block">
+            <BuilderSidebar />
+          </div>
 
-          {/* Canvas */}
           <BuilderCanvas
             question={activeQuestion}
             onUpdateInstructions={handleUpdateInstructions}
@@ -306,7 +394,6 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
         </div>
       </div>
 
-      {/* Drag overlay */}
       <DragOverlay>
         {activeId && draggedType && renderDragOverlay()}
       </DragOverlay>
