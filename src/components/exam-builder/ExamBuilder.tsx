@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -113,6 +113,30 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [draggedType, setDraggedType] = useState<ComponentType | null>(null);
+  const [importedSubject, setImportedSubject] = useState<string>('');
+  const [importedTopic, setImportedTopic] = useState<string>('');
+
+  // Load imported questions from sessionStorage on mount
+  useEffect(() => {
+    const importedData = sessionStorage.getItem('examBuilderImport');
+    if (importedData) {
+      try {
+        const parsed = JSON.parse(importedData);
+        if (parsed.examName) setExamName(parsed.examName);
+        if (parsed.subject) setImportedSubject(parsed.subject);
+        if (parsed.topic) setImportedTopic(parsed.topic);
+        if (parsed.questions && parsed.questions.length > 0) {
+          setQuestions(parsed.questions);
+          setActiveQuestionId(parsed.questions[0].id);
+          toast.success(`Loaded ${parsed.questions.length} questions from import`);
+        }
+        // Clear after loading
+        sessionStorage.removeItem('examBuilderImport');
+      } catch (e) {
+        console.error('Failed to parse imported data:', e);
+      }
+    }
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -273,13 +297,17 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({
       setIsSaving(true);
 
       if (type === 'mock_test') {
+        // Use imported subject/topic if available, otherwise use provided or defaults
+        const finalSubject = subject || importedSubject || 'mathematics';
+        const finalTopic = topic || importedTopic || 'General';
+
         // Create mock test
         const { data: mockTest, error: mockTestError } = await supabase
           .from('mock_tests')
           .insert({
             title: examName,
-            subject: (subject?.toLowerCase() || 'mathematics') as any,
-            topic: topic || 'General',
+            subject: finalSubject.toLowerCase() as any,
+            topic: finalTopic,
             is_published: true,
             total_questions: questions.length,
           })

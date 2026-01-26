@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Upload, Database as DatabaseIcon, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Save, Upload, Database as DatabaseIcon, ChevronDown, Wand2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import QuestionBuilder from '@/components/admin/QuestionBuilder';
@@ -271,7 +271,7 @@ const AdminMockTestCreate = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Question Builder</CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="flex items-center gap-2">
@@ -295,6 +295,50 @@ const AdminMockTestCreate = () => {
                     <DatabaseIcon className="w-4 h-4" />
                     Load from Bank
                   </Button>
+                  {questions.length > 0 && (
+                    <Button
+                      variant="default"
+                      onClick={() => {
+                        // Store questions in sessionStorage for the exam builder
+                        const examBuilderData = {
+                          examName: testInfo.title || 'Untitled Exam',
+                          subject: testInfo.subject,
+                          topic: testInfo.topic,
+                          questions: questions.map((q: any, idx: number) => ({
+                            id: `imported-${idx}-${Date.now()}`,
+                            title: `Question ${q.question_number}`,
+                            instructions: q.question_text,
+                            marks: q.marks || 1,
+                            commandTerm: q.command_term || '',
+                            components: q.has_sub_questions && q.sub_questions?.length > 0
+                              ? q.sub_questions.map((sq: any, sIdx: number) => ({
+                                  id: `comp-${idx}-${sIdx}-${Date.now()}`,
+                                  type: 'free_response',
+                                  label: `Part ${sq.sub_question_label}`,
+                                  content: sq.sub_question_text,
+                                  marks: sq.marks || 1,
+                                  settings: {}
+                                }))
+                              : [{
+                                  id: `comp-${idx}-0-${Date.now()}`,
+                                  type: 'free_response',
+                                  label: 'Answer',
+                                  content: '',
+                                  marks: q.marks || 1,
+                                  settings: {}
+                                }]
+                          }))
+                        };
+                        sessionStorage.setItem('examBuilderImport', JSON.stringify(examBuilderData));
+                        navigate('/admin/exam-builder');
+                        toast.success('Questions loaded into Interactive Exam Builder!');
+                      }}
+                      className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80"
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      Open in Exam Builder
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
