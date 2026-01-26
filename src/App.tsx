@@ -50,6 +50,7 @@ import UploadDemo1 from "./pages/UploadDemo1";
 import InteractiveMockDemo from "./pages/InteractiveMockDemo";
 import InteractiveMockExam from "./pages/InteractiveMockExam";
 import UnifiedMockExam from "./pages/UnifiedMockExam";
+import AdminExamBuilder from "./pages/AdminExamBuilder";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CopyPasteProtection from "./components/CopyPasteProtection";
 
@@ -257,6 +258,11 @@ const App = () => (
           <Route path="/admin/question-builder" element={
             <ProtectedRoute>
               <QuestionBuilder />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/exam-builder" element={
+            <ProtectedRoute>
+              <AdminExamBuilder />
             </ProtectedRoute>
           } />
           <Route path="/study-groups" element={
