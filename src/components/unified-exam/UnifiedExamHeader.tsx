@@ -8,7 +8,10 @@ import {
   Send, 
   AlertTriangle,
   BookOpen,
-  Timer
+  Timer,
+  Save,
+  Cloud,
+  CloudOff
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -21,6 +24,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import ExamModeToggle from './ExamModeToggle';
+import FocusModeToggle from './FocusModeToggle';
+import { useExamMode } from '@/contexts/ExamModeContext';
+import { cn } from '@/lib/utils';
 
 interface UnifiedExamHeaderProps {
   title: string;
@@ -30,6 +37,7 @@ interface UnifiedExamHeaderProps {
   answeredCount: number;
   totalQuestions: number;
   onSubmit: () => void;
+  hasStartedExam?: boolean;
 }
 
 const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
@@ -39,14 +47,22 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
   totalMarks,
   answeredCount,
   totalQuestions,
-  onSubmit
+  onSubmit,
+  hasStartedExam = false
 }) => {
+  const { mode, config, autoSaveState, isTimerActive } = useExamMode();
   const [timeRemaining, setTimeRemaining] = useState(duration * 60); // seconds
   const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const [timerPaused, setTimerPaused] = useState(!config.timerEnabled);
+
+  // Sync timer pause state with mode
+  useEffect(() => {
+    setTimerPaused(!config.timerEnabled);
+  }, [config.timerEnabled]);
 
   // Timer countdown
   useEffect(() => {
-    if (timeRemaining <= 0) return;
+    if (timeRemaining <= 0 || timerPaused) return;
 
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
@@ -55,12 +71,16 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
         if (newTime === 600 && !showTimeWarning) {
           setShowTimeWarning(true);
         }
+        // Auto-submit when time runs out in exam mode
+        if (newTime <= 0 && config.timerEnforced) {
+          onSubmit();
+        }
         return newTime;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, showTimeWarning]);
+  }, [timeRemaining, showTimeWarning, timerPaused, config.timerEnforced, onSubmit]);
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -118,14 +138,49 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
             </div>
           </div>
 
-          {/* Right: Timer and Submit */}
+          {/* Right: Mode Toggle, Timer and Submit */}
           <div className="flex items-center gap-3">
+            {/* Exam Mode Toggle */}
+            <ExamModeToggle hasStartedExam={hasStartedExam} />
+
+            {/* Focus Mode (only in exam mode) */}
+            <FocusModeToggle />
+
+            {/* Auto-save indicator */}
+            {config.autoSaveEnabled && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {autoSaveState.isSaving ? (
+                  <>
+                    <Save className="w-3.5 h-3.5 animate-pulse" />
+                    <span>Saving...</span>
+                  </>
+                ) : autoSaveState.lastSaved ? (
+                  <>
+                    <Cloud className="w-3.5 h-3.5 text-green-500" />
+                    <span>Saved</span>
+                  </>
+                ) : autoSaveState.error ? (
+                  <>
+                    <CloudOff className="w-3.5 h-3.5 text-destructive" />
+                    <span>Error</span>
+                  </>
+                ) : null}
+              </div>
+            )}
+
             {/* Timer */}
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${getTimeColorClass()}`}>
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+              getTimeColorClass(),
+              timerPaused && "opacity-50"
+            )}>
               <Timer className="w-5 h-5" />
               <span className="font-mono font-bold text-lg">
                 {formatTime(timeRemaining)}
               </span>
+              {timerPaused && (
+                <span className="text-xs">(Paused)</span>
+              )}
             </div>
 
             {/* Submit button */}

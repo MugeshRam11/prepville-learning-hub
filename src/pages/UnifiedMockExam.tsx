@@ -10,7 +10,10 @@ import { Sparkles, FileText } from 'lucide-react';
 
 import UnifiedExamHeader from '@/components/unified-exam/UnifiedExamHeader';
 import UnifiedExamSidebar from '@/components/unified-exam/UnifiedExamSidebar';
+import QuestionNavigator from '@/components/unified-exam/QuestionNavigator';
 import UnifiedQuestionCard from '@/components/unified-exam/UnifiedQuestionCard';
+import { ExamModeProvider, useExamMode } from '@/contexts/ExamModeContext';
+import { useAutoSave } from '@/hooks/useAutoSave';
 
 import { 
   UnifiedExamData, 
@@ -26,7 +29,10 @@ import {
 } from '@/lib/interactiveQuestionMapper';
 import type { QuestionType } from '@/data/mocktest2';
 
-const UnifiedMockExam = () => {
+import { cn } from '@/lib/utils';
+
+// Inner component that uses the context
+const UnifiedMockExamContent = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -38,13 +44,24 @@ const UnifiedMockExam = () => {
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [activeSubQuestionId, setActiveSubQuestionId] = useState<string | null>(null);
   const [startTime] = useState(new Date());
+  const [hasStartedExam, setHasStartedExam] = useState(false);
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
   
   // Interactive mode toggle
   const [interactiveMode, setInteractiveMode] = useState(true);
   const [detectedQuestionTypes, setDetectedQuestionTypes] = useState<Map<string, QuestionType>>(new Map());
   
+  // Get exam mode context
+  const { mode, config, focusMode } = useExamMode();
+  
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const mainContentRef = useRef<HTMLDivElement>(null);
+
+  // Auto-save hook
+  const { isSaving, lastSaved, saveNow, loadSavedAnswers } = useAutoSave(answers, {
+    testId: examData?.id || '',
+    enabled: config.autoSaveEnabled
+  });
 
   // Helper to safely parse JSON config
   const safeParseConfig = (config: any) => {
@@ -343,6 +360,11 @@ const UnifiedMockExam = () => {
 
   // Handle answer changes
   const handleAnswerChange = (questionId: string, value: any, subQuestionId?: string) => {
+    // Mark exam as started when user types something
+    if (!hasStartedExam) {
+      setHasStartedExam(true);
+    }
+    
     setAnswers(prev => {
       const existingIndex = prev.findIndex(
         a => a.questionId === questionId && a.subQuestionId === subQuestionId
@@ -378,9 +400,26 @@ const UnifiedMockExam = () => {
     }
   };
 
+  // Toggle flag on question
+  const handleToggleFlag = (questionId: string, subQuestionId?: string) => {
+    const key = subQuestionId ? `${questionId}-${subQuestionId}` : questionId;
+    setFlaggedQuestions(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   // Submit exam
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!examData) return;
+    
+    // Save final answers before submitting
+    await saveNow();
     
     localStorage.removeItem(`unifiedExam_${examData.id}`);
     
@@ -444,7 +483,10 @@ const UnifiedMockExam = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className={cn(
+      "h-screen flex flex-col bg-background overflow-hidden transition-all",
+      focusMode.isActive && "focus-mode-container"
+    )}>
       {/* Header */}
       <UnifiedExamHeader
         title={examData.title}
@@ -454,51 +496,67 @@ const UnifiedMockExam = () => {
         answeredCount={getAnsweredCount()}
         totalQuestions={getTotalQuestionSlots()}
         onSubmit={handleSubmit}
+        hasStartedExam={hasStartedExam}
       />
 
-      {/* Interactive Mode Toggle Bar */}
-      <div className="flex items-center justify-between px-6 py-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-b">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Switch
-              id="interactive-mode"
-              checked={interactiveMode}
-              onCheckedChange={setInteractiveMode}
-            />
-            <Label htmlFor="interactive-mode" className="flex items-center gap-2 cursor-pointer">
-              {interactiveMode ? (
-                <>
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  <span className="font-medium text-purple-700 dark:text-purple-300">Interactive Mode</span>
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4 text-gray-600" />
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Standard Mode</span>
-                </>
-              )}
-            </Label>
+      {/* Interactive Mode Toggle Bar - only in study mode */}
+      {mode === 'study' && (
+        <div className="flex items-center justify-between px-6 py-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-b">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="interactive-mode"
+                checked={interactiveMode}
+                onCheckedChange={setInteractiveMode}
+              />
+              <Label htmlFor="interactive-mode" className="flex items-center gap-2 cursor-pointer">
+                {interactiveMode ? (
+                  <>
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    <span className="font-medium text-purple-700 dark:text-purple-300">Interactive Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Standard Mode</span>
+                  </>
+                )}
+              </Label>
+            </div>
+            {interactiveMode && (
+              <span className="text-xs text-muted-foreground">
+                Graphs, Drag & Drop, Math Input enabled
+              </span>
+            )}
           </div>
-          {interactiveMode && (
-            <span className="text-xs text-muted-foreground">
-              Graphs, Drag & Drop, Math Input enabled
-            </span>
-          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {examData.questions.slice(0, 3).map(q => (
+              <span key={q.id} className="px-2 py-1 bg-white dark:bg-gray-800 rounded border text-[10px]">
+                Q{q.questionNumber}: {getQuestionTypeLabel((q as any).interactiveType || 'text_input')}
+              </span>
+            ))}
+            {examData.questions.length > 3 && (
+              <span className="text-[10px]">+{examData.questions.length - 3} more</span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {examData.questions.slice(0, 3).map(q => (
-            <span key={q.id} className="px-2 py-1 bg-white dark:bg-gray-800 rounded border text-[10px]">
-              Q{q.questionNumber}: {getQuestionTypeLabel((q as any).interactiveType || 'text_input')}
-            </span>
-          ))}
-          {examData.questions.length > 3 && (
-            <span className="text-[10px]">+{examData.questions.length - 3} more</span>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Left Navigator - visible when focus mode is off */}
+        {!focusMode.isActive && (
+          <QuestionNavigator
+            questions={examData.questions}
+            answers={answers}
+            activeQuestionId={activeQuestionId}
+            activeSubQuestionId={activeSubQuestionId}
+            onNavigate={handleNavigate}
+            flaggedQuestions={flaggedQuestions}
+            onToggleFlag={handleToggleFlag}
+          />
+        )}
+
         {/* Scrollable question area */}
         <div 
           ref={mainContentRef}
@@ -518,16 +576,27 @@ const UnifiedMockExam = () => {
           </div>
         </div>
 
-        {/* Navigation sidebar */}
-        <UnifiedExamSidebar
-          questions={examData.questions}
-          answers={answers}
-          activeQuestionId={activeQuestionId}
-          activeSubQuestionId={activeSubQuestionId}
-          onNavigate={handleNavigate}
-        />
+        {/* Right Navigation sidebar - visible when focus mode is off */}
+        {!focusMode.isActive && (
+          <UnifiedExamSidebar
+            questions={examData.questions}
+            answers={answers}
+            activeQuestionId={activeQuestionId}
+            activeSubQuestionId={activeSubQuestionId}
+            onNavigate={handleNavigate}
+          />
+        )}
       </div>
     </div>
+  );
+};
+
+// Main component with provider wrapper
+const UnifiedMockExam = () => {
+  return (
+    <ExamModeProvider initialMode="study">
+      <UnifiedMockExamContent />
+    </ExamModeProvider>
   );
 };
 

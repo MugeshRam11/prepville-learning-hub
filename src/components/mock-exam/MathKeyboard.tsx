@@ -8,11 +8,13 @@ import {
   Keyboard, 
   X,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Grid3X3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
+import MatrixBuilder from './MatrixBuilder';
 
 interface MathKeyboardProps {
   value: string;
@@ -39,6 +41,7 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(value.length);
   const [activeTab, setActiveTab] = useState('basic');
+  const [showMatrixBuilder, setShowMatrixBuilder] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +135,26 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
     { label: '[ ]', latex: '[□]', cursorOffset: -1 },
     { label: '{ }', latex: '\\{□\\}', cursorOffset: -2 },
     { label: '⟨ ⟩', latex: '\\langle □ \\rangle', cursorOffset: -8 },
+  ];
+
+  // Matrix buttons
+  const matrixButtons: MathButton[] = [
+    { label: '2×2', latex: '\\begin{pmatrix} □ & □ \\\\ □ & □ \\end{pmatrix}', display: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
+    { label: '3×3', latex: '\\begin{pmatrix} □ & □ & □ \\\\ □ & □ & □ \\\\ □ & □ & □ \\end{pmatrix}' },
+    { label: 'det', latex: '\\det\\begin{vmatrix} □ & □ \\\\ □ & □ \\end{vmatrix}', display: '\\det\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}' },
+    { label: '|A|', latex: '\\begin{vmatrix} □ & □ \\\\ □ & □ \\end{vmatrix}' },
+  ];
+
+  // Advanced math buttons
+  const advancedButtons: MathButton[] = [
+    { label: 'lim', latex: '\\lim_{x \\to □}', display: '\\lim_{x \\to a}', cursorOffset: -1 },
+    { label: '∫ᵃᵇ', latex: '\\int_{□}^{□}', display: '\\int_{a}^{b}', cursorOffset: -4 },
+    { label: 'logₐ', latex: '\\log_{□}(□)', display: '\\log_{a}(x)', cursorOffset: -4 },
+    { label: 'Σ', latex: '\\sum_{i=□}^{□}', display: '\\sum_{i=1}^{n}', cursorOffset: -4 },
+    { label: '∏', latex: '\\prod_{i=□}^{□}', display: '\\prod_{i=1}^{n}', cursorOffset: -4 },
+    { label: 'd/dx', latex: '\\frac{d}{dx}' },
+    { label: '∂/∂x', latex: '\\frac{\\partial}{\\partial x}' },
+    { label: 'vec', latex: '\\vec{□}', display: '\\vec{v}', cursorOffset: -1 },
   ];
 
   const insertAtCursor = (latex: string, cursorOffset: number = 0) => {
@@ -300,13 +323,15 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
             <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-xl border border-border p-3 space-y-3">
               {/* Tabs for Categories */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="w-full grid grid-cols-6 h-9">
-                  <TabsTrigger value="basic" className="text-xs px-2">123</TabsTrigger>
-                  <TabsTrigger value="fractions" className="text-xs px-2">a/b</TabsTrigger>
-                  <TabsTrigger value="roots" className="text-xs px-2">√</TabsTrigger>
-                  <TabsTrigger value="symbols" className="text-xs px-2">π θ</TabsTrigger>
-                  <TabsTrigger value="trig" className="text-xs px-2">sin</TabsTrigger>
-                  <TabsTrigger value="brackets" className="text-xs px-2">( )</TabsTrigger>
+                <TabsList className="w-full grid grid-cols-8 h-9">
+                  <TabsTrigger value="basic" className="text-xs px-1">123</TabsTrigger>
+                  <TabsTrigger value="fractions" className="text-xs px-1">a/b</TabsTrigger>
+                  <TabsTrigger value="roots" className="text-xs px-1">√</TabsTrigger>
+                  <TabsTrigger value="symbols" className="text-xs px-1">π θ</TabsTrigger>
+                  <TabsTrigger value="trig" className="text-xs px-1">sin</TabsTrigger>
+                  <TabsTrigger value="brackets" className="text-xs px-1">( )</TabsTrigger>
+                  <TabsTrigger value="matrix" className="text-xs px-1">□□</TabsTrigger>
+                  <TabsTrigger value="advanced" className="text-xs px-1">∫∑</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="basic" className="mt-2">
@@ -342,6 +367,33 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
                 <TabsContent value="brackets" className="mt-2">
                   <div className="grid grid-cols-4 gap-1.5">
                     {bracketButtons.map((btn, i) => renderMathButton(btn, i))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="matrix" className="mt-2">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {matrixButtons.map((btn, i) => renderMathButton(btn, i))}
+                    <motion.button
+                      onClick={() => setShowMatrixBuilder(true)}
+                      className={cn(
+                        "h-10 rounded-lg font-medium text-sm transition-all col-span-2",
+                        "bg-primary/10 hover:bg-primary/20 border border-primary/30",
+                        "hover:border-primary hover:shadow-sm",
+                        "flex items-center justify-center gap-2",
+                        "active:scale-95"
+                      )}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                      Custom n×m
+                    </motion.button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="advanced" className="mt-2">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {advancedButtons.map((btn, i) => renderMathButton(btn, i))}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -381,6 +433,13 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Matrix Builder Modal */}
+      <MatrixBuilder
+        open={showMatrixBuilder}
+        onOpenChange={setShowMatrixBuilder}
+        onInsert={(latex) => insertAtCursor(latex)}
+      />
     </div>
   );
 };
