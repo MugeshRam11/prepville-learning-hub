@@ -40,3 +40,32 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Focus Mode Styles */
+body.focus-mode-active {
+  overflow: hidden;
+}
+
+body.focus-mode-active::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  z-index: 40;
+  animation: focus-dim 0.3s ease-out;
+}
+
+@keyframes focus-dim {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.focus-mode-container {
+  position: relative;
+  z-index: 50;
+}
