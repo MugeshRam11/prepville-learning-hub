@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,16 +7,24 @@ import AuthHeader from '@/components/auth/AuthHeader';
 import SignInForm from '@/components/auth/SignInForm';
 import SignUpForm from '@/components/auth/SignUpForm';
 import DemoUserButton from '@/components/auth/DemoUserButton';
+import { isDemoSession } from '@/lib/authService';
 
 const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Check if user is already logged in (Supabase or demo)
     const checkUser = async () => {
+      // First check for demo session
+      if (isDemoSession()) {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+      
+      // Then check for Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/');
+        navigate('/', { replace: true });
       }
     };
     checkUser();

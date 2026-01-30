@@ -28,8 +28,15 @@ const DemoUserButton = () => {
       
       toast.success(`Welcome, ${DEMO_USER.name}! You're using the demo account.`);
       
-      // Force navigation to dashboard
-      window.location.href = '/dashboard';
+      // Small delay to allow state to propagate before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Use React Router navigation instead of window.location.href
+      // This allows the app to re-read the localStorage session
+      navigate('/dashboard', { replace: true });
+      
+      // Force a re-render by dispatching a storage event
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error('Demo login error:', error);
       toast.error('Failed to start demo session. Please try again.');
