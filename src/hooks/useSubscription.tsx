@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { isDemoSession } from '@/lib/authService';
 
 interface SubscriptionStatus {
   status: string;
@@ -17,14 +18,30 @@ interface SubscriptionContextType {
   hasAccess: boolean;
 }
 
+// Mock subscription for demo users
+const DEMO_SUBSCRIPTION: SubscriptionStatus = {
+  status: 'active',
+  isTrialActive: false,
+  isSubscriptionActive: true,
+  daysLeft: 999,
+  planName: 'Demo Access'
+};
+
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   const checkSubscription = async () => {
+    // Demo users get mock subscription - no API call needed
+    if (isDemo || isDemoSession()) {
+      setSubscription(DEMO_SUBSCRIPTION);
+      setLoading(false);
+      return;
+    }
+
     if (!user?.id) {
       setSubscription(null);
       setLoading(false);
@@ -61,9 +78,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useEffect(() => {
     checkSubscription();
-  }, [user?.id]);
+  }, [user?.id, isDemo]);
 
-  const hasAccess = subscription?.isTrialActive || subscription?.isSubscriptionActive || false;
+  // Demo users always have access
+  const hasAccess = isDemo || isDemoSession() || subscription?.isTrialActive || subscription?.isSubscriptionActive || false;
 
   return (
     <SubscriptionContext.Provider value={{

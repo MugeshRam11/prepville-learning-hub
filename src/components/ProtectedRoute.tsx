@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { isDemoSession } from '@/lib/authService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requiresSubscription = false 
 }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isDemo } = useAuth();
   const { subscription, loading: subscriptionLoading, hasAccess } = useSubscription();
 
   // Show loading while checking auth
@@ -24,13 +25,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Redirect to auth if not logged in
-  if (!user) {
+  // Allow access if user exists OR demo session is active
+  const isAuthenticated = user || isDemo || isDemoSession();
+
+  // Redirect to auth if not logged in and not demo
+  if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
   }
 
   // If route requires subscription, check trial/subscription status
-  if (requiresSubscription && !hasAccess) {
+  // Demo users always have access
+  if (requiresSubscription && !isDemo && !hasAccess) {
     return <Navigate to="/pricing" replace />;
   }
 
