@@ -5,25 +5,32 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
 const StudentDashboardPage = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [userName, setUserName] = useState<string>();
 
   useEffect(() => {
-    if (user) {
+    // Demo users get a default name, skip database fetch
+    if (isDemo) {
+      setUserName('Demo User');
+      return;
+    }
+
+    if (user?.id) {
       supabase
         .from('profiles')
         .select('first_name')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
         .then(({ data }) => {
           if (data?.first_name) setUserName(data.first_name);
         });
     }
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   return (
     <>
-      <DailyMotivationPopup userName={userName} />
+      {/* Skip the edge function call for demo users by passing a prop */}
+      <DailyMotivationPopup userName={userName} skipFetch={isDemo} />
       <StudentDashboard />
     </>
   );

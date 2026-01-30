@@ -42,8 +42,37 @@ export interface Achievement {
   unlocked_at: string;
 }
 
+// Mock progress data for demo users
+const DEMO_USER_PROGRESS: UserProgress = {
+  id: 'demo-progress-id',
+  user_id: 'demo-user-offline-id-12345',
+  knowledge_understanding: 72,
+  pattern_recognition: 65,
+  communication: 58,
+  real_life_applications: 45,
+  updated_at: new Date().toISOString()
+};
+
+const DEMO_TOPIC_PROGRESS: TopicProgress[] = [
+  { id: '1', user_id: 'demo', topic_name: 'Algebra', total_tasks: 50, completed_tasks: 35, difficulty: 'medium', last_activity_at: new Date().toISOString() },
+  { id: '2', user_id: 'demo', topic_name: 'Geometry', total_tasks: 40, completed_tasks: 22, difficulty: 'hard', last_activity_at: new Date().toISOString() },
+  { id: '3', user_id: 'demo', topic_name: 'Statistics & Probability', total_tasks: 45, completed_tasks: 28, difficulty: 'medium', last_activity_at: null },
+  { id: '4', user_id: 'demo', topic_name: 'Number Systems', total_tasks: 35, completed_tasks: 30, difficulty: 'easy', last_activity_at: new Date().toISOString() }
+];
+
+const DEMO_DAILY_CHALLENGE: DailyChallenge = {
+  id: 'demo-challenge',
+  user_id: 'demo',
+  challenge_date: new Date().toISOString().split('T')[0],
+  challenge_type: 'Solve 10 questions daily',
+  target_count: 10,
+  current_count: 6,
+  xp_reward: 100,
+  is_completed: false
+};
+
 export const useProgressTracking = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [topicProgress, setTopicProgress] = useState<TopicProgress[]>([]);
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallenge | null>(null);
@@ -52,14 +81,14 @@ export const useProgressTracking = () => {
 
   // Initialize user progress if it doesn't exist
   const initializeUserProgress = useCallback(async () => {
-    if (!user) return;
+    if (isDemo || !user?.id) return;
 
     try {
       const { data: existing } = await supabase
         .from('user_progress')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!existing) {
         const { error } = await supabase
@@ -77,11 +106,11 @@ export const useProgressTracking = () => {
     } catch (error) {
       console.error('Error initializing user progress:', error);
     }
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Initialize default topics
   const initializeTopics = useCallback(async () => {
-    if (!user) return;
+    if (isDemo || !user?.id) return;
 
     const defaultTopics = [
       { topic_name: 'Algebra', difficulty: 'medium', total_tasks: 50 },
@@ -97,7 +126,7 @@ export const useProgressTracking = () => {
           .select('*')
           .eq('user_id', user.id)
           .eq('topic_name', topic.topic_name)
-          .single();
+          .maybeSingle();
 
         if (!existing) {
           await supabase
@@ -112,11 +141,11 @@ export const useProgressTracking = () => {
     } catch (error) {
       console.error('Error initializing topics:', error);
     }
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Initialize daily challenge
   const initializeDailyChallenge = useCallback(async () => {
-    if (!user) return;
+    if (isDemo || !user?.id) return;
 
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -126,7 +155,7 @@ export const useProgressTracking = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('challenge_date', today)
-        .single();
+        .maybeSingle();
 
       if (!existing) {
         await supabase
@@ -143,11 +172,24 @@ export const useProgressTracking = () => {
     } catch (error) {
       console.error('Error initializing daily challenge:', error);
     }
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Fetch all progress data
   const fetchProgressData = useCallback(async () => {
-    if (!user) return;
+    // Demo users get mock data
+    if (isDemo) {
+      setUserProgress(DEMO_USER_PROGRESS);
+      setTopicProgress(DEMO_TOPIC_PROGRESS);
+      setDailyChallenge(DEMO_DAILY_CHALLENGE);
+      setAchievements([]);
+      setLoading(false);
+      return;
+    }
+
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -157,7 +199,7 @@ export const useProgressTracking = () => {
         .from('user_progress')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       setUserProgress(progressData);
 
@@ -180,7 +222,7 @@ export const useProgressTracking = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('challenge_date', today)
-        .single();
+        .maybeSingle();
 
       setDailyChallenge(challengeData);
 
@@ -198,14 +240,14 @@ export const useProgressTracking = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Update performance criteria
   const updatePerformanceCriteria = useCallback(async (
     criterion: keyof Pick<UserProgress, 'knowledge_understanding' | 'pattern_recognition' | 'communication' | 'real_life_applications'>,
     increment: number
   ) => {
-    if (!user || !userProgress) return;
+    if (isDemo || !user?.id || !userProgress) return;
 
     try {
       const currentValue = userProgress[criterion];
@@ -223,11 +265,11 @@ export const useProgressTracking = () => {
       console.error('Error updating performance criteria:', error);
       toast.error('Failed to update progress');
     }
-  }, [user, userProgress]);
+  }, [user?.id, userProgress, isDemo]);
 
   // Update topic progress
   const updateTopicProgress = useCallback(async (topicName: string, tasksCompleted: number = 1) => {
-    if (!user) return;
+    if (isDemo || !user?.id) return;
 
     try {
       const topic = topicProgress.find(t => t.topic_name === topicName);
@@ -237,7 +279,7 @@ export const useProgressTracking = () => {
 
       const { error } = await supabase
         .from('topic_progress')
-        .update({ 
+        .update({
           completed_tasks: newCompleted,
           last_activity_at: new Date().toISOString()
         })
@@ -256,11 +298,11 @@ export const useProgressTracking = () => {
       console.error('Error updating topic progress:', error);
       toast.error('Failed to update topic progress');
     }
-  }, [user, topicProgress]);
+  }, [user?.id, topicProgress, isDemo]);
 
   // Update daily challenge
   const updateDailyChallenge = useCallback(async () => {
-    if (!user || !dailyChallenge) return;
+    if (isDemo || !user?.id || !dailyChallenge) return;
 
     try {
       const newCount = Math.min(dailyChallenge.target_count, dailyChallenge.current_count + 1);
@@ -284,11 +326,11 @@ export const useProgressTracking = () => {
       console.error('Error updating daily challenge:', error);
       toast.error('Failed to update challenge');
     }
-  }, [user, dailyChallenge]);
+  }, [user?.id, dailyChallenge, isDemo]);
 
   // Unlock achievement
   const unlockAchievement = useCallback(async (name: string, icon: string) => {
-    if (!user) return;
+    if (isDemo || !user?.id) return;
 
     try {
       const { data: existing } = await supabase
@@ -316,11 +358,12 @@ export const useProgressTracking = () => {
     } catch (error) {
       console.error('Error unlocking achievement:', error);
     }
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Set up real-time subscriptions
   useEffect(() => {
-    if (!user) return;
+    // Skip real-time for demo users
+    if (isDemo || !user?.id) return;
 
     const channel = supabase
       .channel('progress-changes')
@@ -387,11 +430,21 @@ export const useProgressTracking = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Initialize data on mount
   useEffect(() => {
-    if (user) {
+    // For demo users, just load mock data
+    if (isDemo) {
+      setUserProgress(DEMO_USER_PROGRESS);
+      setTopicProgress(DEMO_TOPIC_PROGRESS);
+      setDailyChallenge(DEMO_DAILY_CHALLENGE);
+      setAchievements([]);
+      setLoading(false);
+      return;
+    }
+
+    if (user?.id) {
       const initialize = async () => {
         await initializeUserProgress();
         await initializeTopics();
@@ -400,7 +453,7 @@ export const useProgressTracking = () => {
       };
       initialize();
     }
-  }, [user, initializeUserProgress, initializeTopics, initializeDailyChallenge, fetchProgressData]);
+  }, [user?.id, isDemo, initializeUserProgress, initializeTopics, initializeDailyChallenge, fetchProgressData]);
 
   return {
     userProgress,

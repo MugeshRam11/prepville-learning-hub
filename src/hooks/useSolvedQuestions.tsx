@@ -10,8 +10,17 @@ interface SolvedQuestionStats {
   loading: boolean;
 }
 
+// Mock solved questions for demo users
+const DEMO_SOLVED_STATS: SolvedQuestionStats = {
+  mockTestSolved: 45,
+  subjectTestSolved: 32,
+  quickTestSolved: 28,
+  totalSolved: 105,
+  loading: false
+};
+
 export const useSolvedQuestions = (): SolvedQuestionStats => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [stats, setStats] = useState<SolvedQuestionStats>({
     mockTestSolved: 0,
     subjectTestSolved: 0,
@@ -21,7 +30,13 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
   });
 
   const fetchSolvedQuestions = async () => {
-    if (!user) {
+    // Demo users get mock data
+    if (isDemo) {
+      setStats(DEMO_SOLVED_STATS);
+      return;
+    }
+
+    if (!user?.id) {
       setStats({
         mockTestSolved: 0,
         subjectTestSolved: 0,
@@ -86,11 +101,12 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
 
   useEffect(() => {
     fetchSolvedQuestions();
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Set up real-time subscription for test_attempts changes
   useEffect(() => {
-    if (!user) return;
+    // Skip for demo users
+    if (isDemo || !user?.id) return;
 
     const channel = supabase
       .channel('solved-questions-changes')
@@ -111,7 +127,7 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   return stats;
 };

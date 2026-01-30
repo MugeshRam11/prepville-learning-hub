@@ -7,6 +7,7 @@ import { Sparkles, X } from 'lucide-react';
 
 interface DailyMotivationPopupProps {
   userName?: string;
+  skipFetch?: boolean;
 }
 
 const MOTIVATIONAL_QUOTES = [
@@ -22,7 +23,7 @@ const MOTIVATIONAL_QUOTES = [
   "Success doesn't come from what you do occasionally, it comes from what you do consistently. 🎯"
 ];
 
-const DailyMotivationPopup = ({ userName }: DailyMotivationPopupProps) => {
+const DailyMotivationPopup = ({ userName, skipFetch = false }: DailyMotivationPopupProps) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -56,8 +57,16 @@ const DailyMotivationPopup = ({ userName }: DailyMotivationPopupProps) => {
       setQuote(randomQuote);
       setOpen(true);
       
-      // Fetch new content in background
-      await fetchMotivation(today, randomQuote);
+      // For demo users, skip the edge function call
+      if (skipFetch) {
+        setMessage(`Keep up the great work, ${userName || 'Student'}! Your dedication is inspiring. 🌟`);
+        setLoadingMessage(false);
+        setLoadingImage(false);
+        localStorage.setItem('lastMotivationDate', today);
+      } else {
+        // Fetch new content in background
+        await fetchMotivation(today, randomQuote);
+      }
     }
   };
 
