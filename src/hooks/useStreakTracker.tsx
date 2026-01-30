@@ -17,8 +17,17 @@ interface MilestoneReward {
   message: string;
 }
 
+// Mock streak data for demo users
+const DEMO_STREAK_DATA: StreakData = {
+  currentStreak: 7,
+  bestStreak: 14,
+  lastActivityDate: new Date().toISOString().split('T')[0],
+  streakStartDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  weeklyActivity: [true, true, true, false, true, true, true]
+};
+
 export const useStreakTracker = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [streakData, setStreakData] = useState<StreakData>({
     currentStreak: 0,
     bestStreak: 0,
@@ -50,7 +59,17 @@ export const useStreakTracker = () => {
   };
 
   const fetchStreakData = async () => {
-    if (!user) return;
+    // Demo users get mock data
+    if (isDemo) {
+      setStreakData(DEMO_STREAK_DATA);
+      setLoading(false);
+      return;
+    }
+
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -95,7 +114,8 @@ export const useStreakTracker = () => {
   };
 
   const recordActivity = async () => {
-    if (!user) return;
+    // Demo users don't record real activities
+    if (isDemo || !user?.id) return;
 
     try {
       // Call the update_user_streak function
@@ -191,7 +211,7 @@ export const useStreakTracker = () => {
 
   useEffect(() => {
     fetchStreakData();
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   return {
     streakData,

@@ -20,14 +20,34 @@ export interface XPActivity {
   activity_data?: any;
 }
 
+// Mock XP data for demo users
+const DEMO_XP_DATA: XPData = {
+  total_xp: 1250,
+  current_level: 5,
+  xp_to_next_level: 75,
+  level_title: 'Rising Star',
+  level_benefits: ['Streak bonuses', 'Performance analytics', 'Social features']
+};
+
 export const useXPSystem = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [xpData, setXpData] = useState<XPData | null>(null);
   const [recentActivities, setRecentActivities] = useState<XPActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchXPData = useCallback(async () => {
-    if (!user) return;
+    // Demo users get mock data
+    if (isDemo) {
+      setXpData(DEMO_XP_DATA);
+      setRecentActivities([]);
+      setLoading(false);
+      return;
+    }
+
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       // Get user level info
@@ -65,7 +85,7 @@ export const useXPSystem = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   const addXP = useCallback(async (
     activityType: string,
@@ -73,7 +93,16 @@ export const useXPSystem = () => {
     description?: string,
     activityData?: any
   ) => {
-    if (!user) return null;
+    // Demo users don't earn real XP
+    if (isDemo || !user?.id) {
+      // Just show a mock toast for demo users
+      if (isDemo) {
+        toast.success(`+${xpAmount} XP earned!`, {
+          description: description || `From ${activityType.replace('_', ' ')}`
+        });
+      }
+      return null;
+    }
 
     try {
       const { data, error } = await supabase
@@ -113,7 +142,7 @@ export const useXPSystem = () => {
     }
 
     return null;
-  }, [user, fetchXPData]);
+  }, [user?.id, isDemo, fetchXPData]);
 
   // XP amount mappings for different activities
   const XP_REWARDS = {

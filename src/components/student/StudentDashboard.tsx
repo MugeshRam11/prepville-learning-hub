@@ -73,7 +73,7 @@ const StudentDashboard = () => {
   
   const { streakData } = useStreakTracker();
   const { xpData, loading: xpLoading } = useXPSystem();
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const { 
     mockTestSolved, 
     subjectTestSolved, 
@@ -98,18 +98,42 @@ const StudentDashboard = () => {
   
   // Fetch user profile data and real stats
   useEffect(() => {
+    // Demo users get mock profile data
+    if (isDemo) {
+      setProfileData({
+        id: 'demo-user-offline-id-12345',
+        email: 'demo@studyhub.com',
+        first_name: 'Demo',
+        last_name: 'User',
+        avatar_id: 1,
+        avatar_emoji: '🎓',
+        role: 'student'
+      } as any);
+      setTotalQuestions(105);
+      setCorrectAnswers(87);
+      setWeeklyCompleted(4);
+      setLoading(false);
+      return;
+    }
+
+    // Guard: skip if no user
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    
     const fetchProfileAndStats = async () => {
-      if (!user) return;
-      
       try {
         // Fetch profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+        }
         setProfileData(profile);
 
         // Fetch test attempts to calculate real stats
@@ -184,7 +208,7 @@ const StudentDashboard = () => {
       supabase.removeChannel(testChannel);
       supabase.removeChannel(challengeChannel);
     };
-  }, [user]);
+  }, [user?.id, isDemo]);
 
   // Get avatar source based on avatar_id or emoji
   const getAvatarSource = () => {
@@ -210,7 +234,14 @@ const StudentDashboard = () => {
   };
 
   const handleSaveAvatar = async (avatarId: number, avatarEmoji?: string, avatarName?: string) => {
-    if (!user) return;
+    if (isDemo || !user?.id) {
+      // Demo users just update local state
+      if (isDemo) {
+        setProfileData((prev: any) => ({ ...prev, avatar_id: avatarId, avatar_emoji: avatarEmoji, avatar_name: avatarName }));
+        toast.success('Avatar updated successfully!');
+      }
+      return;
+    }
     
     try {
       // If it's not an emoji avatar, explicitly set avatar_emoji to null
