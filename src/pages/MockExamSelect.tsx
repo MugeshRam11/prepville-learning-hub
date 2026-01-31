@@ -7,17 +7,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2 } from 'lucide-react';
-import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
+import MockTestCard from '@/components/mock-exam/MockTestCard';
 import { motion } from 'framer-motion';
+
+interface MockTest {
+  id: string;
+  title: string;
+  subject: string;
+  topic: string;
+  total_questions: number;
+  is_published: boolean;
+  created_at: string;
+}
 
 const MockExamSelect = () => {
   const navigate = useNavigate();
-  const [subjectStats, setSubjectStats] = useState<any[]>([]);
+  const [mockTests, setMockTests] = useState<MockTest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
   const [loading, setLoading] = useState(true);
+  const [loadingTestId, setLoadingTestId] = useState<string | null>(null);
+
   useEffect(() => {
-    fetchSubjectStats();
+    fetchMockTests();
 
     // Subscribe to realtime changes
     const channel = supabase.channel('mock_tests_changes').on('postgres_changes', {
@@ -25,42 +37,33 @@ const MockExamSelect = () => {
       schema: 'public',
       table: 'mock_tests'
     }, () => {
-      fetchSubjectStats();
+      fetchMockTests();
     }).subscribe();
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
-  const fetchSubjectStats = async () => {
-    try {
-      // Get aggregated stats per subject
-      const {
-        data: tests,
-        error
-      } = await supabase.from('mock_tests').select('subject, total_questions').eq('is_published', true);
-      if (error) throw error;
 
-      // Aggregate by subject
-      const statsMap = tests.reduce((acc, test) => {
-        if (!acc[test.subject]) {
-          acc[test.subject] = {
-            subject: test.subject,
-            totalQuestions: 0,
-            totalTests: 0
-          };
-        }
-        acc[test.subject].totalQuestions += test.total_questions || 0;
-        acc[test.subject].totalTests += 1;
-        return acc;
-      }, {} as Record<string, any>);
-      setSubjectStats(Object.values(statsMap));
+  const fetchMockTests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mock_tests')
+        .select('id, title, subject, topic, total_questions, is_published, created_at')
+        .eq('is_published', true)
+        .order('subject', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMockTests(data || []);
     } catch (error) {
-      console.error('Error fetching subject stats:', error);
-      toast.error('Failed to load subjects');
+      console.error('Error fetching mock tests:', error);
+      toast.error('Failed to load mock tests');
     } finally {
       setLoading(false);
     }
   };
+
   const getSubjectLabel = (subject: string) => {
     const labels: Record<string, string> = {
       'mathematics': 'Mathematics',
@@ -74,9 +77,10 @@ const MockExamSelect = () => {
     return labels[subject] || subject;
   };
 
-  // Filter subjects
-  const filteredSubjects = useMemo(() => {
-    let filtered = subjectStats;
+  // Filter tests
+  const filteredTests = useMemo(() => {
+    let filtered = mockTests;
+    
     if (selectedSubject !== 'All Subjects') {
       const subjectValue: Record<string, string> = {
         'Mathematics': 'mathematics',
@@ -89,59 +93,50 @@ const MockExamSelect = () => {
       };
       const val = subjectValue[selectedSubject];
       if (val) {
-        filtered = filtered.filter(stat => stat.subject === val);
+        filtered = filtered.filter(test => test.subject === val);
       }
     }
+    
     if (searchTerm) {
       const query = searchTerm.toLowerCase();
-      filtered = filtered.filter(stat => getSubjectLabel(stat.subject).toLowerCase().includes(query));
+      filtered = filtered.filter(test => 
+        test.title.toLowerCase().includes(query) ||
+        test.topic.toLowerCase().includes(query) ||
+        getSubjectLabel(test.subject).toLowerCase().includes(query)
+      );
     }
 
-    // Sort subjects in specific order
-    const subjectOrder = ['mathematics', 'science', 'language_literature', 'social_studies', 'physics', 'chemistry', 'biology'];
-    return filtered.sort((a, b) => {
-      const indexA = subjectOrder.indexOf(a.subject);
-      const indexB = subjectOrder.indexOf(b.subject);
-      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-    });
-  }, [subjectStats, searchTerm, selectedSubject]);
-  const [loadingSubject, setLoadingSubject] = useState<string | null>(null);
+    return filtered;
+  }, [mockTests, searchTerm, selectedSubject]);
 
-  const handleStartSubject = async (subjectKey: string) => {
-    setLoadingSubject(subjectKey);
+  const handleStartExam = async (testId: string) => {
+    setLoadingTestId(testId);
     try {
-      // Fetch tests for this subject
-      const { data: tests, error: testsError } = await supabase
-        .from('mock_tests')
-        .select('id')
-        .eq('subject', subjectKey as any)
-        .eq('is_published', true);
-
-      if (testsError) throw testsError;
-
-      if (!tests || tests.length === 0) {
-        toast.error('No questions available for this subject');
-        setLoadingSubject(null);
-        return;
-      }
-
-      const testIds = tests.map(t => t.id);
-
-      // Fetch all questions for these tests
+      const test = mockTests.find(t => t.id === testId);
+      
+      // Fetch questions for this specific test
       const { data: questions, error: questionsError } = await supabase
         .from('mock_questions')
         .select('*, mock_sub_questions(*)')
-        .in('mock_test_id', testIds)
+        .eq('mock_test_id', testId)
         .order('question_number');
 
       if (questionsError) throw questionsError;
 
-      // Navigate directly to unified exam with questions
+      if (!questions || questions.length === 0) {
+        toast.error('No questions available for this test');
+        setLoadingTestId(null);
+        return;
+      }
+
+      // Navigate to unified exam with questions
       navigate('/mock-exams/unified', {
         state: {
-          subject: getSubjectLabel(subjectKey),
-          subjectKey,
-          title: getSubjectLabel(subjectKey),
+          testId,
+          subject: getSubjectLabel(test?.subject || ''),
+          subjectKey: test?.subject,
+          title: test?.title || 'Mock Exam',
+          topic: test?.topic,
           questions: questions || []
         }
       });
@@ -149,62 +144,68 @@ const MockExamSelect = () => {
       console.error('Error loading questions:', error);
       toast.error('Failed to load questions');
     } finally {
-      setLoadingSubject(null);
+      setLoadingTestId(null);
     }
   };
+
   if (loading) {
-    return <div className="min-h-screen flex flex-col">
+    return (
+      <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 bg-gradient-to-br from-blue-50 to-slate-50 flex items-center justify-center">
-          <div className="text-lg">Loading mock tests...</div>
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="ml-2 text-lg">Loading mock tests...</span>
         </main>
         <Footer />
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen flex flex-col">
+
+  return (
+    <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}
         <section className="py-12 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b border-border">
           <div className="container">
-            <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} className="text-center max-w-3xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center max-w-3xl mx-auto"
+            >
               <h1 className="text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Mock Examinations
               </h1>
               <p className="text-xl text-muted-foreground">
-                Select a subject to start your unified exam experience
+                Select a test to start your timed exam experience
               </p>
             </motion.div>
           </div>
         </section>
 
-        {/* Subject Browser Section */}
+        {/* Test Browser Section */}
         <section className="py-8 bg-muted/30">
           <div className="container">
-            <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.3
-          }} className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Browse by Subject</h2>
-              <p className="text-muted-foreground">Select a subject to view available mock tests</p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center mb-8"
+            >
+              <h2 className="text-2xl font-bold text-foreground mb-2">Available Mock Tests</h2>
+              <p className="text-muted-foreground">Choose a test to begin your examination</p>
             </motion.div>
 
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto mb-8">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input placeholder="Search subjects..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Input
+                  placeholder="Search tests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
               <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                 <SelectTrigger className="w-full md:w-64">
@@ -223,32 +224,57 @@ const MockExamSelect = () => {
               </Select>
             </div>
 
-            {/* Subject Cards */}
-            {filteredSubjects.length === 0 ? <div className="text-center py-12 space-y-4">
-                <p className="text-muted-foreground text-lg">No subjects available.</p>
-                <p className="text-sm text-muted-foreground">Tests must be published by an administrator to appear here.</p>
-              </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredSubjects.map(stat => (
-                  <div key={stat.subject} className="relative">
-                    {loadingSubject === stat.subject && (
+            {/* Test Cards */}
+            {filteredTests.length === 0 ? (
+              <div className="text-center py-12 space-y-4">
+                <p className="text-muted-foreground text-lg">No mock tests available.</p>
+                <p className="text-sm text-muted-foreground">
+                  Tests must be published by an administrator to appear here.
+                </p>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
+                {filteredTests.map((test, index) => (
+                  <motion.div
+                    key={test.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                    className="relative"
+                  >
+                    {loadingTestId === test.id && (
                       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       </div>
                     )}
-                    <SubjectTestCard 
-                      subject={getSubjectLabel(stat.subject)} 
-                      subjectKey={stat.subject} 
-                      totalQuestions={stat.totalQuestions} 
-                      totalTests={stat.totalTests} 
-                      onStart={handleStartSubject} 
+                    <MockTestCard
+                      test={{
+                        id: test.id,
+                        title: test.title,
+                        subject: test.subject,
+                        topic: test.topic,
+                        total_questions: test.total_questions,
+                        is_published: test.is_published,
+                        created_at: test.created_at
+                      }}
+                      onStart={handleStartExam}
+                      isAdmin={false}
                     />
-                  </div>
+                  </motion.div>
                 ))}
-              </div>}
+              </motion.div>
+            )}
           </div>
         </section>
       </main>
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default MockExamSelect;
