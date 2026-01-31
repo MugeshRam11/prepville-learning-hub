@@ -606,16 +606,6 @@ const UnifiedMockExamContent = () => {
           </div>
         </div>
 
-        {/* Right Navigation sidebar - visible when focus mode is off */}
-        {!focusMode.isActive && (
-          <UnifiedExamSidebar
-            questions={examData.questions}
-            answers={answers}
-            activeQuestionId={activeQuestionId}
-            activeSubQuestionId={activeSubQuestionId}
-            onNavigate={handleNavigate}
-          />
-        )}
       </div>
     </div>
   );
