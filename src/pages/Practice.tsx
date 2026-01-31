@@ -1,11 +1,9 @@
-
 import React from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Clock, BookOpen, Calendar } from 'lucide-react';
+import { BookOpen, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Practice = () => {
@@ -20,93 +18,90 @@ const Practice = () => {
           <div className="container">
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-                Practice & Test Yourself
+                Practice & Learn
               </h1>
               <p className="text-xl text-muted-foreground">
-                Interactive quizzes and practice tests designed to improve your understanding and exam performance.
+                Choose your learning path: explore subjects at your own pace or test yourself with timed mock exams.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Practice Options */}
+        {/* Practice Options - Only 2 clear paths */}
         <section className="py-16 bg-white">
           <div className="container">
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
-              <Card className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <Clock className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <CardTitle>Quick Practice</CardTitle>
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {/* Study & Learn Card */}
+              <Card className="text-center hover:shadow-lg transition-shadow border-2 hover:border-green-200">
+                <CardHeader className="pb-4">
+                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="w-8 h-8 text-green-600" />
+                  </div>
+                  <CardTitle className="text-2xl">Study & Learn</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    5-10 question mini-quizzes for quick topic review
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Explore subjects, practice questions with explanations and hints. Learn at your own pace with no time pressure.
                   </p>
-                  <Button className="w-full" onClick={() => navigate('/quick-practice')}>
-                    Start Quick Quiz
+                  <ul className="text-sm text-left text-muted-foreground space-y-2 px-4">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      Step-by-step solutions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      Hints and explanations
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      No timer or pressure
+                    </li>
+                  </ul>
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700" 
+                    size="lg"
+                    onClick={() => navigate('/subjects')}
+                  >
+                    Browse Subjects
                   </Button>
                 </CardContent>
               </Card>
 
-              <Card className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <BookOpen className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                  <CardTitle>Topic Practice</CardTitle>
+              {/* Mock Exams Card */}
+              <Card className="text-center hover:shadow-lg transition-shadow border-2 hover:border-purple-200">
+                <CardHeader className="pb-4">
+                  <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-2xl">Mock Exams</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Focused practice on specific topics and concepts
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Timed exam simulations under real conditions. Evaluate your knowledge and get ready for the actual exam.
                   </p>
-                  <Button className="w-full">Choose Topic</Button>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <Calendar className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-                  <CardTitle>Mock Exams</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Full-length exam simulations with comprehensive questions
-                  </p>
-                  <Button className="w-full" onClick={() => navigate('/mock-exams/select')}>
+                  <ul className="text-sm text-left text-muted-foreground space-y-2 px-4">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+                      Timed assessment
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+                      Real exam conditions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+                      Score and feedback after submission
+                    </li>
+                  </ul>
+                  <Button 
+                    className="w-full bg-purple-600 hover:bg-purple-700" 
+                    size="lg"
+                    onClick={() => navigate('/mock-exams/select')}
+                  >
                     Take Mock Exam
                   </Button>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Recent Practice Sessions */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Continue Your Practice</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3, 4, 5, 6].map((item) => (
-                  <Card key={item} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start">
-                        <Badge variant="secondary">MYP Math</Badge>
-                        <span className="text-sm text-muted-foreground">75% Complete</span>
-                      </div>
-                      <CardTitle className="text-lg">Algebra Fundamentals</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
-                        </div>
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>15/20 Questions</span>
-                          <span>12 min left</span>
-                        </div>
-                        <Button className="w-full" variant="outline">
-                          Continue Practice
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
             </div>
           </div>
         </section>

@@ -32,7 +32,7 @@ const Header = () => {
   // Navigation items when logged in
   const loggedInNavItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/quick-practice', label: 'Quick Practice', icon: Target },
+    { href: '/practice', label: 'Practice', icon: Target },
     { href: '/subjects', label: 'Subjects', icon: BookOpen },
     { href: '/study-materials', label: 'Study Materials', icon: Library },
     { href: '/videos', label: 'Videos', icon: Play },
