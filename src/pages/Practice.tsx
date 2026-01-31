@@ -96,7 +96,7 @@ const Practice = () => {
                           <span>15/20 Questions</span>
                           <span>12 min left</span>
                         </div>
-                        <Button className="w-full" variant="outline">
+                        <Button className="w-full" variant="outline" onClick={() => navigate('/practice/exam')}>
                           Continue Practice
                         </Button>
                       </div>
