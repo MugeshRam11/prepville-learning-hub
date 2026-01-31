@@ -7,8 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2 } from 'lucide-react';
-import MockTestCard from '@/components/mock-exam/MockTestCard';
+import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
 import { motion } from 'framer-motion';
+
+interface SubjectGroup {
+  subject: string;
+  subjectKey: string;
+  totalQuestions: number;
+  totalTests: number;
+}
 
 interface MockTest {
   id: string;
@@ -26,7 +33,6 @@ const MockExamSelect = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
   const [loading, setLoading] = useState(true);
-  const [loadingTestId, setLoadingTestId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMockTests();
@@ -109,43 +115,28 @@ const MockExamSelect = () => {
     return filtered;
   }, [mockTests, searchTerm, selectedSubject]);
 
-  const handleStartExam = async (testId: string) => {
-    setLoadingTestId(testId);
-    try {
-      const test = mockTests.find(t => t.id === testId);
-      
-      // Fetch questions for this specific test
-      const { data: questions, error: questionsError } = await supabase
-        .from('mock_questions')
-        .select('*, mock_sub_questions(*)')
-        .eq('mock_test_id', testId)
-        .order('question_number');
-
-      if (questionsError) throw questionsError;
-
-      if (!questions || questions.length === 0) {
-        toast.error('No questions available for this test');
-        setLoadingTestId(null);
-        return;
+  // Group tests by subject
+  const groupedBySubject = useMemo(() => {
+    const groups: Record<string, SubjectGroup> = {};
+    
+    filteredTests.forEach(test => {
+      if (!groups[test.subject]) {
+        groups[test.subject] = {
+          subject: getSubjectLabel(test.subject),
+          subjectKey: test.subject,
+          totalQuestions: 0,
+          totalTests: 0
+        };
       }
+      groups[test.subject].totalQuestions += test.total_questions || 0;
+      groups[test.subject].totalTests += 1;
+    });
+    
+    return Object.values(groups);
+  }, [filteredTests]);
 
-      // Navigate to unified exam with questions
-      navigate('/mock-exams/unified', {
-        state: {
-          testId,
-          subject: getSubjectLabel(test?.subject || ''),
-          subjectKey: test?.subject,
-          title: test?.title || 'Mock Exam',
-          topic: test?.topic,
-          questions: questions || []
-        }
-      });
-    } catch (error) {
-      console.error('Error loading questions:', error);
-      toast.error('Failed to load questions');
-    } finally {
-      setLoadingTestId(null);
-    }
+  const handleStartSubject = (subjectKey: string) => {
+    navigate(`/mock-exams/subject/${subjectKey}`);
   };
 
   if (loading) {
@@ -224,8 +215,8 @@ const MockExamSelect = () => {
               </Select>
             </div>
 
-            {/* Test Cards */}
-            {filteredTests.length === 0 ? (
+            {/* Subject Cards */}
+            {groupedBySubject.length === 0 ? (
               <div className="text-center py-12 space-y-4">
                 <p className="text-muted-foreground text-lg">No mock tests available.</p>
                 <p className="text-sm text-muted-foreground">
@@ -239,31 +230,19 @@ const MockExamSelect = () => {
                 transition={{ delay: 0.4 }}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
-                {filteredTests.map((test, index) => (
+                {groupedBySubject.map((group, index) => (
                   <motion.div
-                    key={test.id}
+                    key={group.subjectKey}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * index }}
-                    className="relative"
                   >
-                    {loadingTestId === test.id && (
-                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                      </div>
-                    )}
-                    <MockTestCard
-                      test={{
-                        id: test.id,
-                        title: test.title,
-                        subject: test.subject,
-                        topic: test.topic,
-                        total_questions: test.total_questions,
-                        is_published: test.is_published,
-                        created_at: test.created_at
-                      }}
-                      onStart={handleStartExam}
-                      isAdmin={false}
+                    <SubjectTestCard
+                      subject={group.subject}
+                      subjectKey={group.subjectKey}
+                      totalQuestions={group.totalQuestions}
+                      totalTests={group.totalTests}
+                      onStart={handleStartSubject}
                     />
                   </motion.div>
                 ))}
