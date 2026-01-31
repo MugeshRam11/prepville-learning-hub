@@ -618,6 +618,8 @@ export type Database = {
           title: string
           topic: string
           total_questions: number
+          training_zip_path: string | null
+          training_zip_uploaded_at: string | null
           updated_at: string
         }
         Insert: {
@@ -629,6 +631,8 @@ export type Database = {
           title: string
           topic: string
           total_questions?: number
+          training_zip_path?: string | null
+          training_zip_uploaded_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -640,6 +644,8 @@ export type Database = {
           title?: string
           topic?: string
           total_questions?: number
+          training_zip_path?: string | null
+          training_zip_uploaded_at?: string | null
           updated_at?: string
         }
         Relationships: []

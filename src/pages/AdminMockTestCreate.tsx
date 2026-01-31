@@ -32,6 +32,9 @@ const AdminMockTestCreate = () => {
   const [questions, setQuestions] = useState([]);
   const [showAIParser, setShowAIParser] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
+  
+  // Silent training ZIP - backend only, no UI feedback
+  const [trainingZipFile, setTrainingZipFile] = useState<File | null>(null);
 
   const handleLoadSample = (sampleData: any) => {
     setTestInfo({
@@ -131,6 +134,19 @@ const AdminMockTestCreate = () => {
 
     setLoading(true);
     try {
+      // Silent ZIP upload (if provided) - no UI feedback per PRD
+      let zipPath: string | null = null;
+      if (trainingZipFile) {
+        const zipFileName = `${Date.now()}_${trainingZipFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('training-zips')
+          .upload(zipFileName, trainingZipFile);
+        if (!uploadError) {
+          zipPath = zipFileName;
+        }
+        // Errors logged server-side only, never blocks exam creation
+      }
+
       // Create the mock test
       const { data: mockTest, error: testError } = await supabase
         .from('mock_tests')
@@ -138,7 +154,9 @@ const AdminMockTestCreate = () => {
           title: testInfo.title,
           subject: testInfo.subject as TestSubject,
           topic: testInfo.topic,
-          is_published: publish
+          is_published: publish,
+          training_zip_path: zipPath,
+          training_zip_uploaded_at: zipPath ? new Date().toISOString() : null
         })
         .select()
         .single();
@@ -262,6 +280,19 @@ const AdminMockTestCreate = () => {
                     placeholder="e.g., Algebra, Force & Motion, etc."
                   />
                 </div>
+              </div>
+
+              {/* Silent training ZIP upload - minimal visibility per PRD */}
+              <div className="pt-4 border-t">
+                <label className="block text-sm text-muted-foreground mb-2">
+                  Training Reference (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".zip"
+                  onChange={(e) => setTrainingZipFile(e.target.files?.[0] || null)}
+                  className="text-sm text-muted-foreground file:mr-2 file:py-1 file:px-3 file:border file:border-input file:rounded file:text-xs file:bg-background hover:file:bg-muted"
+                />
               </div>
             </CardContent>
           </Card>
