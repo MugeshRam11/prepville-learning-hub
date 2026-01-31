@@ -6,14 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
 import { motion } from 'framer-motion';
 
-// Import the new exam mode cards
-import UnifiedExamCard from '@/components/exam-select/UnifiedExamCard';
-import PuzzleChallengeCard from '@/components/exam-select/PuzzleChallengeCard';
-import InteractiveDemoCard from '@/components/exam-select/InteractiveDemoCard';
 const MockExamSelect = () => {
   const navigate = useNavigate();
   const [subjectStats, setSubjectStats] = useState<any[]>([]);
@@ -109,8 +105,52 @@ const MockExamSelect = () => {
       return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
     });
   }, [subjectStats, searchTerm, selectedSubject]);
-  const handleStartSubject = (subjectKey: string) => {
-    navigate(`/mock-exams/subject/${subjectKey}`);
+  const [loadingSubject, setLoadingSubject] = useState<string | null>(null);
+
+  const handleStartSubject = async (subjectKey: string) => {
+    setLoadingSubject(subjectKey);
+    try {
+      // Fetch tests for this subject
+      const { data: tests, error: testsError } = await supabase
+        .from('mock_tests')
+        .select('id')
+        .eq('subject', subjectKey as any)
+        .eq('is_published', true);
+
+      if (testsError) throw testsError;
+
+      if (!tests || tests.length === 0) {
+        toast.error('No questions available for this subject');
+        setLoadingSubject(null);
+        return;
+      }
+
+      const testIds = tests.map(t => t.id);
+
+      // Fetch all questions for these tests
+      const { data: questions, error: questionsError } = await supabase
+        .from('mock_questions')
+        .select('*, mock_sub_questions(*)')
+        .in('mock_test_id', testIds)
+        .order('question_number');
+
+      if (questionsError) throw questionsError;
+
+      // Navigate directly to unified exam with questions
+      navigate('/mock-exams/unified', {
+        state: {
+          subject: getSubjectLabel(subjectKey),
+          subjectKey,
+          title: getSubjectLabel(subjectKey),
+          questions: questions || []
+        }
+      });
+    } catch (error) {
+      console.error('Error loading questions:', error);
+      toast.error('Failed to load questions');
+    } finally {
+      setLoadingSubject(null);
+    }
   };
   if (loading) {
     return <div className="min-h-screen flex flex-col">
@@ -135,35 +175,17 @@ const MockExamSelect = () => {
             y: 0
           }} className="text-center max-w-3xl mx-auto">
               <h1 className="text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Unified Testing System
+                Mock Examinations
               </h1>
               <p className="text-xl text-muted-foreground">
-                Choose your exam mode. Auto-detect question types. Experience intelligent interactive testing.
+                Select a subject to start your unified exam experience
               </p>
             </motion.div>
           </div>
         </section>
 
-        {/* Exam Mode Cards Section */}
-        <section className="py-8 space-y-6">
-          <div className="container max-w-4xl mx-auto space-y-6">
-            {/* Card 1 - Unified Mock Exam (Recommended) */}
-            <div className="bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-cyan-500/5 rounded-2xl p-6">
-              <UnifiedExamCard />
-            </div>
-
-            {/* Card 2 - Puzzle Challenge (New) */}
-            
-
-            {/* Card 3 - Interactive Demo */}
-            <div className="bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-pink-500/5 rounded-2xl p-6">
-              <InteractiveDemoCard />
-            </div>
-          </div>
-        </section>
-
         {/* Subject Browser Section */}
-        <section className="py-8 border-t border-border bg-muted/30">
+        <section className="py-8 bg-muted/30">
           <div className="container">
             <motion.div initial={{
             opacity: 0,
@@ -206,7 +228,22 @@ const MockExamSelect = () => {
                 <p className="text-muted-foreground text-lg">No subjects available.</p>
                 <p className="text-sm text-muted-foreground">Tests must be published by an administrator to appear here.</p>
               </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredSubjects.map(stat => <SubjectTestCard key={stat.subject} subject={getSubjectLabel(stat.subject)} subjectKey={stat.subject} totalQuestions={stat.totalQuestions} totalTests={stat.totalTests} onStart={handleStartSubject} />)}
+                {filteredSubjects.map(stat => (
+                  <div key={stat.subject} className="relative">
+                    {loadingSubject === stat.subject && (
+                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                    <SubjectTestCard 
+                      subject={getSubjectLabel(stat.subject)} 
+                      subjectKey={stat.subject} 
+                      totalQuestions={stat.totalQuestions} 
+                      totalTests={stat.totalTests} 
+                      onStart={handleStartSubject} 
+                    />
+                  </div>
+                ))}
               </div>}
           </div>
         </section>
