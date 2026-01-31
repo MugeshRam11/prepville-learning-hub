@@ -1,160 +1,196 @@
 
+# Plan: Unified Mock Exam – Direct Navigation Flow
 
-# Bug Fix Plan: MockExamSummary Data Format Mismatch
+## Overview
 
-## Problem Identified
-
-The `MockExamSummary` page crashes after exam submission with:
-```
-TypeError: Cannot read properties of undefined (reading 'slice')
-```
-
-**Root Cause**: The Unified Mock Exam uses `UnifiedQuestion` type with `questionText` property, but the Summary page expects `text` property.
-
-| Source | Property Used |
-|--------|---------------|
-| UnifiedMockExam.tsx | `question.questionText` |
-| MockExamSummary.tsx | `question.text` |
-
-Additionally, the answers format differs:
-- UnifiedMockExam passes `UnifiedAnswer[]` with `content` property
-- MockExamSummary expects `Answer[]` with `content` AND checks for `wordCount`
+Simplify the student exam experience by making **Unified Mock Exam the ONLY entry point** for all subject-based exams. This eliminates decision fatigue and streamlines the user journey.
 
 ---
 
-## Solution Overview
+## Current Flow (Problem)
 
-Update `MockExamSummary.tsx` to handle both data formats - the legacy format from `MockExamStart.tsx` and the new unified format from `UnifiedMockExam.tsx`.
+```text
+/mock-exams/select → Subject Card → /mock-exams/subject/:subject
+                                            ↓
+                         ┌──────────────────┴──────────────────┐
+                         │                                      │
+                    [Standard Test]                    [Interactive Test]
+                         ↓                                      ↓
+                /mock-exams/start              /mock-exams/interactive
+```
+
+**Issues:**
+- Two competing "Start" buttons cause confusion
+- Extra page (`MockExamSubjectView`) adds unnecessary clicks
+- Split experience between Standard/Interactive modes
+
+---
+
+## New Flow (Solution)
+
+```text
+/mock-exams/select → Subject Card → /mock-exams/unified
+                                            ↓
+                              [Single Unified Exam Experience]
+                              (Graph, Drag & Drop, Image Zones, Smart Math)
+```
+
+**Benefits:**
+- Zero intermediate screens
+- No user decisions required
+- Same interactive features for all subjects
 
 ---
 
 ## Implementation Details
 
-### Phase 1: Add Type Detection and Data Normalization
+### Phase 1: Update Subject Card Navigation
 
-Add a normalization function at the top of the component to detect which format was received and convert to a common structure:
+**File:** `src/components/mock-exam/SubjectTestCard.tsx`
 
-```typescript
-// Detect if this is unified exam format
-const isUnifiedFormat = location.state?.isUnified === true;
+**Change:** Modify the `onStart` callback to navigate directly to unified exam with subject-loaded questions.
 
-// Normalize question text access
-const getQuestionText = (question: any) => {
-  return question.questionText || question.text || '';
-};
+Current behavior:
+```tsx
+onClick={() => onStart(subjectKey)}
+// Parent routes to: /mock-exams/subject/${subjectKey}
+```
 
-// Normalize sub-question text access  
-const getSubQuestionText = (subQuestion: any) => {
-  return subQuestion.text || '';
+New behavior:
+```tsx
+// Load questions and navigate directly to unified exam
+onClick={async () => {
+  const questions = await fetchQuestionsForSubject(subjectKey);
+  navigate('/mock-exams/unified', {
+    state: {
+      subject: subjectLabel,
+      subjectKey,
+      title: subjectLabel,
+      questions
+    }
+  });
+}}
+```
+
+### Phase 2: Update MockExamSelect Page
+
+**File:** `src/pages/MockExamSelect.tsx`
+
+**Changes:**
+1. Change `handleStartSubject` to fetch questions and navigate directly to `/mock-exams/unified`
+2. Remove `InteractiveDemoCard` import and rendering (optional - can keep for demo purposes)
+
+```tsx
+const handleStartSubject = async (subjectKey: string) => {
+  // Fetch questions for the subject
+  const { data: tests } = await supabase
+    .from('mock_tests')
+    .select('id')
+    .eq('subject', subjectKey)
+    .eq('is_published', true);
+
+  if (!tests || tests.length === 0) {
+    toast.error('No questions available for this subject');
+    return;
+  }
+
+  const testIds = tests.map(t => t.id);
+  const { data: questions } = await supabase
+    .from('mock_questions')
+    .select('*, mock_sub_questions(*)')
+    .in('mock_test_id', testIds)
+    .order('question_number');
+
+  // Navigate directly to Unified Exam
+  navigate('/mock-exams/unified', {
+    state: {
+      subject: getSubjectLabel(subjectKey),
+      subjectKey,
+      title: getSubjectLabel(subjectKey),
+      questions: questions || []
+    }
+  });
 };
 ```
 
-### Phase 2: Fix All Text Access Points
+### Phase 3: Simplify MockExamSelect UI
 
-Update all locations where `.text` is accessed to use the safe accessor:
+**File:** `src/pages/MockExamSelect.tsx`
 
-**Line 318** (Overview tab - main question text):
-```typescript
-// Before
-<h4>Q{index + 1}: {question.text.slice(0, 60)}...</h4>
+**Remove or hide:**
+- `InteractiveDemoCard` component (or keep for demo/training purposes)
+- Hero text mentioning "Choose your exam mode"
 
-// After
-<h4>Q{index + 1}: {getQuestionText(question).slice(0, 60)}...</h4>
+**Keep:**
+- `UnifiedExamCard` as the prominent entry
+- Subject browser section with cards
+
+**Updated Hero Text:**
+```tsx
+<h1>Mock Examinations</h1>
+<p>Select a subject to start your unified exam experience</p>
 ```
 
-**Line 327** (Overview tab - sub-question text):
-```typescript
-// Before
-<span>{subQ.text.slice(0, 40)}...</span>
+### Phase 4: Update Routing (Optional Cleanup)
 
-// After
-<span>{getSubQuestionText(subQ).slice(0, 40)}...</span>
-```
+**File:** `src/App.tsx`
 
-### Phase 3: Handle Answer Format Differences
+The `/mock-exams/subject/:subject` route can be:
+- **Option A:** Redirected to fetch questions and navigate to unified (keep backward compatibility)
+- **Option B:** Removed entirely (breaking change for bookmarks)
 
-The unified format passes answers as `UnifiedAnswer[]` with `content` that may be string or object:
-
-```typescript
-// Normalize answer content
-const getAnswerContent = (answer: any) => {
-  if (typeof answer.content === 'string') return answer.content;
-  if (typeof answer.content === 'object') return JSON.stringify(answer.content);
-  return '';
-};
-
-// Normalize word count
-const getWordCount = (answer: any) => {
-  const content = getAnswerContent(answer);
-  return answer.wordCount || content.split(/\s+/).filter(Boolean).length;
-};
-```
-
-### Phase 4: Fix Detailed Answers Tab
-
-Update the detailed answers section to handle unified format:
-
-```typescript
-// Line 368-391: Fix detailed answers rendering
-{answersArray.map((answer: any, index: number) => {
-  const question = questions.find((q: any) => 
-    q.id === answer.questionId
-  );
-  const subQuestion = answer.subQuestionId 
-    ? question?.subQuestions?.find((sq: any) => sq.id === answer.subQuestionId) 
-    : null;
-  
-  return (
-    <div key={index}>
-      <h4>{getQuestionText(question)}</h4>
-      {subQuestion && <span>{getSubQuestionText(subQuestion)}</span>}
-      <Badge>{getWordCount(answer)} words</Badge>
-      <p>{getAnswerContent(answer)}</p>
-    </div>
-  );
-})}
+**Recommended:** Option A - Add redirect logic in `MockExamSubjectView.tsx`:
+```tsx
+useEffect(() => {
+  // Auto-redirect to unified exam with loaded questions
+  if (questions.length > 0 && !loading) {
+    navigate('/mock-exams/unified', {
+      state: { subject, questions, title: getSubjectLabel(subject) },
+      replace: true
+    });
+  }
+}, [questions, loading]);
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/pages/MockExamSummary.tsx` | Major | Add format detection, safe accessors, handle unified format |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/pages/MockExamSelect.tsx` | Modify | Update `handleStartSubject` to navigate directly to unified with questions |
+| `src/pages/MockExamSubjectView.tsx` | Modify | Auto-redirect to unified exam after loading questions |
+| `src/components/mock-exam/SubjectTestCard.tsx` | Keep | No changes needed (uses parent's `onStart`) |
 
 ---
 
-## Technical Notes
+## Files to Keep (No Changes)
 
-### Backward Compatibility
-- The fix maintains compatibility with the existing `MockExamStart.tsx` flow
-- Uses fallback pattern: `question.questionText || question.text`
-- Works for both array and object answer formats
-
-### Type Safety
-- Add defensive checks for undefined values
-- Use optional chaining throughout
-- Provide empty string defaults
-
-### Testing Checklist After Implementation
-1. Submit exam from UnifiedMockExam - verify summary loads
-2. Submit exam from MockExamStart - verify still works
-3. Verify AI evaluation results display correctly
-4. Verify marks are calculated and displayed
-5. Verify detailed answers tab shows correct content
-6. Check for any console errors
+| File | Reason |
+|------|--------|
+| `src/pages/UnifiedMockExam.tsx` | Core exam engine - no changes |
+| `src/pages/MockExamStart.tsx` | Keep for backward compatibility (legacy links) |
+| `src/pages/InteractiveMockExam.tsx` | Keep for backward compatibility |
+| `src/App.tsx` | Keep all routes for backward compatibility |
 
 ---
 
-## Additional Considerations
+## Out of Scope (Per PRD)
 
-### Database Persistence (Not Fixed in This Plan)
-The audit revealed that exam results are NOT being saved to the database. The `test_attempts` and `user_answers` tables have 0 records. This should be addressed in a follow-up implementation.
+- No changes to exam logic
+- No changes to question types
+- No changes to evaluation
+- No changes to timer logic
+- No changes to AI/OCR
 
-### Score Persistence Flow
-```text
-Current: Submit → AI Evaluate → Display → Navigate Away → LOST
-Needed:  Submit → AI Evaluate → Save to DB → Display → Persisted
-```
+---
+
+## Testing Checklist
+
+After implementation:
+1. Click any subject card → Should go directly to `/mock-exams/unified`
+2. Unified exam should load with correct subject questions
+3. All interactive question types should work (Graph, Drag & Drop, etc.)
+4. Submit should navigate to summary correctly
+5. Old bookmarks to `/mock-exams/subject/:subject` should auto-redirect
 
