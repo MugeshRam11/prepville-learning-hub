@@ -1,452 +1,163 @@
 
-# Plan: Sync Admin Practice-QA to /practice & Mock Tests to /mock-exams/select with Real-Time Updates
 
-## Problem Summary
+# Plan: Group Mock Tests by Subject (One Card Per Subject)
 
-Currently:
-1. **`/practice`** page shows hardcoded placeholder cards (6 fake "Continue Your Practice" cards) - not synced with admin uploads
-2. **`/mock-exams/select`** shows data from `mock_tests` table but groups by subject only - not showing individual tests
-3. **Admin `/admin/tests` (Practice-QA)** manages `tests` table with `test_type = 'quick_test'` 
-4. **Admin `/admin/mock-tests`** manages `mock_tests` table
-5. Both admin panels already have real-time subscriptions for their own data, but user-facing pages need sync
+## Problem
 
-## Data Flow Understanding
+Currently `/mock-exams/select` displays:
+- **Individual test cards** - Each test is a separate card
+- If you have 3 Mathematics tests, you see 3 separate cards
 
-| Admin Page | Database Table | User Page | Status |
-|------------|----------------|-----------|--------|
-| `/admin/tests` (Practice-QA) | `tests` (where test_type='quick_test') + `questions` | `/practice` | Not synced - shows hardcoded data |
-| `/admin/mock-tests` | `mock_tests` + `mock_questions` | `/mock-exams/select` | Partially synced (groups by subject only) |
+## What You Want
+
+- **One card per subject** - Group all tests under their subject
+- Shows: Subject name, total questions across all tests, test count
+- Clicking "Start Test" navigates to a subject view where user can pick specific test
 
 ---
 
-## Solution Overview
-
-### Part 1: Sync `/admin/tests` → `/practice`
-
-Fetch from `tests` table (where `test_type = 'quick_test'` AND `is_active = true`) and display as individual practice test cards with real-time updates.
-
-### Part 2: Sync `/admin/mock-tests` → `/mock-exams/select`
-
-Fetch from `mock_tests` table (where `is_published = true`) and display as individual test cards (not grouped by subject) with real-time updates.
-
-### Part 3: Separate Cards by Type
-
-Each test should be displayed as an individual card with its own metadata (title, subject, questions count, etc.)
-
----
-
-## Phase 1: Update Practice Page (`/practice`)
-
-**File**: `src/pages/Practice.tsx`
-
-### Current State (Wrong)
-- Shows 3 static option cards (Quick Practice, Topic Practice, Mock Exams)
-- Shows 6 hardcoded fake "Continue Your Practice" cards with placeholder data
-- No database connection to `tests` table
-
-### New State (Correct)
-- Hero section: "Practice & Learn"
-- Fetch from `tests` table: `SELECT * FROM tests WHERE test_type = 'quick_test' AND is_active = true`
-- Subscribe to real-time changes on `tests` table
-- Display each test as an individual card
-- Card shows: title, description, question count, difficulty, "Start Practice" button
-- Button navigates to `/practice/exam` with test data
-
-### Database Query
-```typescript
-const { data, error } = await supabase
-  .from('tests')
-  .select('*, questions(count)')
-  .eq('test_type', 'quick_test')
-  .eq('is_active', true)
-  .order('created_at', { ascending: false });
-```
-
-### Real-time Subscription
-```typescript
-const channel = supabase.channel('practice_tests_changes')
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'tests',
-    filter: 'test_type=eq.quick_test'
-  }, () => {
-    fetchPracticeTests();
-  })
-  .subscribe();
-```
-
-### Card Design
-Each Practice-QA card will display:
-- Green "Practice-QA" badge
-- Test title
-- Description (if available)
-- Question count
-- Difficulty level badge
-- Time estimate
-- "Start Practice" button → navigates to `/practice/exam`
-
----
-
-## Phase 2: Update Mock Exams Select Page (`/mock-exams/select`)
-
-**File**: `src/pages/MockExamSelect.tsx`
-
-### Current State
-- Fetches from `mock_tests` table
-- Aggregates by subject (groups tests)
-- Shows subject cards like "Mathematics", "Physics" etc.
-- Already has real-time subscription
-
-### New State
-- Remove subject aggregation
-- Display each mock test as an individual card
-- Show: title, topic, subject badge, question count, "Start Exam" button
-- Keep real-time subscription (already exists)
-
-### Database Query (Updated)
-```typescript
-const { data, error } = await supabase
-  .from('mock_tests')
-  .select('*')
-  .eq('is_published', true)
-  .order('subject', { ascending: true })
-  .order('created_at', { ascending: false });
-```
-
-### Card Design
-Each Mock Test card will display:
-- Subject badge (e.g., "MYP Mathematics")
-- Test title
-- Topic
-- Question count
-- Published status indicator
-- "Start Exam" button → navigates to `/mock-exams/unified`
-
----
-
-## Phase 3: Create Reusable Test Card Components
-
-### New Component: `PracticeTestCard.tsx`
-**File**: `src/components/practice/PracticeTestCard.tsx`
-
-```typescript
-interface PracticeTestCardProps {
-  id: string;
-  title: string;
-  description?: string;
-  totalQuestions: number;
-  difficulty: string;
-  timeLimitMinutes: number;
-  onStart: (testId: string) => void;
-}
-```
-
-Features:
-- Green border/accent for practice mode
-- "Practice-QA" badge
-- Difficulty indicator
-- No timer pressure language
-
-### New Component: `MockTestCard.tsx`
-**File**: `src/components/mock-exam/MockTestCard.tsx`
-
-```typescript
-interface MockTestCardProps {
-  id: string;
-  title: string;
-  subject: string;
-  topic: string;
-  totalQuestions: number;
-  timeLimitMinutes?: number;
-  onStart: (testId: string, questions: any[]) => void;
-}
-```
-
-Features:
-- Blue/primary accent for exam mode
-- Subject badge with color coding
-- "Start Exam" button
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/practice/PracticeTestCard.tsx` | Individual practice test card component |
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Practice.tsx` | Complete overhaul - fetch from `tests` table, real-time sync, show individual cards |
-| `src/pages/MockExamSelect.tsx` | Update to show individual mock tests instead of subject groups |
-| `src/components/mock-exam/MockTestCard.tsx` | Already exists - may need minor updates |
-
----
-
-## Technical Implementation Details
-
-### Practice.tsx - New Structure
-
-```tsx
-const Practice = () => {
-  const navigate = useNavigate();
-  const [practiceTests, setPracticeTests] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchPracticeTests();
-
-    // Real-time subscription
-    const channel = supabase.channel('practice_tests_sync')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'tests'
-      }, () => {
-        fetchPracticeTests();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchPracticeTests = async () => {
-    const { data, error } = await supabase
-      .from('tests')
-      .select('*')
-      .eq('test_type', 'quick_test')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-    
-    if (!error) {
-      setPracticeTests(data || []);
-    }
-    setLoading(false);
-  };
-
-  const handleStartPractice = async (testId: string) => {
-    // Fetch questions for this test
-    const { data: questions } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('test_id', testId);
-
-    navigate('/practice/exam', {
-      state: {
-        testId,
-        questions,
-        title: test.title
-      }
-    });
-  };
-
-  return (
-    <div>
-      <Header />
-      {/* Hero */}
-      <section className="py-12 bg-gradient-to-br from-green-50 to-emerald-50">
-        <h1>Practice & Learn</h1>
-        <p>No timer, no pressure. Learn at your own pace.</p>
-      </section>
-
-      {/* Practice Test Cards */}
-      <section className="py-8">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {practiceTests.map(test => (
-            <PracticeTestCard
-              key={test.id}
-              id={test.id}
-              title={test.title}
-              description={test.description}
-              totalQuestions={test.total_questions}
-              difficulty={test.difficulty_level}
-              timeLimitMinutes={test.time_limit_minutes}
-              onStart={handleStartPractice}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Link to Mock Exams */}
-      <section>
-        <Button onClick={() => navigate('/mock-exams/select')}>
-          Take Mock Exam
-        </Button>
-      </section>
-      <Footer />
-    </div>
-  );
-};
-```
-
-### MockExamSelect.tsx - Updated Structure
-
-```tsx
-const MockExamSelect = () => {
-  const [mockTests, setMockTests] = useState([]);
-  
-  useEffect(() => {
-    fetchMockTests();
-
-    // Real-time subscription (already exists, keep it)
-    const channel = supabase.channel('mock_tests_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'mock_tests'
-      }, () => {
-        fetchMockTests();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchMockTests = async () => {
-    // Fetch individual tests, not grouped by subject
-    const { data, error } = await supabase
-      .from('mock_tests')
-      .select('*')
-      .eq('is_published', true)
-      .order('subject')
-      .order('created_at', { ascending: false });
-
-    if (!error) {
-      setMockTests(data || []);
-    }
-  };
-
-  const handleStartExam = async (testId: string) => {
-    const { data: questions } = await supabase
-      .from('mock_questions')
-      .select('*, mock_sub_questions(*)')
-      .eq('mock_test_id', testId)
-      .order('question_number');
-
-    navigate('/mock-exams/unified', {
-      state: {
-        testId,
-        questions,
-        ...testMetadata
-      }
-    });
-  };
-
-  return (
-    <div>
-      {/* Display individual mock test cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockTests.map(test => (
-          <MockTestCard
-            key={test.id}
-            id={test.id}
-            title={test.title}
-            subject={test.subject}
-            topic={test.topic}
-            totalQuestions={test.total_questions}
-            onStart={handleStartExam}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-```
-
----
-
-## Visual Result Summary
-
-### `/practice` (After)
+## Current Flow (Wrong)
 ```text
-+--------------------------------------------------+
-|            Practice & Learn                       |
-|  No timer, no pressure. Learn at your own pace.  |
-+--------------------------------------------------+
-|                                                   |
-|  +----------+  +----------+  +----------+         |
-|  | Practice |  | Practice |  | Practice |         |
-|  | QA       |  | QA       |  | QA       |         |
-|  | Title 1  |  | Title 2  |  | Title 3  |         |
-|  | 20 Qs    |  | 15 Qs    |  | 25 Qs    |         |
-|  | Easy     |  | Medium   |  | Hard     |         |
-|  | [Start]  |  | [Start]  |  | [Start]  |         |
-|  +----------+  +----------+  +----------+         |
-|                                                   |
-|  [Take Mock Exam →] /mock-exams/select            |
-+--------------------------------------------------+
++------------------+  +------------------+  +------------------+
+| MYP Mathematics  |  | MYP Mathematics  |  | MYP Physics      |
+| Algebra Test 1   |  | Geometry Test    |  | Mechanics        |
+| 20 Questions     |  | 15 Questions     |  | 25 Questions     |
+| [Start]          |  | [Start]          |  | [Start]          |
++------------------+  +------------------+  +------------------+
 ```
 
-### `/mock-exams/select` (After)
+## New Flow (Grouped by Subject)
 ```text
-+--------------------------------------------------+
-|           Mock Examinations                       |
-|  Timed exam simulations under real conditions    |
-+--------------------------------------------------+
-|                                                   |
-|  +----------+  +----------+  +----------+         |
-|  | MYP Math |  | MYP Phys |  | MYP Chem |         |
-|  | Algebra  |  | Mechanics|  | Organic  |         |
-|  | 48 Qs    |  | 35 Qs    |  | 40 Qs    |         |
-|  | [Start]  |  | [Start]  |  | [Start]  |         |
-|  +----------+  +----------+  +----------+         |
-|                                                   |
-+--------------------------------------------------+
++------------------+  +------------------+  +------------------+
+| Mathematics      |  | Physics          |  | Chemistry        |
+| Math Topics      |  | Physics Topics   |  | Chemistry Topics |
+| 35 Questions     |  | 25 Questions     |  | 40 Questions     |
+| [Start Test]     |  | [Start Test]     |  | [Start Test]     |
++------------------+  +------------------+  +------------------+
 ```
 
 ---
 
-## Real-Time Sync Behavior
+## Technical Implementation
 
-When admin publishes/updates a test:
+### File to Modify: `src/pages/MockExamSelect.tsx`
 
-1. **Admin action**: Toggle `is_active` (Practice-QA) or `is_published` (Mock Tests)
-2. **Supabase Realtime**: Broadcasts `postgres_changes` event
-3. **User page**: Subscription callback triggers `fetchTests()`
-4. **UI updates**: Card appears/disappears instantly (< 1 second)
+### Changes Required:
+
+1. **Add Subject Aggregation Logic**
+   
+   Group tests by subject and calculate totals:
+   ```typescript
+   interface SubjectGroup {
+     subject: string;
+     subjectKey: string;
+     totalQuestions: number;
+     totalTests: number;
+     tests: MockTest[];
+   }
+
+   const groupedBySubject = useMemo(() => {
+     const groups: Record<string, SubjectGroup> = {};
+     
+     filteredTests.forEach(test => {
+       if (!groups[test.subject]) {
+         groups[test.subject] = {
+           subject: getSubjectLabel(test.subject),
+           subjectKey: test.subject,
+           totalQuestions: 0,
+           totalTests: 0,
+           tests: []
+         };
+       }
+       groups[test.subject].totalQuestions += test.total_questions || 0;
+       groups[test.subject].totalTests += 1;
+       groups[test.subject].tests.push(test);
+     });
+     
+     return Object.values(groups);
+   }, [filteredTests]);
+   ```
+
+2. **Replace MockTestCard with SubjectTestCard**
+   
+   Change import:
+   ```typescript
+   import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
+   ```
+
+3. **Update Card Rendering**
+   
+   Replace individual test cards with grouped subject cards:
+   ```tsx
+   {groupedBySubject.map((group, index) => (
+     <motion.div key={group.subjectKey} ...>
+       <SubjectTestCard
+         subject={group.subject}
+         subjectKey={group.subjectKey}
+         totalQuestions={group.totalQuestions}
+         totalTests={group.totalTests}
+         onStart={handleStartSubject}
+       />
+     </motion.div>
+   ))}
+   ```
+
+4. **Update Start Handler**
+   
+   Navigate to subject view instead of directly to exam:
+   ```typescript
+   const handleStartSubject = (subjectKey: string) => {
+     navigate(`/mock-exams/subject/${subjectKey}`);
+   };
+   ```
 
 ---
 
-## Testing Checklist
+## User Flow After Change
 
-After implementation:
-
-1. **Practice Real-time Test**
-   - Admin: Create Practice-QA test and activate it
-   - User: `/practice` should show new card within 1 second
-   - Admin: Deactivate test
-   - User: Card disappears instantly
-
-2. **Mock Exam Real-time Test**
-   - Admin: Create Mock Test and publish it
-   - User: `/mock-exams/select` should show new card
-   - Admin: Unpublish test
-   - User: Card disappears
-
-3. **Individual Card Test**
-   - Each test is shown as separate card (no grouping)
-   - Card displays correct: title, questions count, difficulty
-   - Click "Start" → navigates to correct exam page with questions loaded
-
-4. **No Duplicates**
-   - Remove hardcoded placeholder cards
-   - Only database-synced cards shown
+1. User visits `/mock-exams/select`
+2. Sees **one card per subject** (Mathematics, Physics, etc.)
+3. Clicks "Start Test" on a subject
+4. Navigates to `/mock-exams/subject/:subjectKey` → Lists all tests for that subject
+5. User picks specific test → Navigates to unified exam
 
 ---
 
 ## Files Summary
 
-| Action | File |
-|--------|------|
-| Create | `src/components/practice/PracticeTestCard.tsx` |
-| Rewrite | `src/pages/Practice.tsx` |
-| Modify | `src/pages/MockExamSelect.tsx` |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/pages/MockExamSelect.tsx` | Modify | Add grouping logic, use SubjectTestCard |
+| `src/components/mock-exam/SubjectTestCard.tsx` | Keep | Already exists, may need minor update |
+
+---
+
+## Visual Result
+
+### `/mock-exams/select` After Change
+```text
++--------------------------------------------------+
+|           Mock Examinations                       |
+|  Timed exam simulations under real conditions    |
++--------------------------------------------------+
+|  [Search...]                [All Subjects v]     |
++--------------------------------------------------+
+|                                                   |
+|  +----------------+  +----------------+           |
+|  | Mathematics    |  | Physics        |           |
+|  | Math Topics    |  | Physics Topics |           |
+|  | 35 Questions   |  | 25 Questions   |           |
+|  | 2 Tests        |  | 1 Test         |           |
+|  | [Start Test]   |  | [Start Test]   |           |
+|  +----------------+  +----------------+           |
+|                                                   |
++--------------------------------------------------+
+```
+
+---
+
+## Real-Time Sync
+
+- Keep existing real-time subscription
+- When admin publishes/unpublishes a test, the grouped totals update automatically
+
