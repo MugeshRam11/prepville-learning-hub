@@ -11,7 +11,9 @@ import {
   Timer,
   Save,
   Cloud,
-  CloudOff
+  CloudOff,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -38,6 +40,7 @@ interface UnifiedExamHeaderProps {
   totalQuestions: number;
   onSubmit: () => void;
   hasStartedExam?: boolean;
+  isConnected?: boolean;
 }
 
 const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
@@ -48,7 +51,8 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
   answeredCount,
   totalQuestions,
   onSubmit,
-  hasStartedExam = false
+  hasStartedExam = false,
+  isConnected
 }) => {
   const { mode, config, autoSaveState, isTimerActive } = useExamMode();
   const [timeRemaining, setTimeRemaining] = useState(duration * 60); // seconds
@@ -145,6 +149,17 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
 
             {/* Focus Mode (only in exam mode) */}
             <FocusModeToggle />
+
+            {/* Connection indicator */}
+            {isConnected !== undefined && (
+              <div className="flex items-center gap-1">
+                {isConnected ? (
+                  <Wifi className="w-4 h-4 text-green-500" />
+                ) : (
+                  <WifiOff className="w-4 h-4 text-red-500" />
+                )}
+              </div>
+            )}
 
             {/* Auto-save indicator */}
             {config.autoSaveEnabled && (

@@ -6,13 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Sparkles, FileText } from 'lucide-react';
+import { Sparkles, FileText, Wifi, WifiOff } from 'lucide-react';
 
 import UnifiedExamHeader from '@/components/unified-exam/UnifiedExamHeader';
 import UnifiedExamSidebar from '@/components/unified-exam/UnifiedExamSidebar';
 import QuestionNavigator from '@/components/unified-exam/QuestionNavigator';
 import UnifiedQuestionCard from '@/components/unified-exam/UnifiedQuestionCard';
+import ExamSyncOverlay from '@/components/unified-exam/ExamSyncOverlay';
 import { ExamModeProvider, useExamMode } from '@/contexts/ExamModeContext';
+import { ExamSyncProvider, useExamSync } from '@/contexts/ExamSyncContext';
 import { useAutoSave } from '@/hooks/useAutoSave';
 
 import { 
@@ -53,6 +55,14 @@ const UnifiedMockExamContent = () => {
   
   // Get exam mode context
   const { mode, config, focusMode } = useExamMode();
+  
+  // Get exam sync context (optional - only when wrapped)
+  let syncContext: ReturnType<typeof useExamSync> | null = null;
+  try {
+    syncContext = useExamSync();
+  } catch {
+    // Not wrapped in ExamSyncProvider - that's okay for demo mode
+  }
   
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -421,6 +431,15 @@ const UnifiedMockExamContent = () => {
     // Save final answers before submitting
     await saveNow();
     
+    // Mark session as submitted if sync is active
+    if (syncContext) {
+      try {
+        await syncContext.submitExam();
+      } catch (error) {
+        console.error('Failed to sync submission:', error);
+      }
+    }
+    
     localStorage.removeItem(`unifiedExam_${examData.id}`);
     
     const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / (1000 * 60));
@@ -440,6 +459,13 @@ const UnifiedMockExamContent = () => {
 
     toast.success('Exam submitted successfully!');
   };
+  
+  // Sync current question position
+  useEffect(() => {
+    if (syncContext && activeQuestionId) {
+      syncContext.updateCurrentQuestion(activeQuestionId, activeSubQuestionId || undefined);
+    }
+  }, [activeQuestionId, activeSubQuestionId, syncContext]);
 
   // Get answered count
   const getAnsweredCount = () => {
@@ -487,6 +513,9 @@ const UnifiedMockExamContent = () => {
       "h-screen flex flex-col bg-background overflow-hidden transition-all",
       focusMode.isActive && "focus-mode-container"
     )}>
+      {/* Sync Overlay for paused/locked/secondary tab states */}
+      <ExamSyncOverlay onForceNavigate={() => navigate('/mock-exams/select')} />
+      
       {/* Header */}
       <UnifiedExamHeader
         title={examData.title}
@@ -497,6 +526,7 @@ const UnifiedMockExamContent = () => {
         totalQuestions={getTotalQuestionSlots()}
         onSubmit={handleSubmit}
         hasStartedExam={hasStartedExam}
+        isConnected={syncContext?.isConnected}
       />
 
       {/* Interactive Mode Toggle Bar - only in study mode */}
@@ -591,8 +621,41 @@ const UnifiedMockExamContent = () => {
   );
 };
 
+// Inner wrapper that adds sync when we have a testId
+const UnifiedMockExamWithSync: React.FC<{ testId: string }> = ({ testId }) => {
+  const navigate = useNavigate();
+  
+  return (
+    <ExamSyncProvider
+      testId={testId}
+      onForceSubmit={() => {
+        toast.warning('Exam submitted by administrator');
+        navigate('/mock-exams/summary');
+      }}
+      onExamCancelled={() => {
+        navigate('/mock-exams/select');
+      }}
+    >
+      <UnifiedMockExamContent />
+    </ExamSyncProvider>
+  );
+};
+
 // Main component with provider wrapper
 const UnifiedMockExam = () => {
+  const location = useLocation();
+  const { testId } = location.state || {};
+  
+  // If we have a valid testId, use sync provider
+  if (testId && testId !== 'dynamic-test' && testId !== 'demo-exam') {
+    return (
+      <ExamModeProvider initialMode="study">
+        <UnifiedMockExamWithSync testId={testId} />
+      </ExamModeProvider>
+    );
+  }
+  
+  // Otherwise just render without sync (demo mode)
   return (
     <ExamModeProvider initialMode="study">
       <UnifiedMockExamContent />
