@@ -67,57 +67,7 @@ const UnifiedExamSidebar: React.FC<UnifiedExamSidebarProps> = ({
       {/* Header */}
       
 
-      {/* Question list */}
-      <ScrollArea className="flex-1">
-        <div className="p-3 space-y-2">
-          {questions.map(question => {
-          const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
-          return <div key={question.id} className="space-y-1">
-                {/* Main question button */}
-                <button onClick={() => onNavigate(question.id)} className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${isActive(question.id) && !hasSubQuestions ? 'bg-primary/10 border-2 border-primary' : 'hover:bg-muted border-2 border-transparent'}`}>
-                  {/* Status icon */}
-                  {!hasSubQuestions && (isAnswered(question.id) ? <CheckCircle className="w-5 h-5 text-green-500 shrink-0" /> : <Circle className="w-5 h-5 text-muted-foreground shrink-0" />)}
-
-                  {/* Question number */}
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isActive(question.id) && !hasSubQuestions ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                    <span className="font-bold text-sm">{question.questionNumber}</span>
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      Question {question.questionNumber}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {question.marks} marks
-                      {hasSubQuestions && ` • ${question.subQuestions!.length} parts`}
-                    </div>
-                  </div>
-
-                  {hasSubQuestions && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                </button>
-
-                {/* Sub-questions */}
-                {hasSubQuestions && <div className="ml-6 space-y-1">
-                    {question.subQuestions!.map(subQ => <button key={subQ.id} onClick={() => onNavigate(question.id, subQ.id)} className={`w-full flex items-center gap-2 p-2 rounded-md text-left transition-all ${isActive(question.id, subQ.id) ? 'bg-primary/10 border-2 border-primary' : 'hover:bg-muted border-2 border-transparent'}`}>
-                        {/* Status icon */}
-                        {isAnswered(question.id, subQ.id) ? <CheckCircle className="w-4 h-4 text-green-500 shrink-0" /> : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
-
-                        {/* Label */}
-                        <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-medium ${isActive(question.id, subQ.id) ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                          {subQ.label}
-                        </span>
-
-                        {/* Marks */}
-                        <span className="text-xs text-muted-foreground">
-                          {subQ.marks} {subQ.marks === 1 ? 'mark' : 'marks'}
-                        </span>
-                      </button>)}
-                  </div>}
-              </div>;
-        })}
-        </div>
-      </ScrollArea>
+      {/* Question list removed */}
 
       {/* Footer */}
       <div className="p-4 border-t bg-muted/30">
