@@ -9,6 +9,7 @@ import CommandTerms from "./pages/CommandTerms";
 import Quiz from "./pages/Quiz";
 import QuickPractice from "./pages/QuickPractice";
 import Practice from "./pages/Practice";
+import PracticeExam from "./pages/PracticeExam";
 import MockExamSelect from "./pages/MockExamSelect";
 import MockExamSubjectView from "./pages/MockExamSubjectView";
 import MockExamStart from "./pages/MockExamStart";
@@ -108,6 +109,11 @@ const App = () => (
           <Route path="/practice" element={
             <ProtectedRoute requiresSubscription>
               <Practice />
+            </ProtectedRoute>
+          } />
+          <Route path="/practice/exam" element={
+            <ProtectedRoute requiresSubscription>
+              <PracticeExam />
             </ProtectedRoute>
           } />
           <Route path="/mock-exams/select" element={
