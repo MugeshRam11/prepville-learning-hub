@@ -1,197 +1,160 @@
 
-# Authentication Fix Plan - Enable Demo Mode to Work End-to-End
 
-## Problem Summary
-The current authentication flow has a critical disconnect between the **offline demo mode** and the **Supabase-based auth system**:
+# Bug Fix Plan: MockExamSummary Data Format Mismatch
 
-1. **Demo Button Creates Local Session** - The `DemoUserButton` stores a mock session in `localStorage`, but...
-2. **Auth Hook Ignores Demo Session** - The `useAuth` hook only listens to Supabase's `onAuthStateChange`, which never fires for demo users
-3. **Protected Routes Block Access** - Since `user` is always `null` for demo sessions, `ProtectedRoute` redirects to `/auth`
-4. **Subscription Check Fails** - The RPC `get_user_subscription_status` receives an invalid UUID for demo users
+## Problem Identified
 
-The result: clicking "Try Demo Account" creates a localStorage session but immediately gets redirected back to login.
+The `MockExamSummary` page crashes after exam submission with:
+```
+TypeError: Cannot read properties of undefined (reading 'slice')
+```
+
+**Root Cause**: The Unified Mock Exam uses `UnifiedQuestion` type with `questionText` property, but the Summary page expects `text` property.
+
+| Source | Property Used |
+|--------|---------------|
+| UnifiedMockExam.tsx | `question.questionText` |
+| MockExamSummary.tsx | `question.text` |
+
+Additionally, the answers format differs:
+- UnifiedMockExam passes `UnifiedAnswer[]` with `content` property
+- MockExamSummary expects `Answer[]` with `content` AND checks for `wordCount`
 
 ---
 
 ## Solution Overview
 
-Update the authentication system to recognize demo sessions as valid, falling back to the localStorage mock session when no Supabase session exists.
-
----
-
-## Phase 1: Update useAuth Hook to Support Demo Sessions
-
-**File: `src/hooks/useAuth.tsx`**
-
-**Changes:**
-- Import demo session utilities from `authService.ts`
-- Check for demo session during initial load and when Supabase session is null
-- Create a mock User object from the demo session
-- Add `isDemo` flag to context to identify demo users
-- Handle sign out to also clear demo session
-
-**Key Code Changes:**
-```text
-Lines 1-5: Add imports for isDemoSession, getDemoSession, clearDemoSession
-Lines 16-19: Add isDemo state variable
-Lines 38-50: After getSession(), check for demo session as fallback
-Lines 95-97: Update signOut to also call clearDemoSession()
-Lines 100-110: Add isDemo to context provider value
-```
-
----
-
-## Phase 2: Update ProtectedRoute for Demo Compatibility
-
-**File: `src/components/ProtectedRoute.tsx`**
-
-**Changes:**
-- Import `isDemoSession` check
-- Allow access when user is null but demo session is active
-- Pass demo flag to child components if needed
-
-**Key Code Changes:**
-```text
-Lines 2-3: Add import for isDemoSession
-Lines 27-29: Modify redirect condition to allow demo sessions
-```
-
----
-
-## Phase 3: Update useSubscription for Demo Users
-
-**File: `src/hooks/useSubscription.tsx`**
-
-**Changes:**
-- Import demo session utilities
-- Skip RPC call for demo users
-- Return mock "active" subscription for demo sessions
-- Ensure `hasAccess` is true for demo users
-
-**Key Code Changes:**
-```text
-Lines 2-3: Add imports for isDemoSession
-Lines 27-35: Check if demo session, return mock subscription
-Lines 66-67: Update hasAccess to include demo check
-```
-
----
-
-## Phase 4: Fix DemoUserButton Navigation
-
-**File: `src/components/auth/DemoUserButton.tsx`**
-
-**Changes:**
-- Use React Router's `navigate()` instead of `window.location.href`
-- Add small delay to allow state to propagate
-- Trigger a manual page refresh or force re-render
-
-**Key Code Changes:**
-```text
-Lines 31-32: Replace window.location.href with navigate('/dashboard')
-Add: Small timeout to allow localStorage to be read by providers
-```
-
----
-
-## Phase 5: Update Auth Page to Check Demo Session
-
-**File: `src/pages/Auth.tsx`**
-
-**Changes:**
-- Import demo session check
-- Redirect to dashboard if demo session is active
-- Prevent logged-in demo users from seeing auth page
-
-**Key Code Changes:**
-```text
-Lines 17-21: Check for demo session in useEffect and redirect
-```
+Update `MockExamSummary.tsx` to handle both data formats - the legacy format from `MockExamStart.tsx` and the new unified format from `UnifiedMockExam.tsx`.
 
 ---
 
 ## Implementation Details
 
-### Updated useAuth Hook Structure
-```text
-┌─────────────────────────────────────────────────────┐
-│                    useAuth Hook                     │
-├─────────────────────────────────────────────────────┤
-│  State:                                             │
-│  - user: User | null (Supabase OR demo)            │
-│  - session: Session | null (Supabase OR demo)      │
-│  - isDemo: boolean                                  │
-│  - loading: boolean                                 │
-├─────────────────────────────────────────────────────┤
-│  Flow:                                              │
-│  1. Check Supabase session                          │
-│  2. If null, check localStorage for demo session    │
-│  3. If demo exists, create mock User object         │
-│  4. Set isDemo = true                               │
-│  5. Proceed with authenticated state                │
-└─────────────────────────────────────────────────────┘
+### Phase 1: Add Type Detection and Data Normalization
+
+Add a normalization function at the top of the component to detect which format was received and convert to a common structure:
+
+```typescript
+// Detect if this is unified exam format
+const isUnifiedFormat = location.state?.isUnified === true;
+
+// Normalize question text access
+const getQuestionText = (question: any) => {
+  return question.questionText || question.text || '';
+};
+
+// Normalize sub-question text access  
+const getSubQuestionText = (subQuestion: any) => {
+  return subQuestion.text || '';
+};
 ```
 
-### Mock User Object for Demo
+### Phase 2: Fix All Text Access Points
+
+Update all locations where `.text` is accessed to use the safe accessor:
+
+**Line 318** (Overview tab - main question text):
 ```typescript
-{
-  id: 'demo-user-offline-id-12345',
-  email: 'demo@studyhub.com',
-  user_metadata: {
-    full_name: 'Demo User',
-    role: 'student',
-    is_demo: true
-  }
-}
+// Before
+<h4>Q{index + 1}: {question.text.slice(0, 60)}...</h4>
+
+// After
+<h4>Q{index + 1}: {getQuestionText(question).slice(0, 60)}...</h4>
 ```
 
-### Mock Subscription for Demo
+**Line 327** (Overview tab - sub-question text):
 ```typescript
-{
-  status: 'active',
-  isTrialActive: false,
-  isSubscriptionActive: true,
-  daysLeft: 999,
-  planName: 'Demo Access'
-}
+// Before
+<span>{subQ.text.slice(0, 40)}...</span>
+
+// After
+<span>{getSubQuestionText(subQ).slice(0, 40)}...</span>
+```
+
+### Phase 3: Handle Answer Format Differences
+
+The unified format passes answers as `UnifiedAnswer[]` with `content` that may be string or object:
+
+```typescript
+// Normalize answer content
+const getAnswerContent = (answer: any) => {
+  if (typeof answer.content === 'string') return answer.content;
+  if (typeof answer.content === 'object') return JSON.stringify(answer.content);
+  return '';
+};
+
+// Normalize word count
+const getWordCount = (answer: any) => {
+  const content = getAnswerContent(answer);
+  return answer.wordCount || content.split(/\s+/).filter(Boolean).length;
+};
+```
+
+### Phase 4: Fix Detailed Answers Tab
+
+Update the detailed answers section to handle unified format:
+
+```typescript
+// Line 368-391: Fix detailed answers rendering
+{answersArray.map((answer: any, index: number) => {
+  const question = questions.find((q: any) => 
+    q.id === answer.questionId
+  );
+  const subQuestion = answer.subQuestionId 
+    ? question?.subQuestions?.find((sq: any) => sq.id === answer.subQuestionId) 
+    : null;
+  
+  return (
+    <div key={index}>
+      <h4>{getQuestionText(question)}</h4>
+      {subQuestion && <span>{getSubQuestionText(subQuestion)}</span>}
+      <Badge>{getWordCount(answer)} words</Badge>
+      <p>{getAnswerContent(answer)}</p>
+    </div>
+  );
+})}
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Change Type | Purpose |
-|------|-------------|---------|
-| `src/hooks/useAuth.tsx` | Major | Add demo session fallback |
-| `src/components/ProtectedRoute.tsx` | Minor | Allow demo users through |
-| `src/hooks/useSubscription.tsx` | Minor | Mock subscription for demo |
-| `src/components/auth/DemoUserButton.tsx` | Minor | Fix navigation method |
-| `src/pages/Auth.tsx` | Minor | Redirect if demo active |
-
----
-
-## Testing Plan
-
-After implementation, the following flow should work:
-1. Visit `/auth` page
-2. Click "Try Demo Account"
-3. Automatically redirected to `/dashboard`
-4. Student dashboard loads with demo user data
-5. Navigate to `/mock-exams/select` without redirect
-6. Start an exam, answer questions
-7. Use AI feedback in study mode
-8. Submit exam and see results
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/pages/MockExamSummary.tsx` | Major | Add format detection, safe accessors, handle unified format |
 
 ---
 
 ## Technical Notes
 
-**Security:**
-- Demo mode is intentionally client-side only - no server-side privileges
-- Demo user cannot access real database records (RLS policies still apply)
-- Demo answers are saved to localStorage only, not database
+### Backward Compatibility
+- The fix maintains compatibility with the existing `MockExamStart.tsx` flow
+- Uses fallback pattern: `question.questionText || question.text`
+- Works for both array and object answer formats
 
-**Limitations:**
-- Demo user data won't persist across browsers
-- Real exam submissions require actual Supabase authentication
-- Leaderboard and social features disabled for demo users
+### Type Safety
+- Add defensive checks for undefined values
+- Use optional chaining throughout
+- Provide empty string defaults
+
+### Testing Checklist After Implementation
+1. Submit exam from UnifiedMockExam - verify summary loads
+2. Submit exam from MockExamStart - verify still works
+3. Verify AI evaluation results display correctly
+4. Verify marks are calculated and displayed
+5. Verify detailed answers tab shows correct content
+6. Check for any console errors
+
+---
+
+## Additional Considerations
+
+### Database Persistence (Not Fixed in This Plan)
+The audit revealed that exam results are NOT being saved to the database. The `test_attempts` and `user_answers` tables have 0 records. This should be addressed in a follow-up implementation.
+
+### Score Persistence Flow
+```text
+Current: Submit → AI Evaluate → Display → Navigate Away → LOST
+Needed:  Submit → AI Evaluate → Save to DB → Display → Persisted
+```
+
