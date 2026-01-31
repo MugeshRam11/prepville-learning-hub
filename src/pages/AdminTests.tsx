@@ -168,8 +168,8 @@ const AdminTests = () => {
           <div className="px-8 py-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Quick Tests Management</h1>
-                <p className="text-gray-600 mt-1">Create and manage quick practice tests</p>
+                <h1 className="text-3xl font-bold text-gray-900">Practice-QA Management</h1>
+                <p className="text-gray-600 mt-1">Create and manage practice questions</p>
               </div>
               <div className="flex gap-3">
                 {selectedTests.length > 0 && <Button onClick={handleDeleteSelected} variant="outline" className="border-red-600 text-red-600 hover:bg-red-50">
@@ -291,8 +291,8 @@ const AdminTests = () => {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <Checkbox checked={selectedTests.includes(test.id)} onCheckedChange={checked => handleSelectTest(test.id, checked as boolean)} />
-                        <Badge variant="secondary" className="text-xs font-medium bg-pink-100 text-pink-700">
-                          Quick Test
+                        <Badge variant="secondary" className="text-xs font-medium bg-green-100 text-green-700">
+                          Practice-QA
                         </Badge>
                       </div>
                       <div className={`w-3 h-3 rounded-full ${getDifficultyColor(test.difficulty_level)}`} />
