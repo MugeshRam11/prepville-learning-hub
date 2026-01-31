@@ -34,8 +34,40 @@ const MockExamSummary = () => {
     questions,
     timeSpent,
     isInteractive,
+    isUnified,
     totalMarks: passedTotalMarks
   } = location.state || {};
+
+  // === Data Normalization Helpers (for legacy vs unified format compatibility) ===
+  
+  // Normalize question text access (unified uses questionText, legacy uses text)
+  const getQuestionText = (question: any): string => {
+    if (!question) return '';
+    return question.questionText || question.text || '';
+  };
+
+  // Normalize sub-question text access
+  const getSubQuestionText = (subQuestion: any): string => {
+    if (!subQuestion) return '';
+    return subQuestion.text || '';
+  };
+
+  // Normalize answer content (unified may pass object, legacy passes string)
+  const getAnswerContent = (answer: any): string => {
+    if (!answer) return '';
+    if (typeof answer.content === 'string') return answer.content;
+    if (typeof answer.content === 'object') return JSON.stringify(answer.content);
+    if (typeof answer.answer === 'string') return answer.answer;
+    if (typeof answer.answer === 'object') return JSON.stringify(answer.answer);
+    return '';
+  };
+
+  // Normalize word count (calculate if not provided)
+  const getWordCount = (answer: any): number => {
+    if (answer?.wordCount) return answer.wordCount;
+    const content = getAnswerContent(answer);
+    return content.split(/\s+/).filter(Boolean).length;
+  };
 
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [isEvaluating, setIsEvaluating] = useState(true);
@@ -117,8 +149,8 @@ const MockExamSummary = () => {
         const question = questions.find((q: Question) => q.id === answer.questionId);
         if (!question) return null;
 
-        let questionText = question.text;
-        let referenceAnswer = question.answerKey || '';
+        let questionText = getQuestionText(question);
+        let referenceAnswer = (question as any).answerKey || '';
         let marks = question.marks;
         let questionImageUrl = question.imageUrl;
 
@@ -126,8 +158,8 @@ const MockExamSummary = () => {
         if (answer.subQuestionId) {
           const subQuestion = question.subQuestions?.find(sq => sq.id === answer.subQuestionId);
           if (subQuestion) {
-            questionText = `${question.text}\n${subQuestion.text}`;
-            referenceAnswer = subQuestion.answerKey || '';
+            questionText = `${getQuestionText(question)}\n${getSubQuestionText(subQuestion)}`;
+            referenceAnswer = (subQuestion as any).answerKey || '';
             marks = subQuestion.marks;
             // Use sub-question image if available, otherwise use main question image
             questionImageUrl = subQuestion.imageUrl || question.imageUrl;
@@ -313,18 +345,19 @@ const MockExamSummary = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {questions.map((question: Question, index: number) => <div key={question.id} className="border rounded-lg p-4">
+                      {questions.map((question: any, index: number) => <div key={question.id} className="border rounded-lg p-4">
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium">Q{index + 1}: {question.text.slice(0, 60)}...</h4>
+                            <h4 className="font-medium">Q{index + 1}: {getQuestionText(question).slice(0, 60)}{getQuestionText(question).length > 60 ? '...' : ''}</h4>
                             <Badge variant="secondary">{question.marks} marks</Badge>
                           </div>
                           
                           {question.subQuestions ? <div className="ml-4 space-y-2">
-                              {question.subQuestions.map((subQ, subIndex) => {
+                              {question.subQuestions.map((subQ: any, subIndex: number) => {
                           const answer = getQuestionAnswer(question.id, subQ.id);
                           const evaluation = getEvaluationForAnswer(question.id, subQ.id);
+                          const subQText = getSubQuestionText(subQ);
                           return <div key={subQ.id} className="flex items-center justify-between">
-                                    <span className="text-sm">Q{index + 1}{String.fromCharCode(97 + subIndex)}: {subQ.text.slice(0, 40)}...</span>
+                                    <span className="text-sm">Q{index + 1}{String.fromCharCode(97 + subIndex)}: {subQText.slice(0, 40)}{subQText.length > 40 ? '...' : ''}</span>
                                     <div className="flex items-center gap-2">
                                       {evaluation && (
                                         <Badge variant={evaluation.marksAwarded === evaluation.totalMarks ? "default" : evaluation.marksAwarded > 0 ? "secondary" : "destructive"}>
@@ -365,20 +398,20 @@ const MockExamSummary = () => {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {answers.map((answer: Answer, index: number) => {
-                      const question = questions.find((q: Question) => q.id === answer.questionId);
-                      const subQuestion = answer.subQuestionId ? question?.subQuestions?.find(sq => sq.id === answer.subQuestionId) : null;
+                      {answersArray.map((answer: any, index: number) => {
+                      const question = questions.find((q: any) => q.id === answer.questionId);
+                      const subQuestion = answer.subQuestionId ? question?.subQuestions?.find((sq: any) => sq.id === answer.subQuestionId) : null;
                       const evaluation = getEvaluationForAnswer(answer.questionId, answer.subQuestionId);
                       return <div key={index} className="border rounded-lg p-4">
                             <div className="mb-3">
                               <h4 className="font-medium text-gray-800">
-                                {question?.text}
+                                {getQuestionText(question)}
                                 {subQuestion && <span className="block text-sm text-gray-600 mt-1">
-                                    → {subQuestion.text}
+                                    → {getSubQuestionText(subQuestion)}
                                   </span>}
                               </h4>
                               <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="outline">{answer.wordCount} words</Badge>
+                                <Badge variant="outline">{getWordCount(answer)} words</Badge>
                                 {evaluation && (
                                   <Badge variant={evaluation.marksAwarded === evaluation.totalMarks ? "default" : evaluation.marksAwarded > 0 ? "secondary" : "destructive"}>
                                     {evaluation.marksAwarded}/{evaluation.totalMarks} marks
@@ -388,7 +421,7 @@ const MockExamSummary = () => {
                             </div>
                             <div className="bg-gray-50 rounded p-3 mb-3">
                               <p className="text-xs text-gray-500 mb-1">Your Answer:</p>
-                              <p className="text-sm whitespace-pre-wrap">{answer.content}</p>
+                              <p className="text-sm whitespace-pre-wrap">{getAnswerContent(answer)}</p>
                             </div>
                             {evaluation && (
                               <div className={`rounded p-3 ${
