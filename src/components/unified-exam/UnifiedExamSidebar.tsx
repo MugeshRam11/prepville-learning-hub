@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Circle, ChevronRight } from 'lucide-react';
+import { CheckCircle, Circle, ChevronRight, Wifi, WifiOff, Cloud } from 'lucide-react';
 import { UnifiedQuestion, UnifiedAnswer } from '@/types/answerBlock';
 
 interface UnifiedExamSidebarProps {
@@ -12,6 +12,8 @@ interface UnifiedExamSidebarProps {
   activeQuestionId: string | null;
   activeSubQuestionId: string | null;
   onNavigate: (questionId: string, subQuestionId?: string) => void;
+  isConnected?: boolean;
+  lastSynced?: Date | null;
 }
 
 const UnifiedExamSidebar: React.FC<UnifiedExamSidebarProps> = ({
@@ -19,7 +21,9 @@ const UnifiedExamSidebar: React.FC<UnifiedExamSidebarProps> = ({
   answers,
   activeQuestionId,
   activeSubQuestionId,
-  onNavigate
+  onNavigate,
+  isConnected,
+  lastSynced
 }) => {
   // Calculate progress
   const getTotalAnswerSlots = () => {
@@ -179,7 +183,17 @@ const UnifiedExamSidebar: React.FC<UnifiedExamSidebarProps> = ({
       {/* Footer */}
       <div className="p-4 border-t bg-muted/30">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Auto-saved</span>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            {isConnected !== undefined && (
+              isConnected ? (
+                <Wifi className="w-3.5 h-3.5 text-green-500" />
+              ) : (
+                <WifiOff className="w-3.5 h-3.5 text-red-500" />
+              )
+            )}
+            <Cloud className="w-3.5 h-3.5" />
+            <span>Auto-saved</span>
+          </div>
           <Badge variant="outline" className="text-xs">
             {answeredCount} answered
           </Badge>

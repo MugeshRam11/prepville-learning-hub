@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_exam_actions: {
+        Row: {
+          action_data: Json | null
+          action_type: string
+          admin_id: string
+          created_at: string | null
+          executed_at: string | null
+          id: string
+          target_user_id: string | null
+          test_id: string
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type: string
+          admin_id: string
+          created_at?: string | null
+          executed_at?: string | null
+          id?: string
+          target_user_id?: string | null
+          test_id: string
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string
+          admin_id?: string
+          created_at?: string | null
+          executed_at?: string | null
+          id?: string
+          target_user_id?: string | null
+          test_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_exam_actions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "mock_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_settings: {
         Row: {
           created_at: string | null
@@ -272,6 +313,68 @@ export type Database = {
           xp_reward?: number | null
         }
         Relationships: []
+      }
+      exam_sessions: {
+        Row: {
+          active_session_id: string
+          created_at: string | null
+          current_question_id: string | null
+          current_sub_question_id: string | null
+          device_info: Json | null
+          exam_state: Database["public"]["Enums"]["exam_state"] | null
+          id: string
+          is_locked: boolean | null
+          last_synced_at: string | null
+          started_at: string | null
+          submitted_at: string | null
+          test_id: string
+          time_remaining_seconds: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active_session_id: string
+          created_at?: string | null
+          current_question_id?: string | null
+          current_sub_question_id?: string | null
+          device_info?: Json | null
+          exam_state?: Database["public"]["Enums"]["exam_state"] | null
+          id?: string
+          is_locked?: boolean | null
+          last_synced_at?: string | null
+          started_at?: string | null
+          submitted_at?: string | null
+          test_id: string
+          time_remaining_seconds?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active_session_id?: string
+          created_at?: string | null
+          current_question_id?: string | null
+          current_sub_question_id?: string | null
+          device_info?: Json | null
+          exam_state?: Database["public"]["Enums"]["exam_state"] | null
+          id?: string
+          is_locked?: boolean | null
+          last_synced_at?: string | null
+          started_at?: string | null
+          submitted_at?: string | null
+          test_id?: string
+          time_remaining_seconds?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sessions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "mock_tests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       group_members: {
         Row: {
@@ -610,11 +713,15 @@ export type Database = {
       }
       mock_tests: {
         Row: {
+          allow_late_submission: boolean | null
           created_at: string
           created_by: string | null
+          exam_state: Database["public"]["Enums"]["exam_state"] | null
+          exam_type: Database["public"]["Enums"]["exam_type"] | null
           id: string
           is_published: boolean
           subject: Database["public"]["Enums"]["test_subject"]
+          time_limit_minutes: number | null
           title: string
           topic: string
           total_questions: number
@@ -623,11 +730,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_late_submission?: boolean | null
           created_at?: string
           created_by?: string | null
+          exam_state?: Database["public"]["Enums"]["exam_state"] | null
+          exam_type?: Database["public"]["Enums"]["exam_type"] | null
           id?: string
           is_published?: boolean
           subject: Database["public"]["Enums"]["test_subject"]
+          time_limit_minutes?: number | null
           title: string
           topic: string
           total_questions?: number
@@ -636,11 +747,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_late_submission?: boolean | null
           created_at?: string
           created_by?: string | null
+          exam_state?: Database["public"]["Enums"]["exam_state"] | null
+          exam_type?: Database["public"]["Enums"]["exam_type"] | null
           id?: string
           is_published?: boolean
           subject?: Database["public"]["Enums"]["test_subject"]
+          time_limit_minutes?: number | null
           title?: string
           topic?: string
           total_questions?: number
@@ -1856,6 +1971,8 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "student"
       difficulty_level: "easy" | "medium" | "hard"
+      exam_state: "LIVE" | "PAUSED" | "SUBMITTED" | "CANCELLED"
+      exam_type: "MOCK" | "PUZZLE" | "CHALLENGE" | "INTERACTIVE_DEMO"
       group_member_role: "member" | "moderator"
       material_type: "pdf" | "video" | "image" | "document" | "note"
       message_type: "text" | "image" | "file" | "audio"
@@ -2010,6 +2127,8 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "student"],
       difficulty_level: ["easy", "medium", "hard"],
+      exam_state: ["LIVE", "PAUSED", "SUBMITTED", "CANCELLED"],
+      exam_type: ["MOCK", "PUZZLE", "CHALLENGE", "INTERACTIVE_DEMO"],
       group_member_role: ["member", "moderator"],
       material_type: ["pdf", "video", "image", "document", "note"],
       message_type: ["text", "image", "file", "audio"],
