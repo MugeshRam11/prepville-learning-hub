@@ -18,10 +18,11 @@ const MockExamSubjectView = () => {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (subject) {
-      fetchQuestions();
+      fetchQuestionsAndRedirect();
     }
   }, [subject]);
-  const fetchQuestions = async () => {
+
+  const fetchQuestionsAndRedirect = async () => {
     try {
       // Fetch all questions from mock_questions for this subject
       const {
@@ -32,6 +33,7 @@ const MockExamSubjectView = () => {
       if (!tests || tests.length === 0) {
         setQuestions([]);
         setLoading(false);
+        toast.error('No questions available for this subject');
         return;
       }
       const testIds = tests.map(t => t.id);
@@ -43,8 +45,22 @@ const MockExamSubjectView = () => {
           mock_sub_questions (*)
         `).in('mock_test_id', testIds).order('question_number');
       if (error) throw error;
-      console.log('Fetched questions for subject:', subject, data);
-      setQuestions(data || []);
+      
+      const fetchedQuestions = data || [];
+      setQuestions(fetchedQuestions);
+      
+      // Auto-redirect to unified exam
+      if (fetchedQuestions.length > 0) {
+        navigate('/mock-exams/unified', {
+          state: {
+            subject: getSubjectLabel(subject || ''),
+            subjectKey: subject,
+            title: getSubjectLabel(subject || ''),
+            questions: fetchedQuestions
+          },
+          replace: true
+        });
+      }
     } catch (error) {
       console.error('Error fetching questions:', error);
       toast.error('Failed to load questions');
