@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Pause, Lock, WifiOff } from 'lucide-react';
-import { useExamSync } from '@/contexts/ExamSyncContext';
+import ExamSyncContext from '@/contexts/ExamSyncContext';
 import { cn } from '@/lib/utils';
 
 interface ExamSyncOverlayProps {
@@ -9,7 +9,15 @@ interface ExamSyncOverlayProps {
 }
 
 const ExamSyncOverlay: React.FC<ExamSyncOverlayProps> = ({ onForceNavigate }) => {
-  const { session, isConnected, isPrimaryTab, connectionError } = useExamSync();
+  // Use context directly to avoid throwing when not in provider
+  const context = useContext(ExamSyncContext);
+  
+  // If no context (demo mode), don't render any overlay
+  if (!context) {
+    return null;
+  }
+  
+  const { session, isConnected, isPrimaryTab, connectionError } = context;
 
   // No overlay needed for normal state
   if (isConnected && isPrimaryTab && session?.examState === 'LIVE' && !session?.isLocked) {
