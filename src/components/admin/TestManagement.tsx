@@ -165,8 +165,8 @@ const TestManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quick Test Management</h1>
-          <p className="text-gray-600">Create and manage quick tests</p>
+          <h1 className="text-3xl font-bold text-gray-900">Practice-QA Management</h1>
+          <p className="text-gray-600">Create and manage practice questions</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -175,7 +175,7 @@ const TestManagement = () => {
             className="flex items-center gap-2"
           >
             <Upload className="w-4 h-4" />
-            Upload Quick Test (Word)
+            Upload Practice-QA (Word)
           </Button>
           <Button onClick={handleCreateTest}>
             <Plus className="w-4 h-4 mr-2" />
@@ -192,7 +192,7 @@ const TestManagement = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search quick tests..."
+                  placeholder="Search practice questions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
