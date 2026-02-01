@@ -10,8 +10,7 @@ import {
   BookOpen,
   LogOut,
   ClipboardList,
-  Upload,
-  FileQuestion
+  Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -51,7 +50,6 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
     { id: 'question-generator', label: 'Question Generator', icon: BookOpen, path: '/admin/question-generator' },
     { id: 'study-materials', label: 'Study Materials', icon: Upload, path: '/admin/study-materials' },
-    { id: 'questions', label: 'Subject Questions', icon: FileQuestion, path: '/admin/questions' },
     { id: 'bulk-upload', label: 'Subject Q/A Bulk Upload', icon: Upload, path: '/admin/bulk-upload' },
     { id: 'mock-test-bulk-upload', label: 'Mock Test Bulk Upload', icon: Upload, path: '/admin/mock-test-bulk-upload' },
     { id: 'reports', label: 'Progress Reports', icon: BarChart3, path: '/admin/reports' },
