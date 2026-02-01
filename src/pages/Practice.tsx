@@ -23,6 +23,7 @@ interface PracticeQuestion {
   question_text: string;
   xp_reward: number | null;
   subject: string;
+  source?: 'subject_questions' | 'quick_test';
 }
 
 const Practice = () => {
@@ -101,15 +102,69 @@ const Practice = () => {
 
   const fetchPracticeQuestions = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch questions from subject_questions table
+      const { data: subjectQuestionsData, error: sqError } = await supabase
         .from('subject_questions')
         .select('id, title, topic, difficulty, question_text, xp_reward, subject')
         .eq('is_published', true)
         .order('topic')
         .order('difficulty');
 
-      if (error) throw error;
-      setQuestions(data || []);
+      if (sqError) throw sqError;
+
+      // Also fetch questions from tests/questions tables (admin-created quick tests)
+      const { data: quickTestQuestions, error: qtError } = await supabase
+        .from('questions')
+        .select(`
+          id, 
+          question_text, 
+          difficulty_level,
+          tests!inner (
+            id,
+            title,
+            test_type,
+            is_active
+          )
+        `)
+        .eq('tests.test_type', 'quick_test')
+        .eq('tests.is_active', true);
+
+      if (qtError) {
+        console.error('Error fetching quick test questions:', qtError);
+      }
+
+      // Map subject_questions to common format
+      const sqMapped = (subjectQuestionsData || []).map(q => ({
+        id: q.id,
+        title: q.title,
+        topic: q.topic,
+        difficulty: q.difficulty,
+        question_text: q.question_text,
+        xp_reward: q.xp_reward,
+        subject: q.subject,
+        source: 'subject_questions' as const
+      }));
+
+      // Map quick test questions to common format
+      const qtMapped = (quickTestQuestions || []).map(q => ({
+        id: q.id,
+        title: q.tests?.title || 'Practice Question',
+        topic: 'Practice-QA',
+        difficulty: q.difficulty_level || 'medium',
+        question_text: q.question_text,
+        xp_reward: 10,
+        subject: 'quick_test',
+        source: 'quick_test' as const
+      }));
+
+      // Combine both sources, avoiding duplicates by id
+      const existingIds = new Set(sqMapped.map(q => q.id));
+      const combined = [
+        ...sqMapped,
+        ...qtMapped.filter(q => !existingIds.has(q.id))
+      ];
+
+      setQuestions(combined);
     } catch (error) {
       console.error('Error fetching practice questions:', error);
       toast.error('Failed to load practice questions');
