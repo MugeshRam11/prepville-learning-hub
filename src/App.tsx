@@ -10,6 +10,7 @@ import Quiz from "./pages/Quiz";
 import QuickPractice from "./pages/QuickPractice";
 import Practice from "./pages/Practice";
 import PracticeExam from "./pages/PracticeExam";
+import PracticeQuestionView from "./pages/PracticeQuestionView";
 import MockExamSelect from "./pages/MockExamSelect";
 import MockExamSubjectView from "./pages/MockExamSubjectView";
 import MockExamStart from "./pages/MockExamStart";
@@ -60,6 +61,7 @@ import CopyPasteProtection from "./components/CopyPasteProtection";
 
 import { AuthProvider } from '@/hooks/useAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
+import { ChatbotProvider } from '@/contexts/ChatbotContext';
 import StreakAutoRecorder from "./components/StreakAutoRecorder";
 import { useSessionTracking } from '@/hooks/useSessionTracking';
 
@@ -80,8 +82,9 @@ const App = () => (
           <StreakAutoRecorder />
           <SessionTracker />
           <BrowserRouter>
-            <CopyPasteProtection>
-              <Routes>
+            <ChatbotProvider>
+              <CopyPasteProtection>
+                <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
           <Route path="/command-terms" element={<CommandTerms />} />
@@ -117,6 +120,11 @@ const App = () => (
           <Route path="/practice/exam" element={
             <ProtectedRoute requiresSubscription>
               <PracticeExam />
+            </ProtectedRoute>
+          } />
+          <Route path="/practice/question/:questionId" element={
+            <ProtectedRoute requiresSubscription>
+              <PracticeQuestionView />
             </ProtectedRoute>
           } />
           <Route path="/mock-exams/select" element={
@@ -327,8 +335,9 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
                 </Routes>
               </CopyPasteProtection>
-            </BrowserRouter>
-          </TooltipProvider>
+            </ChatbotProvider>
+          </BrowserRouter>
+        </TooltipProvider>
         </SubscriptionProvider>
       </AuthProvider>
     </QueryClientProvider>

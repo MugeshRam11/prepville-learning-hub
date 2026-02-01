@@ -8,6 +8,7 @@ import { X, Send, Loader2, MessageSquare, Lightbulb, CheckCircle2, XCircle, Aler
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useChatbot } from '@/contexts/ChatbotContext';
 import EquationEditor from '@/components/admin/EquationEditor';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -44,6 +45,9 @@ interface EnhancedAITutorProps {
 }
 
 export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCorrect, mode = 'learner' }: EnhancedAITutorProps) => {
+  // Check if chatbot is enabled based on current route (Feature B)
+  const { isEnabled: isChatbotEnabled } = useChatbot();
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +59,9 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // If chatbot is disabled for this route or not open, don't render
+  if (!isOpen || !isChatbotEnabled) return null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -456,7 +463,7 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
     }
   };
 
-  if (!isOpen) return null;
+  // Note: isOpen check is done at top with isChatbotEnabled
 
   // Minimized floating button
   if (!isExpanded) {

@@ -3,9 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Sparkles, FileText } from 'lucide-react';
 
 import PracticeExamHeader from '@/components/practice-exam/PracticeExamHeader';
 import PracticeResultsModal from '@/components/practice-exam/PracticeResultsModal';
@@ -37,8 +34,8 @@ const PracticeExam = () => {
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
   const [showResults, setShowResults] = useState(false);
   
-  // Interactive mode toggle
-  const [interactiveMode, setInteractiveMode] = useState(true);
+  // Interactive mode is always ON (Feature E)
+  const interactiveMode = true;
   
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -463,46 +460,7 @@ const PracticeExam = () => {
         onSubmit={handleSubmitToReview}
       />
 
-      {/* Interactive Mode Toggle Bar */}
-      <div className="flex items-center justify-between px-6 py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-b">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Switch
-              id="interactive-mode"
-              checked={interactiveMode}
-              onCheckedChange={setInteractiveMode}
-            />
-            <Label htmlFor="interactive-mode" className="flex items-center gap-2 cursor-pointer">
-              {interactiveMode ? (
-                <>
-                  <Sparkles className="w-4 h-4 text-green-600" />
-                  <span className="font-medium text-green-700 dark:text-green-300">Interactive Mode</span>
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4 text-gray-600" />
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Standard Mode</span>
-                </>
-              )}
-            </Label>
-          </div>
-          {interactiveMode && (
-            <span className="text-xs text-muted-foreground">
-              Graphs, Drag & Drop, Math Input enabled
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {examData.questions.slice(0, 3).map(q => (
-            <span key={q.id} className="px-2 py-1 bg-white dark:bg-gray-800 rounded border text-[10px]">
-              Q{q.questionNumber}: {getQuestionTypeLabel((q as any).interactiveType || 'text_input')}
-            </span>
-          ))}
-          {examData.questions.length > 3 && (
-            <span className="text-[10px]">+{examData.questions.length - 3} more</span>
-          )}
-        </div>
-      </div>
+      {/* Interactive Mode is always ON - toggle removed (Feature E) */}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">

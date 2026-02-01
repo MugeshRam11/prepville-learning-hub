@@ -8,9 +8,7 @@ import QuizQuestion from '@/components/quiz/QuizQuestion';
 import InteractiveQuizQuestion from '@/components/quiz/InteractiveQuizQuestion';
 import QuizResults from '@/components/quiz/QuizResults';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Sparkles } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { ArrowLeft } from 'lucide-react';
 import { useProgressTracking } from '@/hooks/useProgressTracking';
 import { useXPSystem } from '@/hooks/useXPSystem';
 import { supabase } from '@/integrations/supabase/client';
@@ -475,7 +473,8 @@ const Quiz = () => {
   const [progressUpdated, setProgressUpdated] = useState(false);
   const [quizData, setQuizData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [interactiveMode, setInteractiveMode] = useState(true); // New: Interactive mode toggle
+  // Interactive mode is always ON (Feature E)
+  const interactiveMode = true;
 
   // Fetch quiz from database if UUID format, otherwise use mock data
   useEffect(() => {
@@ -786,22 +785,7 @@ const Quiz = () => {
             onBack={() => navigate('/quick-practice')}
           />
 
-          {/* Interactive Mode Toggle */}
-          {hasImageQuestions && (
-            <div className="flex items-center justify-end gap-3 mb-4 p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <Label htmlFor="interactive-mode" className="text-sm font-medium">
-                  Interactive Mode
-                </Label>
-              </div>
-              <Switch
-                id="interactive-mode"
-                checked={interactiveMode}
-                onCheckedChange={setInteractiveMode}
-              />
-            </div>
-          )}
+          {/* Interactive Mode is always ON - toggle removed (Feature E) */}
 
           <QuizProgress
             currentQuestion={currentQuestion}

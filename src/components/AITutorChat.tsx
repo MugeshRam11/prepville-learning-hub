@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { X, Send, Loader2, MessageSquare, Calculator } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useChatbot } from '@/contexts/ChatbotContext';
 import EquationEditor from '@/components/admin/EquationEditor';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -22,6 +23,9 @@ interface AITutorChatProps {
 }
 
 export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITutorChatProps) => {
+  // Check if chatbot is enabled based on current route (Feature B)
+  const { isEnabled: isChatbotEnabled } = useChatbot();
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +33,9 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
   const [showMathEditor, setShowMathEditor] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // If chatbot is disabled for this route or not open, don't render
+  if (!isOpen || !isChatbotEnabled) return null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -148,7 +155,7 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
     }
   };
 
-  if (!isOpen) return null;
+  // Note: isOpen check is done at top with isChatbotEnabled
 
   // Minimized floating button with glow animation
   if (!isExpanded) {
