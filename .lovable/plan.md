@@ -1,369 +1,238 @@
 
-# Implementation Plan: Enhanced Admin Workflow and Practice Question Bank
+# LeetCode-Style Practice Bank Implementation
 
 ## Overview
 
-This plan implements 6 features to improve the admin workflow, separate learning from assessment contexts, and convert `/practice` into a LeetCode-style question bank.
+This plan converts `/practice` from a test-card selection page into a pure LeetCode-style question bank where students directly see all practice questions in a filterable table, with no extra routes or redirects.
 
 ---
 
 ## Current State Analysis
 
-| Component | Current Implementation |
-|-----------|----------------------|
-| **Post-Parsing Workflow** | `QuestionPreviewEditor.tsx` shows questions after parsing but lacks mandatory question type confirmation before publishing |
-| **AI Tutor/Chatbot** | Available in `EnhancedAITutor.tsx`, `AITutorChat.tsx` - currently no route-based restrictions |
-| **Practice Page** | Shows test cards (`PracticeTestCard.tsx`) that redirect to `PracticeExam.tsx` |
-| **Interactive Mode** | Toggle exists in `UnifiedMockExam.tsx`, `PracticeExam.tsx`, `Quiz.tsx` |
-| **Question Tables** | `mock_questions`, `mock_sub_questions` (mock tests), `questions` (quick tests/practice-QA) |
+| Issue | Current Implementation | Required Change |
+|-------|----------------------|-----------------|
+| **Practice Page** | Shows test cards (`PracticeTestCard`) that redirect to `/practice/exam` | Rewrite to show direct question list table |
+| **Extra Routes** | `/practice/exam` exists | Remove this route entirely |
+| **Question Source** | Fetches tests, not individual questions | Query `subject_questions` table directly |
+| **Question Open Flow** | Navigates to `/practice/question/:id` | Keep this route for inline question view |
+| **Status Tracking** | Hook exists (`usePracticeQuestionStatus`) but Practice.tsx doesn't use it | Integrate into question list |
 
 ---
 
-## FEATURE A: Post-Parsing Preview and Question Type Decision
+## Changes Required
 
-### Objective
-Introduce a mandatory Preview and Type Confirmation step before publishing questions.
+### 1. Rewrite `src/pages/Practice.tsx`
 
-### Changes Required
+**Remove:**
+- Test card grid layout
+- `PracticeTestCard` component usage
+- `handleStartPractice` function that navigates to `/practice/exam`
+- "Available Practice Tests" section
+- Mock Exams CTA section
 
-#### 1. Enhance `QuestionPreviewEditor.tsx`
+**Add:**
+- Direct question list table using `PracticeQuestionRow`
+- `PracticeFilters` component for filtering
+- Integration with `usePracticeQuestionStatus` hook
+- Query `subject_questions` table (all published Practice-QA questions)
+- Topic pills row at top (similar to LeetCode reference image)
+- Search bar + filter dropdowns
+- "X/Y Solved" counter in header
 
-Add new UI elements:
-- **Student Preview Tab**: Render questions exactly as students would see them
-- **Question Type Confirmation**: For each question, show AI-detected type with Accept/Override buttons
-- **Block Publish**: Disable "Confirm" button until all question types are explicitly confirmed
-
-**New State:**
-```typescript
-const [questionTypeConfirmed, setQuestionTypeConfirmed] = useState<Set<number>>(new Set());
-const [selectedTypes, setSelectedTypes] = useState<Map<number, string>>(new Map());
+**UI Structure (based on reference images):**
 ```
-
-**UI Flow:**
-1. After parsing, questions appear in Preview tab
-2. Each question shows:
-   - AI-detected `interactive_type` badge
-   - "Accept" button (confirms AI detection)
-   - "Change Type" dropdown (manual override)
-3. "Confirm & Publish" button stays disabled until all questions have confirmed types
-4. On confirm, types are saved to `answer_block_type` column
-
-#### 2. New Component: `StudentPreviewPane.tsx`
-
-Create read-only preview component that:
-- Uses `UnifiedQuestionCard` in read-only mode
-- Renders all interaction types (graph, drag-drop, math input, etc.)
-- Shows no input fields - purely visual preview
-- Disabled submit/scoring
-
-#### 3. Modify Publish Flow
-
-In `QuestionPreviewEditor.tsx`:
-- Add validation: `if (questionTypeConfirmed.size < questions.length) return;`
-- Before calling `onConfirm()`, ensure all selected types are attached to question data
-
-### Files to Create
-| File | Purpose |
-|------|---------|
-| `src/components/admin/StudentPreviewPane.tsx` | Read-only student UI preview |
-| `src/components/admin/QuestionTypeConfirmation.tsx` | Accept/Override question type UI |
-
-### Files to Modify
-| File | Changes |
-|------|---------|
-| `src/components/admin/QuestionPreviewEditor.tsx` | Add tabs for Preview + Type Confirmation, block publish until confirmed |
-
----
-
-## FEATURE B: Chatbot/AI Tutor Scope Fix
-
-### Objective
-Enable chatbot only in learning contexts, completely disable in mock exams.
-
-### Route-Based Availability Rules
-
-| Route Pattern | Chatbot Enabled |
-|---------------|-----------------|
-| `/practice/*` | Yes |
-| `/subjects` | Yes |
-| `/subject-learning` | Yes |
-| `/quiz/*` | Yes |
-| `/mock-exams/*` | No |
-| `/mock-exams/unified/*` | No |
-
-### Implementation Approach
-
-#### 1. Create Chatbot Context Provider
-
-**New File:** `src/contexts/ChatbotContext.tsx`
-
-```typescript
-interface ChatbotContextType {
-  isEnabled: boolean;
-  disable: () => void;
-  enable: () => void;
-}
-
-const DISABLED_ROUTES = [
-  '/mock-exams/start',
-  '/mock-exams/unified',
-  '/mock-exams/interactive',
-  '/mock-exams/summary'
-];
-```
-
-#### 2. Modify AI Tutor Components
-
-In `EnhancedAITutor.tsx` and `AITutorChat.tsx`:
-- Wrap with `useChatbot()` hook
-- Return `null` if `!isEnabled`
-- Remove floating button entirely in disabled state
-
-#### 3. Remove from Mock Exam Pages
-
-In `UnifiedMockExam.tsx`:
-- Remove any AI tutor imports/usage
-- Ensure no "Ask Tutor" button appears
-
-### Files to Create
-| File | Purpose |
-|------|---------|
-| `src/contexts/ChatbotContext.tsx` | Route-aware chatbot availability context |
-
-### Files to Modify
-| File | Changes |
-|------|---------|
-| `src/components/EnhancedAITutor.tsx` | Add route check, return null if disabled |
-| `src/components/AITutorChat.tsx` | Add route check, return null if disabled |
-| `src/App.tsx` | Wrap app with `ChatbotProvider` |
-
----
-
-## FEATURE C: Practice Mode - Ask Tutor Only
-
-### Objective
-Ensure "Ask Tutor" exists only in Practice mode and is completely removed from Mock Exam UI.
-
-### Implementation
-
-This is largely covered by Feature B. Additional steps:
-
-#### 1. Add "Ask Tutor" Button to Practice Pages
-
-In `PracticeExam.tsx`:
-- Add floating "Ask Tutor" button (using `EnhancedAITutor`)
-- Pass current question context to tutor
-
-#### 2. Verify Mock Exam Has No Tutor
-
-Audit `UnifiedMockExam.tsx`:
-- Confirm no AI tutor imports
-- Confirm no "Ask Tutor" button
-- Confirm no keyboard shortcut triggers tutor
-
-### Files to Modify
-| File | Changes |
-|------|---------|
-| `src/pages/PracticeExam.tsx` | Add Ask Tutor button integration |
-| `src/pages/UnifiedMockExam.tsx` | Remove any tutor references (if present) |
-
----
-
-## FEATURE D: Practice as LeetCode-Style Question Bank
-
-### Objective
-Transform `/practice` from a test-card grid to a flat, filterable question list.
-
-### New Practice Page Layout
-
-```text
 +----------------------------------------------------------+
-|  Practice & Learn                                 [Filters]|
+|  Practice & Learn                                         |
 +----------------------------------------------------------+
-|  Search: [_______________________]                        |
-|                                                           |
-|  Filters: [Topic ▼] [Difficulty ▼] [Type ▼] [Status ▼]   |
+|  [All Topics] [Algebra] [Geometry] [Probability] ...     |
 +----------------------------------------------------------+
-|  # | Title                 | Topic    | Diff | Type | ✓  |
+|  [Q Search...] [Sort ↕] [Filter ▽]       ○ 28/120 Solved |
 +----------------------------------------------------------+
-|  1 | Solve quadratic...    | Algebra  | Med  | Math | ✓  |
-|  2 | Probability of...     | Prob     | Easy | MCQ  | •  |
-|  3 | Plot the function...  | Graphs   | Hard | Graph| ○  |
-|  4 | Match expressions...  | Algebra  | Med  | D&D  | ○  |
+|  # | Question Title           | Topic  | Diff | Status   |
++----------------------------------------------------------+
+|  1 | Solve quadratic...      | Algebra| Easy | ✓ Solved |
+|  2 | Probability of...       | Prob   | Med  | • Attempt|
+|  3 | Plot the function...    | Graphs | Hard | ○ Unsolved|
 +----------------------------------------------------------+
 ```
 
-**Status Legend:**
-- ✓ = Solved (green checkmark)
-- • = Attempted (yellow dot)
-- ○ = Unsolved (empty circle)
+### 2. Update Routing in `src/App.tsx`
 
-### Database Requirements
+**Remove:**
+```tsx
+<Route path="/practice/exam" element={...}>
+  <PracticeExam />
+</Route>
+```
 
-Query `questions` table (Practice-QA questions) with:
-- Join to `user_answers` to determine solved/attempted status
-- Filter by `test_type = 'quick_test'` OR standalone practice questions
+**Keep:**
+```tsx
+<Route path="/practice" element={...}>
+  <Practice />
+</Route>
+<Route path="/practice/question/:questionId" element={...}>
+  <PracticeQuestionView />
+</Route>
+```
 
-### Implementation
+### 3. Keep `src/pages/PracticeQuestionView.tsx`
 
-#### 1. Rewrite `src/pages/Practice.tsx`
+This page already works correctly for:
+- Loading individual questions from `subject_questions` or `questions` table
+- Showing interactive question UI
+- Ask Tutor button enabled
+- Submit to review flow
+- Try Again functionality
+- Back to Practice navigation
 
-Replace test card grid with:
-- Question list table
-- Filter bar component
-- Search input
-- Status tracking per user
+**Minor enhancements needed:**
+- Ensure Ask Tutor button is always visible (not just on modal toggle)
+- Verify "Submit to Review" behavior shows correct answer + explanation
 
-#### 2. Create Supporting Components
+### 4. Update `usePracticeQuestionStatus` Hook
 
-| Component | Purpose |
-|-----------|---------|
-| `PracticeQuestionRow.tsx` | Single row in question list |
-| `PracticeFilters.tsx` | Filter dropdowns (Topic, Difficulty, Type, Status) |
-| `PracticeStatusBadge.tsx` | Solved/Attempted/Unsolved indicator |
+Currently tracks status from `test_attempts`, but needs to also check `user_question_progress` table for `subject_questions`:
 
-#### 3. Question Open Flow
+**Query both sources:**
+- `test_attempts.answers` for questions tied to tests
+- `user_question_progress.is_solved` for subject_questions
 
-When user clicks a question:
-1. Navigate to `/practice/question/:questionId`
-2. Load question in interactive practice UI
-3. Enable Ask Tutor
-4. No timer
-5. Submit shows results immediately
-6. Allow unlimited retries
+### 5. Remove Unused Components/Routes
 
-#### 4. Create Question Detail Page
+**Delete or deprecate:**
+- `/practice/exam` route removal from `App.tsx`
+- `PracticeExam.tsx` can be kept for now but not routed
+- `PracticeTestCard.tsx` - no longer needed on `/practice`
 
-**New Route:** `/practice/question/:questionId`
-**New Page:** `PracticeQuestionView.tsx`
+---
 
-Uses same `UnifiedQuestionCard` but:
-- No timer
-- Submit reveals answer + explanation
-- "Try Again" resets answer
-- "Ask Tutor" enabled
+## Data Flow
 
-### Data Flow
+### Question Source
+```
+subject_questions table
+  ├── is_published = true
+  ├── Any subject (Mathematics, Physics, Chemistry, Biology)
+  └── Ordered by: topic, difficulty, created_at
+```
 
-```text
+### Status Determination
+```
+For each question:
+1. Check user_question_progress for user_id + question_id
+   ├── is_solved = true → "Solved" (green checkmark)
+   ├── user_answer exists but is_solved = false → "Attempted" (yellow dot)
+   └── No record → "Unsolved" (empty circle)
+```
+
+### Click Flow
+```
 /practice (Question List)
     │
-    ▼ Click question
-/practice/question/:id (Interactive Practice UI)
+    ▼ Click question row
+/practice/question/:id
     │
-    ▼ Submit
-Show Results + Explanation (inline, not new page)
-    │
-    ▼ Try Again or Back to List
+    ├── Load question from subject_questions
+    ├── Show interactive UI
+    ├── Ask Tutor enabled
+    ├── Submit → Show result inline
+    └── Try Again or Back to /practice
 ```
 
-### Files to Create
-| File | Purpose |
-|------|---------|
-| `src/pages/Practice.tsx` (rewrite) | LeetCode-style question list |
-| `src/pages/PracticeQuestionView.tsx` | Single question practice view |
-| `src/components/practice/PracticeQuestionRow.tsx` | Table row component |
-| `src/components/practice/PracticeFilters.tsx` | Filter bar |
-| `src/components/practice/PracticeStatusBadge.tsx` | Status indicator |
+---
 
-### Files to Modify
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Add route `/practice/question/:id` |
+## UI Components to Use
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `PracticeFilters` | `src/components/practice/PracticeFilters.tsx` | Already exists - filter dropdowns |
+| `PracticeQuestionRow` | `src/components/practice/PracticeQuestionRow.tsx` | Already exists - table row with navigation |
+| `PracticeStatusBadge` | `src/components/practice/PracticeStatusBadge.tsx` | Already exists - solved/attempted/unsolved |
+| `Table, TableHeader, TableBody, etc.` | `src/components/ui/table.tsx` | Already exists - table structure |
 
 ---
 
-## FEATURE E: Interactive Mode Always On
-
-### Objective
-Remove Interactive Mode toggle completely - interactive behavior is default and permanent.
-
-### Implementation
-
-#### 1. Remove Toggle from All Pages
-
-In each file:
-- Delete `interactiveMode` state
-- Delete Switch component for toggle
-- Set `interactiveMode={true}` as constant or remove prop entirely
-
-#### 2. Files to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/UnifiedMockExam.tsx` | Remove interactiveMode toggle, hardcode `true` |
-| `src/pages/PracticeExam.tsx` | Remove interactiveMode toggle, hardcode `true` |
-| `src/pages/Quiz.tsx` | Remove interactiveMode toggle, hardcode `true` |
-| `src/components/unified-exam/UnifiedQuestionCard.tsx` | Remove `interactiveMode` prop or default to `true` |
+| `src/pages/Practice.tsx` | Full rewrite: question list table + filters |
+| `src/App.tsx` | Remove `/practice/exam` route |
+| `src/hooks/usePracticeQuestionStatus.tsx` | Query `user_question_progress` table |
+| `src/pages/PracticeQuestionView.tsx` | Minor UX polish for Ask Tutor visibility |
 
-#### 3. Result
+## Files to Keep (No Changes)
 
-- All question types (Graph, Drag-Drop, Math Input, etc.) always enabled
-- Consistent UX across Preview, Practice, and Exam modes
-- No user decision required
+| File | Reason |
+|------|--------|
+| `src/components/practice/PracticeFilters.tsx` | Already implements correct filters |
+| `src/components/practice/PracticeQuestionRow.tsx` | Already navigates to `/practice/question/:id` |
+| `src/components/practice/PracticeStatusBadge.tsx` | Already shows 3 states correctly |
 
----
+## Files That Become Unused
 
-## System Constraints Verification
-
-| Constraint | Status |
-|------------|--------|
-| No OCR changes | Compliant |
-| No AI model changes | Compliant |
-| No exam engine rewrite | Compliant - UI changes only |
-| No routing overhaul | Compliant - additive routes only |
-| No scoring logic change | Compliant |
-| Backward compatible | Compliant |
+| File | Action |
+|------|--------|
+| `src/pages/PracticeExam.tsx` | Route removed, file can remain for reference |
+| `src/components/practice/PracticeTestCard.tsx` | No longer imported, can be deleted |
 
 ---
 
-## Implementation Order
+## Technical Details
 
-### Phase 1: Interactive Mode Always On (Feature E)
-- Quick win, removes UI complexity
-- 4 files to modify
+### Practice.tsx Query
+```typescript
+// Fetch all published practice questions
+const { data, error } = await supabase
+  .from('subject_questions')
+  .select('id, title, topic, difficulty, question_text, xp_reward')
+  .eq('is_published', true)
+  .order('topic')
+  .order('difficulty');
+```
 
-### Phase 2: Chatbot Scope Fix (Features B + C)
-- Create ChatbotContext
-- Modify AI Tutor components
-- Add Ask Tutor to Practice
+### Filter Logic
+```typescript
+const filteredQuestions = useMemo(() => {
+  return questions.filter(q => {
+    if (filters.search && !q.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.topic !== 'all' && q.topic !== filters.topic) return false;
+    if (filters.difficulty !== 'all' && q.difficulty !== filters.difficulty) return false;
+    if (filters.status !== 'all' && getStatus(q.id) !== filters.status) return false;
+    return true;
+  });
+}, [questions, filters, getStatus]);
+```
 
-### Phase 3: Post-Parsing Preview (Feature A)
-- Enhance QuestionPreviewEditor
-- Create StudentPreviewPane
-- Add mandatory type confirmation
-
-### Phase 4: LeetCode-Style Practice (Feature D)
-- Rewrite Practice page
-- Create PracticeQuestionView
-- Add new route
+### Topic Pills Extraction
+```typescript
+const uniqueTopics = useMemo(() => {
+  return [...new Set(questions.map(q => q.topic))].sort();
+}, [questions]);
+```
 
 ---
 
-## Summary of New Files (8)
+## Ask Tutor Behavior (Confirmed)
 
-| File | Purpose |
-|------|---------|
-| `src/contexts/ChatbotContext.tsx` | Route-aware chatbot availability |
-| `src/components/admin/StudentPreviewPane.tsx` | Read-only student UI preview |
-| `src/components/admin/QuestionTypeConfirmation.tsx` | Type accept/override UI |
-| `src/pages/PracticeQuestionView.tsx` | Single question practice view |
-| `src/components/practice/PracticeQuestionRow.tsx` | Question list row |
-| `src/components/practice/PracticeFilters.tsx` | Filter dropdowns |
-| `src/components/practice/PracticeStatusBadge.tsx` | Status indicator |
-| `src/hooks/usePracticeQuestionStatus.tsx` | Hook for solved/attempted tracking |
+| Route | Ask Tutor Available |
+|-------|---------------------|
+| `/practice` | Via question view only |
+| `/practice/question/:id` | Yes - always enabled |
+| `/mock-exams/*` | No - completely disabled |
 
-## Summary of Modified Files (10)
+The `EnhancedAITutor` component already checks `useChatbot()` context which disables it for mock exam routes. No changes needed here.
 
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Add ChatbotProvider, new route |
-| `src/pages/Practice.tsx` | Rewrite to question list |
-| `src/pages/UnifiedMockExam.tsx` | Remove interactive toggle |
-| `src/pages/PracticeExam.tsx` | Remove toggle, add Ask Tutor |
-| `src/pages/Quiz.tsx` | Remove interactive toggle |
-| `src/components/admin/QuestionPreviewEditor.tsx` | Add preview tab, type confirmation |
-| `src/components/EnhancedAITutor.tsx` | Add route-based visibility |
-| `src/components/AITutorChat.tsx` | Add route-based visibility |
-| `src/components/unified-exam/UnifiedQuestionCard.tsx` | Default interactiveMode to true |
-| `src/components/practice/PracticeTestCard.tsx` | May be deprecated or kept for reference |
+---
+
+## Acceptance Criteria
+
+1. `/practice` opens directly to question list (no cards)
+2. No `/practice/exam` route exists
+3. All published `subject_questions` are visible
+4. Filters work: Topic, Difficulty, Question Type, Status
+5. Search by title/keyword works
+6. Clicking question opens `/practice/question/:id`
+7. Status (Solved/Attempted/Unsolved) shows per-student
+8. Ask Tutor available only in practice contexts
+9. Practice feels like LeetCode, not exam
