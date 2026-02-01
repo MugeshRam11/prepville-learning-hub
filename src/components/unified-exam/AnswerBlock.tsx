@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,9 +16,7 @@ import DragDropMatcher from '@/components/mock-exam/DragDropMatcher';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
-import MathLiveKeyboard from '@/components/mock-exam/MathLiveKeyboard';
-import { Button } from '@/components/ui/button';
-import { Calculator, ChevronDown, ChevronUp } from 'lucide-react';
+import { MathTypeInput } from '@/components/math';
 
 interface AnswerBlockProps {
   questionId: string;
@@ -43,65 +41,18 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
   placeholder = 'Enter your answer here...',
   disabled = false
 }) => {
-  const [showMathKeyboard, setShowMathKeyboard] = useState(false);
-
-  const getWordCount = (text: string): number => {
-    if (!text) return 0;
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
-  };
-
   const renderAnswerComponent = () => {
     switch (answerType) {
       case 'text_equation':
         return (
-          <div className="space-y-3">
-            {/* Math keyboard toggle */}
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMathKeyboard(!showMathKeyboard)}
-                className="flex items-center gap-2"
-              >
-                <Calculator className="w-4 h-4" />
-                Math Tools
-                {showMathKeyboard ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </Button>
-              {wordLimit && (
-                <Badge variant={getWordCount(value) > wordLimit ? 'destructive' : 'secondary'}>
-                  {getWordCount(value)} / {wordLimit} words
-                </Badge>
-              )}
-            </div>
-
-            {/* MathLive Keyboard */}
-            {showMathKeyboard && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="border rounded-lg bg-muted/30 p-3"
-              >
-                <MathLiveKeyboard
-                  value={value || ''}
-                  onChange={onChange}
-                  placeholder={placeholder}
-                />
-              </motion.div>
-            )}
-
-            {/* Text area (when MathLive is hidden) */}
-            {!showMathKeyboard && (
-              <Textarea
-                value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                disabled={disabled}
-                className="min-h-[150px] font-mono text-base resize-y"
-              />
-            )}
-          </div>
+          <MathTypeInput
+            value={value || ''}
+            onChange={onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            wordLimit={wordLimit}
+            showPreview={true}
+          />
         );
 
       case 'graph_plot':
