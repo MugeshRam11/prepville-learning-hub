@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +10,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { 
-  Calculator, 
-  ChevronDown, 
-  ChevronUp, 
   Settings2,
   PenTool,
   GripHorizontal,
@@ -33,7 +29,7 @@ import PuzzleDragDrop from '@/components/mock-exam/PuzzleDragDrop';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
-import MathKeyboard from '@/components/mock-exam/MathKeyboard';
+import { MathTypeInput } from '@/components/math';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
@@ -540,51 +536,14 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
       case 'text_equation':
       default:
         return (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMathKeyboard(!showMathKeyboard)}
-                className="flex items-center gap-2"
-              >
-                <Calculator className="w-4 h-4" />
-                Math Tools
-                {showMathKeyboard ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </Button>
-              {wordLimit && (
-                <Badge variant={getWordCount(value) > wordLimit ? 'destructive' : 'secondary'}>
-                  {getWordCount(value)} / {wordLimit} words
-                </Badge>
-              )}
-            </div>
-
-            {showMathKeyboard && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="border rounded-lg bg-muted/30"
-              >
-                <MathKeyboard
-                  value={value || ''}
-                  onChange={onChange}
-                  placeholder={placeholder}
-                />
-              </motion.div>
-            )}
-
-            {!showMathKeyboard && (
-              <Textarea
-                value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                disabled={disabled}
-                className="min-h-[150px] font-mono text-base resize-y"
-              />
-            )}
-          </div>
+          <MathTypeInput
+            value={value || ''}
+            onChange={onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            wordLimit={wordLimit}
+            showPreview={true}
+          />
         );
     }
   };
