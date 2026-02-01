@@ -133,20 +133,33 @@ const StudentAssignments = () => {
     if (!user) return;
 
     // Real-time subscription for assignment updates
-    const channel = supabase.channel('student_assignments_sync')
+    const assignmentsChannel = supabase.channel('student_assignments_sync')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'test_assignments',
         filter: `student_id=eq.${user.id}`
       }, () => {
-        console.log('[StudentAssignments] Change detected, refetching...');
+        console.log('[StudentAssignments] test_assignments changed, refetching...');
+        fetchAssignments();
+      })
+      .subscribe();
+
+    // Subscribe to mock_tests for test detail updates (title, subject, duration)
+    const mockTestsChannel = supabase.channel('student_assignments_tests_sync')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'mock_tests'
+      }, () => {
+        console.log('[StudentAssignments] mock_tests changed, refetching...');
         fetchAssignments();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(assignmentsChannel);
+      supabase.removeChannel(mockTestsChannel);
     };
   }, [user]);
 

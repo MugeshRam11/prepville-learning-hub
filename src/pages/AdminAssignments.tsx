@@ -168,19 +168,32 @@ const AdminAssignments = () => {
     fetchData();
 
     // Real-time subscription for assignment updates
-    const channel = supabase.channel('admin_assignments_sync')
+    const assignmentsChannel = supabase.channel('admin_assignments_sync')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'test_assignments'
       }, (payload) => {
-        console.log('[AdminAssignments] Change detected:', payload);
+        console.log('[AdminAssignments] test_assignments changed:', payload);
+        fetchData();
+      })
+      .subscribe();
+
+    // Subscribe to mock_tests for test name/detail updates
+    const mockTestsChannel = supabase.channel('admin_assignments_tests_sync')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'mock_tests'
+      }, () => {
+        console.log('[AdminAssignments] mock_tests changed, refetching...');
         fetchData();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(assignmentsChannel);
+      supabase.removeChannel(mockTestsChannel);
     };
   }, []);
 

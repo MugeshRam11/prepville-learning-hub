@@ -24,16 +24,29 @@ const AdminMockTests = () => {
   useEffect(() => {
     fetchMockTests();
 
-    // Subscribe to realtime changes
-    const channel = supabase.channel('admin_mock_tests_changes').on('postgres_changes', {
+    // Subscribe to realtime changes on mock_tests table
+    const mockTestsChannel = supabase.channel('admin_mock_tests_changes').on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'mock_tests'
     }, () => {
+      console.log('[AdminMockTests] mock_tests changed, refetching...');
       fetchMockTests();
     }).subscribe();
+
+    // Subscribe to mock_questions for accurate question counts
+    const mockQuestionsChannel = supabase.channel('admin_mock_questions_sync').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'mock_questions'
+    }, () => {
+      console.log('[AdminMockTests] mock_questions changed, refetching...');
+      fetchMockTests();
+    }).subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(mockTestsChannel);
+      supabase.removeChannel(mockQuestionsChannel);
     };
   }, []);
   useEffect(() => {

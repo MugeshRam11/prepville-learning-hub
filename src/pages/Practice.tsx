@@ -79,10 +79,23 @@ const Practice = () => {
       })
       .subscribe();
 
+    // Listen to test_assignments for solved status sync
+    const assignmentsChannel = supabase.channel('practice_assignments_sync')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'test_assignments'
+      }, () => {
+        console.log('[Practice] test_assignments changed, updating status...');
+        fetchPracticeQuestions();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(subjectQuestionsChannel);
       supabase.removeChannel(testsChannel);
       supabase.removeChannel(questionsChannel);
+      supabase.removeChannel(assignmentsChannel);
     };
   }, []);
 
