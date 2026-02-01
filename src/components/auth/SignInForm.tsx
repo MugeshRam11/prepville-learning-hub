@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, ArrowLeft, Lock, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Mail, ArrowLeft, Lock, Loader2, RefreshCw, AlertCircle, IdCard, Hash } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -17,10 +17,13 @@ import {
 const SignInForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [studentIdInput, setStudentIdInput] = useState('');
+  const [rollNumberInput, setRollNumberInput] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [loginMethod, setLoginMethod] = useState<'email' | 'studentId' | 'rollNumber'>('email');
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,9 +142,42 @@ const SignInForm = () => {
         // Continue even if this fails
       }
 
+      let loginEmail = email.trim();
+
+      // If using student ID or roll number, look up the email first
+      if (loginMethod === 'studentId' && studentIdInput.trim()) {
+        const { data: profile, error: lookupError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('student_id', studentIdInput.trim())
+          .single();
+
+        if (lookupError || !profile?.email) {
+          setLastError('Student ID not found. Please check and try again.');
+          toast.error('Student ID not found');
+          setLoading(false);
+          return;
+        }
+        loginEmail = profile.email;
+      } else if (loginMethod === 'rollNumber' && rollNumberInput.trim()) {
+        const { data: profile, error: lookupError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('roll_number', rollNumberInput.trim())
+          .single();
+
+        if (lookupError || !profile?.email) {
+          setLastError('Roll number not found. Please check and try again.');
+          toast.error('Roll number not found');
+          setLoading(false);
+          return;
+        }
+        loginEmail = profile.email;
+      }
+
       const result = await withRetry(async () => {
         return supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: loginEmail,
           password
         });
       });
@@ -295,23 +331,105 @@ const SignInForm = () => {
 
         <TabsContent value="password">
           <form onSubmit={handlePasswordSignIn} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                  autoComplete="email"
-                  disabled={loading}
-                />
-              </div>
+            {/* Login Method Selector */}
+            <div className="flex rounded-lg border p-1 gap-1 bg-muted/30">
+              <button
+                type="button"
+                onClick={() => setLoginMethod('email')}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                  loginMethod === 'email' 
+                    ? 'bg-background shadow-sm text-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Email
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMethod('studentId')}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                  loginMethod === 'studentId' 
+                    ? 'bg-background shadow-sm text-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Student ID
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMethod('rollNumber')}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                  loginMethod === 'rollNumber' 
+                    ? 'bg-background shadow-sm text-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Roll No
+              </button>
             </div>
+
+            {/* Email Input */}
+            {loginMethod === 'email' && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoComplete="email"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Student ID Input */}
+            {loginMethod === 'studentId' && (
+              <div className="space-y-2">
+                <Label htmlFor="studentIdLogin">Student ID</Label>
+                <div className="relative">
+                  <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="studentIdLogin"
+                    type="text"
+                    placeholder="Enter your Student ID (e.g. STU001)"
+                    value={studentIdInput}
+                    onChange={(e) => setStudentIdInput(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Roll Number Input */}
+            {loginMethod === 'rollNumber' && (
+              <div className="space-y-2">
+                <Label htmlFor="rollNumberLogin">Roll Number</Label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="rollNumberLogin"
+                    type="text"
+                    placeholder="Enter your Roll Number (e.g. 101)"
+                    value={rollNumberInput}
+                    onChange={(e) => setRollNumberInput(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

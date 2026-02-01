@@ -45,7 +45,7 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // Number pad
+  // Number pad with space
   const numberButtons: MathButton[] = [
     { label: '7', latex: '7' },
     { label: '8', latex: '8' },
@@ -63,6 +63,7 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
     { label: '.', latex: '.' },
     { label: '=', latex: '=' },
     { label: '+', latex: '+' },
+    { label: '⎵', latex: ' ' }, // Space button
   ];
 
   // Fractions & Powers
@@ -216,6 +217,24 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
     setCursorPosition(input.selectionStart || 0);
   };
 
+  // Handle keyboard events for space and enter
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (onSubmit) {
+        onSubmit();
+      } else {
+        // Move to next math input if available
+        const inputs = document.querySelectorAll('[data-math-input="true"]');
+        const inputsArray = Array.from(inputs);
+        const currentIndex = inputsArray.indexOf(e.currentTarget);
+        if (currentIndex >= 0 && currentIndex < inputsArray.length - 1) {
+          (inputsArray[currentIndex + 1] as HTMLInputElement).focus();
+        }
+      }
+    }
+  };
+
   const renderMathButton = (btn: MathButton, index: number) => {
     let displayContent: React.ReactNode = btn.label;
     
@@ -275,7 +294,9 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
             value={value}
             onChange={handleInputChange}
             onClick={handleInputClick}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
+            data-math-input="true"
             className={cn(
               "w-full px-4 py-3 pr-24 rounded-xl border-2 border-border",
               "bg-card text-foreground font-mono text-sm",

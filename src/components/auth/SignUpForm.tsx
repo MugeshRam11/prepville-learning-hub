@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowLeft, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowLeft, Loader2, RefreshCw, AlertCircle, IdCard, Hash, GraduationCap } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -17,6 +18,9 @@ const SignUpForm = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [rollNumber, setRollNumber] = useState('');
+  const [className, setClassName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -66,6 +70,9 @@ const SignUpForm = () => {
               first_name: firstName,
               last_name: lastName,
               phone: phone,
+              student_id: studentId.trim(),
+              roll_number: rollNumber.trim(),
+              class_name: className,
               role: 'student'
             }
           }
@@ -153,6 +160,9 @@ const SignUpForm = () => {
               first_name: firstName,
               last_name: lastName,
               phone: phone,
+              student_id: studentId.trim(),
+              roll_number: rollNumber.trim(),
+              class_name: className,
               role: 'student'
             }
           }
@@ -322,6 +332,63 @@ const SignUpForm = () => {
               autoComplete="email"
               disabled={loading}
             />
+          </div>
+        </div>
+
+        {/* Student Identity Fields */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="studentId">Student ID</Label>
+            <div className="relative">
+              <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="studentId"
+                type="text"
+                placeholder="e.g. STU001"
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+                className="pl-10"
+                autoComplete="off"
+                disabled={loading}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="rollNumber">Roll Number</Label>
+            <div className="relative">
+              <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="rollNumber"
+                type="text"
+                placeholder="e.g. 101"
+                value={rollNumber}
+                onChange={(e) => setRollNumber(e.target.value)}
+                className="pl-10"
+                autoComplete="off"
+                disabled={loading}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="className">Class</Label>
+          <div className="relative">
+            <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10 pointer-events-none" />
+            <Select value={className} onValueChange={setClassName} disabled={loading}>
+              <SelectTrigger id="className" className="pl-10">
+                <SelectValue placeholder="Select your class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MYP 1">MYP 1</SelectItem>
+                <SelectItem value="MYP 2">MYP 2</SelectItem>
+                <SelectItem value="MYP 3">MYP 3</SelectItem>
+                <SelectItem value="MYP 4">MYP 4</SelectItem>
+                <SelectItem value="MYP 5">MYP 5</SelectItem>
+                <SelectItem value="DP 1">DP 1</SelectItem>
+                <SelectItem value="DP 2">DP 2</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
