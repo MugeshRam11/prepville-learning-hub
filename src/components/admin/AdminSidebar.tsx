@@ -44,6 +44,9 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/admin' },
     { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
+    { id: 'assignments', label: 'Assignments', icon: ClipboardList, path: '/admin/assignments' },
+    { id: 'students-progress', label: 'Student Progress', icon: BarChart3, path: '/admin/students-progress' },
+    { id: 'evaluation', label: 'Evaluation Center', icon: FileText, path: '/admin/evaluation' },
     { id: 'tests', label: 'Practice-QA', icon: FileText, path: '/admin/tests' },
     { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
     { id: 'question-generator', label: 'Question Generator', icon: BookOpen, path: '/admin/question-generator' },
