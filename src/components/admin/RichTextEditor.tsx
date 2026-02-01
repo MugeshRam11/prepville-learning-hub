@@ -18,15 +18,7 @@ import {
 } from "lucide-react";
 import { SymbolPicker } from "./SymbolPicker";
 import "mathlive";
-
-// MathLive type declarations
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'math-field': any;
-    }
-  }
-}
+import "@/types/mathlive.d";
 
 // DOMPurify configuration for rich text editors
 const PURIFY_CONFIG = {
