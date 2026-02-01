@@ -444,20 +444,65 @@ const UnifiedMockExamContent = () => {
     
     const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / (1000 * 60));
     
-    navigate('/mock-exams/summary', {
-      state: {
-        testId: examData.id,
-        title: examData.title,
-        subject: examData.subject,
-        answers,
-        questions: examData.questions,
-        timeSpent,
-        totalMarks: examData.totalMarks,
-        isUnified: true
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Not authenticated');
+        return;
       }
-    });
 
-    toast.success('Exam submitted successfully!');
+      // Save test attempt to database with submission_status = 'submitted'
+      const insertPayload = {
+        user_id: user.id,
+        test_id: examData.id !== 'demo-exam' && examData.id !== 'dynamic-test' ? examData.id : null,
+        answers: answers as any,
+        score: 0, // Will be calculated during evaluation
+        total_questions: getTotalQuestionSlots(),
+        time_taken_seconds: timeSpent * 60,
+        completed_at: new Date().toISOString(),
+        submission_status: 'submitted'
+      };
+      
+      const { data: attemptData, error: attemptError } = await supabase
+        .from('test_attempts')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (attemptError) {
+        console.error('Error saving attempt:', attemptError);
+        // Continue anyway to show submitted page
+      }
+
+      // Create evaluation record with pending_review status
+      if (attemptData && examData.id !== 'demo-exam' && examData.id !== 'dynamic-test') {
+        const { error: evalError } = await supabase
+          .from('exam_evaluations')
+          .insert({
+            test_attempt_id: attemptData.id,
+            student_id: user.id,
+            test_id: examData.id,
+            evaluation_status: 'pending_review'
+          });
+
+        if (evalError) {
+          console.error('Error creating evaluation record:', evalError);
+        }
+      }
+
+      // Navigate to submitted confirmation page (not summary)
+      navigate('/mock-exams/submitted', {
+        state: {
+          testTitle: examData.title
+        }
+      });
+
+      toast.success('Exam submitted successfully!');
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('Failed to submit exam');
+    }
   };
   
   // Sync current question position
