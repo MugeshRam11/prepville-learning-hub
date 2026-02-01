@@ -37,17 +37,29 @@ const MockExamSelect = () => {
   useEffect(() => {
     fetchMockTests();
 
-    // Subscribe to realtime changes
-    const channel = supabase.channel('mock_tests_changes').on('postgres_changes', {
+    // Subscribe to realtime changes on mock_tests table
+    const mockTestsChannel = supabase.channel('mock_tests_changes').on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'mock_tests'
     }, () => {
+      console.log('[MockExamSelect] mock_tests changed, refetching...');
+      fetchMockTests();
+    }).subscribe();
+
+    // Subscribe to mock_questions for accurate question totals
+    const mockQuestionsChannel = supabase.channel('mock_select_questions_sync').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'mock_questions'
+    }, () => {
+      console.log('[MockExamSelect] mock_questions changed, refetching...');
       fetchMockTests();
     }).subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(mockTestsChannel);
+      supabase.removeChannel(mockQuestionsChannel);
     };
   }, []);
 

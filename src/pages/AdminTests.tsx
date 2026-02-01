@@ -27,16 +27,40 @@ const AdminTests = () => {
   useEffect(() => {
     fetchTests();
 
-    // Subscribe to realtime changes
-    const channel = supabase.channel('admin_tests_changes').on('postgres_changes', {
+    // Subscribe to realtime changes on tests table
+    const testsChannel = supabase.channel('admin_tests_changes').on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'tests'
     }, () => {
+      console.log('[AdminTests] tests changed, refetching...');
       fetchTests();
     }).subscribe();
+
+    // Subscribe to questions table for question counts
+    const questionsChannel = supabase.channel('admin_tests_questions_sync').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'questions'
+    }, () => {
+      console.log('[AdminTests] questions changed, refetching...');
+      fetchTests();
+    }).subscribe();
+
+    // Subscribe to subject_questions table for practice question counts
+    const subjectQuestionsChannel = supabase.channel('admin_tests_sq_sync').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'subject_questions'
+    }, () => {
+      console.log('[AdminTests] subject_questions changed, refetching...');
+      fetchTests();
+    }).subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(testsChannel);
+      supabase.removeChannel(questionsChannel);
+      supabase.removeChannel(subjectQuestionsChannel);
     };
   }, []);
   useEffect(() => {
