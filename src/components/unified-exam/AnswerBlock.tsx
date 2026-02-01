@@ -16,7 +16,7 @@ import DragDropMatcher from '@/components/mock-exam/DragDropMatcher';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
-import MathKeyboard from '@/components/mock-exam/MathKeyboard';
+import MathLiveKeyboard from '@/components/mock-exam/MathLiveKeyboard';
 import { Button } from '@/components/ui/button';
 import { Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -75,15 +75,15 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
               )}
             </div>
 
-            {/* Math keyboard */}
+            {/* MathLive Keyboard */}
             {showMathKeyboard && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="border rounded-lg bg-muted/30"
+                className="border rounded-lg bg-muted/30 p-3"
               >
-                <MathKeyboard
+                <MathLiveKeyboard
                   value={value || ''}
                   onChange={onChange}
                   placeholder={placeholder}
@@ -91,7 +91,7 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
               </motion.div>
             )}
 
-            {/* Text area (when keyboard is hidden) */}
+            {/* Text area (when MathLive is hidden) */}
             {!showMathKeyboard && (
               <Textarea
                 value={value || ''}
