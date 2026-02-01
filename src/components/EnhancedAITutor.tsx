@@ -45,9 +45,8 @@ interface EnhancedAITutorProps {
 }
 
 export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCorrect, mode = 'learner' }: EnhancedAITutorProps) => {
-  // Check if chatbot is enabled based on current route (Feature B)
+  // All hooks MUST be called unconditionally and in the same order
   const { isEnabled: isChatbotEnabled } = useChatbot();
-  
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,9 +59,6 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // If chatbot is disabled for this route or not open, don't render
-  if (!isOpen || !isChatbotEnabled) return null;
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -72,10 +68,14 @@ export const EnhancedAITutor = ({ question, subject, isOpen, onClose, onAnswerCo
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && isExpanded && !session) {
+    if (isOpen && isExpanded && !session && isChatbotEnabled) {
       initializeTutoringSession();
     }
-  }, [isOpen, isExpanded, question]);
+  }, [isOpen, isExpanded, question, isChatbotEnabled]);
+
+  // If chatbot is disabled for this route or not open, don't render
+  // This return MUST come AFTER all hooks have been called
+  if (!isOpen || !isChatbotEnabled) return null;
 
   const initializeTutoringSession = async () => {
     if (!user) return;
