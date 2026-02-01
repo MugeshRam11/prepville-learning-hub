@@ -34,6 +34,22 @@ const SignUpForm = () => {
     e.preventDefault();
     setLastError(null);
     
+    // Validation
+    if (!studentId.trim()) {
+      toast.error('Student ID is required');
+      return;
+    }
+
+    if (!rollNumber.trim()) {
+      toast.error('Roll Number is required');
+      return;
+    }
+
+    if (!className) {
+      toast.error('Please select your class');
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -338,7 +354,7 @@ const SignUpForm = () => {
         {/* Student Identity Fields */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="studentId">Student ID</Label>
+            <Label htmlFor="studentId">Student ID *</Label>
             <div className="relative">
               <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -350,11 +366,12 @@ const SignUpForm = () => {
                 className="pl-10"
                 autoComplete="off"
                 disabled={loading}
+                required
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="rollNumber">Roll Number</Label>
+            <Label htmlFor="rollNumber">Roll Number *</Label>
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -366,13 +383,14 @@ const SignUpForm = () => {
                 className="pl-10"
                 autoComplete="off"
                 disabled={loading}
+                required
               />
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="className">Class</Label>
+          <Label htmlFor="className">Class *</Label>
           <div className="relative">
             <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10 pointer-events-none" />
             <Select value={className} onValueChange={setClassName} disabled={loading}>

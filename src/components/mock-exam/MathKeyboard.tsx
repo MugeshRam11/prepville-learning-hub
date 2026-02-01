@@ -66,29 +66,30 @@ const MathKeyboard: React.FC<MathKeyboardProps> = ({
     { label: '⎵', latex: ' ' }, // Space button
   ];
 
-  // Fractions & Powers
+  // Fractions & Powers - Enhanced with proper cursor positioning
   const fractionButtons: MathButton[] = [
-    { label: '□/□', latex: '\\frac{□}{□}', display: '\\frac{a}{b}', cursorOffset: -4 },
+    { label: '□/□', latex: '\\frac{}{}', display: '\\frac{a}{b}', cursorOffset: -3 },
     { label: 'x²', latex: '^{2}' },
     { label: 'x³', latex: '^{3}' },
-    { label: 'xⁿ', latex: '^{□}', display: 'x^{n}', cursorOffset: -1 },
+    { label: 'xⁿ', latex: '^{}', display: 'x^{n}', cursorOffset: -1 },
     { label: '½', latex: '\\frac{1}{2}' },
     { label: '⅓', latex: '\\frac{1}{3}' },
     { label: '¼', latex: '\\frac{1}{4}' },
     { label: '⅔', latex: '\\frac{2}{3}' },
     { label: 'x₁', latex: '_{1}' },
     { label: 'x₂', latex: '_{2}' },
-    { label: 'xₙ', latex: '_{□}', display: 'x_{n}', cursorOffset: -1 },
-    { label: 'x^y', latex: '^{□}', display: 'x^{y}', cursorOffset: -1 },
+    { label: 'xₙ', latex: '_{}', display: 'x_{n}', cursorOffset: -1 },
+    { label: 'x^y', latex: '^{}', display: 'x^{y}', cursorOffset: -1 },
+    { label: 'a/b', latex: '/', display: '\\frac{a}{b}' }, // Simple inline division
   ];
 
-  // Roots & Radicals
+  // Roots & Radicals - Fixed cursor offsets
   const rootButtons: MathButton[] = [
-    { label: '√', latex: '\\sqrt{□}', display: '\\sqrt{x}', cursorOffset: -1 },
-    { label: '∛', latex: '\\sqrt[3]{□}', display: '\\sqrt[3]{x}', cursorOffset: -1 },
-    { label: 'ⁿ√', latex: '\\sqrt[□]{□}', display: '\\sqrt[n]{x}', cursorOffset: -4 },
+    { label: '√', latex: '\\sqrt{}', display: '\\sqrt{x}', cursorOffset: -1 },
+    { label: '∛', latex: '\\sqrt[3]{}', display: '\\sqrt[3]{x}', cursorOffset: -1 },
+    { label: 'ⁿ√', latex: '\\sqrt[]{}', display: '\\sqrt[n]{x}', cursorOffset: -3 },
     { label: '±', latex: '\\pm ' },
-    { label: '|x|', latex: '|□|', display: '|x|', cursorOffset: -1 },
+    { label: '|x|', latex: '||', display: '|x|', cursorOffset: -1 },
     { label: '∞', latex: '\\infty ' },
     { label: '≈', latex: '\\approx ' },
     { label: '≠', latex: '\\neq ' },

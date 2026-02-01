@@ -25,6 +25,9 @@ import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
+import AdminAssignments from "./pages/AdminAssignments";
+import AdminStudentsProgress from "./pages/AdminStudentsProgress";
+import AdminEvaluation from "./pages/AdminEvaluation";
 import AdminTests from "./pages/AdminTests";
 import AdminQuestions from "./pages/AdminQuestions";
 import AdminBulkUpload from "./pages/AdminBulkUpload";
@@ -194,6 +197,21 @@ const App = () => (
           <Route path="/admin/users" element={
             <ProtectedRoute>
               <AdminUsers />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/assignments" element={
+            <ProtectedRoute>
+              <AdminAssignments />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/students-progress" element={
+            <ProtectedRoute>
+              <AdminStudentsProgress />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/evaluation" element={
+            <ProtectedRoute>
+              <AdminEvaluation />
             </ProtectedRoute>
           } />
           <Route path="/admin/tests" element={
