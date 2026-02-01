@@ -1,227 +1,259 @@
 
 
-# Remove Subjects Navigation & Replace with Assignments (Student Side)
+# Complete Real-Time Synchronization Across All Admin & Student Pages
 
 ## Overview
 
-This implementation removes the "Subjects" navigation entry from all student-facing navigation and replaces it with an "Assignments" entry that links to a new student assignments page.
+This plan establishes comprehensive bidirectional real-time sync between admin management pages and student-facing pages, ensuring all related tables are properly subscribed for instant updates.
 
 ---
 
-## Current State Analysis
+## Current Sync Status Analysis
 
-| Location | Current | After Change |
-|----------|---------|--------------|
-| **Header Navigation** (logged in) | `/subjects` with BookOpen icon | `/assignments` with ClipboardList icon |
-| **Routes in App.tsx** | `/subjects` → Subjects page | `/assignments` → New StudentAssignments page |
-| **Student Dashboard** | No direct assignment visibility | Keep unchanged (dashboard focus) |
+| Page | Route | Current Sync | Tables Subscribed |
+|------|-------|--------------|-------------------|
+| **Practice** | `/practice` | Partial | `subject_questions`, `tests`, `questions` |
+| **Admin Tests** | `/admin/tests` | Has Sync | `tests` only |
+| **Admin Assignments** | `/admin/assignments` | Has Sync | `test_assignments` only |
+| **Student Assignments** | `/assignments` | Has Sync | `test_assignments` (filtered by user) |
+| **Admin Mock Tests** | `/admin/mock-tests` | Has Sync | `mock_tests` only |
+| **Mock Exam Select** | `/mock-exams/select` | Has Sync | `mock_tests` only |
+
+---
+
+## Required Enhancements
+
+### Problem: Incomplete Cross-Table Sync
+
+When an admin publishes a mock test in `/admin/mock-tests`, the following should update immediately:
+1. `/mock-exams/select` (student selection page)
+2. `/admin/assignments` (if tests are used in assignments)
+
+When admin creates/modifies assignments, these should update:
+1. `/assignments` (student view)
+2. Related stats in admin dashboard
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/components/Header.tsx` | Replace "Subjects" nav item with "Assignments" |
-| `src/App.tsx` | Add new `/assignments` route, keep `/subjects` route (for backward compatibility) |
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/pages/StudentAssignments.tsx` | New student assignments view showing their assigned tests |
+| File | Required Changes |
+|------|------------------|
+| `src/pages/Practice.tsx` | Add `test_assignments` subscription for solved status sync |
+| `src/pages/AdminTests.tsx` | Add `questions` and `subject_questions` subscriptions |
+| `src/pages/AdminMockTests.tsx` | Add `mock_questions` subscription for question counts |
+| `src/pages/MockExamSelect.tsx` | Add `mock_questions` subscription for accurate totals |
+| `src/pages/AdminAssignments.tsx` | Add `mock_tests` subscription for test name updates |
+| `src/pages/StudentAssignments.tsx` | Add `mock_tests` subscription for test detail updates |
 
 ---
 
-## Implementation Details
+## Detailed Implementation
 
-### 1. Update Header Navigation
+### 1. Practice Page (`/practice`)
 
-**File:** `src/components/Header.tsx`
+**Current:** Subscribes to `subject_questions`, `tests`, `questions`
 
-Replace the Subjects nav item (line 36):
+**Add:** Sync from `test_assignments` to track solved questions from assigned tests
+
 ```typescript
-// BEFORE
-{ href: '/subjects', label: 'Subjects', icon: BookOpen },
-
-// AFTER  
-{ href: '/assignments', label: 'Assignments', icon: ClipboardList },
-```
-
-Add `ClipboardList` to the lucide-react imports.
-
----
-
-### 2. Create Student Assignments Page
-
-**File:** `src/pages/StudentAssignments.tsx`
-
-A new page that shows the logged-in student their assigned tests with:
-
-**Features:**
-- Fetch assignments from `test_assignments` where `student_id` = current user
-- Join with `mock_tests` to get test details
-- Display status badges (Not Started, In Progress, Finished, Missed)
-- Real-time sync via Supabase subscription
-- "Start" button for Not Started/In Progress assignments
-- Filter by status (All, Pending, Finished, Missed)
-
-**UI Layout:**
-```text
-+------------------------------------------------------------------+
-|  Header                                                          |
-+------------------------------------------------------------------+
-|  My Assignments                                                   |
-+------------------------------------------------------------------+
-|  [Filter: All ▼]                                                  |
-+------------------------------------------------------------------+
-|  ┌────────────────────────────────────────────────────────────┐  |
-|  │ Algebra Mock Test - Week 5           ○ Not Started          │  |
-|  │ Mock Test | Due: Feb 5, 2026                                │  |
-|  │                                             [Start Test →]  │  |
-|  └────────────────────────────────────────────────────────────┘  |
-|  ┌────────────────────────────────────────────────────────────┐  |
-|  │ Chemistry Weekly Quiz                 ● In Progress         │  |
-|  │ Weekly Quiz | Due: Feb 3, 2026                              │  |
-|  │                                           [Continue →]      │  |
-|  └────────────────────────────────────────────────────────────┘  |
-|  ┌────────────────────────────────────────────────────────────┐  |
-|  │ Physics Mid-Term Mock                 ✓ Finished            │  |
-|  │ Mock Test | Submitted: Jan 30, 2026                         │  |
-|  │                                           [View Results]    │  |
-|  └────────────────────────────────────────────────────────────┘  |
-+------------------------------------------------------------------+
-|  Footer                                                          |
-+------------------------------------------------------------------+
-```
-
-**Status Logic (same as admin):**
-```typescript
-const getAssignmentStatus = (assignment) => {
-  const now = new Date();
-  const dueDate = new Date(assignment.due_date);
-  
-  if (assignment.completed_at) return 'finished';
-  if (now > dueDate) return 'missed';
-  if (assignment.started_at) return 'in_progress';
-  return 'not_started';
-};
-```
-
----
-
-### 3. Add Route in App.tsx
-
-**File:** `src/App.tsx`
-
-Add new import and route:
-```typescript
-import StudentAssignments from "./pages/StudentAssignments";
-
-// Add route (protected with subscription)
-<Route path="/assignments" element={
-  <ProtectedRoute requiresSubscription>
-    <StudentAssignments />
-  </ProtectedRoute>
-} />
-```
-
----
-
-### 4. Action Buttons Logic
-
-| Status | Button | Action |
-|--------|--------|--------|
-| **Not Started** | "Start Test" | Navigate to `/mock-exams/unified/{testId}`, update `started_at` |
-| **In Progress** | "Continue" | Navigate to `/mock-exams/unified/{testId}` |
-| **Finished** | "View Results" | Navigate to test results/summary page |
-| **Missed** | "Missed" (disabled badge) | No action (greyed out) |
-
----
-
-### 5. Real-time Updates
-
-The page will subscribe to changes on `test_assignments` for the current user:
-```typescript
-const channel = supabase.channel('student_assignments_sync')
+// Add to existing useEffect
+const assignmentsChannel = supabase.channel('practice_assignments_sync')
   .on('postgres_changes', {
     event: '*',
     schema: 'public',
-    table: 'test_assignments',
-    filter: `student_id=eq.${user.id}`
-  }, () => fetchAssignments())
+    table: 'test_assignments'
+  }, () => {
+    console.log('[Practice] test_assignments changed, updating status...');
+    // Trigger status refresh
+  })
+  .subscribe();
+```
+
+### 2. Admin Tests Page (`/admin/tests`)
+
+**Current:** Only subscribes to `tests` table
+
+**Add:** `questions` and `subject_questions` subscriptions to sync question counts
+
+```typescript
+// Enhance existing subscription
+const questionsChannel = supabase.channel('admin_tests_questions_sync')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'questions'
+  }, () => fetchTests())
+  .subscribe();
+
+const subjectQuestionsChannel = supabase.channel('admin_tests_sq_sync')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'subject_questions'
+  }, () => fetchTests())
+  .subscribe();
+```
+
+### 3. Admin Mock Tests Page (`/admin/mock-tests`)
+
+**Current:** Only subscribes to `mock_tests` table
+
+**Add:** `mock_questions` subscription to update question counts when questions are added/removed
+
+```typescript
+// Add after existing channel
+const mockQuestionsChannel = supabase.channel('admin_mock_questions_sync')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'mock_questions'
+  }, () => {
+    console.log('[AdminMockTests] mock_questions changed, refetching...');
+    fetchMockTests();
+  })
+  .subscribe();
+```
+
+### 4. Mock Exam Select Page (`/mock-exams/select`)
+
+**Current:** Only subscribes to `mock_tests` table
+
+**Add:** `mock_questions` subscription to ensure total question counts are accurate
+
+```typescript
+// Add after existing channel
+const mockQuestionsChannel = supabase.channel('mock_select_questions_sync')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'mock_questions'
+  }, () => {
+    console.log('[MockExamSelect] mock_questions changed, refetching...');
+    fetchMockTests();
+  })
+  .subscribe();
+```
+
+### 5. Admin Assignments Page (`/admin/assignments`)
+
+**Current:** Subscribes to `test_assignments`
+
+**Add:** `mock_tests` subscription to update test names if they change
+
+```typescript
+// Add after existing channel
+const mockTestsChannel = supabase.channel('admin_assignments_tests_sync')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'mock_tests'
+  }, () => {
+    console.log('[AdminAssignments] mock_tests changed, refetching...');
+    fetchData();
+  })
+  .subscribe();
+```
+
+### 6. Student Assignments Page (`/assignments`)
+
+**Current:** Subscribes to `test_assignments` filtered by user
+
+**Add:** `mock_tests` subscription to update test details (title, subject, duration)
+
+```typescript
+// Add after existing channel
+const mockTestsChannel = supabase.channel('student_assignments_tests_sync')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'mock_tests'
+  }, () => {
+    console.log('[StudentAssignments] mock_tests changed, refetching...');
+    fetchAssignments();
+  })
   .subscribe();
 ```
 
 ---
 
-## What Remains Unchanged
+## Sync Relationship Map
 
-- `/subjects` route still exists (for any existing bookmarks/links)
-- SubjectLearning page unchanged
-- Admin sidebar/navigation unchanged
-- Student Dashboard unchanged (no subject references there)
+```text
++-------------------+         +-------------------+
+|  Admin Mock Tests | ------> |  Mock Exam Select |
+|  /admin/mock-tests|         |  /mock-exams/select
++-------------------+         +-------------------+
+        |                              |
+        | mock_tests table             | mock_tests table
+        | mock_questions table         | mock_questions table
+        v                              v
++-------------------+         +-------------------+
+| Admin Assignments | ------> | Student Assignments
+|  /admin/assignments|        |  /assignments      |
++-------------------+         +-------------------+
+        |                              |
+        | test_assignments table       | test_assignments table (filtered)
+        | mock_tests table             | mock_tests table
+        v                              v
++-------------------+
+|    Practice       |
+|    /practice      |
++-------------------+
+        |
+        | subject_questions, tests, questions, test_assignments
+```
 
 ---
 
-## Technical Details
+## Cleanup Pattern
 
-### Database Query for Student Assignments
-
-```typescript
-const { data } = await supabase
-  .from('test_assignments')
-  .select(`
-    id,
-    test_id,
-    start_date,
-    due_date,
-    status,
-    started_at,
-    completed_at,
-    mock_tests (
-      id,
-      title,
-      subject,
-      duration_minutes,
-      total_marks
-    )
-  `)
-  .eq('student_id', user.id)
-  .order('due_date', { ascending: true });
-```
-
-### Status Badge Component
+Each page must properly clean up all channels on unmount:
 
 ```typescript
-const StatusBadge = ({ status }) => {
-  const config = {
-    not_started: { label: 'Not Started', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', icon: Circle },
-    in_progress: { label: 'In Progress', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: Clock },
-    finished: { label: 'Finished', className: 'bg-green-500/10 text-green-600 border-green-500/20', icon: Check },
-    missed: { label: 'Missed', className: 'bg-red-500/10 text-red-600 border-red-500/20', icon: X }
-  };
-  
-  const { label, className, icon: Icon } = config[status];
-  return (
-    <Badge className={className}>
-      <Icon className="w-3 h-3 mr-1" /> {label}
-    </Badge>
-  );
+return () => {
+  supabase.removeChannel(channel1);
+  supabase.removeChannel(channel2);
+  supabase.removeChannel(channel3);
+  // ... all channels
 };
 ```
 
 ---
 
+## Summary of Changes
+
+| File | Channels to Add |
+|------|----------------|
+| `Practice.tsx` | `test_assignments` |
+| `AdminTests.tsx` | `questions`, `subject_questions` |
+| `AdminMockTests.tsx` | `mock_questions` |
+| `MockExamSelect.tsx` | `mock_questions` |
+| `AdminAssignments.tsx` | `mock_tests` |
+| `StudentAssignments.tsx` | `mock_tests` |
+
+---
+
+## Technical Notes
+
+1. **Channel Naming:** Use unique descriptive names to avoid conflicts (e.g., `admin_mock_questions_sync` vs `mock_select_questions_sync`)
+
+2. **Performance:** Supabase realtime is efficient - multiple subscriptions on the same table from different pages won't cause issues
+
+3. **Debouncing:** Not needed for these use cases as Supabase already batches rapid changes
+
+4. **Logging:** Each refetch logs to console for debugging visibility
+
+---
+
 ## Acceptance Criteria
 
-1. "Subjects" removed from Header navigation for logged-in users
-2. "Assignments" added to Header navigation with ClipboardList icon
-3. New `/assignments` route created and protected
-4. Student sees only their assigned tests
-5. Status badges show Not Started, In Progress, Finished, or Missed
-6. Start/Continue buttons navigate to the test
-7. Real-time updates when admin modifies assignments
-8. Filter by status works correctly
-9. Empty state when no assignments
+1. Admin publishes a mock test → `/mock-exams/select` updates instantly
+2. Admin adds questions to mock test → Question counts update on both admin and student pages
+3. Admin creates assignment → Student sees it immediately in `/assignments`
+4. Admin extends due date → Student sees updated due date instantly
+5. Student starts/finishes test → Admin sees status change in `/admin/assignments`
+6. Admin activates/deactivates practice test → `/practice` updates immediately
+7. All channel subscriptions are properly cleaned up on unmount
+8. Console logs confirm sync events are firing
 
