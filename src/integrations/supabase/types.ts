@@ -314,6 +314,68 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_evaluations: {
+        Row: {
+          ai_evaluation_data: Json | null
+          created_at: string | null
+          evaluated_at: string | null
+          evaluated_by: string | null
+          evaluation_status: string | null
+          feedback: string | null
+          final_marks: Json | null
+          final_score: number | null
+          finalized_at: string | null
+          id: string
+          manual_adjustments: Json | null
+          student_id: string
+          test_attempt_id: string
+          test_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_evaluation_data?: Json | null
+          created_at?: string | null
+          evaluated_at?: string | null
+          evaluated_by?: string | null
+          evaluation_status?: string | null
+          feedback?: string | null
+          final_marks?: Json | null
+          final_score?: number | null
+          finalized_at?: string | null
+          id?: string
+          manual_adjustments?: Json | null
+          student_id: string
+          test_attempt_id: string
+          test_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_evaluation_data?: Json | null
+          created_at?: string | null
+          evaluated_at?: string | null
+          evaluated_by?: string | null
+          evaluation_status?: string | null
+          feedback?: string | null
+          final_marks?: Json | null
+          final_score?: number | null
+          finalized_at?: string | null
+          id?: string
+          manual_adjustments?: Json | null
+          student_id?: string
+          test_attempt_id?: string
+          test_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_evaluations_test_attempt_id_fkey"
+            columns: ["test_attempt_id"]
+            isOneToOne: true
+            referencedRelation: "test_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_sessions: {
         Row: {
           active_session_id: string
@@ -770,6 +832,7 @@ export type Database = {
           avatar_emoji: string | null
           avatar_id: number | null
           avatar_name: string | null
+          class_name: string | null
           created_at: string | null
           email: string
           first_name: string | null
@@ -777,12 +840,15 @@ export type Database = {
           is_active: boolean | null
           last_name: string | null
           role: Database["public"]["Enums"]["user_role"]
+          roll_number: string | null
+          student_id: string | null
           updated_at: string | null
         }
         Insert: {
           avatar_emoji?: string | null
           avatar_id?: number | null
           avatar_name?: string | null
+          class_name?: string | null
           created_at?: string | null
           email: string
           first_name?: string | null
@@ -790,12 +856,15 @@ export type Database = {
           is_active?: boolean | null
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          roll_number?: string | null
+          student_id?: string | null
           updated_at?: string | null
         }
         Update: {
           avatar_emoji?: string | null
           avatar_id?: number | null
           avatar_name?: string | null
+          class_name?: string | null
           created_at?: string | null
           email?: string
           first_name?: string | null
@@ -803,6 +872,8 @@ export type Database = {
           is_active?: boolean | null
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          roll_number?: string | null
+          student_id?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1279,12 +1350,63 @@ export type Database = {
         }
         Relationships: []
       }
+      test_assignments: {
+        Row: {
+          assigned_by: string
+          completed_at: string | null
+          created_at: string | null
+          due_date: string
+          id: string
+          start_date: string
+          started_at: string | null
+          status: string | null
+          student_id: string
+          test_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_by: string
+          completed_at?: string | null
+          created_at?: string | null
+          due_date: string
+          id?: string
+          start_date: string
+          started_at?: string | null
+          status?: string | null
+          student_id: string
+          test_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_by?: string
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          start_date?: string
+          started_at?: string | null
+          status?: string | null
+          student_id?: string
+          test_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_assignments_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "mock_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_attempts: {
         Row: {
           answers: Json | null
           completed_at: string | null
           id: string
           score: number
+          submission_status: string | null
           test_id: string | null
           time_taken_seconds: number | null
           total_questions: number
@@ -1295,6 +1417,7 @@ export type Database = {
           completed_at?: string | null
           id?: string
           score?: number
+          submission_status?: string | null
           test_id?: string | null
           time_taken_seconds?: number | null
           total_questions: number
@@ -1305,6 +1428,7 @@ export type Database = {
           completed_at?: string | null
           id?: string
           score?: number
+          submission_status?: string | null
           test_id?: string | null
           time_taken_seconds?: number | null
           total_questions?: number
