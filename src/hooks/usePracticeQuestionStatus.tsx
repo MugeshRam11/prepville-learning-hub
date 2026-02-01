@@ -20,15 +20,17 @@ export const usePracticeQuestionStatus = () => {
     }
 
     try {
-      // Fetch all test attempts for this user to determine question statuses
-      const { data: attempts, error } = await supabase
+      const newStatusMap: QuestionStatusMap = {};
+
+      // Fetch test attempts for status tracking
+      const { data: attempts, error: attemptsError } = await supabase
         .from('test_attempts')
         .select('answers, score, total_questions')
         .eq('user_id', user.id);
 
-      if (error) throw error;
-
-      const newStatusMap: QuestionStatusMap = {};
+      if (attemptsError) {
+        console.error('Error fetching test attempts:', attemptsError);
+      }
 
       // Parse answers from attempts to determine status per question
       attempts?.forEach(attempt => {
@@ -36,9 +38,6 @@ export const usePracticeQuestionStatus = () => {
           const answers = attempt.answers as Record<string, any>;
           
           Object.entries(answers).forEach(([questionId, answer]) => {
-            // Check if this answer represents a solved or attempted state
-            // For now, if any answer exists, mark as attempted
-            // If score is present and > 0, mark as solved (simplified logic)
             const isCorrect = answer?.isCorrect || answer?.correct;
             
             if (isCorrect) {
@@ -47,6 +46,27 @@ export const usePracticeQuestionStatus = () => {
               newStatusMap[questionId] = 'attempted';
             }
           });
+        }
+      });
+
+      // Also check AI tutoring sessions for subject_questions practice attempts
+      const { data: tutoringSessions, error: tutoringError } = await supabase
+        .from('ai_tutoring_sessions')
+        .select('question_id, is_correct, student_answer')
+        .eq('user_id', user.id);
+
+      if (tutoringError) {
+        console.error('Error fetching tutoring sessions:', tutoringError);
+      }
+
+      // Mark questions based on tutoring session results
+      tutoringSessions?.forEach(session => {
+        if (session.question_id) {
+          if (session.is_correct) {
+            newStatusMap[session.question_id] = 'solved';
+          } else if (session.student_answer && !newStatusMap[session.question_id]) {
+            newStatusMap[session.question_id] = 'attempted';
+          }
         }
       });
 
