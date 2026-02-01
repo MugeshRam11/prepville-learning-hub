@@ -23,9 +23,8 @@ interface AITutorChatProps {
 }
 
 export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITutorChatProps) => {
-  // Check if chatbot is enabled based on current route (Feature B)
+  // All hooks MUST be called unconditionally and in the same order
   const { isEnabled: isChatbotEnabled } = useChatbot();
-  
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,9 +32,6 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
   const [showMathEditor, setShowMathEditor] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
-  // If chatbot is disabled for this route or not open, don't render
-  if (!isOpen || !isChatbotEnabled) return null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,7 +42,7 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && isExpanded && messages.length === 0) {
+    if (isOpen && isExpanded && messages.length === 0 && isChatbotEnabled) {
       setMessages([
         {
           role: 'assistant',
@@ -54,7 +50,11 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
         }
       ]);
     }
-  }, [isOpen, isExpanded, subject]);
+  }, [isOpen, isExpanded, subject, isChatbotEnabled]);
+  
+  // If chatbot is disabled for this route or not open, don't render
+  // This return MUST come AFTER all hooks have been called
+  if (!isOpen || !isChatbotEnabled) return null;
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
