@@ -76,12 +76,10 @@ const PracticeQuestionRow: React.FC<PracticeQuestionRowProps> = ({
         <span className="text-xs text-muted-foreground">{questionType}</span>
       </TableCell>
 
-      {/* Marks */}
-      {marks && (
-        <TableCell className="hidden lg:table-cell w-20 text-center">
-          <span className="text-xs text-muted-foreground">{marks}</span>
-        </TableCell>
-      )}
+      {/* XP/Marks */}
+      <TableCell className="hidden lg:table-cell w-20 text-center">
+        <span className="text-xs text-muted-foreground">{marks || '-'}</span>
+      </TableCell>
 
       {/* Status */}
       <TableCell className="w-28">

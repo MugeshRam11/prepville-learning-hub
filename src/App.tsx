@@ -9,7 +9,7 @@ import CommandTerms from "./pages/CommandTerms";
 import Quiz from "./pages/Quiz";
 import QuickPractice from "./pages/QuickPractice";
 import Practice from "./pages/Practice";
-import PracticeExam from "./pages/PracticeExam";
+// PracticeExam removed - practice is now a direct question bank
 import PracticeQuestionView from "./pages/PracticeQuestionView";
 import MockExamSelect from "./pages/MockExamSelect";
 import MockExamSubjectView from "./pages/MockExamSubjectView";
@@ -117,11 +117,7 @@ const App = () => (
               <Practice />
             </ProtectedRoute>
           } />
-          <Route path="/practice/exam" element={
-            <ProtectedRoute requiresSubscription>
-              <PracticeExam />
-            </ProtectedRoute>
-          } />
+          {/* /practice/exam removed - practice is now a direct question bank */}
           <Route path="/practice/question/:questionId" element={
             <ProtectedRoute requiresSubscription>
               <PracticeQuestionView />
