@@ -16,6 +16,7 @@ import MockExamSubjectView from "./pages/MockExamSubjectView";
 import MockExamStart from "./pages/MockExamStart";
 import MockExamSummary from "./pages/MockExamSummary";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentAssignments from "./pages/StudentAssignments";
 import Subjects from "./pages/Subjects";
 import Videos from "./pages/Videos";
 import StudyMaterials from "./pages/StudyMaterials";
@@ -161,6 +162,11 @@ const App = () => (
           <Route path="/mock-exams/unified/:testId" element={
             <ProtectedRoute requiresSubscription>
               <UnifiedMockExam />
+            </ProtectedRoute>
+          } />
+          <Route path="/assignments" element={
+            <ProtectedRoute requiresSubscription>
+              <StudentAssignments />
             </ProtectedRoute>
           } />
           <Route path="/subjects" element={
