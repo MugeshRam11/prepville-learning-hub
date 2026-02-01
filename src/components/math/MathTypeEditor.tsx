@@ -58,6 +58,7 @@ const MathTypeEditor: React.FC<MathTypeEditorProps> = ({
   }, [insertMathML, onMathMLInsert]);
 
   const editorConfig = {
+    licenseKey: 'GPL', // Required for CKEditor 5 free/open-source usage
     plugins: [Essentials, Paragraph, MathType],
     toolbar: hideToolbar ? [] : ['MathType', 'ChemType'],
     placeholder,
