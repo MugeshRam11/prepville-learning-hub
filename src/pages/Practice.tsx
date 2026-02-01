@@ -43,19 +43,46 @@ const Practice = () => {
   useEffect(() => {
     fetchPracticeQuestions();
 
-    // Real-time subscription for practice questions
-    const channel = supabase.channel('practice_questions_sync')
+    // Real-time subscription for practice questions (subject_questions table)
+    const subjectQuestionsChannel = supabase.channel('practice_subject_questions_sync')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'subject_questions'
       }, () => {
+        console.log('[Practice] subject_questions changed, refetching...');
+        fetchPracticeQuestions();
+      })
+      .subscribe();
+
+    // Also listen to tests table for admin quick_test changes
+    const testsChannel = supabase.channel('practice_tests_sync')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tests'
+      }, () => {
+        console.log('[Practice] tests table changed, refetching...');
+        fetchPracticeQuestions();
+      })
+      .subscribe();
+
+    // Listen to questions table as well (questions linked to tests)
+    const questionsChannel = supabase.channel('practice_questions_table_sync')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'questions'
+      }, () => {
+        console.log('[Practice] questions table changed, refetching...');
         fetchPracticeQuestions();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(subjectQuestionsChannel);
+      supabase.removeChannel(testsChannel);
+      supabase.removeChannel(questionsChannel);
     };
   }, []);
 
