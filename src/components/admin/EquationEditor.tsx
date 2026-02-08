@@ -3,7 +3,7 @@ import DOMPurify from "dompurify";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Image as ImageIcon, Menu, Undo, Redo, Eye } from "lucide-react";
+import { Copy, Image as ImageIcon, Menu, Undo, Redo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -39,7 +39,7 @@ const sanitizeHtml = (html: string): string => {
 
 export default function EquationEditor({ value, onChange, placeholder, className }: EquationEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  // Preview state removed - not required
   const { toast } = useToast();
 
   // Common symbols
@@ -619,28 +619,7 @@ export default function EquationEditor({ value, onChange, placeholder, className
                 Unicode
               </Button>
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPreview(!showPreview)}
-                className="h-8 px-3 text-xs"
-              >
-                <Eye className="h-3 w-3 mr-1" />
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </Button>
-            </div>
           </div>
-
-          {showPreview && (
-            <div className="p-3 border rounded-lg bg-muted/30">
-              <div className="text-xs text-muted-foreground mb-2">Preview:</div>
-              <div className="p-2 bg-background rounded border">
-                {editorRef.current?.innerHTML || 'No content'}
-              </div>
-            </div>
-          )}
 
           <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
             <div className="flex items-start gap-1">
