@@ -51,7 +51,7 @@ import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 import LevelDetails from "./pages/LevelDetails";
 import SubjectLearning from "./pages/SubjectLearning";
-import QuestionBuilder from "./pages/QuestionBuilder";
+
 import UploadDemo1 from "./pages/UploadDemo1";
 import InteractiveMockDemo from "./pages/InteractiveMockDemo";
 import InteractiveMockExam from "./pages/InteractiveMockExam";
@@ -277,11 +277,6 @@ const App = () => (
           <Route path="/admin/question-generator" element={
             <ProtectedRoute>
               <AdminQuestionGenerator />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/question-builder" element={
-            <ProtectedRoute>
-              <QuestionBuilder />
             </ProtectedRoute>
           } />
           <Route path="/admin/exam-builder" element={
