@@ -1,29 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
-import DOMPurify from "dompurify";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Image as ImageIcon, Menu, Undo, Redo } from "lucide-react";
+import { Copy, RotateCw, ChevronDown, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-} from "@/components/ui/dropdown-menu";
 import copy from "copy-to-clipboard";
-import html2canvas from "html2canvas";
-
-// DOMPurify configuration for equation editor
-const PURIFY_CONFIG = {
-  ALLOWED_TAGS: ['span', 'div', 'br', 'sup', 'sub', 'strong', 'em'],
-  ALLOWED_ATTR: ['class', 'style', 'contenteditable'],
-};
+import katex from "katex";
 
 interface EquationEditorProps {
   value: string;
@@ -32,599 +14,433 @@ interface EquationEditorProps {
   className?: string;
 }
 
-// Sanitize HTML content
-const sanitizeHtml = (html: string): string => {
-  return DOMPurify.sanitize(html, PURIFY_CONFIG);
-};
+// ─── Toolbar dropdown data ───────────────────────────────────────
+interface ToolbarGroup {
+  id: string;
+  label: string;
+  items: { label: string; latex: string }[];
+}
 
+const TOOLBAR_GROUPS: ToolbarGroup[] = [
+  {
+    id: "fraction",
+    label: "Fraction",
+    items: [
+      { label: "dy/dx", latex: "\\frac{dy}{dx}" },
+      { label: "Δy/Δx", latex: "\\frac{\\Delta y}{\\Delta x}" },
+      { label: "∂y/∂x", latex: "\\frac{\\partial y}{\\partial x}" },
+      { label: "π/2", latex: "\\frac{\\pi}{2}" },
+      { label: "x/y", latex: "\\frac{x}{y}" },
+      { label: "a/b", latex: "\\frac{a}{b}" },
+    ],
+  },
+  {
+    id: "script",
+    label: "Script",
+    items: [
+      { label: "x²", latex: "x^{2}" },
+      { label: "e^{iωt}", latex: "e^{i\\omega t}" },
+      { label: "x_y", latex: "x_{y}" },
+      { label: "e^{-x}", latex: "e^{-x}" },
+      { label: "aⁿ", latex: "a^{n}" },
+    ],
+  },
+  {
+    id: "radical",
+    label: "Radical",
+    items: [
+      { label: "√x", latex: "\\sqrt{x}" },
+      { label: "ⁿ√a", latex: "\\sqrt[n]{a}" },
+      { label: "√(a²+b²)", latex: "\\sqrt{a^2+b^2}" },
+    ],
+  },
+  {
+    id: "integral",
+    label: "Integral",
+    items: [
+      { label: "∫₋ₓˣ", latex: "\\int_{-x}^{x}" },
+      { label: "∫₀^∞", latex: "\\int_{0}^{\\infty}" },
+      { label: "∮", latex: "\\oint" },
+    ],
+  },
+  {
+    id: "large",
+    label: "Large Op",
+    items: [
+      { label: "∑", latex: "\\sum_{i=0}^{n}" },
+      { label: "∏", latex: "\\prod_{i=1}^{k}" },
+      { label: "⋃", latex: "\\bigcup_{i}" },
+    ],
+  },
+  {
+    id: "bracket",
+    label: "Bracket",
+    items: [
+      { label: "( )", latex: "\\left( \\right)" },
+      { label: "[ ]", latex: "\\left[ \\right]" },
+      { label: "{ }", latex: "\\{ \\}" },
+      { label: "| |", latex: "\\left| \\right|" },
+    ],
+  },
+  {
+    id: "function",
+    label: "Function",
+    items: [
+      { label: "sin θ", latex: "\\sin\\theta" },
+      { label: "cos x", latex: "\\cos x" },
+      { label: "tan⁻¹", latex: "\\tan^{-1}" },
+      { label: "log₂", latex: "\\log_{2}" },
+      { label: "ln x", latex: "\\ln x" },
+    ],
+  },
+  {
+    id: "limit",
+    label: "Limit",
+    items: [
+      { label: "lim→∞", latex: "\\lim_{n \\to \\infty}" },
+      { label: "lim→0", latex: "\\lim_{x \\to 0}" },
+      { label: "max", latex: "\\max_{0\\leq x}" },
+    ],
+  },
+  {
+    id: "matrix",
+    label: "Matrix",
+    items: [
+      { label: "2×2 I", latex: "\\begin{pmatrix}1&0\\\\0&1\\end{pmatrix}" },
+      { label: "(a b;c d)", latex: "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}" },
+      { label: "3×3", latex: "\\begin{pmatrix}a&b&c\\\\d&e&f\\\\g&h&i\\end{pmatrix}" },
+    ],
+  },
+];
+
+// ─── Symbol bar ──────────────────────────────────────────────────
+const SYMBOLS = [
+  { label: "α", latex: "\\alpha" },
+  { label: "β", latex: "\\beta" },
+  { label: "γ", latex: "\\gamma" },
+  { label: "δ", latex: "\\delta" },
+  { label: "θ", latex: "\\theta" },
+  { label: "π", latex: "\\pi" },
+  { label: "∞", latex: "\\infty" },
+  { label: "∂", latex: "\\partial" },
+  { label: "∀", latex: "\\forall" },
+  { label: "∃", latex: "\\exists" },
+  { label: "≤", latex: "\\le" },
+  { label: "≥", latex: "\\ge" },
+  { label: "≠", latex: "\\ne" },
+  { label: "±", latex: "\\pm" },
+  { label: "÷", latex: "\\div" },
+  { label: "×", latex: "\\times" },
+  { label: "·", latex: "\\cdot" },
+  { label: "→", latex: "\\to" },
+];
+
+// ─── LaTeX → Unicode converter ──────────────────────────────────
+function latexToUnicode(latex: string): string {
+  let s = latex;
+  s = s.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1)/($2)");
+  s = s.replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, " $1√$2 ");
+  s = s.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
+  s = s.replace(/\\int/g, "∫");
+  s = s.replace(/\\oint/g, "∮");
+  s = s.replace(/\\sum/g, "∑");
+  s = s.replace(/\\prod/g, "∏");
+  s = s.replace(/\\bigcup/g, "⋃");
+  s = s.replace(/\\bigcap/g, "⋂");
+  s = s.replace(/\\lim/g, "lim");
+  s = s.replace(/\\to/g, "→");
+  s = s.replace(/\\infty/g, "∞");
+  s = s.replace(/\\partial/g, "∂");
+  s = s.replace(/\\nabla/g, "∇");
+
+  const greek: Record<string, string> = {
+    alpha: "α", beta: "β", gamma: "γ", delta: "δ", epsilon: "ε", zeta: "ζ", eta: "η",
+    theta: "θ", iota: "ι", kappa: "κ", lambda: "λ", mu: "μ", nu: "ν", xi: "ξ",
+    pi: "π", rho: "ρ", sigma: "σ", tau: "τ", upsilon: "υ", phi: "φ",
+    chi: "χ", psi: "ψ", omega: "ω",
+    Gamma: "Γ", Delta: "Δ", Theta: "Θ", Lambda: "Λ", Xi: "Ξ", Pi: "Π", Sigma: "Σ",
+    Phi: "Φ", Psi: "Ψ", Omega: "Ω",
+  };
+  for (const [cmd, ch] of Object.entries(greek)) {
+    s = s.replace(new RegExp(`\\\\${cmd}\\b`, "g"), ch);
+  }
+
+  const supMap: Record<string, string> = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
+    a: "ᵃ", b: "ᵇ", c: "ᶜ", d: "ᵈ", e: "ᵉ", f: "ᶠ", g: "ᵍ", h: "ʰ", i: "ⁱ", j: "ʲ",
+    k: "ᵏ", l: "ˡ", m: "ᵐ", n: "ⁿ", o: "ᵒ", p: "ᵖ", r: "ʳ", s: "ˢ", t: "ᵗ", u: "ᵘ",
+    v: "ᵛ", w: "ʷ", x: "ˣ", y: "ʸ", z: "ᶻ",
+  };
+  const subMap: Record<string, string> = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+    "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+    a: "ₐ", e: "ₑ", h: "ₕ", i: "ᵢ", j: "ⱼ", k: "ₖ", l: "ₗ", m: "ₘ", n: "ₙ", o: "ₒ",
+    p: "ₚ", r: "ᵣ", s: "ₛ", t: "ₜ", u: "ᵤ", v: "ᵥ", x: "ₓ",
+  };
+  const convert = (text: string, map: Record<string, string>) =>
+    [...text].map((ch) => map[ch] || ch).join("");
+
+  s = s.replace(/\_\{([^}]+)\}/g, (_, c) => convert(c, subMap));
+  s = s.replace(/\^\{([^}]+)\}/g, (_, c) => convert(c, supMap));
+  s = s.replace(/\^([a-zA-Z0-9])/g, (_, ch) => convert(ch, supMap));
+  s = s.replace(/\_([a-zA-Z0-9])/g, (_, ch) => convert(ch, subMap));
+
+  s = s.replace(/\\times/g, "×");
+  s = s.replace(/\\div/g, "÷");
+  s = s.replace(/\\pm/g, "±");
+  s = s.replace(/\\cdot/g, "·");
+  s = s.replace(/\\le/g, "≤");
+  s = s.replace(/\\ge/g, "≥");
+  s = s.replace(/\\ne/g, "≠");
+  s = s.replace(/\\approx/g, "≈");
+  s = s.replace(/\\equiv/g, "≡");
+  s = s.replace(/\\forall/g, "∀");
+  s = s.replace(/\\exists/g, "∃");
+  s = s.replace(/\\emptyset/g, "∅");
+  s = s.replace(/\\in /g, "∈");
+  s = s.replace(/\\subset/g, "⊂");
+  s = s.replace(/\\supset/g, "⊃");
+  s = s.replace(/\\cup/g, "∪");
+  s = s.replace(/\\cap/g, "∩");
+  s = s.replace(/\\ldots/g, "…");
+  s = s.replace(/\\sin/g, "sin");
+  s = s.replace(/\\cos/g, "cos");
+  s = s.replace(/\\tan/g, "tan");
+  s = s.replace(/\\log/g, "log");
+  s = s.replace(/\\ln/g, "ln");
+  s = s.replace(/\\max/g, "max");
+  s = s.replace(/\\min/g, "min");
+  s = s.replace(/\\left|\\right/g, "");
+  s = s.replace(/\\left/g, "");
+  s = s.replace(/\\right/g, "");
+  s = s.replace(/\\quad/g, "  ");
+  s = s.replace(/\\,/g, " ");
+  s = s.replace(/\\begin\{pmatrix\}/g, "(");
+  s = s.replace(/\\end\{pmatrix\}/g, ")");
+  s = s.replace(/\\\\/g, "; ");
+  s = s.replace(/&/g, " ");
+  s = s.replace(/[{}]/g, "");
+
+  return s.trim();
+}
+
+// ─── Component ───────────────────────────────────────────────────
 export default function EquationEditor({ value, onChange, placeholder, className }: EquationEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  // Preview state removed - not required
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [unicodeText, setUnicodeText] = useState("");
   const { toast } = useToast();
 
-  // Common symbols
-  const symbols = [
-    { label: 'α', value: 'α' },
-    { label: 'β', value: 'β' },
-    { label: 'γ', value: 'γ' },
-    { label: 'π', value: 'π' },
-    { label: '∞', value: '∞' },
-    { label: '∂', value: '∂' },
-    { label: '∇', value: '∇' },
-    { label: '≤', value: '≤' },
-    { label: '≥', value: '≥' },
-    { label: '≠', value: '≠' },
-    { label: '±', value: '±' },
-    { label: '÷', value: '÷' },
-    { label: '×', value: '×' },
-    { label: '·', value: '·' },
-  ];
-  
-  // Handle input in contentEditable div
-  const handleInput = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    
-    const content = editor.innerHTML || "";
-    onChange(content);
-  };
-
-  // Insert formatted content at cursor
-  const insertAtCursor = (html: string) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    editor.focus();
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      editor.innerHTML += html;
-    } else {
-      const range = selection.getRangeAt(0);
-      range.deleteContents();
-      const fragment = range.createContextualFragment(html);
-      range.insertNode(fragment);
-      
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-    
-    handleInput();
-  };
-
-  // Handle keyboard in editable fields
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    const target = e.target as HTMLElement;
-    const editor = editorRef.current;
-    if (!editor) return;
-    
-    if (e.key === 'Tab') {
-      e.preventDefault();
-
-      // Find all editable elements
-      const editables = Array.from(editor.querySelectorAll('[contenteditable="true"]'));
-      const currentIndex = editables.indexOf(target);
-
-      if (currentIndex !== -1) {
-        // Move to next field, or exit to main editor if it's the last one
-        if (currentIndex < editables.length - 1) {
-          const nextElement = editables[currentIndex + 1] as HTMLElement;
-          nextElement.focus();
-          
-          // Select all content in the next field
-          const range = document.createRange();
-          range.selectNodeContents(nextElement);
-          const selection = window.getSelection();
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        } else {
-          // Last field - exit to main editor
-          const lastEditableParent = target.closest('.inline-block, span');
-          if (lastEditableParent) {
-            const selection = window.getSelection();
-            const range = document.createRange();
-            
-            // Create a text node after the element if needed
-            if (!lastEditableParent.nextSibling) {
-              const textNode = document.createTextNode('\u00A0');
-              lastEditableParent.parentNode?.appendChild(textNode);
-            }
-            
-            range.setStartAfter(lastEditableParent);
-            range.collapse(true);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          }
-          editor.focus();
-        }
+  // Render KaTeX preview
+  const renderPreview = useCallback(() => {
+    if (!previewRef.current) return;
+    try {
+      katex.render(value || "", previewRef.current, {
+        displayMode: true,
+        throwOnError: false,
+        errorColor: "#cc0000",
+      });
+    } catch {
+      if (previewRef.current) {
+        previewRef.current.innerHTML = `<span class="text-destructive text-sm">⚠️ Invalid LaTeX</span>`;
       }
-    }
-  };
-
-  // Handle focus on editable fields - clear □ placeholder and select all
-  const handleFocusCapture = (e: React.FocusEvent) => {
-    const target = e.target as HTMLElement;
-    
-    // Only handle if it's a contenteditable element
-    if (target.getAttribute('contenteditable') === 'true' && target !== editorRef.current) {
-      const text = target.textContent || '';
-      
-      // Clear placeholder
-      if (text === '□') {
-        target.textContent = '';
-      }
-      
-      // Select all content after a brief delay
-      setTimeout(() => {
-        if (target.textContent) {
-          const range = document.createRange();
-          range.selectNodeContents(target);
-          const selection = window.getSelection();
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-      }, 0);
-    }
-  };
-
-  // Template insertions
-  const insertFraction = () => {
-    insertAtCursor(`
-      <span class="inline-block mx-1 bg-transparent" style="vertical-align: middle;">
-        <span class="math-fraction flex flex-col items-center gap-0">
-          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg px-2" style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px;">□</span>
-          <span contenteditable="true" class="text-center min-w-[30px] focus:outline-none focus:bg-blue-50 text-lg px-2">□</span>
-        </span>
-      </span>&nbsp;
-    `);
-  };
-
-
-  const insertPower = () => {
-    insertAtCursor('<sup contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: super; line-height: 0;">□</sup>&nbsp;');
-  };
-
-  const insertSubscript = () => {
-    insertAtCursor('<sub contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: sub; line-height: 0;">□</sub>&nbsp;');
-  };
-
-  const insertSquareRoot = () => {
-    insertAtCursor('<span class="mx-1">√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">□</span></span>&nbsp;');
-  };
-
-  const insertNthRoot = () => {
-    insertAtCursor('<span class="mx-1"><sup contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: super;">□</sup>√<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">□</span></span>&nbsp;');
-  };
-
-  const insertSum = () => {
-    insertAtCursor('<span class="text-2xl">∑</span>');
-  };
-
-  const insertIntegral = () => {
-    insertAtCursor('<span class="text-2xl">∫</span>');
-  };
-
-  const insertLimit = () => {
-    insertAtCursor('<span class="mx-1">lim<sub contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: sub;">□</sub></span>&nbsp;');
-  };
-
-  const insertAbsoluteValue = () => {
-    insertAtCursor('|<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">x</span>|&nbsp;');
-  };
-
-  const insertLogarithm = () => {
-    insertAtCursor('<span class="mx-1">log<sub contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-0.5" style="font-size: 0.75em; vertical-align: sub;">a</sub>(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">x</span>)</span>&nbsp;');
-  };
-
-  const insertDerivative = () => {
-    insertAtCursor('<span class="mx-1"><span class="inline-flex flex-col items-center" style="vertical-align: middle;"><span style="border-bottom: 1px solid #000; padding-bottom: 2px;">d</span><span>dx</span></span> f(x)</span>&nbsp;');
-  };
-
-  const insertProduct = () => {
-    insertAtCursor('<span class="text-2xl mx-1">∏</span>&nbsp;');
-  };
-
-  const insertModulus = () => {
-    insertAtCursor('|<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>|&nbsp;');
-  };
-
-  const insertArgument = () => {
-    insertAtCursor('arg(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>)&nbsp;');
-  };
-
-  const insertRealPart = () => {
-    insertAtCursor('ℜ(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>)&nbsp;');
-  };
-
-  const insertImaginaryPart = () => {
-    insertAtCursor('ℑ(<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1">z</span>)&nbsp;');
-  };
-
-  const insertConjugate = () => {
-    insertAtCursor('<span contenteditable="true" class="focus:outline-none focus:bg-blue-50 px-1" style="text-decoration: overline;">z</span>&nbsp;');
-  };
-
-
-  // Update editor content when value changes externally
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (editor && editor.innerHTML !== value) {
-      editor.innerHTML = sanitizeHtml(value);
     }
   }, [value]);
 
-  const handleCopyText = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    
-    copy(editor.textContent || "");
-    toast({
-      title: "Copied",
-      description: "Text copied to clipboard",
+  useEffect(() => {
+    renderPreview();
+    setUnicodeText(latexToUnicode(value || ""));
+  }, [value, renderPreview]);
+
+  // Insert LaTeX at cursor position
+  const insertLatex = (latex: string) => {
+    const ta = textareaRef.current;
+    if (!ta) {
+      onChange((value || "") + latex);
+      return;
+    }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = (value || "").substring(0, start);
+    const after = (value || "").substring(end);
+    const newVal = before + latex + after;
+    onChange(newVal);
+
+    // Restore cursor position after React re-render
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + latex.length;
+      ta.setSelectionRange(pos, pos);
     });
+  };
+
+  const toggleDropdown = (id: string) => {
+    setOpenDropdown((prev) => (prev === id ? null : id));
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-toolbar-group]")) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
+
+  const handleCopyUnicode = () => {
+    copy(unicodeText);
+    toast({ title: "Copied", description: "Unicode text copied to clipboard" });
   };
 
   const handleCopyLatex = () => {
-    copy(value);
-    toast({
-      title: "LaTeX copied",
-      description: "LaTeX code copied to clipboard",
-    });
-  };
-
-  const insertSymbol = (symbol: string) => {
-    insertAtCursor(symbol);
-  };
-
-  const handleCopyPNG = () => {
-    if (!editorRef.current) {
-      toast({
-        title: "No content",
-        description: "Enter some content first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    html2canvas(editorRef.current, { backgroundColor: "#ffffff", scale: 2 }).then((canvas) => {
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        if (navigator.clipboard && typeof (navigator.clipboard as any).write === 'function') {
-          const item = new ClipboardItem({ [blob.type]: blob });
-          (navigator.clipboard as any).write([item]).then(() => {
-            toast({
-              title: "PNG copied",
-              description: "Image copied to clipboard",
-            });
-          }).catch(() => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'equation.png';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-            toast({
-              title: "PNG downloaded",
-              description: "File downloaded",
-            });
-          });
-        }
-      });
-    });
+    copy(value || "");
+    toast({ title: "Copied", description: "LaTeX copied to clipboard" });
   };
 
   return (
     <div className={className}>
-      <Card className="border-dashed">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">Word-like Math Editor</Badge>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                <Undo className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                <Redo className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 max-h-[80vh] overflow-y-auto bg-background">
-                {/* Math Functions */}
-                <DropdownMenuLabel className="text-muted-foreground text-xs">Math Functions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={insertAbsoluteValue} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">|x|</span>
-                    <span className="text-sm">Absolute Value</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertNthRoot} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">ⁿ√x</span>
-                    <span className="text-sm">nᵗʰ Root</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertLogarithm} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm">log<sub>a</sub>(x)</span>
-                    <span className="text-sm">Logarithm base a</span>
-                  </span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator />
-                
-                {/* Calculus */}
-                <DropdownMenuLabel className="text-muted-foreground text-xs">Calculus</DropdownMenuLabel>
-                <DropdownMenuItem onClick={insertDerivative} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm">d/dx f(x)</span>
-                    <span className="text-sm">Derivative</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertDerivative} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm">dⁿ/dxⁿ f(x)</span>
-                    <span className="text-sm">nᵗʰ derivative</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertIntegral} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">∫</span>
-                    <span className="text-sm">Integral</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertSum} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">∑</span>
-                    <span className="text-sm">Sum</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertProduct} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">∏</span>
-                    <span className="text-sm">Product</span>
-                  </span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator />
-                
-                {/* Complex Numbers */}
-                <DropdownMenuLabel className="text-muted-foreground text-xs">Complex Numbers</DropdownMenuLabel>
-                <DropdownMenuItem onClick={insertModulus} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">|z|</span>
-                    <span className="text-sm">Modulus</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertArgument} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm">arg(z)</span>
-                    <span className="text-sm">Argument</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertRealPart} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">ℜ(z)</span>
-                    <span className="text-sm">Real Part</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertImaginaryPart} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">ℑ(z)</span>
-                    <span className="text-sm">Imaginary Part</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={insertConjugate} className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm" style={{textDecoration: 'overline'}}>z</span>
-                    <span className="text-sm">Conjugate</span>
-                  </span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator />
-                
-                {/* Insert Menu */}
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <span>Insert</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={insertFraction}>Fraction</DropdownMenuItem>
-                    <DropdownMenuItem onClick={insertPower}>Power</DropdownMenuItem>
-                    <DropdownMenuItem onClick={insertSubscript}>Subscript</DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                
-                {/* Formatting */}
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <span>Font Style</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem>Bold</DropdownMenuItem>
-                    <DropdownMenuItem>Italic</DropdownMenuItem>
-                    <DropdownMenuItem>Normal</DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                
-                <DropdownMenuSeparator />
-                
-                {/* Edit Actions */}
-                <DropdownMenuItem className="flex justify-between">
-                  <span>Cut</span>
-                  <span className="text-xs text-muted-foreground">Ctrl+X</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopyText} className="flex justify-between">
-                  <span>Copy</span>
-                  <span className="text-xs text-muted-foreground">Ctrl+C</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex justify-between">
-                  <span>Paste</span>
-                  <span className="text-xs text-muted-foreground">Ctrl+V</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex justify-between">
-                  <span>Select All</span>
-                  <span className="text-xs text-muted-foreground">Ctrl+A</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator />
-                
-                <DropdownMenuItem>
-                  Save Draft
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* Math Templates */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Math Templates</label>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertFraction}
-                className="h-9 px-4 text-sm"
-              >
-                Fraction
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertPower}
-                className="h-9 px-4 text-sm"
-              >
-                Power
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertSubscript}
-                className="h-9 px-4 text-sm"
-              >
-                Subscript
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertSquareRoot}
-                className="h-9 px-4 text-sm"
-              >
-                Square Root
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertNthRoot}
-                className="h-9 px-4 text-sm"
-              >
-                Nth Root
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertSum}
-                className="h-9 px-4 text-sm"
-              >
-                Sum
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertIntegral}
-                className="h-9 px-4 text-sm"
-              >
-                Integral
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={insertLimit}
-                className="h-9 px-4 text-sm"
-              >
-                Limit
-              </Button>
+      <Card className="border border-border rounded-2xl overflow-hidden shadow-sm">
+        <CardContent className="p-0">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-3 bg-muted/50 border-b border-border">
+            <h3 className="text-base font-semibold text-foreground">Word-like Math Editor</h3>
+            <div className="flex bg-muted rounded-full p-1 gap-1">
+              <button className="px-4 py-1.5 rounded-full text-sm font-semibold bg-background text-foreground shadow-sm transition-all">
+                Text
+              </button>
+              <button className="px-4 py-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground transition-all">
+                Math
+              </button>
             </div>
           </div>
 
-          {/* WYSIWYG Editor */}
-          <div className="space-y-2">
-            <div
-              ref={editorRef}
-              contentEditable
-              onInput={handleInput}
-              onKeyDown={handleKeyDown}
-              onFocusCapture={handleFocusCapture}
-              className="w-full min-h-[120px] p-4 border-2 border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-lg empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
-              data-placeholder=""
-              style={{ 
-                fontFamily: '"Segoe UI", Arial, sans-serif, "Segoe UI Symbol", "Apple Color Emoji"',
-                lineHeight: '2.2'
-              }}
-              suppressContentEditableWarning
-            />
-          </div>
-
-          {/* Symbols Section */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Symbols</label>
-            <div className="flex flex-wrap gap-2">
-              {symbols.map((symbol) => (
-                <Button
-                  key={symbol.value}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => insertSymbol(symbol.value)}
-                  className="h-9 w-9 p-0 text-base"
+          <div className="p-5 space-y-4">
+            {/* Toolbar – pill-shaped bar with dropdown groups */}
+            <div className="flex flex-wrap gap-1 bg-muted/40 p-2.5 rounded-full border border-border">
+              {TOOLBAR_GROUPS.map((group, gIdx) => (
+                <div
+                  key={group.id}
+                  className="relative"
+                  data-toolbar-group
                 >
-                  {symbol.label}
-                </Button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDropdown(group.id);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                      openDropdown === group.id
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                    }`}
+                  >
+                    {group.label}
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+
+                  {/* Dropdown panel */}
+                  {openDropdown === group.id && (
+                    <div className="absolute top-full left-0 mt-2 bg-popover border border-border rounded-2xl shadow-lg p-4 z-50 min-w-[260px]">
+                      <div className="grid grid-cols-3 gap-2">
+                        {group.items.map((item) => (
+                          <button
+                            key={item.latex}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              insertLatex(item.latex);
+                              setOpenDropdown(null);
+                            }}
+                            className="bg-muted/50 border border-border rounded-xl px-2 py-2.5 text-center text-sm font-medium text-foreground hover:bg-accent hover:border-accent-foreground/20 transition-colors"
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Separator between groups */}
+                  {gIdx < TOOLBAR_GROUPS.length - 1 && (
+                    <div className="hidden" />
+                  )}
+                </div>
               ))}
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyText}
-                className="h-8 px-3 text-xs"
-              >
-                <Copy className="h-3 w-3 mr-1" />
-                Copy
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyLatex}
-                className="h-8 px-3 text-xs"
-              >
-                LaTeX
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyPNG}
-                className="h-8 px-3 text-xs"
-              >
-                Unicode
-              </Button>
+            {/* Symbol row */}
+            <div className="flex flex-wrap gap-1.5 bg-muted/30 p-3 rounded-full justify-center border border-border/50">
+              {SYMBOLS.map((sym) => (
+                <button
+                  key={sym.latex}
+                  onClick={() => insertLatex(sym.latex)}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-background border border-border text-base font-medium text-foreground hover:bg-accent hover:border-accent-foreground/20 transition-colors"
+                >
+                  {sym.label}
+                </button>
+              ))}
             </div>
-          </div>
 
-          <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
-            <div className="flex items-start gap-1">
-              <span className="text-orange-500">✨</span>
-              <span>Copy equations from Word or type directly. Fractions, powers, roots work visually.</span>
+            {/* LaTeX input textarea */}
+            <textarea
+              ref={textareaRef}
+              value={value || ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder || "Type LaTeX or paste it here..."}
+              className="w-full min-h-[100px] p-4 font-mono text-base bg-background border-2 border-border rounded-2xl resize-y focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-foreground placeholder:text-muted-foreground"
+            />
+
+            {/* Rendered preview (KaTeX) */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Eye className="w-4 h-4" />
+                <span className="font-medium">Rendered preview (KaTeX)</span>
+              </div>
+              <div
+                ref={previewRef}
+                className="min-h-[80px] p-5 bg-muted/20 border-2 border-dashed border-border rounded-2xl flex items-center justify-center overflow-x-auto"
+              />
+            </div>
+
+            {/* Unicode output */}
+            <div className="bg-muted/30 border border-border rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-muted-foreground">
+                  Unicode math (copy from here):
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyUnicode}
+                  className="h-7 rounded-full text-xs gap-1"
+                >
+                  <Copy className="w-3 h-3" />
+                  Copy
+                </Button>
+              </div>
+              <div className="text-base text-foreground break-words" style={{ fontFamily: "'Segoe UI', 'Arial Unicode MS', sans-serif" }}>
+                {unicodeText || <span className="text-muted-foreground italic">Type LaTeX above to see Unicode output</span>}
+              </div>
+            </div>
+
+            {/* Action bar */}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleCopyLatex} className="h-8 rounded-full text-xs gap-1">
+                  <Copy className="w-3 h-3" />
+                  Copy LaTeX
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCopyUnicode} className="h-8 rounded-full text-xs gap-1">
+                  Copy Unicode
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Click any template to insert LaTeX. Preview updates live.
+              </div>
             </div>
           </div>
         </CardContent>
