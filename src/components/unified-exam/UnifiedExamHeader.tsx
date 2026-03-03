@@ -33,7 +33,9 @@ interface UnifiedExamHeaderProps {
   duration: number; // in minutes
   totalMarks: number;
   answeredCount: number;
-  totalQuestions: number;
+  totalQuestions: number; // main question groups
+  totalParts?: number; // total answer slots (sub-parts)
+  answeredParts?: number; // answered sub-parts
   onSubmit: () => void;
   hasStartedExam?: boolean;
   isConnected?: boolean;
@@ -46,6 +48,8 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
   totalMarks,
   answeredCount,
   totalQuestions,
+  totalParts,
+  answeredParts,
   onSubmit,
   hasStartedExam = false,
   isConnected
@@ -133,8 +137,14 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
           <div className="hidden md:flex items-center gap-4 flex-1 max-w-md">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">Progress</span>
-                <span className="text-xs font-medium">{answeredCount}/{totalQuestions}</span>
+                <span className="text-xs text-muted-foreground">
+                  Q {answeredCount}/{totalQuestions}
+                </span>
+                {totalParts && totalParts !== totalQuestions && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {answeredParts ?? answeredCount}/{totalParts} parts
+                  </span>
+                )}
               </div>
               <Progress value={progressPercentage} className="h-2" />
             </div>

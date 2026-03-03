@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   CheckCircle, 
@@ -12,10 +11,9 @@ import {
   ChevronDown,
   Flag,
   FileText,
-  Filter,
   Image as ImageIcon
 } from 'lucide-react';
-import { UnifiedQuestion, UnifiedAnswer } from '@/types/answerBlock';
+import { UnifiedQuestion, UnifiedAnswer, ExamSection, getExamSections, UnifiedExamData } from '@/types/answerBlock';
 import { cn } from '@/lib/utils';
 
 interface Extract {
@@ -27,7 +25,7 @@ interface Extract {
 }
 
 interface QuestionNavigatorProps {
-  questions: UnifiedQuestion[];
+  examData: UnifiedExamData;
   answers: UnifiedAnswer[];
   activeQuestionId: string | null;
   activeSubQuestionId: string | null;
@@ -37,10 +35,12 @@ interface QuestionNavigatorProps {
   selectedExtractId?: string;
   flaggedQuestions?: Set<string>;
   onToggleFlag?: (questionId: string, subQuestionId?: string) => void;
+  /** Container ref for IntersectionObserver scroll-sync */
+  scrollContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
 const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
-  questions,
+  examData,
   answers,
   activeQuestionId,
   activeSubQuestionId,
@@ -50,31 +50,44 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
   selectedExtractId,
   flaggedQuestions = new Set(),
   onToggleFlag,
+  scrollContainerRef,
 }) => {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
-  const [difficultyFilter, setDifficultyFilter] = useState<string | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [showExtractsSection, setShowExtractsSection] = useState(extracts.length > 0);
 
-  // Calculate progress
-  const getTotalAnswerSlots = () => {
-    return questions.reduce((total, q) => {
-      if (q.subQuestions && q.subQuestions.length > 0) {
-        return total + q.subQuestions.length;
-      }
-      return total + 1;
-    }, 0);
-  };
+  const sections = getExamSections(examData);
+  const questions = examData.questions;
 
-  const getAnsweredCount = () => {
-    return answers.filter(a => {
-      const content = a.content;
-      if (typeof content === 'string') return content.trim().length > 0;
-      if (typeof content === 'object') return Object.keys(content).length > 0;
-      return false;
-    }).length;
-  };
+  // --- Progress calculations ---
+  const mainQuestionCount = questions.length;
 
-  const isAnswered = (questionId: string, subQuestionId?: string) => {
+  const totalAnswerSlots = questions.reduce((total, q) => {
+    if (q.subQuestions && q.subQuestions.length > 0) {
+      return total + q.subQuestions.length;
+    }
+    return total + 1;
+  }, 0);
+
+  const answeredCount = answers.filter(a => {
+    const content = a.content;
+    if (typeof content === 'string') return content.trim().length > 0;
+    if (typeof content === 'object') return Object.keys(content).length > 0;
+    return false;
+  }).length;
+
+  // Count how many main questions have at least one answered sub-part
+  const answeredMainQuestions = questions.filter(q => {
+    if (q.subQuestions && q.subQuestions.length > 0) {
+      return q.subQuestions.some(sq => isAnswered(q.id, sq.id));
+    }
+    return isAnswered(q.id);
+  }).length;
+
+  const progressPercentage = mainQuestionCount > 0 ? (answeredMainQuestions / mainQuestionCount) * 100 : 0;
+
+  // --- Status helpers ---
+  function isAnswered(questionId: string, subQuestionId?: string) {
     const answer = answers.find(
       a => a.questionId === questionId && a.subQuestionId === subQuestionId
     );
@@ -83,52 +96,115 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
     if (typeof content === 'string') return content.trim().length > 0;
     if (typeof content === 'object') return Object.keys(content).length > 0;
     return false;
-  };
+  }
 
-  const isActive = (questionId: string, subQuestionId?: string) => {
+  function isActive(questionId: string, subQuestionId?: string) {
     if (subQuestionId) {
       return activeQuestionId === questionId && activeSubQuestionId === subQuestionId;
     }
     return activeQuestionId === questionId && !activeSubQuestionId;
-  };
+  }
 
-  const isFlagged = (questionId: string, subQuestionId?: string) => {
+  function isFlagged(questionId: string, subQuestionId?: string) {
     const key = subQuestionId ? `${questionId}-${subQuestionId}` : questionId;
     return flaggedQuestions.has(key);
-  };
+  }
 
+  // --- IntersectionObserver scroll-sync ---
+  useEffect(() => {
+    if (!scrollContainerRef?.current) return;
+
+    const container = scrollContainerRef.current;
+    const observerOptions: IntersectionObserverInit = {
+      root: container,
+      rootMargin: '-20% 0px -60% 0px', // bias toward top third of viewport
+      threshold: 0,
+    };
+
+    const callback: IntersectionObserverCallback = (entries) => {
+      // Find the topmost visible entry
+      let topEntry: IntersectionObserverEntry | null = null;
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          if (!topEntry || entry.boundingClientRect.top < topEntry.boundingClientRect.top) {
+            topEntry = entry;
+          }
+        }
+      }
+
+      if (!topEntry) return;
+
+      const id = topEntry.target.id; // format: "question-{qId}" or "question-{qId}-{sqId}"
+      if (!id.startsWith('question-')) return;
+
+      const parts = id.replace('question-', '').split('-');
+      // UUID contains dashes, so we need to handle this differently
+      // The format is "question-{uuid}" or "question-{uuid}-{sub-uuid}"
+      // We'll use data attributes instead
+      const qId = topEntry.target.getAttribute('data-question-id');
+      const sqId = topEntry.target.getAttribute('data-sub-question-id');
+
+      if (qId) {
+        // Don't call onNavigate - just update active state via parent
+        // We use a custom event to avoid re-renders from scroll
+        window.dispatchEvent(new CustomEvent('exam-scroll-sync', { 
+          detail: { questionId: qId, subQuestionId: sqId || null }
+        }));
+      }
+    };
+
+    const observer = new IntersectionObserver(callback, observerOptions);
+
+    // Observe all question and sub-question elements
+    const questionElements = container.querySelectorAll('[data-question-id]');
+    questionElements.forEach(el => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [scrollContainerRef, examData]);
+
+  // --- Auto-expand active question ---
+  useEffect(() => {
+    if (activeQuestionId) {
+      setExpandedQuestions(prev => {
+        const next = new Set(prev);
+        next.add(activeQuestionId);
+        return next;
+      });
+    }
+  }, [activeQuestionId]);
+
+  // --- Toggle helpers ---
   const toggleExpanded = (questionId: string) => {
     setExpandedQuestions(prev => {
       const next = new Set(prev);
-      if (next.has(questionId)) {
-        next.delete(questionId);
-      } else {
-        next.add(questionId);
-      }
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
       return next;
     });
   };
 
-  const totalSlots = getTotalAnswerSlots();
-  const answeredCount = getAnsweredCount();
-  const progressPercentage = totalSlots > 0 ? (answeredCount / totalSlots) * 100 : 0;
+  const toggleSection = (sectionId: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
 
-  // Filter questions by difficulty
-  const filteredQuestions = difficultyFilter 
-    ? questions.filter(q => q.difficulty === difficultyFilter)
-    : questions;
-
-  // Get unique difficulties
-  const difficulties = [...new Set(questions.map(q => q.difficulty).filter(Boolean))];
-
-  // Format sub-question label with Roman numerals
-  const formatLabel = (questionNum: number, subLabel: string, subIndex: number) => {
-    const romanNumerals = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'];
-    // If label is just a letter, append roman numeral for sub-parts
-    if (subLabel.length === 1 && /[a-z]/i.test(subLabel)) {
-      return `${questionNum}${subLabel}`;
+  // Check if question group is fully answered
+  const isGroupFullyAnswered = (q: UnifiedQuestion) => {
+    if (q.subQuestions && q.subQuestions.length > 0) {
+      return q.subQuestions.every(sq => isAnswered(q.id, sq.id));
     }
-    return `${questionNum}${subLabel}`;
+    return isAnswered(q.id);
+  };
+
+  const isGroupPartiallyAnswered = (q: UnifiedQuestion) => {
+    if (q.subQuestions && q.subQuestions.length > 0) {
+      return q.subQuestions.some(sq => isAnswered(q.id, sq.id)) && !isGroupFullyAnswered(q);
+    }
+    return false;
   };
 
   return (
@@ -137,68 +213,45 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
       animate={{ x: 0, opacity: 1 }}
       className="w-72 border-r bg-card hidden lg:flex flex-col"
     >
-      {/* Header */}
+      {/* Header with progress */}
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm">Question Navigator</h3>
-          <Badge variant="secondary" className="text-xs">
-            {answeredCount}/{totalSlots}
+          <Badge variant="secondary" className="text-xs font-mono">
+            Q {answeredMainQuestions}/{mainQuestionCount}
           </Badge>
         </div>
         <Progress value={progressPercentage} className="h-2" />
-        <p className="text-xs text-muted-foreground">
-          {Math.round(progressPercentage)}% complete
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {Math.round(progressPercentage)}% complete
+          </p>
+          {totalAnswerSlots !== mainQuestionCount && (
+            <p className="text-[10px] text-muted-foreground">
+              {answeredCount}/{totalAnswerSlots} parts
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Difficulty Filter */}
-      {difficulties.length > 1 && (
-        <div className="px-4 py-2 border-b flex items-center gap-2">
-          <Filter className="w-3 h-3 text-muted-foreground" />
-          <div className="flex gap-1 flex-wrap">
-            <Button
-              variant={difficultyFilter === null ? "secondary" : "ghost"}
-              size="sm"
-              className="h-6 text-xs px-2"
-              onClick={() => setDifficultyFilter(null)}
-            >
-              All
-            </Button>
-            {difficulties.map(diff => (
-              <Button
-                key={diff}
-                variant={difficultyFilter === diff ? "secondary" : "ghost"}
-                size="sm"
-                className="h-6 text-xs px-2"
-                onClick={() => setDifficultyFilter(diff!)}
-              >
-                {diff}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-1">
           {/* Extracts Section */}
           {extracts.length > 0 && (
             <Collapsible open={showExtractsSection} onOpenChange={setShowExtractsSection}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between mb-2">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <FileText className="w-4 h-4" />
-                    Extracts & Diagrams
-                  </span>
-                  {showExtractsSection ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </Button>
+              <CollapsibleTrigger className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-muted text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  Extracts & Diagrams
+                </span>
+                {showExtractsSection ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                )}
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="space-y-1 mb-4 pl-2">
+                <div className="space-y-1 mb-3 pl-2">
                   {extracts.map(extract => (
                     <button
                       key={extract.id}
@@ -223,126 +276,166 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
             </Collapsible>
           )}
 
-          {/* Questions List */}
-          {filteredQuestions.map((question) => {
-            const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
-            const isExpanded = expandedQuestions.has(question.id) || 
-              (activeQuestionId === question.id && hasSubQuestions);
+          {/* Sections */}
+          {sections.map((section) => {
+            const isSectionCollapsed = collapsedSections.has(section.id);
+            const showSectionHeader = sections.length > 1;
 
             return (
-              <div key={question.id} className="space-y-1">
-                {/* Main question button */}
-                <button
-                  onClick={() => {
-                    if (hasSubQuestions) {
-                      toggleExpanded(question.id);
-                      onNavigate(question.id, question.subQuestions![0].id);
-                    } else {
-                      onNavigate(question.id);
-                    }
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-2 p-2.5 rounded-lg text-left transition-all",
-                    isActive(question.id) && !hasSubQuestions
-                      ? "bg-primary/10 border-2 border-primary"
-                      : "hover:bg-muted border-2 border-transparent"
-                  )}
-                >
-                  {/* Status icon */}
-                  {!hasSubQuestions && (
-                    isAnswered(question.id) ? (
-                      <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+              <div key={section.id} className="space-y-1">
+                {/* Section header (only show if multiple sections) */}
+                {showSectionHeader && (
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-muted/80 transition-colors"
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      {section.title}
+                    </span>
+                    {isSectionCollapsed ? (
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
                     ) : (
-                      <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
-                    )
-                  )}
-
-                  {/* Question number badge */}
-                  <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold",
-                    isActive(question.id)
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground"
-                  )}>
-                    {question.questionNumber}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">
-                      Q{question.questionNumber}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {question.marks}m
-                      {hasSubQuestions && ` • ${question.subQuestions!.length} parts`}
-                    </div>
-                  </div>
-
-                  {/* Flags and expansion */}
-                  <div className="flex items-center gap-1">
-                    {isFlagged(question.id) && (
-                      <Flag className="w-3 h-3 text-amber-500 fill-amber-500" />
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
                     )}
-                    {hasSubQuestions && (
-                      <ChevronRight className={cn(
-                        "w-4 h-4 text-muted-foreground transition-transform",
-                        isExpanded && "rotate-90"
-                      )} />
-                    )}
+                  </button>
+                )}
+
+                {/* Question Groups within section */}
+                {!isSectionCollapsed && (
+                  <div className="space-y-1">
+                    {section.questionGroups.map((question) => {
+                      const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
+                      const isExpanded = expandedQuestions.has(question.id);
+                      const fullyAnswered = isGroupFullyAnswered(question);
+                      const partiallyAnswered = isGroupPartiallyAnswered(question);
+                      const isActiveGroup = activeQuestionId === question.id;
+
+                      return (
+                        <div key={question.id} className="space-y-0.5">
+                          {/* Main question group button */}
+                          <button
+                            onClick={() => {
+                              if (hasSubQuestions) {
+                                toggleExpanded(question.id);
+                                onNavigate(question.id, question.subQuestions![0].id);
+                              } else {
+                                onNavigate(question.id);
+                              }
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-2 p-2.5 rounded-lg text-left transition-all",
+                              isActiveGroup
+                                ? "bg-primary/10 border-l-3 border-l-primary"
+                                : "hover:bg-muted border-l-3 border-l-transparent"
+                            )}
+                          >
+                            {/* Status icon for group */}
+                            {!hasSubQuestions ? (
+                              isAnswered(question.id) ? (
+                                <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+                              )
+                            ) : fullyAnswered ? (
+                              <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                            ) : partiallyAnswered ? (
+                              <div className="w-4 h-4 rounded-full border-2 border-amber-500 bg-amber-500/20 shrink-0" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+                            )}
+
+                            {/* Question number */}
+                            <div className={cn(
+                              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold",
+                              isActiveGroup
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-secondary-foreground"
+                            )}>
+                              {question.questionNumber}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium">
+                                Q{question.questionNumber}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {question.marks}m
+                                {hasSubQuestions && ` · ${question.subQuestions!.length} parts`}
+                              </div>
+                            </div>
+
+                            {/* Flags and expansion arrow */}
+                            <div className="flex items-center gap-1">
+                              {isFlagged(question.id) && (
+                                <Flag className="w-3 h-3 text-amber-500 fill-amber-500" />
+                              )}
+                              {hasSubQuestions && (
+                                <ChevronRight className={cn(
+                                  "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                                  isExpanded && "rotate-90"
+                                )} />
+                              )}
+                            </div>
+                          </button>
+
+                          {/* Expandable sub-questions */}
+                          <AnimatePresence>
+                            {hasSubQuestions && isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="ml-6 pl-3 border-l-2 border-muted space-y-0.5 overflow-hidden"
+                              >
+                                {question.subQuestions!.map((subQ) => (
+                                  <button
+                                    key={subQ.id}
+                                    onClick={() => onNavigate(question.id, subQ.id)}
+                                    className={cn(
+                                      "w-full flex items-center gap-2 p-2 rounded-md text-left transition-all",
+                                      isActive(question.id, subQ.id)
+                                        ? "bg-primary/10 border border-primary"
+                                        : "hover:bg-muted border border-transparent"
+                                    )}
+                                  >
+                                    {/* Status */}
+                                    {isAnswered(question.id, subQ.id) ? (
+                                      <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                                    ) : (
+                                      <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                    )}
+
+                                    {/* Sub-question label: (a), (b), etc. */}
+                                    <span className={cn(
+                                      "w-6 h-6 rounded flex items-center justify-center text-xs font-medium",
+                                      isActive(question.id, subQ.id)
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted"
+                                    )}>
+                                      ({subQ.label})
+                                    </span>
+
+                                    {/* Marks */}
+                                    <span className="text-xs text-muted-foreground flex-1">
+                                      {subQ.marks}m
+                                    </span>
+
+                                    {/* Flag */}
+                                    {isFlagged(question.id, subQ.id) && (
+                                      <Flag className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                    )}
+                                  </button>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
                   </div>
-                </button>
-
-                {/* Sub-questions */}
-                <AnimatePresence>
-                  {hasSubQuestions && isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="ml-5 pl-3 border-l-2 border-muted space-y-1 overflow-hidden"
-                    >
-                      {question.subQuestions!.map((subQ, subIdx) => (
-                        <button
-                          key={subQ.id}
-                          onClick={() => onNavigate(question.id, subQ.id)}
-                          className={cn(
-                            "w-full flex items-center gap-2 p-2 rounded-md text-left transition-all",
-                            isActive(question.id, subQ.id)
-                              ? "bg-primary/10 border border-primary"
-                              : "hover:bg-muted border border-transparent"
-                          )}
-                        >
-                          {/* Status */}
-                          {isAnswered(question.id, subQ.id) ? (
-                            <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                          ) : (
-                            <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          )}
-
-                          {/* Label */}
-                          <span className={cn(
-                            "w-6 h-6 rounded flex items-center justify-center text-xs font-medium",
-                            isActive(question.id, subQ.id)
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          )}>
-                            {subQ.label}
-                          </span>
-
-                          {/* Marks */}
-                          <span className="text-xs text-muted-foreground flex-1">
-                            {subQ.marks}m
-                          </span>
-
-                          {/* Flag */}
-                          {isFlagged(question.id, subQ.id) && (
-                            <Flag className="w-3 h-3 text-amber-500 fill-amber-500" />
-                          )}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                )}
               </div>
             );
           })}
@@ -362,12 +455,12 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
             <span>Not attempted</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Flag className="w-3 h-3 text-amber-500 fill-amber-500" />
-            <span>Flagged</span>
+            <div className="w-3 h-3 rounded-full border-2 border-amber-500 bg-amber-500/20" />
+            <span>Partial</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
-            <span>Current</span>
+            <Flag className="w-3 h-3 text-amber-500 fill-amber-500" />
+            <span>Flagged</span>
           </div>
         </div>
       </div>

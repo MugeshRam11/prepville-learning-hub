@@ -92,6 +92,14 @@ export interface UnifiedSubQuestion {
   interactiveType?: 'graph_interaction' | 'drag_drop_match' | 'image_drop_zone' | 'step_builder' | 'math_input' | 'text_input';
 }
 
+// Section / Part grouping (Part A, Part B, Part C)
+export interface ExamSection {
+  id: string;
+  title: string; // "Part A", "Part B", etc.
+  order: number;
+  questionGroups: UnifiedQuestion[];
+}
+
 export interface UnifiedExamData {
   id: string;
   title: string;
@@ -99,8 +107,44 @@ export interface UnifiedExamData {
   topic?: string;
   duration: number; // in minutes
   totalMarks: number;
-  questions: UnifiedQuestion[];
+  questions: UnifiedQuestion[]; // flat list (backward compat)
+  sections?: ExamSection[]; // structured sections (preferred)
 }
+
+// Helper: get sections from exam data (groups into sections, falls back to single section)
+export const getExamSections = (data: UnifiedExamData): ExamSection[] => {
+  if (data.sections && data.sections.length > 0) return data.sections;
+  
+  // Group by category if available, otherwise single section
+  const categoryMap = new Map<string, UnifiedQuestion[]>();
+  data.questions.forEach(q => {
+    const cat = q.category || 'Part A';
+    if (!categoryMap.has(cat)) categoryMap.set(cat, []);
+    categoryMap.get(cat)!.push(q);
+  });
+  
+  return Array.from(categoryMap.entries()).map(([title, questions], idx) => ({
+    id: `section-${idx}`,
+    title,
+    order: idx,
+    questionGroups: questions,
+  }));
+};
+
+// Helper: count main questions (question groups, not sub-parts)
+export const getMainQuestionCount = (data: UnifiedExamData): number => {
+  return data.questions.length;
+};
+
+// Helper: count total answer slots (sub-parts expand the count)
+export const getTotalAnswerSlots = (data: UnifiedExamData): number => {
+  return data.questions.reduce((total, q) => {
+    if (q.subQuestions && q.subQuestions.length > 0) {
+      return total + q.subQuestions.length;
+    }
+    return total + 1;
+  }, 0);
+};
 
 // Answer data structure
 export interface UnifiedAnswer {
