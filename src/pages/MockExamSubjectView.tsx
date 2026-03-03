@@ -101,7 +101,7 @@ const MockExamSubjectView = () => {
   };
 
   const handleStartInteractiveTest = () => {
-    navigate('/mock-exams/interactive', {
+    navigate('/mock-exams/unified', {
       state: {
         subject: getSubjectLabel(subject || ''),
         subjectKey: subject,

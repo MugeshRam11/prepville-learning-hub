@@ -15,7 +15,7 @@ const ChatbotContext = createContext<ChatbotContextType>({
 const DISABLED_ROUTES = [
   '/mock-exams/start',
   '/mock-exams/unified',
-  '/mock-exams/interactive',
+  
   '/mock-exams/summary',
   '/mock-exams/submitted',
   '/timed-challenge'
@@ -24,7 +24,7 @@ const DISABLED_ROUTES = [
 // Route prefixes to check
 const DISABLED_PREFIXES = [
   '/mock-exams/unified/',
-  '/mock-exams/interactive/'
+  
 ];
 
 export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
