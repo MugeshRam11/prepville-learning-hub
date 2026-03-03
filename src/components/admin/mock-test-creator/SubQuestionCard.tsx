@@ -1,0 +1,84 @@
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { X, GripVertical } from 'lucide-react';
+import RichTextEditor from '../RichTextEditor';
+import EquationEditor from '../EquationEditor';
+import ImageUpload from '../ImageUpload';
+import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
+import CommandTermSelector from '../CommandTermSelector';
+import type { CreatorSubQuestion } from './types';
+import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
+
+interface SubQuestionCardProps {
+  subQuestion: CreatorSubQuestion;
+  questionNumber: number;
+  onUpdate: (id: string, updates: Partial<CreatorSubQuestion>) => void;
+  onDelete: (id: string) => void;
+}
+
+const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
+  subQuestion,
+  questionNumber,
+  onUpdate,
+  onDelete,
+}) => {
+  return (
+    <div className="ml-6 border-l-2 border-primary/30 pl-4 py-3 space-y-3 group relative">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" />
+          <span className="font-semibold text-sm text-primary bg-primary/10 px-2 py-0.5 rounded">
+            {questionNumber}({subQuestion.label})
+          </span>
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(subQuestion.id)}>
+          <X className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+
+      <RichTextEditor
+        value={subQuestion.text}
+        onChange={(v) => onUpdate(subQuestion.id, { text: v })}
+        placeholder={`Enter sub-question (${subQuestion.label}) text...`}
+      />
+
+      <ImageUpload
+        value={subQuestion.imageUrl}
+        onChange={(url) => onUpdate(subQuestion.id, { imageUrl: url })}
+        placeholder="Image (optional)"
+        folder={`questions/q${questionNumber}-${subQuestion.label}`}
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Marks</label>
+          <Input type="number" min={1} value={subQuestion.marks} onChange={(e) => onUpdate(subQuestion.id, { marks: parseInt(e.target.value) || 1 })} className="h-8 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Word Limit</label>
+          <Input value={subQuestion.wordLimit} onChange={(e) => onUpdate(subQuestion.id, { wordLimit: e.target.value })} placeholder="—" className="h-8 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Command Term</label>
+          <CommandTermSelector value={subQuestion.commandTerm} onChange={(v) => onUpdate(subQuestion.id, { commandTerm: v })} />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Answer Type</label>
+          <AnswerBlockTypeSelector value={subQuestion.answerBlockType} onChange={(v: AnswerBlockType) => onUpdate(subQuestion.id, { answerBlockType: v })} />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
+        <EquationEditor
+          value={subQuestion.answerKey}
+          onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
+          placeholder="Correct answer..."
+        />
+      </div>
+    </div>
+  );
+};
+
+export default SubQuestionCard;

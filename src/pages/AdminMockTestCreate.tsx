@@ -1,131 +1,189 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Upload, Database as DatabaseIcon, ChevronDown, Wand2 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router-dom';
-import QuestionBuilder from '@/components/admin/QuestionBuilder';
+import { 
+  ArrowLeft, Save, Upload, Plus, FileSpreadsheet, 
+  Wand2, Database as DatabaseIcon, Clock, Award 
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
 import QuestionBankSelector from '@/components/admin/QuestionBankSelector';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import SectionCard from '@/components/admin/mock-test-creator/SectionCard';
+import CSVImportModal from '@/components/admin/mock-test-creator/CSVImportModal';
+import {
+  createSection,
+  createQuestionGroup,
+  createSubQuestion,
+  createDefaultState,
+  getNextQuestionNumber,
+  getTotalMarks,
+  getTotalQuestions,
+} from '@/components/admin/mock-test-creator/types';
+import type { 
+  CreatorState, CreatorSection, CreatorQuestionGroup, CreatorSubQuestion 
+} from '@/components/admin/mock-test-creator/types';
 import type { Database } from '@/integrations/supabase/types';
 
 type TestSubject = Database['public']['Enums']['test_subject'];
 
 const AdminMockTestCreate = () => {
   const navigate = useNavigate();
+  const [state, setState] = useState<CreatorState>(createDefaultState());
   const [loading, setLoading] = useState(false);
-  const [testInfo, setTestInfo] = useState<{
-    title: string;
-    subject: TestSubject | '';
-    topic: string;
-  }>({
-    title: '',
-    subject: '',
-    topic: ''
-  });
-  const [questions, setQuestions] = useState([]);
   const [showAIParser, setShowAIParser] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
-  
-  // Silent training ZIP - backend only, no UI feedback
-  const [trainingZipFile, setTrainingZipFile] = useState<File | null>(null);
+  const [showCSVImport, setShowCSVImport] = useState(false);
 
-  const handleLoadSample = (sampleData: any) => {
-    setTestInfo({
-      title: sampleData.title,
-      subject: sampleData.subject,
-      topic: sampleData.topic
-    });
-    
-    const transformedQuestions = sampleData.questions.map((q: any) => ({
-      id: Date.now() + q.id,
-      question_number: q.question_number,
-      question_text: q.question_text,
-      question_image_url: q.question_image_url || '',
-      has_sub_questions: q.has_sub_questions,
-      marks: q.marks,
-      answer_key: q.answer_key || '',
-      word_limit: q.word_limit?.toString() || '',
-      difficulty: q.difficulty,
-      category: q.category || '',
-      sub_questions: q.sub_questions?.map((sq: any) => ({
-        id: Date.now() + Math.random(),
-        sub_question_label: sq.sub_question_label,
-        sub_question_text: sq.sub_question_text,
-        sub_question_image_url: sq.sub_question_image_url || '',
-        marks: sq.marks,
-        answer_key: sq.answer_key || '',
-        word_limit: sq.word_limit?.toString() || ''
-      })) || []
+  const totalMarks = getTotalMarks(state.sections);
+  const totalQuestions = getTotalQuestions(state.sections);
+
+  // Section operations
+  const addSection = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      sections: [...prev.sections, createSection(prev.sections.length)],
     }));
-    
-    setQuestions(transformedQuestions);
-    toast.success('Test loaded successfully!');
-  };
+  }, []);
 
-  const handleWordTestParsed = (testData: any) => {
-    // Update test info
-    setTestInfo({
-      title: testData.title,
-      subject: testData.subject as TestSubject,
-      topic: testData.topic
-    });
-
-    // Transform questions to match the expected format
-    const transformedQuestions = testData.questions.map((q: any, index: number) => ({
-      id: Date.now() + index,
-      question_number: index + 1,
-      question_text: q.question_text,
-      question_image_url: q.question_image_url || '',
-      has_sub_questions: q.has_sub_questions || false,
-      marks: q.marks || 1,
-      answer_key: q.answer_key || '',
-      word_limit: q.word_limit?.toString() || '',
-      difficulty: q.difficulty || 'medium',
-      category: q.category || '',
-      diagram_description: q.diagram_description || '',
-      sub_questions: q.sub_questions || []
+  const updateSection = useCallback((sectionId: string, updates: Partial<CreatorSection>) => {
+    setState(prev => ({
+      ...prev,
+      sections: prev.sections.map(s => s.id === sectionId ? { ...s, ...updates } : s),
     }));
+  }, []);
 
-    setQuestions(transformedQuestions);
-  };
+  const deleteSection = useCallback((sectionId: string) => {
+    setState(prev => ({
+      ...prev,
+      sections: prev.sections.filter(s => s.id !== sectionId),
+    }));
+  }, []);
 
-  const handleSave = async (publish = false) => {
-    // Validation
-    if (!testInfo.title.trim()) {
-      toast.error('Please enter a test title');
-      return;
-    }
-    if (!testInfo.subject) {
-      toast.error('Please select a subject');
-      return;
-    }
-    if (!testInfo.topic.trim()) {
-      toast.error('Please enter a topic');
-      return;
-    }
+  // Question group operations
+  const addQuestionGroup = useCallback((sectionId: string) => {
+    setState(prev => {
+      const nextNum = getNextQuestionNumber(prev.sections);
+      return {
+        ...prev,
+        sections: prev.sections.map(s =>
+          s.id === sectionId
+            ? { ...s, questionGroups: [...s.questionGroups, createQuestionGroup(nextNum)] }
+            : s
+        ),
+      };
+    });
+  }, []);
 
-    if (questions.length === 0) {
-      toast.error('Please add at least one question');
-      return;
-    }
+  const updateQuestionGroup = useCallback((sectionId: string, groupId: string, updates: Partial<CreatorQuestionGroup>) => {
+    setState(prev => ({
+      ...prev,
+      sections: prev.sections.map(s =>
+        s.id === sectionId
+          ? { ...s, questionGroups: s.questionGroups.map(g => g.id === groupId ? { ...g, ...updates } : g) }
+          : s
+      ),
+    }));
+  }, []);
 
-    // Validate questions
-    for (const question of questions) {
-      if (!question.question_text.trim()) {
-        toast.error(`Question ${question.question_number} is missing question text`);
-        return;
-      }
-      if (question.has_sub_questions) {
-        for (const subQ of question.sub_questions) {
-          if (!subQ.sub_question_text.trim()) {
-            toast.error(`Sub-question ${question.question_number}${subQ.sub_question_label} is missing text`);
+  const deleteQuestionGroup = useCallback((sectionId: string, groupId: string) => {
+    setState(prev => ({
+      ...prev,
+      sections: prev.sections.map(s =>
+        s.id === sectionId
+          ? { ...s, questionGroups: s.questionGroups.filter(g => g.id !== groupId) }
+          : s
+      ),
+    }));
+  }, []);
+
+  // Sub-question operations
+  const addSubQuestion = useCallback((sectionId: string, groupId: string) => {
+    setState(prev => ({
+      ...prev,
+      sections: prev.sections.map(s =>
+        s.id === sectionId
+          ? {
+              ...s,
+              questionGroups: s.questionGroups.map(g =>
+                g.id === groupId
+                  ? { ...g, subQuestions: [...g.subQuestions, createSubQuestion(g.subQuestions.length)] }
+                  : g
+              ),
+            }
+          : s
+      ),
+    }));
+  }, []);
+
+  const updateSubQuestion = useCallback((sectionId: string, groupId: string, subId: string, updates: Partial<CreatorSubQuestion>) => {
+    setState(prev => ({
+      ...prev,
+      sections: prev.sections.map(s =>
+        s.id === sectionId
+          ? {
+              ...s,
+              questionGroups: s.questionGroups.map(g =>
+                g.id === groupId
+                  ? { ...g, subQuestions: g.subQuestions.map(sq => sq.id === subId ? { ...sq, ...updates } : sq) }
+                  : g
+              ),
+            }
+          : s
+      ),
+    }));
+  }, []);
+
+  const deleteSubQuestion = useCallback((sectionId: string, groupId: string, subId: string) => {
+    setState(prev => ({
+      ...prev,
+      sections: prev.sections.map(s =>
+        s.id === sectionId
+          ? {
+              ...s,
+              questionGroups: s.questionGroups.map(g =>
+                g.id === groupId
+                  ? { ...g, subQuestions: g.subQuestions.filter(sq => sq.id !== subId) }
+                  : g
+              ),
+            }
+          : s
+      ),
+    }));
+  }, []);
+
+  // CSV Import
+  const handleCSVImport = useCallback((importedSections: CreatorSection[]) => {
+    setState(prev => ({
+      ...prev,
+      sections: [...prev.sections.filter(s => s.questionGroups.some(q => q.stem)), ...importedSections],
+    }));
+    toast.success('Questions imported from CSV!');
+  }, []);
+
+  // Save / Publish
+  const handleSave = async (publish: boolean) => {
+    if (!state.title.trim()) { toast.error('Enter a test title'); return; }
+    if (!state.subject) { toast.error('Select a subject'); return; }
+    if (!state.topic.trim()) { toast.error('Enter a topic'); return; }
+    if (totalQuestions === 0) { toast.error('Add at least one question'); return; }
+
+    // Validate all questions have text
+    for (const section of state.sections) {
+      for (const group of section.questionGroups) {
+        if (!group.stem.trim() && group.subQuestions.length === 0) {
+          toast.error(`Q${group.number} is missing question text`);
+          return;
+        }
+        for (const sq of group.subQuestions) {
+          if (!sq.text.trim()) {
+            toast.error(`Q${group.number}(${sq.label}) is missing text`);
             return;
           }
         }
@@ -134,132 +192,130 @@ const AdminMockTestCreate = () => {
 
     setLoading(true);
     try {
-      // Silent ZIP upload (if provided) - no UI feedback per PRD
-      let zipPath: string | null = null;
-      if (trainingZipFile) {
-        const zipFileName = `${Date.now()}_${trainingZipFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('training-zips')
-          .upload(zipFileName, trainingZipFile);
-        if (!uploadError) {
-          zipPath = zipFileName;
-        }
-        // Errors logged server-side only, never blocks exam creation
-      }
-
-      // Create the mock test
+      // 1. Create mock test
       const { data: mockTest, error: testError } = await supabase
         .from('mock_tests')
         .insert({
-          title: testInfo.title,
-          subject: testInfo.subject as TestSubject,
-          topic: testInfo.topic,
+          title: state.title,
+          subject: state.subject as TestSubject,
+          topic: state.topic,
           is_published: publish,
-          training_zip_path: zipPath,
-          training_zip_uploaded_at: zipPath ? new Date().toISOString() : null
+          time_limit_minutes: state.durationMinutes,
+          total_questions: totalQuestions,
         })
         .select()
         .single();
-
       if (testError) throw testError;
 
-      // Create questions
-      for (const question of questions) {
-        const { data: createdQuestion, error: questionError } = await supabase
-          .from('mock_questions')
+      // 2. Create sections
+      for (const section of state.sections) {
+        const { data: dbSection, error: sectionError } = await supabase
+          .from('mock_test_sections')
           .insert({
             mock_test_id: mockTest.id,
-            question_number: question.question_number,
-            question_text: question.question_text,
-            question_image_url: question.question_image_url || null,
-            has_sub_questions: question.has_sub_questions,
-            marks: question.marks,
-            answer_key: question.answer_key || null,
-            word_limit: question.word_limit ? parseInt(question.word_limit) : null,
-            difficulty: question.difficulty,
-            category: question.category || null,
-            diagram_description: question.diagram_description || null
+            title: section.title,
+            section_order: section.order,
           })
           .select()
           .single();
+        if (sectionError) throw sectionError;
 
-        if (questionError) throw questionError;
+        // 3. Create questions in this section
+        for (const group of section.questionGroups) {
+          const hasSubs = group.subQuestions.length > 0;
+          const { data: dbQuestion, error: qError } = await supabase
+            .from('mock_questions')
+            .insert({
+              mock_test_id: mockTest.id,
+              section_id: dbSection.id,
+              question_number: group.number,
+              question_text: group.stem,
+              question_image_url: group.stemImageUrl || null,
+              has_sub_questions: hasSubs,
+              marks: hasSubs ? group.subQuestions.reduce((s, sq) => s + sq.marks, 0) : group.marks,
+              answer_key: hasSubs ? null : (group.answerKey || null),
+              word_limit: group.wordLimit ? parseInt(group.wordLimit) : null,
+              difficulty: group.difficulty as any,
+              category: group.category || null,
+              command_term: group.commandTerm || null,
+              answer_block_type: hasSubs ? null : group.answerBlockType,
+              diagram_description: group.diagramDescription || null,
+            })
+            .select()
+            .single();
+          if (qError) throw qError;
 
-        // Create sub-questions if any
-        if (question.has_sub_questions && question.sub_questions.length > 0) {
-          const subQuestionsToInsert = question.sub_questions.map(subQ => ({
-            question_id: createdQuestion.id,
-            sub_question_label: subQ.sub_question_label,
-            sub_question_text: subQ.sub_question_text,
-            sub_question_image_url: subQ.sub_question_image_url || null,
-            marks: subQ.marks,
-            answer_key: subQ.answer_key || null,
-            word_limit: subQ.word_limit ? parseInt(subQ.word_limit) : null
-          }));
-
-          const { error: subQuestionError } = await supabase
-            .from('mock_sub_questions')
-            .insert(subQuestionsToInsert);
-
-          if (subQuestionError) throw subQuestionError;
+          // 4. Create sub-questions
+          if (hasSubs) {
+            const subInserts = group.subQuestions.map(sq => ({
+              question_id: dbQuestion.id,
+              sub_question_label: sq.label,
+              sub_question_text: sq.text,
+              sub_question_image_url: sq.imageUrl || null,
+              marks: sq.marks,
+              answer_key: sq.answerKey || null,
+              word_limit: sq.wordLimit ? parseInt(sq.wordLimit) : null,
+              command_term: sq.commandTerm || null,
+              answer_block_type: sq.answerBlockType,
+            }));
+            const { error: sqError } = await supabase.from('mock_sub_questions').insert(subInserts);
+            if (sqError) throw sqError;
+          }
         }
       }
 
-      toast.success(`Mock test ${publish ? 'created and published' : 'saved as draft'} successfully!`);
+      toast.success(`Mock test ${publish ? 'published' : 'saved as draft'}!`);
       navigate('/admin/mock-tests');
     } catch (error) {
-      console.error('Error creating mock test:', error);
-      toast.error('Failed to create mock test');
+      console.error('Save error:', error);
+      toast.error('Failed to save mock test');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
+    <div className="min-h-screen bg-background flex">
       <AdminSidebar activeTab="mock-tests" onTabChange={() => {}} />
-      <div className="flex-1 ml-64 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => navigate('/admin/mock-tests')}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Mock Tests
+      <div className="flex-1 ml-64">
+        {/* Sticky top bar */}
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b px-6 py-3">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/admin/mock-tests')}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Create New Mock Test</h1>
-                <p className="text-gray-600">Design and upload a comprehensive mock examination</p>
-              </div>
-            </div>
-          </div>
-
-
-          {/* Test Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Test Title *</label>
                 <Input
-                  value={testInfo.title}
-                  onChange={(e) => setTestInfo({ ...testInfo, title: e.target.value })}
-                  placeholder="e.g., Mathematics Mock Test - Algebra Fundamentals"
+                  value={state.title}
+                  onChange={(e) => setState(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Untitled Mock Test"
+                  className="text-xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0"
                 />
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1"><Award className="w-3 h-3" />{totalMarks} marks</Badge>
+              <Badge variant="outline" className="gap-1">{totalQuestions} Q</Badge>
+              <Button variant="outline" size="sm" onClick={() => handleSave(false)} disabled={loading}>
+                <Save className="w-4 h-4 mr-1" /> Draft
+              </Button>
+              <Button size="sm" onClick={() => handleSave(true)} disabled={loading}>
+                <Upload className="w-4 h-4 mr-1" /> {loading ? 'Saving...' : 'Publish'}
+              </Button>
+            </div>
+          </div>
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
+          {/* Test info card */}
+          <Card>
+            <CardContent className="pt-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Subject *</label>
-                  <Select
-                    value={testInfo.subject}
-                    onValueChange={(value: TestSubject) => setTestInfo({ ...testInfo, subject: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Subject" />
-                    </SelectTrigger>
+                  <label className="text-sm font-medium mb-1 block">Subject *</label>
+                  <Select value={state.subject} onValueChange={(v) => setState(prev => ({ ...prev, subject: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="mathematics">Mathematics</SelectItem>
                       <SelectItem value="science">Science</SelectItem>
@@ -271,152 +327,90 @@ const AdminMockTestCreate = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium mb-2">Topic *</label>
+                  <label className="text-sm font-medium mb-1 block">Topic *</label>
                   <Input
-                    value={testInfo.topic}
-                    onChange={(e) => setTestInfo({ ...testInfo, topic: e.target.value })}
-                    placeholder="e.g., Algebra, Force & Motion, etc."
+                    value={state.topic}
+                    onChange={(e) => setState(prev => ({ ...prev, topic: e.target.value }))}
+                    placeholder="e.g., Algebra, Force & Motion"
                   />
                 </div>
-              </div>
-
-              {/* Silent training ZIP upload - minimal visibility per PRD */}
-              <div className="pt-4 border-t">
-                <label className="block text-sm text-muted-foreground mb-2">
-                  Training Reference (Optional)
-                </label>
-                <input
-                  type="file"
-                  accept=".zip"
-                  onChange={(e) => setTrainingZipFile(e.target.files?.[0] || null)}
-                  className="text-sm text-muted-foreground file:mr-2 file:py-1 file:px-3 file:border file:border-input file:rounded file:text-xs file:bg-background hover:file:bg-muted"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Question Builder */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Question Builder</CardTitle>
-                <div className="flex flex-wrap gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        Upload
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setShowAIParser(true)}>
-                        <Upload className="w-4 h-4 mr-2" />
-                        AI Upload (PDF, Word, CSV, Images)
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowQuestionBank(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <DatabaseIcon className="w-4 h-4" />
-                    Load from Bank
-                  </Button>
-                  {questions.length > 0 && (
-                    <Button
-                      variant="default"
-                      onClick={() => {
-                        // Store questions in sessionStorage for the exam builder
-                        const examBuilderData = {
-                          examName: testInfo.title || 'Untitled Exam',
-                          subject: testInfo.subject,
-                          topic: testInfo.topic,
-                          questions: questions.map((q: any, idx: number) => ({
-                            id: `imported-${idx}-${Date.now()}`,
-                            title: `Question ${q.question_number}`,
-                            instructions: q.question_text,
-                            marks: q.marks || 1,
-                            commandTerm: q.command_term || '',
-                            components: q.has_sub_questions && q.sub_questions?.length > 0
-                              ? q.sub_questions.map((sq: any, sIdx: number) => ({
-                                  id: `comp-${idx}-${sIdx}-${Date.now()}`,
-                                  type: 'free_response',
-                                  label: `Part ${sq.sub_question_label}`,
-                                  content: sq.sub_question_text,
-                                  marks: sq.marks || 1,
-                                  settings: {}
-                                }))
-                              : [{
-                                  id: `comp-${idx}-0-${Date.now()}`,
-                                  type: 'free_response',
-                                  label: 'Answer',
-                                  content: '',
-                                  marks: q.marks || 1,
-                                  settings: {}
-                                }]
-                          }))
-                        };
-                        sessionStorage.setItem('examBuilderImport', JSON.stringify(examBuilderData));
-                        navigate('/admin/exam-builder');
-                        toast.success('Questions loaded into Interactive Exam Builder!');
-                      }}
-                      className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80"
-                    >
-                      <Wand2 className="w-4 h-4" />
-                      Open in Exam Builder
-                    </Button>
-                  )}
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Duration (min)</label>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      value={state.durationMinutes}
+                      onChange={(e) => setState(prev => ({ ...prev, durationMinutes: parseInt(e.target.value) || 120 }))}
+                      min={1}
+                    />
+                  </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <QuestionBuilder questions={questions} setQuestions={setQuestions} />
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-4 pb-8">
-            <Button
-              variant="outline"
-              onClick={() => handleSave(false)}
-              disabled={loading}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save as Draft
+          {/* Import toolbar */}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowCSVImport(true)}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" /> Import CSV
             </Button>
-            <Button
-              onClick={() => handleSave(true)}
-              disabled={loading}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              {loading ? 'Publishing...' : 'Publish Test'}
+            <Button variant="outline" size="sm" onClick={() => setShowAIParser(true)}>
+              <Wand2 className="w-4 h-4 mr-1" /> AI Upload
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowQuestionBank(true)}>
+              <DatabaseIcon className="w-4 h-4 mr-1" /> Question Bank
             </Button>
           </div>
+
+          {/* Sections */}
+          {state.sections.map((section) => (
+            <SectionCard
+              key={section.id}
+              section={section}
+              allSections={state.sections}
+              onUpdate={(updates) => updateSection(section.id, updates)}
+              onDelete={() => deleteSection(section.id)}
+              onUpdateGroup={(groupId, updates) => updateQuestionGroup(section.id, groupId, updates)}
+              onDeleteGroup={(groupId) => deleteQuestionGroup(section.id, groupId)}
+              onAddGroup={() => addQuestionGroup(section.id)}
+              onUpdateSub={(groupId, subId, updates) => updateSubQuestion(section.id, groupId, subId, updates)}
+              onDeleteSub={(groupId, subId) => deleteSubQuestion(section.id, groupId, subId)}
+              onAddSub={(groupId) => addSubQuestion(section.id, groupId)}
+            />
+          ))}
+
+          {/* Add section button */}
+          <Button variant="outline" onClick={addSection} className="w-full py-8 border-dashed text-lg text-muted-foreground hover:text-foreground">
+            <Plus className="w-6 h-6 mr-2" />
+            Add Section (Part {String.fromCharCode(65 + state.sections.length)})
+          </Button>
+
+          <div className="h-20" /> {/* Bottom spacing */}
         </div>
       </div>
+
+      {/* CSV Import Modal */}
+      <CSVImportModal
+        open={showCSVImport}
+        onClose={() => setShowCSVImport(false)}
+        onImport={handleCSVImport}
+      />
 
       {/* AI Parser Modal */}
       <Dialog open={showAIParser} onOpenChange={setShowAIParser}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>AI Document Parser - Multi-Format Upload</DialogTitle>
-            <DialogDescription>
-              Upload PDF, Word, CSV, or images. Choose from Parse, Summarize, Quiz Generation, or Data Extraction actions.
-            </DialogDescription>
+            <DialogTitle>AI Document Parser</DialogTitle>
+            <DialogDescription>Upload PDF, Word, CSV, or images for AI parsing.</DialogDescription>
           </DialogHeader>
-          <QuestionUploadCard 
+          <QuestionUploadCard
             mode="mock"
             onSuccess={(data) => {
               if (data.mockTest) {
-                // Navigate to edit the created test
-                toast.success('Mock test created! Redirecting to view...');
-                setTimeout(() => {
-                  navigate(`/admin/mock-tests/edit/${data.mockTest.id}`);
-                }, 1500);
+                toast.success('Mock test created! Redirecting...');
+                setTimeout(() => navigate(`/admin/mock-tests/edit/${data.mockTest.id}`), 1500);
               }
               setShowAIParser(false);
             }}
@@ -429,10 +423,44 @@ const AdminMockTestCreate = () => {
         open={showQuestionBank}
         onClose={() => setShowQuestionBank(false)}
         onSelectQuestions={(selectedQuestions) => {
-          setQuestions([...questions, ...selectedQuestions]);
+          // Convert bank questions to creator format and add to first section
+          const firstSection = state.sections[0];
+          if (!firstSection) return;
+          const nextNum = getNextQuestionNumber(state.sections);
+          const newGroups: CreatorQuestionGroup[] = selectedQuestions.map((q: any, idx: number) => ({
+            id: `bank-${Date.now()}-${idx}`,
+            number: nextNum + idx,
+            stem: q.question_text || '',
+            stemImageUrl: q.question_image_url || '',
+            marks: q.marks || 1,
+            difficulty: q.difficulty || 'medium',
+            commandTerm: q.command_term || '',
+            category: q.category || '',
+            diagramDescription: q.diagram_description || '',
+            answerBlockType: q.answer_block_type || 'text_equation',
+            answerBlockConfig: q.answer_block_config || {},
+            answerKey: q.answer_key || '',
+            wordLimit: q.word_limit?.toString() || '',
+            subQuestions: (q.sub_questions || []).map((sq: any, sIdx: number) => ({
+              id: `bank-sq-${Date.now()}-${idx}-${sIdx}`,
+              label: sq.sub_question_label || String.fromCharCode(97 + sIdx),
+              text: sq.sub_question_text || '',
+              imageUrl: sq.sub_question_image_url || '',
+              marks: sq.marks || 1,
+              answerKey: sq.answer_key || '',
+              wordLimit: sq.word_limit?.toString() || '',
+              commandTerm: sq.command_term || '',
+              answerBlockType: sq.answer_block_type || 'text_equation',
+              answerBlockConfig: sq.answer_block_config || {},
+            })),
+          }));
+          updateSection(firstSection.id, {
+            questionGroups: [...firstSection.questionGroups, ...newGroups],
+          });
+          toast.success(`Added ${newGroups.length} questions from bank`);
         }}
-        currentSubject={testInfo.subject as string}
-        currentTopic={testInfo.topic}
+        currentSubject={state.subject}
+        currentTopic={state.topic}
       />
     </div>
   );

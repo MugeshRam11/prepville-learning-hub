@@ -544,6 +544,7 @@ export type Database = {
           question_image_url: string | null
           question_number: number
           question_text: string
+          section_id: string | null
           updated_at: string
           word_limit: number | null
         }
@@ -563,6 +564,7 @@ export type Database = {
           question_image_url?: string | null
           question_number: number
           question_text: string
+          section_id?: string | null
           updated_at?: string
           word_limit?: number | null
         }
@@ -582,6 +584,7 @@ export type Database = {
           question_image_url?: string | null
           question_number?: number
           question_text?: string
+          section_id?: string | null
           updated_at?: string
           word_limit?: number | null
         }
@@ -591,6 +594,13 @@ export type Database = {
             columns: ["mock_test_id"]
             isOneToOne: false
             referencedRelation: "mock_tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "mock_test_sections"
             referencedColumns: ["id"]
           },
         ]
@@ -719,6 +729,41 @@ export type Database = {
           word_limit?: number | null
         }
         Relationships: []
+      }
+      mock_test_sections: {
+        Row: {
+          created_at: string
+          id: string
+          mock_test_id: string
+          section_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mock_test_id: string
+          section_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mock_test_id?: string
+          section_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_test_sections_mock_test_id_fkey"
+            columns: ["mock_test_id"]
+            isOneToOne: false
+            referencedRelation: "mock_tests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mock_test_sub_question_bank: {
         Row: {
