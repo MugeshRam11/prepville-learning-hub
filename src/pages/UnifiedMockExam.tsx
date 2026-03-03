@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -61,7 +61,6 @@ const UnifiedMockExamContent = () => {
     // Not wrapped in ExamSyncProvider - that's okay for demo mode
   }
   
-  const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Auto-save hook
@@ -323,47 +322,19 @@ const UnifiedMockExamContent = () => {
     return () => clearInterval(interval);
   }, [answers, examData?.id]);
 
-  // Handle scroll to track active question
-  const handleScroll = useCallback(() => {
-    if (!mainContentRef.current || !examData) return;
-
-    const containerRect = mainContentRef.current.getBoundingClientRect();
-    const scrollTop = mainContentRef.current.scrollTop;
-
-    let closestQuestion: { questionId: string; subQuestionId?: string } | null = null;
-    let closestDistance = Infinity;
-
-    examData.questions.forEach(question => {
-      // Check main question
-      const mainRef = questionRefs.current.get(question.id);
-      if (mainRef) {
-        const rect = mainRef.getBoundingClientRect();
-        const distance = Math.abs(rect.top - containerRect.top - 100);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestQuestion = { questionId: question.id };
-        }
+  // Handle scroll-sync from IntersectionObserver in QuestionNavigator
+  useEffect(() => {
+    const handleScrollSync = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setActiveQuestionId(detail.questionId);
+        setActiveSubQuestionId(detail.subQuestionId || null);
       }
-
-      // Check sub-questions
-      question.subQuestions?.forEach(subQ => {
-        const subRef = questionRefs.current.get(`${question.id}-${subQ.id}`);
-        if (subRef) {
-          const rect = subRef.getBoundingClientRect();
-          const distance = Math.abs(rect.top - containerRect.top - 100);
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestQuestion = { questionId: question.id, subQuestionId: subQ.id };
-          }
-        }
-      });
-    });
-
-    if (closestQuestion) {
-      setActiveQuestionId(closestQuestion.questionId);
-      setActiveSubQuestionId(closestQuestion.subQuestionId || null);
-    }
-  }, [examData]);
+    };
+    
+    window.addEventListener('exam-scroll-sync', handleScrollSync);
+    return () => window.removeEventListener('exam-scroll-sync', handleScrollSync);
+  }, []);
 
   // Handle answer changes
   const handleAnswerChange = (questionId: string, value: any, subQuestionId?: string) => {
@@ -565,7 +536,9 @@ const UnifiedMockExamContent = () => {
         duration={examData.duration}
         totalMarks={examData.totalMarks}
         answeredCount={getAnsweredCount()}
-        totalQuestions={getTotalQuestionSlots()}
+        totalQuestions={examData.questions.length}
+        totalParts={getTotalQuestionSlots()}
+        answeredParts={getAnsweredCount()}
         onSubmit={handleSubmit}
         hasStartedExam={hasStartedExam}
         isConnected={syncContext?.isConnected}
@@ -578,13 +551,14 @@ const UnifiedMockExamContent = () => {
         {/* Left Navigator - visible when focus mode is off */}
         {!focusMode.isActive && (
           <QuestionNavigator
-            questions={examData.questions}
+            examData={examData}
             answers={answers}
             activeQuestionId={activeQuestionId}
             activeSubQuestionId={activeSubQuestionId}
             onNavigate={handleNavigate}
             flaggedQuestions={flaggedQuestions}
             onToggleFlag={handleToggleFlag}
+            scrollContainerRef={mainContentRef}
           />
         )}
 
@@ -592,7 +566,6 @@ const UnifiedMockExamContent = () => {
         <div 
           ref={mainContentRef}
           className="flex-1 overflow-y-auto"
-          onScroll={handleScroll}
         >
           <div className="max-w-4xl mx-auto p-6 space-y-8 pb-32">
             {examData.questions.map((question) => (

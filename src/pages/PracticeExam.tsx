@@ -466,13 +466,14 @@ const PracticeExam = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Navigator */}
         <QuestionNavigator
-          questions={examData.questions}
+          examData={examData}
           answers={answers}
           activeQuestionId={activeQuestionId}
           activeSubQuestionId={activeSubQuestionId}
           onNavigate={handleNavigate}
           flaggedQuestions={flaggedQuestions}
           onToggleFlag={handleToggleFlag}
+          scrollContainerRef={mainContentRef}
         />
 
         {/* Scrollable question area */}

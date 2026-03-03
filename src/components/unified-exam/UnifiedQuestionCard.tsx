@@ -97,6 +97,7 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
   return (
     <motion.div
       id={`question-${question.id}`}
+      data-question-id={question.id}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -163,7 +164,7 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
             // Render sub-questions
             <div className="space-y-6">
               {question.subQuestions!.map((subQ, idx) => (
-                <div key={subQ.id} id={`question-${question.id}-${subQ.id}`} className="scroll-mt-24">
+                <div key={subQ.id} id={`question-${question.id}-${subQ.id}`} data-question-id={question.id} data-sub-question-id={subQ.id} className="scroll-mt-24">
                   <Separator className="mb-4" />
                   
                   {/* Sub-question header */}
