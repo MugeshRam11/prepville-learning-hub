@@ -57,6 +57,8 @@ import InteractiveMockDemo from "./pages/InteractiveMockDemo";
 
 import UnifiedMockExam from "./pages/UnifiedMockExam";
 import AdminExamBuilder from "./pages/AdminExamBuilder";
+import ExamSubmitted from "./pages/ExamSubmitted";
+import StudentExamResults from "./pages/StudentExamResults";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CopyPasteProtection from "./components/CopyPasteProtection";
 
@@ -157,6 +159,16 @@ const App = () => (
           <Route path="/mock-exams/unified/:testId" element={
             <ProtectedRoute requiresSubscription>
               <UnifiedMockExam />
+            </ProtectedRoute>
+          } />
+          <Route path="/mock-exams/submitted" element={
+            <ProtectedRoute requiresSubscription>
+              <ExamSubmitted />
+            </ProtectedRoute>
+          } />
+          <Route path="/mock-exams/results/:attemptId" element={
+            <ProtectedRoute requiresSubscription>
+              <StudentExamResults />
             </ProtectedRoute>
           } />
           <Route path="/assignments" element={
