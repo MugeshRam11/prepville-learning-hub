@@ -214,7 +214,7 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
                       wordLimit={subQ.wordLimit}
                       placeholder={`Enter your answer for part ${subQ.label}...`}
                       questionText={subQ.text}
-                      allowTypeChange={interactiveMode}
+                      allowTypeChange={false}
                     />
                   </div>
                 </div>
@@ -232,7 +232,7 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
               placeholder="Enter your answer here..."
               questionText={question.questionText}
               diagramDescription={question.diagramDescription}
-              allowTypeChange={interactiveMode}
+              allowTypeChange={false}
             />
           )}
         </CardContent>

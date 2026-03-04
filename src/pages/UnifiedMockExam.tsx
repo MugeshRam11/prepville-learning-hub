@@ -162,37 +162,7 @@ const UnifiedMockExamContent = () => {
       setIsLoading(true);
       
       try {
-        // If questions are passed directly
-        if (passedQuestions && passedQuestions.length > 0) {
-          const unifiedQuestions = mapDBQuestionsToUnified(passedQuestions);
-          const totalMarks = unifiedQuestions.reduce((sum, q) => {
-            const subMarks = q.subQuestions?.reduce((s, sq) => s + sq.marks, 0) || 0;
-            return sum + (q.subQuestions?.length ? subMarks : q.marks);
-          }, 0);
-          
-          setExamData({
-            id: resolvedTestId || 'dynamic-test',
-            title: title || topic || 'Mock Examination',
-            subject: subject || 'Mathematics',
-            topic: topic,
-            duration: 120,
-            totalMarks,
-            questions: unifiedQuestions
-          });
-          
-          // Set initial active question
-          if (unifiedQuestions.length > 0) {
-            setActiveQuestionId(unifiedQuestions[0].id);
-            if (unifiedQuestions[0].subQuestions?.length) {
-              setActiveSubQuestionId(unifiedQuestions[0].subQuestions[0].id);
-            }
-          }
-          
-          setIsLoading(false);
-          return;
-        }
-
-        // Fetch from database
+        // Always fetch from database using resolvedTestId (ignore passedQuestions to avoid subject-wide merging)
         if (resolvedTestId) {
           const { data: questionsData, error } = await supabase
             .from('mock_questions')
