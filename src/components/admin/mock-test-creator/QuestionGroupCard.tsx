@@ -131,7 +131,14 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 <Blocks className="w-4 h-4 text-primary" />
                 <label className="text-sm font-medium">Answer Type</label>
               </div>
-              <AnswerBlockTypeSelector value={group.answerBlockType} onChange={(v: AnswerBlockType) => onUpdate({ answerBlockType: v })} />
+              <AnswerBlockTypeSelector value={group.answerBlockType} onChange={(v: AnswerBlockType) => {
+                const updates: Partial<CreatorQuestionGroup> = { answerBlockType: v };
+                if (v === 'image_drop') {
+                  updates.answerBlockConfig = createDefaultImageDropConfig();
+                  updates.answerKey = '';
+                }
+                onUpdate(updates);
+              }} />
             </div>
           )}
 
