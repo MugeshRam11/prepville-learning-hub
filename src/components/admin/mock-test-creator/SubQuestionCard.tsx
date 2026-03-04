@@ -7,7 +7,7 @@ import EquationEditor from '../EquationEditor';
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
-import ImageDropZoneEditor from '../ImageDropZoneEditor';
+import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
@@ -66,7 +66,14 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Type</label>
-          <AnswerBlockTypeSelector value={subQuestion.answerBlockType} onChange={(v: AnswerBlockType) => onUpdate(subQuestion.id, { answerBlockType: v })} />
+          <AnswerBlockTypeSelector value={subQuestion.answerBlockType} onChange={(v: AnswerBlockType) => {
+            const updates: Partial<CreatorSubQuestion> = { answerBlockType: v };
+            if (v === 'image_drop') {
+              updates.answerBlockConfig = createDefaultImageDropConfig();
+              updates.answerKey = '';
+            }
+            onUpdate(subQuestion.id, updates);
+          }} />
         </div>
       </div>
 
