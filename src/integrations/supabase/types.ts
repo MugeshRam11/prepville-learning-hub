@@ -314,12 +314,84 @@ export type Database = {
         }
         Relationships: []
       }
+      evaluation_training_data: {
+        Row: {
+          ai_feedback: string | null
+          ai_marks_awarded: number | null
+          answer_type: string | null
+          correct_answer: string | null
+          created_at: string | null
+          evaluation_id: string
+          evaluator_id: string | null
+          final_marks: number | null
+          id: string
+          manual_feedback: string | null
+          manual_marks_awarded: number | null
+          max_marks: number
+          question_id: string
+          question_metadata: Json | null
+          question_text: string
+          student_answer: string
+          sub_question_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_feedback?: string | null
+          ai_marks_awarded?: number | null
+          answer_type?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          evaluation_id: string
+          evaluator_id?: string | null
+          final_marks?: number | null
+          id?: string
+          manual_feedback?: string | null
+          manual_marks_awarded?: number | null
+          max_marks: number
+          question_id: string
+          question_metadata?: Json | null
+          question_text: string
+          student_answer: string
+          sub_question_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_feedback?: string | null
+          ai_marks_awarded?: number | null
+          answer_type?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          evaluation_id?: string
+          evaluator_id?: string | null
+          final_marks?: number | null
+          id?: string
+          manual_feedback?: string | null
+          manual_marks_awarded?: number | null
+          max_marks?: number
+          question_id?: string
+          question_metadata?: Json | null
+          question_text?: string
+          student_answer?: string
+          sub_question_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_training_data_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "exam_evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_evaluations: {
         Row: {
           ai_evaluation_data: Json | null
           created_at: string | null
           evaluated_at: string | null
           evaluated_by: string | null
+          evaluation_mode: string | null
           evaluation_status: string | null
           feedback: string | null
           final_marks: Json | null
@@ -327,7 +399,9 @@ export type Database = {
           finalized_at: string | null
           id: string
           manual_adjustments: Json | null
+          question_evaluations: Json | null
           student_id: string
+          suggestions: Json | null
           test_attempt_id: string
           test_id: string
           updated_at: string | null
@@ -337,6 +411,7 @@ export type Database = {
           created_at?: string | null
           evaluated_at?: string | null
           evaluated_by?: string | null
+          evaluation_mode?: string | null
           evaluation_status?: string | null
           feedback?: string | null
           final_marks?: Json | null
@@ -344,7 +419,9 @@ export type Database = {
           finalized_at?: string | null
           id?: string
           manual_adjustments?: Json | null
+          question_evaluations?: Json | null
           student_id: string
+          suggestions?: Json | null
           test_attempt_id: string
           test_id: string
           updated_at?: string | null
@@ -354,6 +431,7 @@ export type Database = {
           created_at?: string | null
           evaluated_at?: string | null
           evaluated_by?: string | null
+          evaluation_mode?: string | null
           evaluation_status?: string | null
           feedback?: string | null
           final_marks?: Json | null
@@ -361,7 +439,9 @@ export type Database = {
           finalized_at?: string | null
           id?: string
           manual_adjustments?: Json | null
+          question_evaluations?: Json | null
           student_id?: string
+          suggestions?: Json | null
           test_attempt_id?: string
           test_id?: string
           updated_at?: string | null
