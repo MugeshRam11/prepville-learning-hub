@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Upload, X, Image, Link } from 'lucide-react';
+import { Upload, X, Image, Link, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -23,7 +23,16 @@ export default function ImageUpload({
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCopyUrl = async () => {
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    toast.success('URL copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -180,16 +189,26 @@ export default function ImageUpload({
                 />
               </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => window.open(value, '_blank')}
-              className="flex-shrink-0"
-              title="Open in new tab"
-            >
-              <Link className="w-4 h-4" />
-            </Button>
+            <div className="flex flex-col gap-1 flex-shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCopyUrl}
+                title="Copy URL"
+              >
+                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(value, '_blank')}
+                title="Open in new tab"
+              >
+                <Link className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -228,7 +228,9 @@ const UnifiedMockExamContent = () => {
     };
 
     loadExamData();
-  }, [resolvedTestId, passedQuestions, title, topic, subject]);
+    // Only re-run when testId changes — NOT on passedQuestions/title/subject (object refs cause loops)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedTestId]);
 
   // Load saved answers
   useEffect(() => {
