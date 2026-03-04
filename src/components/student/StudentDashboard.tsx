@@ -38,6 +38,8 @@ import DynamicDailyChallenge from './DynamicDailyChallenge';
 import PersonalizedSuggestions from './PersonalizedSuggestions';
 import { toast } from 'sonner';
 import StatsCards from './StatsCards';
+import MockTestStatus from './MockTestStatus';
+import NotificationsPanel from './NotificationsPanel';
 import { useTestProgressSync } from '@/hooks/useTestProgressSync';
 import { useRealtimeTopicProgress } from '@/hooks/useRealtimeTopicProgress';
 import { motion } from 'framer-motion';
@@ -452,6 +454,9 @@ const StudentDashboard = () => {
               {/* AI-Powered Personalized Suggestions */}
               <PersonalizedSuggestions />
 
+              {/* Mock Test Status - Available & Completed */}
+              <MockTestStatus />
+
               {/* Quick Actions */}
               <QuickActions />
 
@@ -501,8 +506,11 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
 
+              {/* Notifications */}
+              <NotificationsPanel />
+
               {/* Daily Challenge */}
-              <DynamicDailyChallenge 
+              <DynamicDailyChallenge
                 challenge={dailyChallenge}
                 loading={progressLoading}
                 onContinueChallenge={handleContinueChallenge}

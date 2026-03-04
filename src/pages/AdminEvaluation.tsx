@@ -438,6 +438,16 @@ const AdminEvaluation = () => {
         } as any).eq('evaluation_id', selectedEvaluation.id).eq('question_id', pq.questionId);
       }
 
+      // Create notification for the student
+      const testTitle = selectedEvaluation.mock_tests?.title || 'Mock Test';
+      await supabase.from('notifications').insert({
+        user_id: selectedEvaluation.student_id,
+        title: '📊 Your Mock Test Results are Ready!',
+        message: `Your "${testTitle}" has been evaluated. Score: ${totalScore}/${totalPossible}. Click to view detailed results.`,
+        type: 'result_published',
+        link: `/mock-exams/results/${selectedEvaluation.test_attempt_id}`
+      } as any);
+
       toast.success('Evaluation finalized! Student can now view results.');
       setDetailsOpen(false);
       fetchEvaluations();
