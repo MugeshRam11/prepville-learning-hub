@@ -1565,7 +1565,7 @@ export type Database = {
           id: string
           score: number
           submission_status: string | null
-          test_id: string | null
+          test_id: string
           time_taken_seconds: number | null
           total_questions: number
           user_id: string | null
@@ -1576,7 +1576,7 @@ export type Database = {
           id?: string
           score?: number
           submission_status?: string | null
-          test_id?: string | null
+          test_id: string
           time_taken_seconds?: number | null
           total_questions: number
           user_id?: string | null
@@ -1587,7 +1587,7 @@ export type Database = {
           id?: string
           score?: number
           submission_status?: string | null
-          test_id?: string | null
+          test_id?: string
           time_taken_seconds?: number | null
           total_questions?: number
           user_id?: string | null

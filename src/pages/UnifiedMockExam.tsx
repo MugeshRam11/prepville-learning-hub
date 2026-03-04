@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,8 +34,13 @@ import { cn } from '@/lib/utils';
 const UnifiedMockExamContent = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
+  const [searchParams] = useSearchParams();
   
-  const { testId, subject, topic, title, questions: passedQuestions } = location.state || {};
+  // Resolve testId from: URL params > query string > location state
+  const rawState = location.state || {};
+  const resolvedTestId = params.testId || searchParams.get('testId') || rawState.testId;
+  const { subject, topic, title, questions: passedQuestions } = rawState;
   
   const [examData, setExamData] = useState<UnifiedExamData | null>(null);
   const [answers, setAnswers] = useState<UnifiedAnswer[]>([]);
@@ -166,7 +171,7 @@ const UnifiedMockExamContent = () => {
           }, 0);
           
           setExamData({
-            id: testId || 'dynamic-test',
+            id: resolvedTestId || 'dynamic-test',
             title: title || topic || 'Mock Examination',
             subject: subject || 'Mathematics',
             topic: topic,
@@ -188,14 +193,14 @@ const UnifiedMockExamContent = () => {
         }
 
         // Fetch from database
-        if (testId) {
+        if (resolvedTestId) {
           const { data: questionsData, error } = await supabase
             .from('mock_questions')
             .select(`
               *,
               mock_sub_questions (*)
             `)
-            .eq('mock_test_id', testId)
+            .eq('mock_test_id', resolvedTestId)
             .order('question_number');
 
           if (error) throw error;
@@ -211,11 +216,11 @@ const UnifiedMockExamContent = () => {
             const { data: testMeta } = await supabase
               .from('mock_tests')
               .select('title, subject, topic')
-              .eq('id', testId)
+              .eq('id', resolvedTestId)
               .single();
             
             setExamData({
-              id: testId,
+              id: resolvedTestId,
               title: testMeta?.title || title || 'Mock Examination',
               subject: testMeta?.subject || subject || 'Mathematics',
               topic: testMeta?.topic || topic,
@@ -290,7 +295,7 @@ const UnifiedMockExamContent = () => {
     };
 
     loadExamData();
-  }, [testId, passedQuestions, title, topic, subject]);
+  }, [resolvedTestId, passedQuestions, title, topic, subject]);
 
   // Load saved answers
   useEffect(() => {
@@ -396,6 +401,13 @@ const UnifiedMockExamContent = () => {
   const handleSubmit = async () => {
     if (!examData) return;
     
+    // Hard guardrail: block submit without a valid test ID
+    const isValidTestId = examData.id && examData.id !== 'demo-exam' && examData.id !== 'dynamic-test';
+    if (!isValidTestId) {
+      toast.error('Cannot submit: Test ID is missing. Please start the exam from the Mock Exams list.');
+      return;
+    }
+    
     // Save final answers before submitting
     await saveNow();
     
@@ -423,7 +435,7 @@ const UnifiedMockExamContent = () => {
       // Save test attempt to database with submission_status = 'submitted'
       const insertPayload = {
         user_id: user.id,
-        test_id: examData.id !== 'demo-exam' && examData.id !== 'dynamic-test' ? examData.id : null,
+        test_id: examData.id,
         answers: answers as any,
         score: 0, // Will be calculated during evaluation
         total_questions: getTotalQuestionSlots(),
@@ -444,7 +456,7 @@ const UnifiedMockExamContent = () => {
       }
 
       // Create evaluation record with pending_review status
-      if (attemptData && examData.id !== 'demo-exam' && examData.id !== 'dynamic-test') {
+      if (attemptData) {
         const { error: evalError } = await supabase
           .from('exam_evaluations')
           .insert({
@@ -608,13 +620,41 @@ const UnifiedMockExamWithSync: React.FC<{ testId: string }> = ({ testId }) => {
 // Main component with provider wrapper
 const UnifiedMockExam = () => {
   const location = useLocation();
-  const { testId } = location.state || {};
+  const navigate = useNavigate();
+  const params = useParams();
+  const [searchParams] = useSearchParams();
+  
+  // Resolve testId from: URL params > query string > location state
+  const resolvedTestId = params.testId || searchParams.get('testId') || (location.state as any)?.testId;
+  
+  // Guardrail: if no testId and no passed questions, redirect to select page
+  const hasPassedQuestions = (location.state as any)?.questions?.length > 0;
+  
+  if (!resolvedTestId && !hasPassedQuestions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 max-w-md p-8">
+          <div className="text-5xl">⚠️</div>
+          <h2 className="text-xl font-bold text-foreground">Test ID Missing</h2>
+          <p className="text-muted-foreground">
+            Please start the exam from the Mock Exams list. Direct URL access requires a valid test ID.
+          </p>
+          <button
+            onClick={() => navigate('/mock-exams/select')}
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Go to Mock Exams
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   // If we have a valid testId, use sync provider
-  if (testId && testId !== 'dynamic-test' && testId !== 'demo-exam') {
+  if (resolvedTestId && resolvedTestId !== 'dynamic-test' && resolvedTestId !== 'demo-exam') {
     return (
       <ExamModeProvider initialMode="study">
-        <UnifiedMockExamWithSync testId={testId} />
+        <UnifiedMockExamWithSync testId={resolvedTestId} />
       </ExamModeProvider>
     );
   }
