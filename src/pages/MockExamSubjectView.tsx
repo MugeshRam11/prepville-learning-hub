@@ -53,7 +53,7 @@ const MockExamSubjectView = () => {
       
       // Auto-redirect to unified exam
       if (fetchedQuestions.length > 0) {
-        navigate('/mock-exams/unified', {
+        navigate(`/mock-exams/unified?testId=${fetchedTestIds[0]}`, {
           state: {
             testId: fetchedTestIds[0],
             subject: getSubjectLabel(subject || ''),
@@ -105,7 +105,7 @@ const MockExamSubjectView = () => {
   };
 
   const handleStartInteractiveTest = () => {
-    navigate('/mock-exams/unified', {
+    navigate(`/mock-exams/unified?testId=${testIds[0]}`, {
       state: {
         testId: testIds.length > 0 ? testIds[0] : undefined,
         subject: getSubjectLabel(subject || ''),
