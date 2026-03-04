@@ -118,6 +118,8 @@ const AdminMockTestEdit = () => {
         questions: questionsRes.data || [],
       };
     },
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
   });
 
   // Populate state from DB once
