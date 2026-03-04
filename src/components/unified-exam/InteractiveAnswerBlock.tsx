@@ -316,26 +316,30 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         const adminZones = flatCfg?.zones || [];
         const dropZones = nestedCfg?.dropZones || (adminZones.length > 0
           ? adminZones.map((z: any) => ({ id: z.id, x: z.x, y: z.y, width: z.width, height: z.height, label: z.label }))
-          : [
-              { id: 'zone-1', x: 25, y: 50, label: 'A' },
-              { id: 'zone-2', x: 75, y: 50, label: 'B' }
-            ]);
+          : []);
         
         // Map admin "elements" to draggableLabels
         const adminElements = flatCfg?.elements || [];
         const draggableLabels = nestedCfg?.draggableLabels || (adminElements.length > 0
           ? adminElements.map((e: any) => ({ id: e.id, content: e.content }))
-          : [
-              { id: 'label-1', content: 'Label 1' },
-              { id: 'label-2', content: 'Label 2' }
-            ]);
+          : []);
         
         if (!imageUrl) {
           return (
             <div className="p-8 border-2 border-dashed rounded-lg text-center text-muted-foreground">
               <MousePointer2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">Image Drop Zone</p>
-              <p className="text-sm">No image configured for this question</p>
+              <p className="font-medium">Image Drop Zone not configured</p>
+              <p className="text-sm">This question's image or zones were not saved correctly. Please contact your admin.</p>
+            </div>
+          );
+        }
+        
+        if (dropZones.length === 0 || draggableLabels.length === 0) {
+          return (
+            <div className="p-8 border-2 border-dashed rounded-lg text-center text-muted-foreground">
+              <MousePointer2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p className="font-medium">Incomplete configuration</p>
+              <p className="text-sm">Drop zones or draggable elements are missing. Please contact your admin.</p>
             </div>
           );
         }
