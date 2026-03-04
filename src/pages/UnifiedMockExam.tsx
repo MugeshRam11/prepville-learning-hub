@@ -205,56 +205,19 @@ const UnifiedMockExamContent = () => {
                 setActiveSubQuestionId(unifiedQuestions[0].subQuestions[0].id);
               }
             }
+            // Successfully loaded from DB — skip demo fallback
+            return;
+          } else {
+            // testId exists but no questions found
+            toast.error('No questions found for this test. Returning to test list.');
+            navigate('/mock-exams/select');
+            return;
           }
         }
 
-        // Demo data fallback
-        if (!examData) {
-          setExamData({
-            id: 'demo-exam',
-            title: 'Demo Mock Examination',
-            subject: 'Mathematics',
-            duration: 60,
-            totalMarks: 25,
-            questions: [
-              {
-                id: 'q1',
-                questionNumber: 1,
-                questionText: 'Solve the quadratic equation: $x^2 - 5x + 6 = 0$',
-                marks: 5,
-                commandTerm: 'SOLVE',
-                subQuestions: [
-                  {
-                    id: 'q1a',
-                    label: 'a',
-                    text: 'Find the values of x',
-                    marks: 3,
-                    commandTerm: 'CALCULATE',
-                    answerBlockType: 'text_equation'
-                  },
-                  {
-                    id: 'q1b',
-                    label: 'b',
-                    text: 'Verify your answer by substitution',
-                    marks: 2,
-                    commandTerm: 'VERIFY',
-                    answerBlockType: 'text_equation'
-                  }
-                ]
-              },
-              {
-                id: 'q2',
-                questionNumber: 2,
-                questionText: 'A bag contains 3 red balls and 2 blue balls. What is the probability of picking a blue ball?',
-                marks: 4,
-                commandTerm: 'CALCULATE',
-                answerBlockType: 'smart_math'
-              }
-            ]
-          });
-          setActiveQuestionId('q1');
-          setActiveSubQuestionId('q1a');
-        }
+        // No testId at all — redirect instead of showing demo
+        toast.error('Test ID missing. Please start the exam from the Mock Exams list.');
+        navigate('/mock-exams/select');
         
       } catch (error) {
         console.error('Error loading exam:', error);
