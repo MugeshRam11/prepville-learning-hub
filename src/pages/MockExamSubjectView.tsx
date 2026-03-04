@@ -15,6 +15,7 @@ const MockExamSubjectView = () => {
   } = useParams();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<any[]>([]);
+  const [testIds, setTestIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (subject) {
@@ -36,14 +37,15 @@ const MockExamSubjectView = () => {
         toast.error('No questions available for this subject');
         return;
       }
-      const testIds = tests.map(t => t.id);
+      const fetchedTestIds = tests.map(t => t.id);
+      setTestIds(fetchedTestIds);
       const {
         data,
         error
       } = await supabase.from('mock_questions').select(`
           *,
           mock_sub_questions (*)
-        `).in('mock_test_id', testIds).order('question_number');
+        `).in('mock_test_id', fetchedTestIds).order('question_number');
       if (error) throw error;
       
       const fetchedQuestions = data || [];
@@ -53,6 +55,7 @@ const MockExamSubjectView = () => {
       if (fetchedQuestions.length > 0) {
         navigate('/mock-exams/unified', {
           state: {
+            testId: fetchedTestIds[0],
             subject: getSubjectLabel(subject || ''),
             subjectKey: subject,
             title: getSubjectLabel(subject || ''),
@@ -91,6 +94,7 @@ const MockExamSubjectView = () => {
   const handleStartTest = () => {
     navigate('/mock-exams/start', {
       state: {
+        testId: testIds.length > 0 ? testIds[0] : undefined,
         subject: getSubjectLabel(subject || ''),
         subjectKey: subject,
         title: getSubjectLabel(subject || ''),
@@ -103,6 +107,7 @@ const MockExamSubjectView = () => {
   const handleStartInteractiveTest = () => {
     navigate('/mock-exams/unified', {
       state: {
+        testId: testIds.length > 0 ? testIds[0] : undefined,
         subject: getSubjectLabel(subject || ''),
         subjectKey: subject,
         title: `Interactive ${getSubjectLabel(subject || '')} Test`,
