@@ -7,15 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2 } from 'lucide-react';
-import SubjectTestCard from '@/components/mock-exam/SubjectTestCard';
+import MockTestListCard from '@/components/mock-exam/MockTestListCard';
 import { motion } from 'framer-motion';
-
-interface SubjectGroup {
-  subject: string;
-  subjectKey: string;
-  totalQuestions: number;
-  totalTests: number;
-}
 
 interface MockTest {
   id: string;
@@ -23,6 +16,7 @@ interface MockTest {
   subject: string;
   topic: string;
   total_questions: number;
+  time_limit_minutes: number | null;
   is_published: boolean;
   created_at: string;
 }
@@ -37,39 +31,21 @@ const MockExamSelect = () => {
   useEffect(() => {
     fetchMockTests();
 
-    // Subscribe to realtime changes on mock_tests table
-    const mockTestsChannel = supabase.channel('mock_tests_changes').on('postgres_changes', {
+    const channel = supabase.channel('mock_tests_select').on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'mock_tests'
-    }, () => {
-      console.log('[MockExamSelect] mock_tests changed, refetching...');
-      fetchMockTests();
-    }).subscribe();
+    }, () => fetchMockTests()).subscribe();
 
-    // Subscribe to mock_questions for accurate question totals
-    const mockQuestionsChannel = supabase.channel('mock_select_questions_sync').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'mock_questions'
-    }, () => {
-      console.log('[MockExamSelect] mock_questions changed, refetching...');
-      fetchMockTests();
-    }).subscribe();
-
-    return () => {
-      supabase.removeChannel(mockTestsChannel);
-      supabase.removeChannel(mockQuestionsChannel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchMockTests = async () => {
     try {
       const { data, error } = await supabase
         .from('mock_tests')
-        .select('id, title, subject, topic, total_questions, is_published, created_at')
+        .select('id, title, subject, topic, total_questions, time_limit_minutes, is_published, created_at')
         .eq('is_published', true)
-        .order('subject', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -82,80 +58,45 @@ const MockExamSelect = () => {
     }
   };
 
-  const getSubjectLabel = (subject: string) => {
-    const labels: Record<string, string> = {
-      'mathematics': 'Mathematics',
-      'science': 'Science',
-      'language_literature': 'Language & Literature',
-      'social_studies': 'Social Studies',
-      'physics': 'Physics',
-      'chemistry': 'Chemistry',
-      'biology': 'Biology'
-    };
-    return labels[subject] || subject;
+  const SUBJECT_MAP: Record<string, string> = {
+    'Mathematics': 'mathematics',
+    'Science': 'science',
+    'Physics': 'physics',
+    'Chemistry': 'chemistry',
+    'Biology': 'biology',
+    'Language & Literature': 'language_literature',
+    'Social Studies': 'social_studies',
   };
 
-  // Filter tests
   const filteredTests = useMemo(() => {
     let filtered = mockTests;
-    
+
     if (selectedSubject !== 'All Subjects') {
-      const subjectValue: Record<string, string> = {
-        'Mathematics': 'mathematics',
-        'Science': 'science',
-        'Physics': 'physics',
-        'Chemistry': 'chemistry',
-        'Biology': 'biology',
-        'Language & Literature': 'language_literature',
-        'Social Studies': 'social_studies'
-      };
-      const val = subjectValue[selectedSubject];
-      if (val) {
-        filtered = filtered.filter(test => test.subject === val);
-      }
+      const val = SUBJECT_MAP[selectedSubject];
+      if (val) filtered = filtered.filter(t => t.subject === val);
     }
-    
+
     if (searchTerm) {
-      const query = searchTerm.toLowerCase();
-      filtered = filtered.filter(test => 
-        test.title.toLowerCase().includes(query) ||
-        test.topic.toLowerCase().includes(query) ||
-        getSubjectLabel(test.subject).toLowerCase().includes(query)
+      const q = searchTerm.toLowerCase();
+      filtered = filtered.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        t.topic.toLowerCase().includes(q) ||
+        t.subject.toLowerCase().includes(q)
       );
     }
 
     return filtered;
   }, [mockTests, searchTerm, selectedSubject]);
 
-  // Group tests by subject
-  const groupedBySubject = useMemo(() => {
-    const groups: Record<string, SubjectGroup> = {};
-    
-    filteredTests.forEach(test => {
-      if (!groups[test.subject]) {
-        groups[test.subject] = {
-          subject: getSubjectLabel(test.subject),
-          subjectKey: test.subject,
-          totalQuestions: 0,
-          totalTests: 0
-        };
-      }
-      groups[test.subject].totalQuestions += test.total_questions || 0;
-      groups[test.subject].totalTests += 1;
-    });
-    
-    return Object.values(groups);
-  }, [filteredTests]);
-
-  const handleStartSubject = (subjectKey: string) => {
-    navigate(`/mock-exams/subject/${subjectKey}`);
+  const handleStartTest = (testId: string) => {
+    navigate(`/mock-exams/unified?testId=${testId}`);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 bg-gradient-to-br from-blue-50 to-slate-50 flex items-center justify-center">
+        <main className="flex-1 bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <span className="ml-2 text-lg">Loading mock tests...</span>
         </main>
@@ -168,14 +109,10 @@ const MockExamSelect = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 bg-gradient-to-br from-background via-background to-primary/5">
-        {/* Hero Section */}
+        {/* Hero */}
         <section className="py-12 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b border-border">
           <div className="container">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center max-w-3xl mx-auto"
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-3xl mx-auto">
               <h1 className="text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Mock Examinations
               </h1>
@@ -186,19 +123,9 @@ const MockExamSelect = () => {
           </div>
         </section>
 
-        {/* Test Browser Section */}
+        {/* Test list */}
         <section className="py-8 bg-muted/30">
           <div className="container">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-center mb-8"
-            >
-              <h2 className="text-2xl font-bold text-foreground mb-2">Available Mock Tests</h2>
-              <p className="text-muted-foreground">Choose a test to begin your examination</p>
-            </motion.div>
-
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto mb-8">
               <div className="relative flex-1">
@@ -216,19 +143,15 @@ const MockExamSelect = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All Subjects">All Subjects</SelectItem>
-                  <SelectItem value="Mathematics">Mathematics</SelectItem>
-                  <SelectItem value="Science">Science</SelectItem>
-                  <SelectItem value="Language & Literature">Language & Literature</SelectItem>
-                  <SelectItem value="Social Studies">Social Studies</SelectItem>
-                  <SelectItem value="Physics">Physics</SelectItem>
-                  <SelectItem value="Chemistry">Chemistry</SelectItem>
-                  <SelectItem value="Biology">Biology</SelectItem>
+                  {Object.keys(SUBJECT_MAP).map(label => (
+                    <SelectItem key={label} value={label}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Subject Cards */}
-            {groupedBySubject.length === 0 ? (
+            {/* Cards */}
+            {filteredTests.length === 0 ? (
               <div className="text-center py-12 space-y-4">
                 <p className="text-muted-foreground text-lg">No mock tests available.</p>
                 <p className="text-sm text-muted-foreground">
@@ -236,25 +159,19 @@ const MockExamSelect = () => {
                 </p>
               </div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
-                {groupedBySubject.map((group, index) => (
-                  <motion.div
-                    key={group.subjectKey}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
-                    <SubjectTestCard
-                      subject={group.subject}
-                      subjectKey={group.subjectKey}
-                      totalQuestions={group.totalQuestions}
-                      totalTests={group.totalTests}
-                      onStart={handleStartSubject}
+                {filteredTests.map((test, i) => (
+                  <motion.div key={test.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}>
+                    <MockTestListCard
+                      id={test.id}
+                      title={test.title}
+                      subject={test.subject}
+                      topic={test.topic}
+                      totalQuestions={test.total_questions}
+                      timeLimitMinutes={test.time_limit_minutes ?? 120}
+                      onStart={handleStartTest}
                     />
                   </motion.div>
                 ))}
