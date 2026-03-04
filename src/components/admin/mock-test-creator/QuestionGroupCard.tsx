@@ -10,6 +10,7 @@ import EquationEditor from '../EquationEditor';
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
+import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
@@ -135,7 +136,18 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
           )}
 
           {/* Answer key for non-sub questions */}
-          {!hasSubs && (
+          {!hasSubs && group.answerBlockType === 'image_drop' ? (
+            <ImageDropZoneEditor
+              config={{
+                imageUrl: group.answerBlockConfig?.imageUrl || '',
+                zones: group.answerBlockConfig?.zones || [],
+                elements: group.answerBlockConfig?.elements || [],
+                answers: group.answerBlockConfig?.answers || {},
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+              folder={`questions/q${group.number}/image-drop`}
+            />
+          ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
               <EquationEditor
@@ -144,7 +156,7 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 placeholder="Correct answer..."
               />
             </div>
-          )}
+          ) : null}
 
           {/* Sub-questions */}
           {hasSubs && (
