@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useProgressTracking } from '@/hooks/useProgressTracking';
 import { useXPSystem } from '@/hooks/useXPSystem';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   TrendingUp, 
   Target, 
@@ -14,15 +16,40 @@ import {
   ArrowLeft,
   Lightbulb,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Eye,
+  Clock
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { format } from 'date-fns';
 
 const Analytics = () => {
   const navigate = useNavigate();
   const { userProgress, loading } = useProgressTracking();
   const { xpData } = useXPSystem();
+  const { user } = useAuth();
+  const [testResults, setTestResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchResults = async () => {
+      const { data: evals } = await supabase
+        .from('exam_evaluations')
+        .select('*, test_attempts(completed_at)')
+        .eq('student_id', user.id)
+        .eq('evaluation_status', 'finalized')
+        .order('finalized_at', { ascending: false })
+        .limit(10);
+      if (!evals || evals.length === 0) { setTestResults([]); return; }
+      const testIds = [...new Set(evals.map(e => e.test_id))];
+      const { data: tests } = await supabase.from('mock_tests').select('id, title, subject').in('id', testIds);
+      const testsMap = (tests || []).reduce((acc: any, t: any) => ({ ...acc, [t.id]: t }), {});
+      setTestResults(evals.map(e => ({ ...e, testTitle: testsMap[e.test_id]?.title, testSubject: testsMap[e.test_id]?.subject })));
+    };
+    fetchResults();
+  }, [user?.id]);
 
   const criteriaData = [
     {
@@ -381,6 +408,41 @@ const Analytics = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Previous Test Results */}
+        {testResults.length > 0 && (
+          <Card className="mb-6 md:mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-6 h-6 text-primary" />
+                Results of Your Previous Tests
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {testResults.map((result) => (
+                <div key={result.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{result.testTitle || 'Mock Test'}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Score: {result.final_score}/{result.final_marks?.possible || 0}</span>
+                        <span>•</span>
+                        <span>{result.test_attempts?.completed_at ? format(new Date(result.test_attempts.completed_at), 'dd MMM yyyy') : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/mock-exams/results/${result.test_attempt_id}`)}>
+                    <Eye className="w-4 h-4 mr-1" />
+                    View Result
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </main>
       
       <Footer />
