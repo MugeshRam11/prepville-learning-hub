@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, GripVertical, RotateCcw } from 'lucide-react';
+import { Check, X, GripVertical, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface DropZone {
   id: string;
-  x: number; // percentage from left
-  y: number; // percentage from top
+  x: number;      // percentage from left
+  y: number;      // percentage from top
+  width?: number;  // percentage width (optional, defaults to point-style circle)
+  height?: number; // percentage height
+  label?: string;
   correctLabel: string;
 }
 
@@ -50,7 +53,6 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
     if (draggingLabel) {
       const newPlacements = { ...placements };
       
-      // Remove label from old zone if exists
       Object.keys(newPlacements).forEach(key => {
         if (newPlacements[key] === draggingLabel) {
           delete newPlacements[key];
@@ -97,6 +99,9 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   const allPlaced = unplacedLabels.length === 0;
   const correctCount = dropZones.filter(z => isCorrectPlacement(z.id)).length;
 
+  // Determine if zones use rectangular (width/height) or point-style (circle) layout
+  const hasRectZones = dropZones.some(z => z.width && z.height);
+
   return (
     <div className="space-y-4">
       {/* Draggable Labels Pool */}
@@ -105,7 +110,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <GripVertical className="w-4 h-4" />
-              Drag angle labels to the triangle:
+              Drag labels to the correct positions:
             </h4>
             <Button
               variant="ghost"
@@ -150,7 +155,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                 className="text-sm text-green-600 flex items-center gap-2"
               >
                 <Check className="w-4 h-4" />
-                All angles placed!
+                All labels placed!
               </motion.div>
             )}
           </div>
@@ -160,36 +165,80 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
       {/* Interactive Image with Drop Zones */}
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div 
-            className="relative aspect-square max-h-[400px] mx-auto bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900"
-          >
-            {/* Triangle SVG */}
-            <svg 
-              viewBox="0 0 100 100" 
-              className="absolute inset-0 w-full h-full p-8"
-              style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.1))' }}
-            >
-              {/* Triangle shape */}
-              <polygon 
-                points="50,10 15,85 85,85" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-                className="text-primary"
+          <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+            {/* Render the actual uploaded image */}
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt="Question diagram"
+                className="w-full h-auto max-h-[500px] object-contain mx-auto"
+                draggable={false}
               />
-              
-              {/* Vertex labels */}
-              <text x="50" y="6" textAnchor="middle" className="text-xs fill-muted-foreground font-medium">A</text>
-              <text x="10" y="90" textAnchor="middle" className="text-xs fill-muted-foreground font-medium">B</text>
-              <text x="90" y="90" textAnchor="middle" className="text-xs fill-muted-foreground font-medium">C</text>
-            </svg>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
+                <AlertCircle className="w-12 h-12 mb-3 opacity-50" />
+                <p className="font-medium">No image available</p>
+                <p className="text-sm">Image not configured for this question</p>
+              </div>
+            )}
 
-            {/* Drop Zones */}
-            {dropZones.map((zone) => {
+            {/* Drop Zones overlaid on the image */}
+            {imageUrl && dropZones.map((zone) => {
               const placedLabel = getPlacedLabel(zone.id);
               const isCorrect = showFeedback && placedLabel && isCorrectPlacement(zone.id);
               const isIncorrect = showFeedback && placedLabel && !isCorrectPlacement(zone.id);
 
+              // Rectangular zones (admin-defined width/height)
+              if (zone.width && zone.height) {
+                return (
+                  <motion.div
+                    key={zone.id}
+                    className={cn(
+                      "absolute flex items-center justify-center transition-all",
+                      !placedLabel && "border-2 border-dashed border-primary/60 bg-primary/10 rounded-md",
+                      hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/25 scale-105",
+                      placedLabel && !showFeedback && "bg-gradient-to-r from-amber-400/90 to-orange-500/90 rounded-md",
+                      isCorrect && "bg-green-500/90 ring-2 ring-green-300 rounded-md",
+                      isIncorrect && "bg-red-500/90 ring-2 ring-red-300 rounded-md"
+                    )}
+                    style={{
+                      left: `${zone.x}%`,
+                      top: `${zone.y}%`,
+                      width: `${zone.width}%`,
+                      height: `${zone.height}%`
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setHoveredZone(zone.id);
+                    }}
+                    onDragLeave={() => setHoveredZone(null)}
+                    onDrop={() => handleDrop(zone.id)}
+                    onClick={() => placedLabel && !showFeedback && handleRemovePlacement(zone.id)}
+                    whileHover={{ scale: placedLabel && !showFeedback ? 1.03 : 1 }}
+                  >
+                    {placedLabel ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="text-white font-bold text-sm cursor-pointer relative"
+                      >
+                        {placedLabel.content}
+                        {showFeedback && (
+                          <div className="absolute -top-1 -right-3">
+                            {isCorrect ? <Check className="w-4 h-4 text-white" /> : <X className="w-4 h-4 text-white" />}
+                          </div>
+                        )}
+                      </motion.div>
+                    ) : (
+                      <span className="text-xs text-primary/70 font-medium">
+                        {zone.label || 'Drop'}
+                      </span>
+                    )}
+                  </motion.div>
+                );
+              }
+
+              // Point-style circular zones (legacy)
               return (
                 <motion.div
                   key={zone.id}
@@ -200,7 +249,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/20 scale-110",
                     placedLabel && !showFeedback && "bg-gradient-to-r from-amber-400 to-orange-500",
                     isCorrect && "bg-green-500 ring-4 ring-green-300",
-                    isIncorrect && "bg-red-500 ring-4 ring-red-300 animate-shake"
+                    isIncorrect && "bg-red-500 ring-4 ring-red-300"
                   )}
                   style={{
                     left: `${zone.x}%`,
@@ -214,45 +263,19 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   onDrop={() => handleDrop(zone.id)}
                   onClick={() => placedLabel && !showFeedback && handleRemovePlacement(zone.id)}
                   whileHover={{ scale: placedLabel && !showFeedback ? 1.1 : 1 }}
-                  animate={{
-                    scale: hoveredZone === zone.id ? 1.1 : 1
-                  }}
                 >
                   {placedLabel ? (
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       className="text-white font-bold text-lg cursor-pointer"
-                      title={showFeedback ? undefined : "Click to remove"}
                     >
                       {placedLabel.content}
-                      {showFeedback && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -top-1 -right-1"
-                        >
-                          {isCorrect ? (
-                            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                              <Check className="w-3 h-3 text-green-500" />
-                            </div>
-                          ) : (
-                            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                              <X className="w-3 h-3 text-red-500" />
-                            </div>
-                          )}
-                        </motion.div>
-                      )}
                     </motion.div>
                   ) : (
-                    <motion.span
-                      animate={{ 
-                        opacity: hoveredZone === zone.id ? 1 : 0.5 
-                      }}
-                      className="text-xs text-primary font-medium"
-                    >
-                      Drop
-                    </motion.span>
+                    <span className="text-xs text-primary font-medium">
+                      {zone.label || 'Drop'}
+                    </span>
                   )}
                 </motion.div>
               );
@@ -275,14 +298,6 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
         >
           <div className="text-lg font-bold text-foreground">
             Score: {correctCount} / {dropZones.length} correct
-          </div>
-          <div className="text-sm text-muted-foreground mt-1">
-            {correctCount === dropZones.length 
-              ? '🎉 All angles placed correctly!' 
-              : 'Some angles are misplaced. The largest angle goes opposite the longest side.'}
-          </div>
-          <div className="text-xs text-muted-foreground mt-2">
-            Marks: {((correctCount / dropZones.length) * 4).toFixed(1)} / 4
           </div>
         </motion.div>
       )}
