@@ -7,6 +7,7 @@ import EquationEditor from '../EquationEditor';
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
+import ImageDropZoneEditor from '../ImageDropZoneEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
@@ -69,14 +70,27 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
         </div>
       </div>
 
-      <div>
-        <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-        <EquationEditor
-          value={subQuestion.answerKey}
-          onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
-          placeholder="Correct answer..."
+      {subQuestion.answerBlockType === 'image_drop' ? (
+        <ImageDropZoneEditor
+          config={{
+            imageUrl: subQuestion.answerBlockConfig?.imageUrl || '',
+            zones: subQuestion.answerBlockConfig?.zones || [],
+            elements: subQuestion.answerBlockConfig?.elements || [],
+            answers: subQuestion.answerBlockConfig?.answers || {},
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+          folder={`questions/q${questionNumber}-${subQuestion.label}/image-drop`}
         />
-      </div>
+      ) : (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
+          <EquationEditor
+            value={subQuestion.answerKey}
+            onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
+            placeholder="Correct answer..."
+          />
+        </div>
+      )}
     </div>
   );
 };
