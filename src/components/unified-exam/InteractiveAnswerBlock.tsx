@@ -190,15 +190,16 @@ const INTERACTIVE_PATTERNS: { type: InteractiveType; patterns: RegExp[] }[] = [
 // Auto-detect interactive type from question content with enhanced patterns
 function autoDetectType(questionText?: string, diagramDesc?: string, config?: AnswerBlockConfig): InteractiveType {
   const text = `${questionText || ''} ${diagramDesc || ''}`.toLowerCase();
+  const flatCfg = config as any;
   
-  // Check for explicit configs first
-  if (config?.tableConfig) return 'table_input';
+  // Check for explicit configs first (nested or flat)
+  if (config?.tableConfig || flatCfg?.headers) return 'table_input';
   if (config?.graphConfig) return 'graph_plot';
-  if (config?.dragDropConfig) return 'drag_drop';
-  if (config?.imageDropConfig) return 'image_drop';
+  if (config?.dragDropConfig || flatCfg?.draggableItems) return 'drag_drop';
+  if (config?.imageDropConfig || flatCfg?.zones) return 'image_drop';
   if (config?.arrangeConfig) return 'arrange_order';
   if (config?.smartMathConfig) return 'smart_math';
-  if (config?.mcqConfig) return 'multiple_choice';
+  if (config?.mcqConfig || flatCfg?.options) return 'multiple_choice';
   
   // Pattern-based detection with priority ordering
   for (const { type, patterns } of INTERACTIVE_PATTERNS) {
@@ -303,15 +304,31 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
       }
 
       case 'image_drop': {
-        const imageUrl = config?.imageDropConfig?.imageUrl || '';
-        const dropZones = config?.imageDropConfig?.dropZones || [
-          { id: 'zone-1', x: 25, y: 50, label: 'A' },
-          { id: 'zone-2', x: 75, y: 50, label: 'B' }
-        ];
-        const draggableLabels = config?.imageDropConfig?.draggableLabels || [
-          { id: 'label-1', content: 'Label 1' },
-          { id: 'label-2', content: 'Label 2' }
-        ];
+        // Admin saves flat config: { imageUrl, zones, elements, answers }
+        // Type definition expects nested: config.imageDropConfig.imageUrl
+        // Support both formats
+        const flatCfg = config as any;
+        const nestedCfg = config?.imageDropConfig;
+        
+        const imageUrl = nestedCfg?.imageUrl || flatCfg?.imageUrl || '';
+        
+        // Map admin "zones" format to dropZones expected by ImageDropZone component
+        const adminZones = flatCfg?.zones || [];
+        const dropZones = nestedCfg?.dropZones || (adminZones.length > 0
+          ? adminZones.map((z: any) => ({ id: z.id, x: z.x, y: z.y, width: z.width, height: z.height, label: z.label }))
+          : [
+              { id: 'zone-1', x: 25, y: 50, label: 'A' },
+              { id: 'zone-2', x: 75, y: 50, label: 'B' }
+            ]);
+        
+        // Map admin "elements" to draggableLabels
+        const adminElements = flatCfg?.elements || [];
+        const draggableLabels = nestedCfg?.draggableLabels || (adminElements.length > 0
+          ? adminElements.map((e: any) => ({ id: e.id, content: e.content }))
+          : [
+              { id: 'label-1', content: 'Label 1' },
+              { id: 'label-2', content: 'Label 2' }
+            ]);
         
         if (!imageUrl) {
           return (
