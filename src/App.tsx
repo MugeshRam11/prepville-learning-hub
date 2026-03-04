@@ -127,7 +127,7 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="/mock-exams/select" element={
-            <ProtectedRoute requiresSubscription>
+            <ProtectedRoute>
               <MockExamSelect />
             </ProtectedRoute>
           } />
