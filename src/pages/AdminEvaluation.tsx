@@ -636,7 +636,11 @@ const AdminEvaluation = () => {
               {loading ? (
                 <div className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
               ) : filteredEvaluations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No evaluations found.</div>
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                  <p className="font-medium">No student submissions found</p>
+                  <p className="text-sm mt-1">Submissions will appear here once students complete and submit a mock exam.</p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
