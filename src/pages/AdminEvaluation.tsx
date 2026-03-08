@@ -744,19 +744,21 @@ const AdminEvaluation = () => {
 
           {/* Paper Correction Dialog */}
           <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-            <DialogContent className="max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <FileText className="w-5 h-5" />
-                  <div>
-                    <span>{selectedEvaluation?.profiles?.first_name} {selectedEvaluation?.profiles?.last_name}</span>
-                    <span className="text-muted-foreground font-normal ml-2">— {selectedEvaluation?.mock_tests?.title}</span>
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
+            <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 overflow-hidden flex flex-col">
+              <div className="shrink-0 border-b px-6 py-4 bg-background">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <FileText className="w-5 h-5" />
+                    <div>
+                      <span>{selectedEvaluation?.profiles?.first_name} {selectedEvaluation?.profiles?.last_name}</span>
+                      <span className="text-muted-foreground font-normal ml-2">— {selectedEvaluation?.mock_tests?.title}</span>
+                    </div>
+                  </DialogTitle>
+                </DialogHeader>
+              </div>
 
               {selectedEvaluation?.evaluation_status !== 'finalized' && (
-                <div className="flex items-center gap-3 pb-2 border-b">
+                <div className="flex items-center gap-3 px-6 py-3 border-b bg-background shrink-0">
                   <Label className="text-sm font-medium">Mode:</Label>
                   <div className="flex gap-2">
                     {(['manual', 'ai', 'hybrid'] as const).map(m => (
