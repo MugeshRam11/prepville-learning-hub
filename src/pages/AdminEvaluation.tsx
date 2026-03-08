@@ -225,9 +225,18 @@ const AdminEvaluation = () => {
         marks: q.marks,
         answerKey: q.answer_key,
         commandTerm: q.command_term,
+        answerBlockType: q.answer_block_type || 'text_equation',
+        answerBlockConfig: q.answer_block_config || {},
+        questionImageUrl: q.question_image_url || null,
         subQuestions: (q.mock_sub_questions || []).map((sq: any) => ({
-          id: sq.id, label: sq.sub_question_label, text: sq.sub_question_text,
-          marks: sq.marks, answerKey: sq.answer_key, commandTerm: sq.command_term
+          id: sq.id,
+          label: sq.sub_question_label,
+          text: sq.sub_question_text,
+          marks: sq.marks,
+          answerKey: sq.answer_key,
+          commandTerm: sq.command_term,
+          answerBlockType: sq.answer_block_type || 'text_equation',
+          answerBlockConfig: sq.answer_block_config || {}
         }))
       }));
       setQuestionDetails(details);
@@ -252,7 +261,9 @@ const AdminEvaluation = () => {
               manualMarks: existing?.marksAwarded ?? 0,
               aiMarks: existing?.aiMarks,
               feedback: existing?.feedback || '',
-              suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' }
+              suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' },
+              answerBlockType: sq.answerBlockType,
+              answerBlockConfig: sq.answerBlockConfig
             });
           }
         } else {
@@ -267,7 +278,9 @@ const AdminEvaluation = () => {
             manualMarks: existing?.marksAwarded ?? 0,
             aiMarks: existing?.aiMarks,
             feedback: existing?.feedback || '',
-            suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' }
+            suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' },
+            answerBlockType: q.answerBlockType,
+            answerBlockConfig: q.answerBlockConfig
           });
         }
       }
