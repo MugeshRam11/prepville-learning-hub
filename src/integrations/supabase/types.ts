@@ -1597,7 +1597,7 @@ export type Database = {
             foreignKeyName: "test_attempts_test_id_fkey"
             columns: ["test_id"]
             isOneToOne: false
-            referencedRelation: "tests"
+            referencedRelation: "mock_tests"
             referencedColumns: ["id"]
           },
         ]
