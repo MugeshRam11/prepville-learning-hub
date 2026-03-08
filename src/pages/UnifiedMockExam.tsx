@@ -385,31 +385,33 @@ const UnifiedMockExamContent = () => {
         .select()
         .single();
 
-      if (attemptError) {
+      if (attemptError || !attemptData) {
         console.error('Error saving attempt:', attemptError);
-        // Continue anyway to show submitted page
+        console.error('Insert payload was:', JSON.stringify(insertPayload));
+        toast.error(`Failed to save submission: ${attemptError?.message || 'No data returned'}`);
+        return; // DO NOT navigate — submission did not persist
       }
 
       // Create evaluation record with pending_review status
-      if (attemptData) {
-        const { error: evalError } = await supabase
-          .from('exam_evaluations')
-          .insert({
-            test_attempt_id: attemptData.id,
-            student_id: user.id,
-            test_id: examData.id,
-            evaluation_status: 'pending_review'
-          });
+      const { error: evalError } = await supabase
+        .from('exam_evaluations')
+        .insert({
+          test_attempt_id: attemptData.id,
+          student_id: user.id,
+          test_id: examData.id,
+          evaluation_status: 'pending_review'
+        });
 
-        if (evalError) {
-          console.error('Error creating evaluation record:', evalError);
-        }
+      if (evalError) {
+        console.error('Error creating evaluation record:', evalError);
+        // Non-fatal — attempt was saved, evaluation record can be created later
       }
 
-      // Navigate to submitted confirmation page (not summary)
+      // Only navigate AFTER confirmed DB insert
       navigate('/mock-exams/submitted', {
         state: {
-          testTitle: examData.title
+          testTitle: examData.title,
+          attemptId: attemptData.id
         }
       });
 
