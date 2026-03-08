@@ -256,11 +256,14 @@ const StudentExamResults = () => {
                         </Badge>
                       </div>
 
-                      {/* Student answer */}
-                      <div className="bg-muted/30 rounded-lg p-3">
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Your Answer</p>
-                        <p className="text-sm">{qe.studentAnswer || 'No answer provided'}</p>
-                      </div>
+                      {/* Student answer - rendered by type */}
+                      <EvaluationAnswerRenderer
+                        answerBlockType={qe.answerBlockType || 'text_equation'}
+                        answerBlockConfig={qe.answerBlockConfig || {}}
+                        studentAnswer={qe.studentAnswer}
+                        correctAnswer={qe.correctAnswer}
+                        mode="student-review"
+                      />
 
                       {/* Feedback */}
                       {qe.feedback && (
