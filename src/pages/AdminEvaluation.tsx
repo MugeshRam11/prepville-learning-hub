@@ -521,6 +521,12 @@ const AdminEvaluation = () => {
         finalized_at: new Date().toISOString()
       }).eq('id', selectedEvaluation.id);
 
+      // Update test_attempts submission_status to published
+      await supabase.from('test_attempts').update({
+        submission_status: 'published',
+        score: totalScore,
+      } as any).eq('id', selectedEvaluation.test_attempt_id);
+
       // Update training data with final marks
       for (const pq of perQuestionScores) {
         await supabase.from('evaluation_training_data').update({
