@@ -744,19 +744,21 @@ const AdminEvaluation = () => {
 
           {/* Paper Correction Dialog */}
           <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-            <DialogContent className="max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <FileText className="w-5 h-5" />
-                  <div>
-                    <span>{selectedEvaluation?.profiles?.first_name} {selectedEvaluation?.profiles?.last_name}</span>
-                    <span className="text-muted-foreground font-normal ml-2">— {selectedEvaluation?.mock_tests?.title}</span>
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
+            <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 overflow-hidden flex flex-col">
+              <div className="shrink-0 border-b px-6 py-4 bg-background">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <FileText className="w-5 h-5" />
+                    <div>
+                      <span>{selectedEvaluation?.profiles?.first_name} {selectedEvaluation?.profiles?.last_name}</span>
+                      <span className="text-muted-foreground font-normal ml-2">— {selectedEvaluation?.mock_tests?.title}</span>
+                    </div>
+                  </DialogTitle>
+                </DialogHeader>
+              </div>
 
               {selectedEvaluation?.evaluation_status !== 'finalized' && (
-                <div className="flex items-center gap-3 pb-2 border-b">
+                <div className="flex items-center gap-3 px-6 py-3 border-b bg-background shrink-0">
                   <Label className="text-sm font-medium">Mode:</Label>
                   <div className="flex gap-2">
                     {(['manual', 'ai', 'hybrid'] as const).map(m => (
@@ -789,8 +791,8 @@ const AdminEvaluation = () => {
                 </div>
               )}
 
-              <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-4 py-2">
+              <ScrollArea className="flex-1 min-h-0 px-6">
+                <div className="space-y-4 py-4">
                   {/* Score summary bar */}
                   <div className="flex items-center gap-4 bg-muted/50 rounded-lg p-3">
                     <span className="text-sm font-medium">Total:</span>
@@ -924,7 +926,7 @@ const AdminEvaluation = () => {
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="mt-4 pt-3 border-t">
+              <DialogFooter className="shrink-0 border-t px-6 py-4 bg-background">
                 {selectedEvaluation?.evaluation_status !== 'finalized' ? (
                   <>
                     <Button variant="outline" onClick={saveEvaluation} disabled={savingEval} className="gap-2">
