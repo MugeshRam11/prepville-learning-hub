@@ -172,6 +172,8 @@ const ImageDropZoneReview: React.FC<{
       )}
 
       {zones.map((zone: any) => {
+        if (zone?.x === undefined || zone?.y === undefined) return null;
+
         const placedElement = toPlacement(zone.id, map);
         const width = Number(zone.width) || 14;
         const height = Number(zone.height) || 10;
