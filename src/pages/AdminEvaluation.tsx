@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import EvaluationAnswerRenderer from '@/components/admin/EvaluationAnswerRenderer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
