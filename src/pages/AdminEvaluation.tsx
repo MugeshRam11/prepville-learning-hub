@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import EvaluationAnswerRenderer from '@/components/admin/EvaluationAnswerRenderer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,9 @@ interface QuestionDetail {
   marks: number;
   answerKey: string | null;
   commandTerm: string | null;
+  answerBlockType: string;
+  answerBlockConfig: any;
+  questionImageUrl: string | null;
   subQuestions: {
     id: string;
     label: string;
@@ -59,6 +63,8 @@ interface QuestionDetail {
     marks: number;
     answerKey: string | null;
     commandTerm: string | null;
+    answerBlockType: string;
+    answerBlockConfig: any;
   }[];
 }
 
@@ -73,6 +79,8 @@ interface PerQuestionScore {
   aiMarks?: number;
   feedback: string;
   suggestions: { whatYouDidWell: string; whatYouMissed: string; howToImprove: string };
+  answerBlockType: string;
+  answerBlockConfig: any;
 }
 
 const AdminEvaluation = () => {
@@ -218,9 +226,18 @@ const AdminEvaluation = () => {
         marks: q.marks,
         answerKey: q.answer_key,
         commandTerm: q.command_term,
+        answerBlockType: q.answer_block_type || 'text_equation',
+        answerBlockConfig: q.answer_block_config || {},
+        questionImageUrl: q.question_image_url || null,
         subQuestions: (q.mock_sub_questions || []).map((sq: any) => ({
-          id: sq.id, label: sq.sub_question_label, text: sq.sub_question_text,
-          marks: sq.marks, answerKey: sq.answer_key, commandTerm: sq.command_term
+          id: sq.id,
+          label: sq.sub_question_label,
+          text: sq.sub_question_text,
+          marks: sq.marks,
+          answerKey: sq.answer_key,
+          commandTerm: sq.command_term,
+          answerBlockType: sq.answer_block_type || 'text_equation',
+          answerBlockConfig: sq.answer_block_config || {}
         }))
       }));
       setQuestionDetails(details);
@@ -245,7 +262,9 @@ const AdminEvaluation = () => {
               manualMarks: existing?.marksAwarded ?? 0,
               aiMarks: existing?.aiMarks,
               feedback: existing?.feedback || '',
-              suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' }
+              suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' },
+              answerBlockType: sq.answerBlockType,
+              answerBlockConfig: sq.answerBlockConfig
             });
           }
         } else {
@@ -260,7 +279,9 @@ const AdminEvaluation = () => {
             manualMarks: existing?.marksAwarded ?? 0,
             aiMarks: existing?.aiMarks,
             feedback: existing?.feedback || '',
-            suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' }
+            suggestions: existing?.suggestions || { whatYouDidWell: '', whatYouMissed: '', howToImprove: '' },
+            answerBlockType: q.answerBlockType,
+            answerBlockConfig: q.answerBlockConfig
           });
         }
       }
@@ -425,7 +446,9 @@ const AdminEvaluation = () => {
         aiMarks: pq.aiMarks,
         maxMarks: pq.maxMarks,
         feedback: pq.feedback,
-        suggestions: pq.suggestions
+        suggestions: pq.suggestions,
+        answerBlockType: pq.answerBlockType,
+        answerBlockConfig: pq.answerBlockConfig
       }));
 
       await supabase.from('exam_evaluations').update({
@@ -484,7 +507,9 @@ const AdminEvaluation = () => {
         marksAwarded: pq.manualMarks,
         maxMarks: pq.maxMarks,
         feedback: pq.feedback,
-        suggestions: pq.suggestions
+        suggestions: pq.suggestions,
+        answerBlockType: pq.answerBlockType,
+        answerBlockConfig: pq.answerBlockConfig
       }));
 
       await supabase.from('exam_evaluations').update({
@@ -495,6 +520,12 @@ const AdminEvaluation = () => {
         evaluation_status: 'finalized',
         finalized_at: new Date().toISOString()
       }).eq('id', selectedEvaluation.id);
+
+      // Update test_attempts submission_status to published
+      await supabase.from('test_attempts').update({
+        submission_status: 'published',
+        score: totalScore,
+      } as any).eq('id', selectedEvaluation.test_attempt_id);
 
       // Update training data with final marks
       for (const pq of perQuestionScores) {
@@ -811,11 +842,14 @@ const AdminEvaluation = () => {
                             </div>
                           </div>
 
-                          {/* Student answer */}
-                          <div className="bg-muted/30 rounded-lg p-3">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">Student Answer</p>
-                            <p className="text-sm whitespace-pre-wrap">{pq.studentAnswer || 'No answer'}</p>
-                          </div>
+                          {/* Student answer - rendered by type */}
+                          <EvaluationAnswerRenderer
+                            answerBlockType={pq.answerBlockType}
+                            answerBlockConfig={pq.answerBlockConfig}
+                            studentAnswer={pq.studentAnswer}
+                            correctAnswer={pq.correctAnswer}
+                            mode="admin-review"
+                          />
 
                           {/* Reference answer */}
                           {pq.correctAnswer && (

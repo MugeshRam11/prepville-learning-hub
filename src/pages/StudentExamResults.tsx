@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
+import EvaluationAnswerRenderer from '@/components/admin/EvaluationAnswerRenderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,8 @@ interface QuestionEvaluation {
     howToImprove?: string;
   };
   isCorrect: boolean;
+  answerBlockType?: string;
+  answerBlockConfig?: any;
 }
 
 const StudentExamResults = () => {
@@ -88,6 +91,8 @@ const StudentExamResults = () => {
           feedback: qe.feedback,
           suggestions: qe.suggestions,
           isCorrect: qe.marksAwarded === qe.maxMarks,
+          answerBlockType: qe.answerBlockType || 'text_equation',
+          answerBlockConfig: qe.answerBlockConfig || {},
         }));
         setQuestionEvals(evals);
       }
@@ -251,11 +256,14 @@ const StudentExamResults = () => {
                         </Badge>
                       </div>
 
-                      {/* Student answer */}
-                      <div className="bg-muted/30 rounded-lg p-3">
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Your Answer</p>
-                        <p className="text-sm">{qe.studentAnswer || 'No answer provided'}</p>
-                      </div>
+                      {/* Student answer - rendered by type */}
+                      <EvaluationAnswerRenderer
+                        answerBlockType={qe.answerBlockType || 'text_equation'}
+                        answerBlockConfig={qe.answerBlockConfig || {}}
+                        studentAnswer={qe.studentAnswer}
+                        correctAnswer={qe.correctAnswer}
+                        mode="student-review"
+                      />
 
                       {/* Feedback */}
                       {qe.feedback && (
