@@ -53,7 +53,7 @@ const ProgressReports = () => {
         .from('test_attempts')
         .select(`
           *,
-          tests (title, test_type, topics (name)),
+          mock_tests (title, subject, topic),
           profiles (first_name, last_name, email)
         `)
         .gte('completed_at', startDate.toISOString());
@@ -61,7 +61,7 @@ const ProgressReports = () => {
       // Process topic performance
       const topicStats: Record<string, TopicStats> = {};
       attempts?.forEach(attempt => {
-        const topicName = attempt.tests?.topics?.name || 'Unknown';
+        const topicName = attempt.mock_tests?.topic || 'Unknown';
         if (!topicStats[topicName]) {
           topicStats[topicName] = { total: 0, sum: 0, attempts: 0 };
         }
@@ -79,7 +79,7 @@ const ProgressReports = () => {
       // Process test type distribution
       const testTypeStats: Record<string, number> = {};
       attempts?.forEach(attempt => {
-        const testType = attempt.tests?.test_type || 'unknown';
+        const testType = attempt.mock_tests?.subject || 'unknown';
         testTypeStats[testType] = (testTypeStats[testType] || 0) + 1;
       });
 
