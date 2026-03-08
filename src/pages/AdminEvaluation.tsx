@@ -832,11 +832,14 @@ const AdminEvaluation = () => {
                             </div>
                           </div>
 
-                          {/* Student answer */}
-                          <div className="bg-muted/30 rounded-lg p-3">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">Student Answer</p>
-                            <p className="text-sm whitespace-pre-wrap">{pq.studentAnswer || 'No answer'}</p>
-                          </div>
+                          {/* Student answer - rendered by type */}
+                          <EvaluationAnswerRenderer
+                            answerBlockType={pq.answerBlockType}
+                            answerBlockConfig={pq.answerBlockConfig}
+                            studentAnswer={pq.studentAnswer}
+                            correctAnswer={pq.correctAnswer}
+                            mode="admin-review"
+                          />
 
                           {/* Reference answer */}
                           {pq.correctAnswer && (
