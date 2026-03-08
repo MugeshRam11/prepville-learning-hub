@@ -97,15 +97,51 @@ const AdminEvaluation = () => {
   const fetchEvaluations = async () => {
     setLoading(true);
     try {
-      const { data: evalData, error } = await supabase
+      // 1. Load all submitted test attempts (source of truth)
+      const { data: attempts, error: attError } = await supabase
+        .from('test_attempts')
+        .select('id, user_id, test_id, score, total_questions, answers, submission_status, completed_at, time_taken_seconds')
+        .in('submission_status', ['submitted', 'evaluating', 'ai_evaluated', 'manual_review', 'published'])
+        .order('completed_at', { ascending: false });
+      if (attError) throw attError;
+
+      if (!attempts || attempts.length === 0) {
+        setEvaluations([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Load existing exam_evaluations keyed by test_attempt_id
+      const attemptIds = attempts.map(a => a.id);
+      const { data: existingEvals } = await supabase
         .from('exam_evaluations')
-        .select('*, test_attempts(answers, score, total_questions, completed_at, time_taken_seconds)')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
+        .select('*')
+        .in('test_attempt_id', attemptIds);
+      const evalsMap: Record<string, any> = {};
+      (existingEvals || []).forEach(e => { evalsMap[e.test_attempt_id] = e; });
 
-      const studentIds = [...new Set((evalData || []).map(e => e.student_id))];
-      const testIds = [...new Set((evalData || []).map(e => e.test_id))];
+      // 3. Auto-create exam_evaluation rows for attempts that don't have one yet
+      const missingAttempts = attempts.filter(a => !evalsMap[a.id]);
+      if (missingAttempts.length > 0) {
+        const newEvals = missingAttempts.map(a => ({
+          test_attempt_id: a.id,
+          student_id: a.user_id,
+          test_id: a.test_id,
+          evaluation_status: 'pending_review',
+          evaluation_mode: 'pending',
+        }));
+        const { data: inserted, error: insError } = await supabase
+          .from('exam_evaluations')
+          .insert(newEvals)
+          .select('*');
+        if (!insError && inserted) {
+          inserted.forEach(e => { evalsMap[e.test_attempt_id] = e; });
+        }
+      }
 
+      // 4. Fetch profiles and mock_tests for display
+      const studentIds = [...new Set(attempts.map(a => a.user_id).filter(Boolean))];
+      const testIds = [...new Set(attempts.map(a => a.test_id))];
       let profilesMap: Record<string, any> = {};
       let testsMap: Record<string, any> = {};
 
@@ -118,11 +154,40 @@ const AdminEvaluation = () => {
         if (tests) testsMap = tests.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
       }
 
-      setEvaluations((evalData || []).map(e => ({
-        ...e,
-        profiles: profilesMap[e.student_id],
-        mock_tests: testsMap[e.test_id]
-      })));
+      // 5. Merge into EvaluationRecord format
+      const merged: EvaluationRecord[] = attempts.map(a => {
+        const evalRow = evalsMap[a.id] || {};
+        return {
+          id: evalRow.id || a.id,
+          test_attempt_id: a.id,
+          student_id: a.user_id,
+          test_id: a.test_id,
+          evaluation_status: evalRow.evaluation_status || 'pending_review',
+          evaluation_mode: evalRow.evaluation_mode || 'pending',
+          ai_evaluation_data: evalRow.ai_evaluation_data || null,
+          manual_adjustments: evalRow.manual_adjustments || null,
+          question_evaluations: evalRow.question_evaluations || null,
+          suggestions: evalRow.suggestions || null,
+          final_score: evalRow.final_score ?? null,
+          final_marks: evalRow.final_marks || null,
+          feedback: evalRow.feedback || null,
+          evaluated_by: evalRow.evaluated_by || null,
+          evaluated_at: evalRow.evaluated_at || null,
+          finalized_at: evalRow.finalized_at || null,
+          created_at: evalRow.created_at || a.completed_at || new Date().toISOString(),
+          profiles: profilesMap[a.user_id],
+          mock_tests: testsMap[a.test_id],
+          test_attempts: {
+            answers: a.answers,
+            score: a.score,
+            total_questions: a.total_questions,
+            completed_at: a.completed_at,
+            time_taken_seconds: a.time_taken_seconds,
+          },
+        };
+      });
+
+      setEvaluations(merged);
     } catch (error: any) {
       console.error('Error fetching evaluations:', error);
       toast.error('Failed to load evaluations');
@@ -571,7 +636,11 @@ const AdminEvaluation = () => {
               {loading ? (
                 <div className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
               ) : filteredEvaluations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No evaluations found.</div>
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                  <p className="font-medium">No student submissions found</p>
+                  <p className="text-sm mt-1">Submissions will appear here once students complete and submit a mock exam.</p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
