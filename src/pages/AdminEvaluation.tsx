@@ -52,6 +52,9 @@ interface QuestionDetail {
   marks: number;
   answerKey: string | null;
   commandTerm: string | null;
+  answerBlockType: string;
+  answerBlockConfig: any;
+  questionImageUrl: string | null;
   subQuestions: {
     id: string;
     label: string;
@@ -59,6 +62,8 @@ interface QuestionDetail {
     marks: number;
     answerKey: string | null;
     commandTerm: string | null;
+    answerBlockType: string;
+    answerBlockConfig: any;
   }[];
 }
 
