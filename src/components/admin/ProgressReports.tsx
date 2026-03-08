@@ -79,7 +79,7 @@ const ProgressReports = () => {
       // Process test type distribution
       const testTypeStats: Record<string, number> = {};
       attempts?.forEach(attempt => {
-        const testType = attempt.tests?.test_type || 'unknown';
+        const testType = attempt.mock_tests?.subject || 'unknown';
         testTypeStats[testType] = (testTypeStats[testType] || 0) + 1;
       });
 
