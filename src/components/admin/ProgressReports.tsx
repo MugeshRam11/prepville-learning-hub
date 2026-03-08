@@ -61,7 +61,7 @@ const ProgressReports = () => {
       // Process topic performance
       const topicStats: Record<string, TopicStats> = {};
       attempts?.forEach(attempt => {
-        const topicName = attempt.tests?.topics?.name || 'Unknown';
+        const topicName = attempt.mock_tests?.topic || 'Unknown';
         if (!topicStats[topicName]) {
           topicStats[topicName] = { total: 0, sum: 0, attempts: 0 };
         }
