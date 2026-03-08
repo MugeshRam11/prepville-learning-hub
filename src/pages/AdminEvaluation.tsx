@@ -78,6 +78,8 @@ interface PerQuestionScore {
   aiMarks?: number;
   feedback: string;
   suggestions: { whatYouDidWell: string; whatYouMissed: string; howToImprove: string };
+  answerBlockType: string;
+  answerBlockConfig: any;
 }
 
 const AdminEvaluation = () => {
