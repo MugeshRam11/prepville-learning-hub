@@ -505,7 +505,9 @@ const AdminEvaluation = () => {
         marksAwarded: pq.manualMarks,
         maxMarks: pq.maxMarks,
         feedback: pq.feedback,
-        suggestions: pq.suggestions
+        suggestions: pq.suggestions,
+        answerBlockType: pq.answerBlockType,
+        answerBlockConfig: pq.answerBlockConfig
       }));
 
       await supabase.from('exam_evaluations').update({
