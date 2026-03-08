@@ -791,8 +791,8 @@ const AdminEvaluation = () => {
                 </div>
               )}
 
-              <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-4 py-2">
+              <ScrollArea className="flex-1 min-h-0 px-6">
+                <div className="space-y-4 py-4">
                   {/* Score summary bar */}
                   <div className="flex items-center gap-4 bg-muted/50 rounded-lg p-3">
                     <span className="text-sm font-medium">Total:</span>
@@ -926,7 +926,7 @@ const AdminEvaluation = () => {
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="mt-4 pt-3 border-t">
+              <DialogFooter className="shrink-0 border-t px-6 py-4 bg-background">
                 {selectedEvaluation?.evaluation_status !== 'finalized' ? (
                   <>
                     <Button variant="outline" onClick={saveEvaluation} disabled={savingEval} className="gap-2">
