@@ -81,6 +81,29 @@ const computeAutoScore = (type: string, config: any, parsedAnswer: any): { corre
 // ═══════════════════════════════════════════════
 // Image Drop Zone — Visual Review
 // ═══════════════════════════════════════════════
+const normalizeImageDropConfig = (config: any) => {
+  const nested = config?.imageDropConfig || {};
+  return {
+    zones: config?.zones || config?.dropZones || nested?.zones || nested?.dropZones || [],
+    elements: config?.elements || config?.draggableLabels || nested?.elements || nested?.draggableLabels || [],
+    answers: config?.answers || config?.correctMapping || nested?.answers || nested?.correctMapping || {},
+    imageUrl: config?.imageUrl || nested?.imageUrl || null,
+  };
+};
+
+const resolveElementIdFromValue = (value: any, elements: any[]): string | null => {
+  if (!value) return null;
+  const raw = String(value);
+  const byId = elements.find((e: any) => e?.id === raw);
+  if (byId?.id) return byId.id;
+
+  const byContent = elements.find((e: any) => {
+    const text = e?.content || e?.label || '';
+    return text && text === raw;
+  });
+  return byContent?.id || null;
+};
+
 const ImageDropZoneReview: React.FC<{
   config: any;
   studentAnswer: any;
@@ -88,20 +111,87 @@ const ImageDropZoneReview: React.FC<{
   mode: string;
 }> = ({ config, studentAnswer, questionImageUrl, mode }) => {
   const parsed = parseAnswer(studentAnswer);
-  if (!config || typeof parsed !== 'object' || parsed === null) {
+  if (!config || typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return <FallbackJsonView data={studentAnswer} label="Image Drop Zone" />;
   }
 
-  const zones = config.dropZones || config.zones || [];
-  const elements = config.draggableLabels || config.elements || [];
-  const correctMapping = config.correctMapping || {};
-  const imageUrl = config.imageUrl || questionImageUrl;
+  const normalized = normalizeImageDropConfig(config);
+  const zones = normalized.zones;
+  const elements = normalized.elements;
+  const answers = normalized.answers;
+  const imageUrl = normalized.imageUrl || questionImageUrl;
 
-  // Build element lookup
-  const elementMap: Record<string, string> = {};
-  elements.forEach((el: any) => { elementMap[el.id] = el.content || el.label || el.id; });
+  const elementMap: Record<string, any> = {};
+  elements.forEach((el: any) => {
+    if (el?.id) elementMap[el.id] = el;
+  });
 
-  const autoScore = computeAutoScore('image_drop', config, parsed);
+  const toPlacement = (zoneId: string, sourceMap: Record<string, any>) => {
+    const resolvedId = resolveElementIdFromValue(sourceMap?.[zoneId], elements);
+    if (!resolvedId) return null;
+    return elementMap[resolvedId] || null;
+  };
+
+  const placementRows = zones.map((zone: any) => {
+    const studentElement = toPlacement(zone.id, parsed);
+    const correctElement = toPlacement(zone.id, answers);
+    const isCorrect = !!studentElement && !!correctElement && studentElement.id === correctElement.id;
+
+    return {
+      zone,
+      studentElement,
+      correctElement,
+      isCorrect,
+    };
+  });
+
+  const correctCount = placementRows.filter((r) => r.isCorrect).length;
+
+  const renderElement = (element: any, emptyLabel = '— Empty —') => {
+    if (!element) return <span className="text-xs text-muted-foreground">{emptyLabel}</span>;
+
+    if ((element.type === 'image' || element.imageUrl) && element.imageUrl) {
+      return (
+        <div className="flex items-center gap-2">
+          <img src={element.imageUrl} alt={element.content || 'Placed element'} className="h-7 w-7 rounded object-cover border" />
+          <span className="text-xs font-medium truncate max-w-[120px]">{element.content || 'Image element'}</span>
+        </div>
+      );
+    }
+
+    return <span className="text-xs font-semibold truncate max-w-[160px]">{element.content || element.label || 'Placed label'}</span>;
+  };
+
+  const renderOverlay = (map: Record<string, any>, viewType: 'student' | 'correct') => (
+    <div className="relative rounded-lg overflow-hidden border bg-muted/10">
+      {imageUrl ? (
+        <img src={imageUrl} alt="Question diagram" className="w-full object-contain max-h-[420px]" />
+      ) : (
+        <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">No image configured</div>
+      )}
+
+      {zones.map((zone: any) => {
+        const placedElement = toPlacement(zone.id, map);
+        const width = Number(zone.width) || 14;
+        const height = Number(zone.height) || 10;
+
+        return (
+          <div
+            key={`${viewType}-${zone.id}`}
+            className="absolute border border-dashed border-primary/60 bg-background/80 rounded-md p-1 flex items-center justify-center text-center"
+            style={{
+              left: `${zone.x}%`,
+              top: `${zone.y}%`,
+              width: `${width}%`,
+              height: `${height}%`,
+            }}
+          >
+            {renderElement(placedElement, '—')}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="space-y-3 border rounded-xl p-4 bg-background">
@@ -110,123 +200,55 @@ const ImageDropZoneReview: React.FC<{
           <MapPin className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Image Drop Zone</span>
         </div>
-        {autoScore && (
-          <Badge variant={autoScore.correct === autoScore.total ? 'default' : 'secondary'} className="text-xs">
-            Auto: {autoScore.correct}/{autoScore.total} correct
-          </Badge>
-        )}
+        <Badge variant={correctCount === zones.length ? 'default' : 'secondary'} className="text-xs">
+          Auto: {correctCount}/{zones.length} correct
+        </Badge>
       </div>
 
-      {/* Visual image with overlaid zones */}
-      {imageUrl && (
-        <div className="relative rounded-lg overflow-hidden border bg-muted/10" style={{ minHeight: 200 }}>
-          <img
-            src={imageUrl}
-            alt="Question diagram"
-            className="w-full object-contain max-h-[300px]"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-          {/* Overlay student placements on the image */}
-          {zones.map((zone: any) => {
-            const studentPlacement = parsed[zone.id];
-            const correctId = correctMapping[zone.id] || zone.correctItemId;
-            const isCorrect = studentPlacement === correctId;
-            const studentLabel = studentPlacement ? (elementMap[studentPlacement] || studentPlacement) : '—';
-            
-            // Use percentage-based positioning if available
-            const style: React.CSSProperties = zone.x !== undefined && zone.y !== undefined ? {
-              position: 'absolute',
-              left: `${zone.x}%`,
-              top: `${zone.y}%`,
-              transform: 'translate(-50%, -50%)',
-            } : {};
-
-            if (zone.x === undefined) return null; // Skip overlay if no coordinates
-
-            return (
-              <div
-                key={zone.id}
-                style={style}
-                className={cn(
-                  "px-2 py-0.5 rounded text-xs font-bold shadow-md border-2 backdrop-blur-sm",
-                  isCorrect
-                    ? "bg-green-100/90 border-green-500 text-green-800"
-                    : "bg-red-100/90 border-red-500 text-red-800"
-                )}
-              >
-                {studentLabel}
-              </div>
-            );
-          })}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Student Attempt</p>
+          {renderOverlay(parsed, 'student')}
         </div>
-      )}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Correct Answer</p>
+          {renderOverlay(answers, 'correct')}
+        </div>
+      </div>
 
-      {/* Detailed zone-by-zone comparison */}
       <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Zone-by-Zone Comparison</p>
+        <p className="text-xs font-medium text-muted-foreground">Zone-by-zone review</p>
         <div className="grid gap-1.5">
-          {zones.map((zone: any) => {
-            const studentPlacement = parsed[zone.id];
-            const correctId = correctMapping[zone.id] || zone.correctItemId;
-            const isCorrect = studentPlacement === correctId;
-            const studentLabel = studentPlacement ? (elementMap[studentPlacement] || studentPlacement) : '— Empty —';
-            const correctLabel = correctId ? (elementMap[correctId] || correctId) : 'N/A';
-
-            return (
-              <div
-                key={zone.id}
-                className={cn(
-                  "flex items-center justify-between p-2.5 rounded-lg border text-sm transition-colors",
-                  isCorrect
-                    ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
-                    : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
-                )}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {isCorrect ? (
-                    <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-600 shrink-0" />
-                  )}
-                  <span className="font-medium text-muted-foreground">{zone.label || `Zone ${zone.id}`}</span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={isCorrect ? 'default' : 'destructive'} className="text-xs font-medium">
-                    {studentLabel}
-                  </Badge>
-                  {!isCorrect && (
-                    <>
-                      <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                      <Badge variant="outline" className="text-xs border-green-300 text-green-700 dark:text-green-400">
-                        ✓ {correctLabel}
-                      </Badge>
-                    </>
-                  )}
-                </div>
+          {placementRows.map(({ zone, studentElement, correctElement, isCorrect }) => (
+            <div
+              key={zone.id}
+              className={cn(
+                'grid grid-cols-1 md:grid-cols-[minmax(120px,180px)_1fr_1fr] items-center gap-2 rounded-lg border p-2.5',
+                isCorrect
+                  ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                {isCorrect ? <CheckCircle className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-red-600" />}
+                <span className="text-sm font-medium text-muted-foreground">{zone.label || 'Zone'}</span>
               </div>
-            );
-          })}
+              <div className="rounded border bg-background px-2 py-1">{renderElement(studentElement)}</div>
+              <div className="rounded border bg-background px-2 py-1">{renderElement(correctElement, 'No correct mapping')}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Available elements reference */}
       {mode === 'admin-review' && elements.length > 0 && (
         <div className="pt-2 border-t">
-          <p className="text-xs text-muted-foreground mb-1.5">Available Elements:</p>
+          <p className="text-xs text-muted-foreground mb-1.5">Configured draggable elements</p>
           <div className="flex flex-wrap gap-1.5">
-            {elements.map((el: any) => {
-              const wasPlaced = Object.values(parsed).includes(el.id);
-              return (
-                <Badge
-                  key={el.id}
-                  variant={wasPlaced ? 'secondary' : 'outline'}
-                  className={cn("text-xs", !wasPlaced && "opacity-50")}
-                >
-                  {el.content || el.label || el.id}
-                  {!wasPlaced && ' (unused)'}
-                </Badge>
-              );
-            })}
+            {elements.map((el: any) => (
+              <div key={el.id} className="rounded border px-2 py-1 bg-muted/20">
+                {renderElement(el, '—')}
+              </div>
+            ))}
           </div>
         </div>
       )}
