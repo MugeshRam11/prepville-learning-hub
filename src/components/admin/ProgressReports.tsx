@@ -53,7 +53,7 @@ const ProgressReports = () => {
         .from('test_attempts')
         .select(`
           *,
-          tests (title, test_type, topics (name)),
+          mock_tests (title, subject, topic),
           profiles (first_name, last_name, email)
         `)
         .gte('completed_at', startDate.toISOString());
