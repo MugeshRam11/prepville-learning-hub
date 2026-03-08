@@ -91,6 +91,8 @@ const StudentExamResults = () => {
           feedback: qe.feedback,
           suggestions: qe.suggestions,
           isCorrect: qe.marksAwarded === qe.maxMarks,
+          answerBlockType: qe.answerBlockType || 'text_equation',
+          answerBlockConfig: qe.answerBlockConfig || {},
         }));
         setQuestionEvals(evals);
       }
