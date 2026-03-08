@@ -127,8 +127,9 @@ const ImageDropZoneReview: React.FC<{
   });
 
   const toPlacement = (zoneId: string, sourceMap: Record<string, any>) => {
-    const resolvedId = resolveElementIdFromValue(sourceMap?.[zoneId], elements);
-    if (!resolvedId) return null;
+    const rawValue = sourceMap?.[zoneId];
+    const resolvedId = resolveElementIdFromValue(rawValue, elements);
+    if (!resolvedId) return rawValue ? { id: `unknown-${zoneId}`, content: 'Unmapped element' } : null;
     return elementMap[resolvedId] || null;
   };
 
