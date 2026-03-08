@@ -848,6 +848,7 @@ const AdminEvaluation = () => {
                             answerBlockConfig={pq.answerBlockConfig}
                             studentAnswer={pq.studentAnswer}
                             correctAnswer={pq.correctAnswer}
+                            questionImageUrl={qDetail?.questionImageUrl}
                             mode="admin-review"
                           />
 
