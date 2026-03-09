@@ -246,12 +246,12 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   key={zone.id}
                   className={cn(
                     "absolute w-16 h-16 rounded-full -translate-x-1/2 -translate-y-1/2",
-                    "flex items-center justify-center transition-all",
+                    "flex items-center justify-center transition-all p-1",
                     !placedLabel && "border-2 border-dashed border-primary/50 bg-primary/10",
-                    hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/20 scale-110",
-                    placedLabel && !showFeedback && "bg-gradient-to-r from-amber-400 to-orange-500",
-                    isCorrect && "bg-green-500 ring-4 ring-green-300",
-                    isIncorrect && "bg-red-500 ring-4 ring-red-300"
+                    hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/15 scale-110",
+                    placedLabel && "border border-primary/40 bg-background/40 backdrop-blur-sm",
+                    isCorrect && "ring-2 ring-primary",
+                    isIncorrect && "ring-2 ring-destructive"
                   )}
                   style={{
                     left: `${zone.x}%`,
@@ -264,16 +264,14 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   onDragLeave={() => setHoveredZone(null)}
                   onDrop={() => handleDrop(zone.id)}
                   onClick={() => placedLabel && !showFeedback && handleRemovePlacement(zone.id)}
-                  whileHover={{ scale: placedLabel && !showFeedback ? 1.1 : 1 }}
+                  whileHover={{ scale: placedLabel && !showFeedback ? 1.05 : 1 }}
                 >
                   {placedLabel ? (
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      className="text-white font-bold text-base cursor-pointer flex items-center justify-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
-                    >
-                      {renderElementContent(placedLabel, 'sm')}
-                    </motion.div>
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="max-w-full max-h-full rounded-full border bg-background/80 px-2 py-1 shadow-sm">
+                        <DraggableElementContent element={placedLabel} size="zone" />
+                      </div>
+                    </div>
                   ) : (
                     <span className="text-xs text-primary font-medium">
                       {zone.label || 'Drop'}

@@ -246,7 +246,7 @@ const ImageDropZoneReview: React.FC<{
           <div className="flex flex-wrap gap-1.5">
             {elements.map((el: any) => (
               <div key={el.id} className="rounded border px-2 py-1 bg-muted/20">
-                {renderElement(el, '—')}
+                <DraggableElementContent element={el} size="review" />
               </div>
             ))}
           </div>

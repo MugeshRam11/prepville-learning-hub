@@ -321,12 +321,19 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         // Map admin "elements" to draggableLabels — preserve ALL fields
         const adminElements = flatCfg?.elements || [];
         const draggableLabels = nestedCfg?.draggableLabels || (adminElements.length > 0
-          ? adminElements.map((e: any) => ({
-              id: e.id,
-              content: e.content || e.label || e.text || '',
-              type: e.type || (e.imageUrl ? 'image' : 'text'),
-              imageUrl: e.imageUrl || e.image_url || undefined,
-            }))
+          ? adminElements.map((e: any) => {
+              const rawText = e?.content ?? e?.label ?? e?.text ?? '';
+              const content = rawText === null || rawText === undefined
+                ? ''
+                : (typeof rawText === 'string' ? rawText : String(rawText));
+              const imageUrl = (e?.imageUrl || e?.image_url || undefined) as string | undefined;
+              return {
+                id: String(e.id),
+                content: content.trim(),
+                type: e.type || (imageUrl ? 'image' : 'text'),
+                imageUrl,
+              };
+            })
           : []);
         
         
