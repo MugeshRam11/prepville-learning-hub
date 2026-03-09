@@ -318,11 +318,19 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
           ? adminZones.map((z: any) => ({ id: z.id, x: z.x, y: z.y, width: z.width, height: z.height, label: z.label }))
           : []);
         
-        // Map admin "elements" to draggableLabels
+        // Map admin "elements" to draggableLabels — preserve ALL fields
         const adminElements = flatCfg?.elements || [];
         const draggableLabels = nestedCfg?.draggableLabels || (adminElements.length > 0
-          ? adminElements.map((e: any) => ({ id: e.id, content: e.content || '', type: e.type || 'text', imageUrl: e.imageUrl }))
+          ? adminElements.map((e: any) => ({
+              id: e.id,
+              content: e.content || e.label || e.text || '',
+              type: e.type || (e.imageUrl ? 'image' : 'text'),
+              imageUrl: e.imageUrl || e.image_url || undefined,
+            }))
           : []);
+        
+        console.log('[InteractiveAnswerBlock] image_drop elements raw:', JSON.stringify(adminElements));
+        console.log('[InteractiveAnswerBlock] image_drop draggableLabels mapped:', JSON.stringify(draggableLabels));
         
         if (!imageUrl) {
           return (
