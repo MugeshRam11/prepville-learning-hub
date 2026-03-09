@@ -2,6 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
 import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon } from 'lucide-react';
 
 interface AnswerRendererProps {
@@ -148,19 +149,9 @@ const ImageDropZoneReview: React.FC<{
 
   const correctCount = placementRows.filter((r) => r.isCorrect).length;
 
-  const renderElement = (element: any, emptyLabel = '— Empty —') => {
+  const renderElement = (element: any, emptyLabel = 'Not placed') => {
     if (!element) return <span className="text-xs text-muted-foreground">{emptyLabel}</span>;
-
-    if ((element.type === 'image' || element.imageUrl) && element.imageUrl) {
-      return (
-        <div className="flex items-center gap-2">
-          <img src={element.imageUrl} alt={element.content || 'Placed element'} className="h-7 w-7 rounded object-cover border" />
-          <span className="text-xs font-medium truncate max-w-[120px]">{element.content || 'Image element'}</span>
-        </div>
-      );
-    }
-
-    return <span className="text-xs font-semibold truncate max-w-[160px]">{element.content || element.label || 'Placed label'}</span>;
+    return <DraggableElementContent element={element} size="review" />;
   };
 
   const renderOverlay = (map: Record<string, any>, viewType: 'student' | 'correct') => (
@@ -181,7 +172,7 @@ const ImageDropZoneReview: React.FC<{
         return (
           <div
             key={`${viewType}-${zone.id}`}
-            className="absolute border border-dashed border-primary/60 bg-background/80 rounded-md p-1 flex items-center justify-center text-center"
+            className="absolute border border-dashed border-primary/50 bg-primary/10 rounded-md p-1 flex items-center justify-center"
             style={{
               left: `${zone.x}%`,
               top: `${zone.y}%`,
@@ -189,7 +180,13 @@ const ImageDropZoneReview: React.FC<{
               height: `${height}%`,
             }}
           >
-            {renderElement(placedElement, '—')}
+            {placedElement ? (
+              <div className="max-w-full max-h-full rounded border bg-background/80 px-2 py-1 shadow-sm">
+                {renderElement(placedElement)}
+              </div>
+            ) : (
+              renderElement(null, 'Not placed')
+            )}
           </div>
         );
       })}
@@ -236,7 +233,7 @@ const ImageDropZoneReview: React.FC<{
                 {isCorrect ? <CheckCircle className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-red-600" />}
                 <span className="text-sm font-medium text-muted-foreground">{zone.label || 'Zone'}</span>
               </div>
-              <div className="rounded border bg-background px-2 py-1">{renderElement(studentElement)}</div>
+              <div className="rounded border bg-background px-2 py-1">{renderElement(studentElement, 'Not placed')}</div>
               <div className="rounded border bg-background px-2 py-1">{renderElement(correctElement, 'No correct mapping')}</div>
             </div>
           ))}
@@ -249,7 +246,7 @@ const ImageDropZoneReview: React.FC<{
           <div className="flex flex-wrap gap-1.5">
             {elements.map((el: any) => (
               <div key={el.id} className="rounded border px-2 py-1 bg-muted/20">
-                {renderElement(el, '—')}
+                <DraggableElementContent element={el} size="review" />
               </div>
             ))}
           </div>

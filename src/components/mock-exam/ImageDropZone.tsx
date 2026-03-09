@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
 
 interface DropZone {
   id: string;
@@ -31,28 +32,6 @@ interface ImageDropZoneProps {
   showFeedback?: boolean;
 }
 
-// Helper: render element content as JSX (not just string)
-const renderElementContent = (label: DraggableLabel, size: 'sm' | 'md' = 'md') => {
-  const imgSize = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  
-  // Priority 1: image element with imageUrl
-  if (label.imageUrl) {
-    return (
-      <div className="flex items-center gap-1">
-        <img src={label.imageUrl} alt={label.content || 'element'} className={`${imgSize} object-contain rounded`} />
-        {label.content ? <span>{label.content}</span> : null}
-      </div>
-    );
-  }
-  
-  // Priority 2: text content
-  if (label.content && label.content.trim()) {
-    return <span>{label.content}</span>;
-  }
-  
-  // Fallback
-  return <span className="italic opacity-70">Missing label</span>;
-};
 
 const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   imageUrl,
@@ -163,13 +142,13 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   onDragEnd={handleDragEnd}
                   className={cn(
                     "px-4 py-2 rounded-full cursor-grab active:cursor-grabbing",
-                    "bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg text-white font-bold",
-                    "hover:shadow-xl transition-shadow",
-                    "select-none text-base",
+                    "bg-primary text-primary-foreground shadow-md font-semibold",
+                    "hover:shadow-lg transition-shadow",
+                    "select-none text-sm sm:text-base",
                     draggingLabel === label.id && "opacity-50"
                   )}
                 >
-                  {renderElementContent(label)}
+                  <DraggableElementContent element={label} size="chip" />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -219,12 +198,12 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   <motion.div
                     key={zone.id}
                     className={cn(
-                      "absolute flex items-center justify-center transition-all",
-                      !placedLabel && "border-2 border-dashed border-primary/60 bg-primary/10 rounded-md",
-                      hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/25 scale-105",
-                      placedLabel && !showFeedback && "bg-gradient-to-r from-amber-400/90 to-orange-500/90 rounded-md",
-                      isCorrect && "bg-green-500/90 ring-2 ring-green-300 rounded-md",
-                      isIncorrect && "bg-red-500/90 ring-2 ring-red-300 rounded-md"
+                      "absolute flex items-center justify-center transition-all rounded-md p-1",
+                      !placedLabel && "border-2 border-dashed border-primary/50 bg-primary/10",
+                      hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/15 scale-105",
+                      placedLabel && "border border-primary/40 bg-background/40 backdrop-blur-sm",
+                      isCorrect && "ring-2 ring-primary",
+                      isIncorrect && "ring-2 ring-destructive"
                     )}
                     style={{
                       left: `${zone.x}%`,
@@ -239,21 +218,19 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     onDragLeave={() => setHoveredZone(null)}
                     onDrop={() => handleDrop(zone.id)}
                     onClick={() => placedLabel && !showFeedback && handleRemovePlacement(zone.id)}
-                    whileHover={{ scale: placedLabel && !showFeedback ? 1.03 : 1 }}
+                    whileHover={{ scale: placedLabel && !showFeedback ? 1.02 : 1 }}
                   >
                     {placedLabel ? (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="cursor-pointer relative flex items-center justify-center w-full h-full text-white font-bold text-sm drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
-                      >
-                        {renderElementContent(placedLabel, 'sm')}
+                      <div className="w-full h-full flex items-center justify-center p-1">
+                        <div className="max-w-full max-h-full rounded-md border bg-background/80 px-2 py-1 shadow-sm">
+                          <DraggableElementContent element={placedLabel} size="zone" />
+                        </div>
                         {showFeedback && (
                           <div className="absolute -top-1 -right-3">
-                            {isCorrect ? <Check className="w-4 h-4 text-white" /> : <X className="w-4 h-4 text-white" />}
+                            {isCorrect ? <Check className="w-4 h-4 text-foreground" /> : <X className="w-4 h-4 text-foreground" />}
                           </div>
                         )}
-                      </motion.div>
+                      </div>
                     ) : (
                       <span className="text-xs text-primary/70 font-medium">
                         {zone.label || 'Drop'}
@@ -269,12 +246,12 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   key={zone.id}
                   className={cn(
                     "absolute w-16 h-16 rounded-full -translate-x-1/2 -translate-y-1/2",
-                    "flex items-center justify-center transition-all",
+                    "flex items-center justify-center transition-all p-1",
                     !placedLabel && "border-2 border-dashed border-primary/50 bg-primary/10",
-                    hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/20 scale-110",
-                    placedLabel && !showFeedback && "bg-gradient-to-r from-amber-400 to-orange-500",
-                    isCorrect && "bg-green-500 ring-4 ring-green-300",
-                    isIncorrect && "bg-red-500 ring-4 ring-red-300"
+                    hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/15 scale-110",
+                    placedLabel && "border border-primary/40 bg-background/40 backdrop-blur-sm",
+                    isCorrect && "ring-2 ring-primary",
+                    isIncorrect && "ring-2 ring-destructive"
                   )}
                   style={{
                     left: `${zone.x}%`,
@@ -287,16 +264,14 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   onDragLeave={() => setHoveredZone(null)}
                   onDrop={() => handleDrop(zone.id)}
                   onClick={() => placedLabel && !showFeedback && handleRemovePlacement(zone.id)}
-                  whileHover={{ scale: placedLabel && !showFeedback ? 1.1 : 1 }}
+                  whileHover={{ scale: placedLabel && !showFeedback ? 1.05 : 1 }}
                 >
                   {placedLabel ? (
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      className="text-white font-bold text-base cursor-pointer flex items-center justify-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
-                    >
-                      {renderElementContent(placedLabel, 'sm')}
-                    </motion.div>
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="max-w-full max-h-full rounded-full border bg-background/80 px-2 py-1 shadow-sm">
+                        <DraggableElementContent element={placedLabel} size="zone" />
+                      </div>
+                    </div>
                   ) : (
                     <span className="text-xs text-primary font-medium">
                       {zone.label || 'Drop'}
