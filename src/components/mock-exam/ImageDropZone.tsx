@@ -285,7 +285,6 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                       ) : null}
                       <span>{placedLabel.content || (placedLabel.type === 'image' ? '🖼️' : '—')}</span>
                     </motion.div>
-                    </motion.div>
                   ) : (
                     <span className="text-xs text-primary font-medium">
                       {zone.label || 'Drop'}
