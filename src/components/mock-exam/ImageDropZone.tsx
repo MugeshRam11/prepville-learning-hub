@@ -19,6 +19,8 @@ interface DropZone {
 interface DraggableLabel {
   id: string;
   content: string;
+  type?: 'text' | 'image';
+  imageUrl?: string;
 }
 
 interface ImageDropZoneProps {
@@ -140,11 +142,14 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     "px-4 py-2 rounded-full cursor-grab active:cursor-grabbing",
                     "bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold shadow-lg",
                     "hover:shadow-xl transition-shadow",
-                    "select-none text-lg",
+                    "select-none text-lg flex items-center gap-2",
                     draggingLabel === label.id && "opacity-50"
                   )}
                 >
-                  {label.content}
+                  {label.type === 'image' && label.imageUrl ? (
+                    <img src={label.imageUrl} alt={label.content || 'element'} className="w-8 h-8 object-contain rounded" />
+                  ) : null}
+                  <span>{label.content || (label.type === 'image' ? '🖼️' : '—')}</span>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -220,9 +225,14 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="text-white font-bold text-sm cursor-pointer relative"
+                        className="text-foreground font-semibold text-sm cursor-pointer relative flex items-center justify-center gap-1 px-1"
                       >
-                        {placedLabel.content}
+                        {placedLabel.type === 'image' && placedLabel.imageUrl ? (
+                          <img src={placedLabel.imageUrl} alt={placedLabel.content || 'element'} className="w-6 h-6 object-contain rounded" />
+                        ) : null}
+                        <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] text-white">
+                          {placedLabel.content || (placedLabel.type === 'image' ? '🖼️' : '—')}
+                        </span>
                         {showFeedback && (
                           <div className="absolute -top-1 -right-3">
                             {isCorrect ? <Check className="w-4 h-4 text-white" /> : <X className="w-4 h-4 text-white" />}
@@ -268,9 +278,12 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
-                      className="text-white font-bold text-lg cursor-pointer"
+                      className="text-white font-bold text-lg cursor-pointer flex items-center gap-1"
                     >
-                      {placedLabel.content}
+                      {placedLabel.type === 'image' && placedLabel.imageUrl ? (
+                        <img src={placedLabel.imageUrl} alt={placedLabel.content || 'element'} className="w-6 h-6 object-contain rounded" />
+                      ) : null}
+                      <span>{placedLabel.content || (placedLabel.type === 'image' ? '🖼️' : '—')}</span>
                     </motion.div>
                   ) : (
                     <span className="text-xs text-primary font-medium">

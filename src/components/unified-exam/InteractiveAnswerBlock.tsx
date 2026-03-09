@@ -321,7 +321,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         // Map admin "elements" to draggableLabels
         const adminElements = flatCfg?.elements || [];
         const draggableLabels = nestedCfg?.draggableLabels || (adminElements.length > 0
-          ? adminElements.map((e: any) => ({ id: e.id, content: e.content }))
+          ? adminElements.map((e: any) => ({ id: e.id, content: e.content || '', type: e.type || 'text', imageUrl: e.imageUrl }))
           : []);
         
         if (!imageUrl) {
