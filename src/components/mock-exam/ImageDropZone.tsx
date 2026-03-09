@@ -45,9 +45,6 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   onPlacementsChange,
   showFeedback = false
 }) => {
-  // Debug: log what elements we received
-  console.log('[ImageDropZone] draggableLabels:', JSON.stringify(draggableLabels));
-  
   const [placements, setPlacements] = useState<Record<string, string>>({});
   const [draggingLabel, setDraggingLabel] = useState<string | null>(null);
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
