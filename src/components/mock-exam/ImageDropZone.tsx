@@ -19,6 +19,8 @@ interface DropZone {
 interface DraggableLabel {
   id: string;
   content: string;
+  type?: 'text' | 'image';
+  imageUrl?: string;
 }
 
 interface ImageDropZoneProps {
