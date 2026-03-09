@@ -233,7 +233,7 @@ const ImageDropZoneReview: React.FC<{
                 {isCorrect ? <CheckCircle className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-red-600" />}
                 <span className="text-sm font-medium text-muted-foreground">{zone.label || 'Zone'}</span>
               </div>
-              <div className="rounded border bg-background px-2 py-1">{renderElement(studentElement)}</div>
+              <div className="rounded border bg-background px-2 py-1">{renderElement(studentElement, 'Not placed')}</div>
               <div className="rounded border bg-background px-2 py-1">{renderElement(correctElement, 'No correct mapping')}</div>
             </div>
           ))}
