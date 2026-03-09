@@ -31,6 +31,13 @@ interface ImageDropZoneProps {
   showFeedback?: boolean;
 }
 
+// Helper to get visible display text for a draggable label
+const getElementDisplayContent = (label: DraggableLabel): string => {
+  if (label.content && label.content.trim()) return label.content;
+  if (label.type === 'image' && label.imageUrl) return '🖼️ Image';
+  return `[Element ${label.id.slice(-4)}]`;
+};
+
 const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   imageUrl,
   dropZones,
@@ -38,6 +45,9 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   onPlacementsChange,
   showFeedback = false
 }) => {
+  // Debug: log what elements we received
+  console.log('[ImageDropZone] draggableLabels:', JSON.stringify(draggableLabels));
+  
   const [placements, setPlacements] = useState<Record<string, string>>({});
   const [draggingLabel, setDraggingLabel] = useState<string | null>(null);
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
