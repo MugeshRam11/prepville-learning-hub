@@ -32,28 +32,6 @@ interface ImageDropZoneProps {
   showFeedback?: boolean;
 }
 
-// Helper: render element content as JSX (not just string)
-const renderElementContent = (label: DraggableLabel, size: 'sm' | 'md' = 'md') => {
-  const imgSize = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  
-  // Priority 1: image element with imageUrl
-  if (label.imageUrl) {
-    return (
-      <div className="flex items-center gap-1">
-        <img src={label.imageUrl} alt={label.content || 'element'} className={`${imgSize} object-contain rounded`} />
-        {label.content ? <span>{label.content}</span> : null}
-      </div>
-    );
-  }
-  
-  // Priority 2: text content
-  if (label.content && label.content.trim()) {
-    return <span>{label.content}</span>;
-  }
-  
-  // Fallback
-  return <span className="italic opacity-70">Missing label</span>;
-};
 
 const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   imageUrl,
