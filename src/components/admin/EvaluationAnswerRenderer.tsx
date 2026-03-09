@@ -172,7 +172,7 @@ const ImageDropZoneReview: React.FC<{
         return (
           <div
             key={`${viewType}-${zone.id}`}
-            className="absolute border border-dashed border-primary/60 bg-background/80 rounded-md p-1 flex items-center justify-center text-center"
+            className="absolute border border-dashed border-primary/50 bg-primary/10 rounded-md p-1 flex items-center justify-center"
             style={{
               left: `${zone.x}%`,
               top: `${zone.y}%`,
@@ -180,7 +180,13 @@ const ImageDropZoneReview: React.FC<{
               height: `${height}%`,
             }}
           >
-            {renderElement(placedElement, '—')}
+            {placedElement ? (
+              <div className="max-w-full max-h-full rounded border bg-background/80 px-2 py-1 shadow-sm">
+                {renderElement(placedElement)}
+              </div>
+            ) : (
+              renderElement(null, 'Not placed')
+            )}
           </div>
         );
       })}
