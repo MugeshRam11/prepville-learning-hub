@@ -2,6 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
 import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon } from 'lucide-react';
 
 interface AnswerRendererProps {
