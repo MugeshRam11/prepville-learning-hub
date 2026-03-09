@@ -31,6 +31,13 @@ interface ImageDropZoneProps {
   showFeedback?: boolean;
 }
 
+// Helper to get visible display text for a draggable label
+const getElementDisplayContent = (label: DraggableLabel): string => {
+  if (label.content && label.content.trim()) return label.content;
+  if (label.type === 'image' && label.imageUrl) return '🖼️ Image';
+  return `[Element ${label.id.slice(-4)}]`;
+};
+
 const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   imageUrl,
   dropZones,
@@ -140,16 +147,18 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   onDragEnd={handleDragEnd}
                   className={cn(
                     "px-4 py-2 rounded-full cursor-grab active:cursor-grabbing",
-                    "bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold shadow-lg",
+                    "bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg",
                     "hover:shadow-xl transition-shadow",
-                    "select-none text-lg flex items-center gap-2",
+                    "select-none text-base flex items-center gap-2",
                     draggingLabel === label.id && "opacity-50"
                   )}
                 >
-                  {label.type === 'image' && label.imageUrl ? (
-                    <img src={label.imageUrl} alt={label.content || 'element'} className="w-8 h-8 object-contain rounded" />
-                  ) : null}
-                  <span>{label.content || (label.type === 'image' ? '🖼️' : '—')}</span>
+                  {label.type === 'image' && label.imageUrl && (
+                    <img src={label.imageUrl} alt="" className="w-8 h-8 object-contain rounded" />
+                  )}
+                  <span className="text-white font-bold leading-tight">
+                    {getElementDisplayContent(label)}
+                  </span>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -225,13 +234,13 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="text-foreground font-semibold text-sm cursor-pointer relative flex items-center justify-center gap-1 px-1"
+                        className="cursor-pointer relative flex items-center justify-center gap-1 px-2 py-0.5 w-full h-full"
                       >
-                        {placedLabel.type === 'image' && placedLabel.imageUrl ? (
-                          <img src={placedLabel.imageUrl} alt={placedLabel.content || 'element'} className="w-6 h-6 object-contain rounded" />
-                        ) : null}
-                        <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] text-white">
-                          {placedLabel.content || (placedLabel.type === 'image' ? '🖼️' : '—')}
+                        {placedLabel.type === 'image' && placedLabel.imageUrl && (
+                          <img src={placedLabel.imageUrl} alt="" className="w-6 h-6 object-contain rounded" />
+                        )}
+                        <span className="text-white font-bold text-sm leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+                          {getElementDisplayContent(placedLabel)}
                         </span>
                         {showFeedback && (
                           <div className="absolute -top-1 -right-3">
@@ -278,12 +287,14 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
-                      className="text-white font-bold text-lg cursor-pointer flex items-center gap-1"
+                      className="text-white font-bold text-base cursor-pointer flex items-center justify-center gap-1"
                     >
-                      {placedLabel.type === 'image' && placedLabel.imageUrl ? (
-                        <img src={placedLabel.imageUrl} alt={placedLabel.content || 'element'} className="w-6 h-6 object-contain rounded" />
-                      ) : null}
-                      <span>{placedLabel.content || (placedLabel.type === 'image' ? '🖼️' : '—')}</span>
+                      {placedLabel.type === 'image' && placedLabel.imageUrl && (
+                        <img src={placedLabel.imageUrl} alt="" className="w-6 h-6 object-contain rounded" />
+                      )}
+                      <span className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+                        {getElementDisplayContent(placedLabel)}
+                      </span>
                     </motion.div>
                   ) : (
                     <span className="text-xs text-primary font-medium">
