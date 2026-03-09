@@ -245,14 +245,9 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="cursor-pointer relative flex items-center justify-center gap-1 px-2 py-0.5 w-full h-full"
+                        className="cursor-pointer relative flex items-center justify-center w-full h-full text-white font-bold text-sm drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
                       >
-                        {placedLabel.type === 'image' && placedLabel.imageUrl && (
-                          <img src={placedLabel.imageUrl} alt="" className="w-6 h-6 object-contain rounded" />
-                        )}
-                        <span className="text-white font-bold text-sm leading-tight text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
-                          {getElementDisplayContent(placedLabel)}
-                        </span>
+                        {renderElementContent(placedLabel, 'sm')}
                         {showFeedback && (
                           <div className="absolute -top-1 -right-3">
                             {isCorrect ? <Check className="w-4 h-4 text-white" /> : <X className="w-4 h-4 text-white" />}
