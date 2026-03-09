@@ -329,8 +329,6 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
             }))
           : []);
         
-        console.log('[InteractiveAnswerBlock] image_drop elements raw:', JSON.stringify(adminElements));
-        console.log('[InteractiveAnswerBlock] image_drop draggableLabels mapped:', JSON.stringify(draggableLabels));
         
         if (!imageUrl) {
           return (
