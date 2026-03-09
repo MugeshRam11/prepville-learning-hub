@@ -150,16 +150,18 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   onDragEnd={handleDragEnd}
                   className={cn(
                     "px-4 py-2 rounded-full cursor-grab active:cursor-grabbing",
-                    "bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold shadow-lg",
+                    "bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg",
                     "hover:shadow-xl transition-shadow",
-                    "select-none text-lg flex items-center gap-2",
+                    "select-none text-base flex items-center gap-2",
                     draggingLabel === label.id && "opacity-50"
                   )}
                 >
-                  {label.type === 'image' && label.imageUrl ? (
-                    <img src={label.imageUrl} alt={label.content || 'element'} className="w-8 h-8 object-contain rounded" />
-                  ) : null}
-                  <span>{label.content || (label.type === 'image' ? '🖼️' : '—')}</span>
+                  {label.type === 'image' && label.imageUrl && (
+                    <img src={label.imageUrl} alt="" className="w-8 h-8 object-contain rounded" />
+                  )}
+                  <span className="text-white font-bold leading-tight">
+                    {getElementDisplayContent(label)}
+                  </span>
                 </motion.div>
               ))}
             </AnimatePresence>
