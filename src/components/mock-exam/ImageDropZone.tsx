@@ -278,9 +278,13 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
-                      className="text-white font-bold text-lg cursor-pointer"
+                      className="text-white font-bold text-lg cursor-pointer flex items-center gap-1"
                     >
-                      {placedLabel.content}
+                      {placedLabel.type === 'image' && placedLabel.imageUrl ? (
+                        <img src={placedLabel.imageUrl} alt={placedLabel.content || 'element'} className="w-6 h-6 object-contain rounded" />
+                      ) : null}
+                      <span>{placedLabel.content || (placedLabel.type === 'image' ? '🖼️' : '—')}</span>
+                    </motion.div>
                     </motion.div>
                   ) : (
                     <span className="text-xs text-primary font-medium">
