@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
+import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
 import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon } from 'lucide-react';
 
 interface AnswerRendererProps {
