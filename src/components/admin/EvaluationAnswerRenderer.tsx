@@ -761,6 +761,132 @@ const TableInputReview: React.FC<{
 };
 
 // ═══════════════════════════════════════════════
+// Smart Math — Visual Review
+// ═══════════════════════════════════════════════
+const renderLatexSafe = (latex: string): string => {
+  if (!latex) return '';
+  try {
+    const katex = (window as any).katex;
+    if (katex) return katex.renderToString(latex, { displayMode: false, throwOnError: false });
+  } catch { /* fallback */ }
+  return latex;
+};
+
+const SmartMathReview: React.FC<{
+  config: any;
+  studentAnswer: any;
+  mode: string;
+}> = ({ config, studentAnswer, mode }) => {
+  const parsed = parseAnswer(studentAnswer);
+  
+  // Extract student latex
+  const studentLatex = typeof parsed === 'object' && parsed?.latex
+    ? parsed.latex
+    : (typeof parsed === 'string' ? parsed : '');
+  
+  // Expected answers from config
+  const expectedAnswers: { latex: string }[] = config?.expectedAnswers || [];
+  const evaluationMode = config?.evaluationMode || 'exact_match';
+  
+  // Check match
+  const isExactMatch = expectedAnswers.some(ea => ea.latex === studentLatex);
+  const matchStatus = isExactMatch ? 'correct' : (evaluationMode === 'manual_only' ? 'manual_review' : 'incorrect');
+
+  // Lazy-load katex for rendering
+  const [katexLoaded, setKatexLoaded] = React.useState(false);
+  React.useEffect(() => {
+    import('katex').then(mod => {
+      (window as any).katex = mod.default;
+      setKatexLoaded(true);
+    });
+  }, []);
+
+  const renderMath = (latex: string) => {
+    if (!latex) return <span className="text-muted-foreground text-sm italic">No answer</span>;
+    if (!katexLoaded) return <span className="font-mono text-sm">{latex}</span>;
+    return <span dangerouslySetInnerHTML={{ __html: renderLatexSafe(latex) }} />;
+  };
+
+  return (
+    <div className="space-y-3 border rounded-xl p-4 bg-background">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Calculator className="w-4 h-4 text-primary" />
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Smart Math</span>
+        </div>
+        <Badge
+          variant={matchStatus === 'correct' ? 'default' : matchStatus === 'manual_review' ? 'outline' : 'secondary'}
+          className="text-xs"
+        >
+          {matchStatus === 'correct' ? '✓ Correct' : matchStatus === 'manual_review' ? '⏳ Manual Review' : '✗ Incorrect'}
+        </Badge>
+      </div>
+
+      {/* Side-by-side comparison */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Student Answer</p>
+          <div className={cn(
+            "p-3 rounded-lg border-2 text-center min-h-[48px] flex items-center justify-center",
+            matchStatus === 'correct'
+              ? "border-green-300 bg-green-50 dark:bg-green-950/20"
+              : matchStatus === 'incorrect'
+              ? "border-red-300 bg-red-50 dark:bg-red-950/20"
+              : "border-border bg-muted/20"
+          )}>
+            <div className="text-lg">{renderMath(studentLatex)}</div>
+          </div>
+          {studentLatex && (
+            <p className="text-xs font-mono text-muted-foreground truncate" title={studentLatex}>
+              LaTeX: {studentLatex}
+            </p>
+          )}
+        </div>
+
+        {mode === 'admin-review' && expectedAnswers.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Expected Answer{expectedAnswers.length > 1 ? 's' : ''}</p>
+            {expectedAnswers.map((ea: any, idx: number) => (
+              <div
+                key={idx}
+                className="p-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/10 text-center min-h-[48px] flex items-center justify-center"
+              >
+                <div className="text-lg">{renderMath(ea.latex)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Evaluation mode badge */}
+      {mode === 'admin-review' && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="outline" className="text-xs">
+            Mode: {evaluationMode.replace('_', ' ')}
+          </Badge>
+          {config?.scoring?.partialCredit && (
+            <Badge variant="outline" className="text-xs">Partial credit</Badge>
+          )}
+        </div>
+      )}
+
+      {config?.explanation && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Explanation</p>
+          <p className="text-sm">{config.explanation}</p>
+        </div>
+      )}
+      {config?.evaluationNotes && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Evaluation Notes</p>
+          <p className="text-sm">{config.evaluationNotes}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════
 // Fallback JSON viewer — for when we can't render visually
 // ═══════════════════════════════════════════════
 const FallbackJsonView: React.FC<{ data: any; label?: string }> = ({ data, label }) => {
