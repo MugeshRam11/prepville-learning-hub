@@ -199,7 +199,7 @@ function autoDetectType(questionText?: string, diagramDesc?: string, config?: An
   if (config?.graphConfig) return 'graph_plot';
   if (config?.dragDropConfig || flatCfg?.draggableItems || flatCfg?.sourceItems) return 'drag_drop';
   if (config?.imageDropConfig || flatCfg?.zones) return 'image_drop';
-  if (config?.arrangeConfig) return 'arrange_order';
+  if (config?.arrangeConfig || flatCfg?.correctOrder) return 'arrange_order';
   if (config?.smartMathConfig) return 'smart_math';
   if (config?.mcqConfig || flatCfg?.options) return 'multiple_choice';
   
