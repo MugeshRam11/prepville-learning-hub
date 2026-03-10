@@ -794,7 +794,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
     case 'drag_drop':
       return <DragDropReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'arrange_order':
-      return <ArrangeOrderReview config={config} studentAnswer={parsed} />;
+      return <ArrangeOrderReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'multiple_choice':
       return <MCQReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'table_input':
