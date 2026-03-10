@@ -397,42 +397,61 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         );
 
       case 'multiple_choice': {
-        const options = config?.mcqConfig?.options || [
+        // Support both nested mcqConfig and flat admin config format
+        const mcqCfg = config?.mcqConfig;
+        const flatCfg = config as any;
+        const options = mcqCfg?.options || flatCfg?.options || [
           { id: 'opt-a', content: 'Option A', isCorrect: false },
           { id: 'opt-b', content: 'Option B', isCorrect: false },
           { id: 'opt-c', content: 'Option C', isCorrect: false },
           { id: 'opt-d', content: 'Option D', isCorrect: false }
         ];
+        const allowMultiple = mcqCfg?.allowMultiple || flatCfg?.mode === 'multiple';
+
         return (
           <div className="space-y-2">
-            {options.map((option, idx) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => {
-                  if (config?.mcqConfig?.allowMultiple) {
-                    const current = Array.isArray(value) ? value : [];
-                    const newValue = current.includes(option.id)
-                      ? current.filter((id: string) => id !== option.id)
-                      : [...current, option.id];
-                    onChange(newValue);
-                  } else {
-                    onChange(option.id);
-                  }
-                }}
-                disabled={disabled}
-                className={`w-full p-4 text-left rounded-lg border transition-all ${
-                  (Array.isArray(value) ? value.includes(option.id) : value === option.id)
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border hover:border-muted-foreground hover:bg-muted/50'
-                }`}
-              >
-                <span className="font-medium mr-3">
-                  {String.fromCharCode(65 + idx)}.
-                </span>
-                {option.content}
-              </button>
-            ))}
+            {options.map((option: any, idx: number) => {
+              const isSelected = allowMultiple
+                ? (Array.isArray(value) && value.includes(option.id))
+                : value === option.id;
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => {
+                    if (allowMultiple) {
+                      const current = Array.isArray(value) ? value : [];
+                      const newValue = current.includes(option.id)
+                        ? current.filter((id: string) => id !== option.id)
+                        : [...current, option.id];
+                      onChange(newValue);
+                    } else {
+                      onChange(option.id);
+                    }
+                  }}
+                  disabled={disabled}
+                  className={cn(
+                    'w-full p-4 text-left rounded-lg border-2 transition-all flex items-center gap-3',
+                    isSelected
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-muted-foreground/40 hover:bg-muted/50'
+                  )}
+                >
+                  <span className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors',
+                    isSelected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'border-2 border-muted-foreground/30'
+                  )}>
+                    {option.label || String.fromCharCode(65 + idx)}
+                  </span>
+                  <span className={cn('font-medium', isSelected && 'text-primary')}>
+                    {option.content || `Option ${String.fromCharCode(65 + idx)}`}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         );
       }

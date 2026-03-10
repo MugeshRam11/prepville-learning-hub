@@ -421,37 +421,78 @@ const MCQReview: React.FC<{
   mode: string;
 }> = ({ config, studentAnswer, mode }) => {
   const parsed = parseAnswer(studentAnswer);
-  const options = config?.options || [];
-  const selectedIds = Array.isArray(parsed) ? parsed : [parsed];
+  const options = config?.options || config?.mcqConfig?.options || [];
+  const selectedIds = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+  
+  // Determine correct IDs from either correctOptionIds array or isCorrect flag
+  const correctIds: string[] = config?.correctOptionIds || 
+    options.filter((o: any) => o.isCorrect).map((o: any) => o.id);
+
+  const correctCount = selectedIds.filter((id: string) => correctIds.includes(id)).length;
+  const totalCorrectNeeded = correctIds.length;
+  const isFullyCorrect = correctCount === totalCorrectNeeded && selectedIds.length === totalCorrectNeeded;
 
   return (
-    <div className="space-y-2 border rounded-xl p-4 bg-background">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">☑️ Multiple Choice</span>
+    <div className="space-y-3 border rounded-xl p-4 bg-background">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">☑️ Multiple Choice</span>
+        <Badge variant={isFullyCorrect ? 'default' : 'secondary'} className="text-xs">
+          Auto: {isFullyCorrect ? '✓ Correct' : '✗ Incorrect'}
+        </Badge>
+      </div>
       <div className="grid gap-1.5">
-        {options.map((opt: any) => {
+        {options.map((opt: any, idx: number) => {
           const isSelected = selectedIds.includes(opt.id);
-          const isCorrect = opt.isCorrect;
+          const isCorrect = correctIds.includes(opt.id);
           return (
             <div
               key={opt.id}
               className={cn(
-                "flex items-center gap-2 p-2 rounded border text-sm",
-                isSelected && isCorrect && "bg-green-50 dark:bg-green-950/20 border-green-200",
-                isSelected && !isCorrect && "bg-red-50 dark:bg-red-950/20 border-red-200",
-                !isSelected && isCorrect && mode === 'admin-review' && "bg-green-50/50 dark:bg-green-950/10 border-green-100",
+                "flex items-center gap-3 p-3 rounded-lg border-2 text-sm transition-colors",
+                isSelected && isCorrect && "bg-green-50 dark:bg-green-950/20 border-green-500",
+                isSelected && !isCorrect && "bg-red-50 dark:bg-red-950/20 border-red-500",
+                !isSelected && isCorrect && mode === 'admin-review' && "bg-green-50/50 dark:bg-green-950/10 border-green-200 border-dashed",
                 !isSelected && !isCorrect && "bg-muted/20 border-border/50"
               )}
             >
-              {isSelected && isCorrect && <CheckCircle className="w-3.5 h-3.5 text-green-600" />}
-              {isSelected && !isCorrect && <XCircle className="w-3.5 h-3.5 text-red-600" />}
-              {!isSelected && isCorrect && mode === 'admin-review' && <CheckCircle className="w-3.5 h-3.5 text-green-400" />}
-              {!isSelected && !isCorrect && <div className="w-3.5 h-3.5" />}
-              <span>{opt.content || opt.id}</span>
-              {isSelected && <Badge variant="outline" className="ml-auto text-xs">Selected</Badge>}
+              {/* Label circle */}
+              <span className={cn(
+                'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
+                isSelected && isCorrect && 'bg-green-500 text-white',
+                isSelected && !isCorrect && 'bg-red-500 text-white',
+                !isSelected && isCorrect && mode === 'admin-review' && 'bg-green-200 text-green-800',
+                !isSelected && !isCorrect && 'border-2 border-muted-foreground/30'
+              )}>
+                {isSelected && isCorrect && <CheckCircle className="w-3.5 h-3.5" />}
+                {isSelected && !isCorrect && <XCircle className="w-3.5 h-3.5" />}
+                {!isSelected && isCorrect && mode === 'admin-review' && <CheckCircle className="w-3.5 h-3.5" />}
+                {(!isSelected || (!isCorrect && !isSelected)) && !(isCorrect && mode === 'admin-review') && (opt.label || String.fromCharCode(65 + idx))}
+              </span>
+              
+              <span className="flex-1">{opt.content || opt.id}</span>
+              
+              {isSelected && (
+                <Badge variant={isCorrect ? 'default' : 'destructive'} className="text-xs ml-auto">
+                  {isCorrect ? '✓ Correct' : '✗ Wrong'}
+                </Badge>
+              )}
+              {!isSelected && isCorrect && mode === 'admin-review' && (
+                <Badge variant="outline" className="text-xs ml-auto text-green-600 border-green-300">
+                  Correct answer
+                </Badge>
+              )}
             </div>
           );
         })}
       </div>
+      
+      {/* Explanation if available */}
+      {config?.explanation && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Explanation</p>
+          <p className="text-sm">{config.explanation}</p>
+        </div>
+      )}
     </div>
   );
 };
