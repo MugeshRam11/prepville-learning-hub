@@ -197,7 +197,7 @@ function autoDetectType(questionText?: string, diagramDesc?: string, config?: An
   // Check for explicit configs first (nested or flat)
   if (config?.tableConfig || flatCfg?.headers) return 'table_input';
   if (config?.graphConfig) return 'graph_plot';
-  if (config?.dragDropConfig || flatCfg?.draggableItems) return 'drag_drop';
+  if (config?.dragDropConfig || flatCfg?.draggableItems || flatCfg?.sourceItems) return 'drag_drop';
   if (config?.imageDropConfig || flatCfg?.zones) return 'image_drop';
   if (config?.arrangeConfig) return 'arrange_order';
   if (config?.smartMathConfig) return 'smart_math';
