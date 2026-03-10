@@ -83,10 +83,20 @@ const computeAutoScore = (type: string, config: any, parsedAnswer: any): { corre
   }
   
   if (type === 'drag_drop') {
-    const targets = config?.targets || [];
+    // Support new format (sourceItems/targetItems/correctMatches) and legacy (items/targets with correctItemId)
+    const targets = config?.targetItems || config?.targets || [];
+    const correctMatches: Record<string, string> = config?.correctMatches || {};
+    
+    // Build reverse map: targetId -> sourceId
+    const reverseCorrect: Record<string, string> = {};
+    Object.entries(correctMatches).forEach(([srcId, tgtId]) => {
+      reverseCorrect[tgtId as string] = srcId;
+    });
+    
     let correct = 0;
     targets.forEach((target: any) => {
-      if (target.correctItemId && parsedAnswer[target.id] === target.correctItemId) correct++;
+      const correctSourceId = reverseCorrect[target.id] || target.correctItemId;
+      if (correctSourceId && parsedAnswer[target.id] === correctSourceId) correct++;
     });
     return { correct, total: targets.length };
   }
