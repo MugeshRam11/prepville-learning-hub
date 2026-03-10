@@ -14,6 +14,7 @@ import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZ
 import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
+import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
