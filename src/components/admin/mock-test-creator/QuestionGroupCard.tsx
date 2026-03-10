@@ -13,6 +13,7 @@ import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
 import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
+import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
@@ -144,6 +145,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 } else if (v === 'graph_plot') {
                   updates.answerBlockConfig = createDefaultGraphPlotConfig();
                   updates.answerKey = '';
+                } else if (v === 'drag_drop') {
+                  updates.answerBlockConfig = createDefaultDragDropConfig();
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
@@ -178,6 +182,14 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
             <GraphPlotConfigEditor
               config={{
                 ...createDefaultGraphPlotConfig(),
+                ...(group.answerBlockConfig || {}),
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+            />
+          ) : !hasSubs && group.answerBlockType === 'drag_drop' ? (
+            <DragDropMatchingEditor
+              config={{
+                ...createDefaultDragDropConfig(),
                 ...(group.answerBlockConfig || {}),
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}

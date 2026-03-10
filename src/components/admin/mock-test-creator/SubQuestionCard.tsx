@@ -8,6 +8,7 @@ import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
+import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
 import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import type { CreatorSubQuestion } from './types';
@@ -79,6 +80,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             } else if (v === 'graph_plot') {
               updates.answerBlockConfig = createDefaultGraphPlotConfig();
               updates.answerKey = '';
+            } else if (v === 'drag_drop') {
+              updates.answerBlockConfig = createDefaultDragDropConfig();
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
@@ -112,6 +116,14 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
         <GraphPlotConfigEditor
           config={{
             ...createDefaultGraphPlotConfig(),
+            ...(subQuestion.answerBlockConfig || {}),
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+        />
+      ) : subQuestion.answerBlockType === 'drag_drop' ? (
+        <DragDropMatchingEditor
+          config={{
+            ...createDefaultDragDropConfig(),
             ...(subQuestion.answerBlockConfig || {}),
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}

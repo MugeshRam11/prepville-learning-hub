@@ -197,7 +197,7 @@ function autoDetectType(questionText?: string, diagramDesc?: string, config?: An
   // Check for explicit configs first (nested or flat)
   if (config?.tableConfig || flatCfg?.headers) return 'table_input';
   if (config?.graphConfig) return 'graph_plot';
-  if (config?.dragDropConfig || flatCfg?.draggableItems) return 'drag_drop';
+  if (config?.dragDropConfig || flatCfg?.draggableItems || flatCfg?.sourceItems) return 'drag_drop';
   if (config?.imageDropConfig || flatCfg?.zones) return 'image_drop';
   if (config?.arrangeConfig) return 'arrange_order';
   if (config?.smartMathConfig) return 'smart_math';
@@ -284,39 +284,59 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
       }
 
       case 'drag_drop': {
-        // Support multiple config formats: dragDropConfig or direct draggableItems/dropTargets
+        // Support multiple config formats:
+        // 1. New flat admin format: { sourceItems, targetItems, correctMatches }
+        // 2. Legacy dragDropConfig: { items, targets }
+        // 3. Legacy direct: { draggableItems, dropTargets }
         const dragDropConfig = config?.dragDropConfig;
-        const directConfig = config as any; // For configs that have items at top level
+        const directConfig = config as any;
         
-        const dragDropItems = dragDropConfig?.items || 
-          directConfig?.draggableItems || 
-          [
-            { id: 'item-1', content: '6 : 4', isLatex: false, color: 'red' as const },
-            { id: 'item-2', content: '24 : 36', isLatex: false, color: 'blue' as const },
-            { id: 'item-3', content: '1 : 3', isLatex: false, color: 'green' as const }
-          ];
+        // Resolve source items (draggable chips)
+        const sourceItems = directConfig?.sourceItems || dragDropConfig?.items || directConfig?.draggableItems || [
+          { id: 'item-1', content: '6 : 4' },
+          { id: 'item-2', content: '24 : 36' },
+          { id: 'item-3', content: '1 : 3' }
+        ];
         
-        const rawSlots = dragDropConfig?.targets || 
-          directConfig?.dropTargets || 
-          [
-            { id: 'slot-1', label: 'Puzzle 1', correctItemId: 'item-1' },
-            { id: 'slot-2', label: 'Puzzle 2', correctItemId: 'item-2' },
-            { id: 'slot-3', label: 'Puzzle 3', correctItemId: 'item-3' }
-          ];
+        // Resolve target items (drop slots)
+        const targetItems = directConfig?.targetItems || dragDropConfig?.targets || directConfig?.dropTargets || [
+          { id: 'slot-1', label: 'Match 1', correctItemId: 'item-1' },
+          { id: 'slot-2', label: 'Match 2', correctItemId: 'item-2' },
+          { id: 'slot-3', label: 'Match 3', correctItemId: 'item-3' }
+        ];
         
-        const puzzleSlots = rawSlots.map((t: any) => ({ 
-          ...t, 
-          correctItemId: t.correctItemId || '',
-          shape: 'notch' as const
+        // Map to DragDropMatcher format: items need { id, content }, targets need { id, label, correctItemId }
+        const dragItems = sourceItems.map((s: any) => ({
+          id: s.id,
+          content: s.content || s.label || s.id,
+          isLatex: s.isLatex || false,
+          color: s.color,
+        }));
+        
+        // For new admin format, correctMatches is sourceId->targetId, but DragDropMatcher uses target.correctItemId
+        const correctMatches = directConfig?.correctMatches || {};
+        
+        // Build reverse map: targetId -> sourceId
+        const reverseMatches: Record<string, string> = {};
+        Object.entries(correctMatches).forEach(([srcId, tgtId]) => {
+          reverseMatches[tgtId as string] = srcId;
+        });
+        
+        const puzzleSlots = targetItems.map((t: any) => ({
+          id: t.id,
+          label: t.content || t.label || t.id,
+          correctItemId: t.correctItemId || reverseMatches[t.id] || '',
+          shape: 'notch' as const,
+          image: t.image || t.imageUrl,
         }));
         
         return (
           <PuzzleDragDrop
-            items={dragDropItems}
+            items={dragItems}
             slots={puzzleSlots}
             onMatchesChange={(matches) => onChange(matches)}
             showFeedback={showValidation}
-            puzzleTitle={questionText || "Match the equivalent values"}
+            puzzleTitle={questionText || "Match the items"}
           />
         );
       }
