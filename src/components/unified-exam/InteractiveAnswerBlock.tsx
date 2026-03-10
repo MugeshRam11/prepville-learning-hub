@@ -31,6 +31,7 @@ import PuzzleDragDrop from '@/components/mock-exam/PuzzleDragDrop';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
+import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
 import EquationEditor from '@/components/admin/EquationEditor';
 
