@@ -144,6 +144,14 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
         />
+      ) : subQuestion.answerBlockType === 'smart_math' ? (
+        <SmartMathEditor
+          config={{
+            ...createDefaultSmartMathConfig(),
+            ...(subQuestion.answerBlockConfig || {}),
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+        />
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
