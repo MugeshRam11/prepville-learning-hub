@@ -15,6 +15,7 @@ import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleC
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
+import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
