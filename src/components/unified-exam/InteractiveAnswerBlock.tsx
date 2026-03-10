@@ -252,19 +252,35 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
 
   const renderAnswerComponent = () => {
     switch (currentType) {
-      case 'graph_plot':
+      case 'graph_plot': {
+        // Read graph config from admin — support both nested graphConfig and flat canvas/allowedTools
+        const flatCfg = config as any;
+        const graphCanvas = flatCfg?.canvas || config?.graphConfig || {};
+        const xMin = graphCanvas.xMin ?? -10;
+        const xMax = graphCanvas.xMax ?? 10;
+        const yMin = graphCanvas.yMin ?? -10;
+        const yMax = graphCanvas.yMax ?? 10;
+        const gridStep = graphCanvas.gridStep ?? 1;
+        const showNumbers = graphCanvas.showNumbers ?? true;
+        const showAxisLabels = graphCanvas.showAxisLabels ?? true;
+        const allowedTools: string[] = flatCfg?.allowedTools || ['point', 'line', 'move', 'erase'];
+
+        // Compute grid size in pixels based on range
+        const canvasWidth = 400;
+        const canvasHeight = 400;
+
         return (
-          <div className="border rounded-lg overflow-hidden bg-white p-4">
-            <InteractiveGraphCanvas
-              onPointsChange={(points) => onChange({ ...value, points })}
-              onLinesChange={(lines) => onChange({ ...value, lines })}
-              initialPoints={value?.points || []}
-              initialLines={value?.lines || []}
-              showGrid={config?.graphConfig?.showGrid ?? true}
-              allowDrawing={true}
-            />
-          </div>
+          <GraphPlotPlayer
+            canvasConfig={{ xMin, xMax, yMin, yMax, gridStep, showNumbers, showAxisLabels }}
+            allowedTools={allowedTools}
+            value={value || { points: [], lines: [] }}
+            onChange={onChange}
+            disabled={disabled}
+            width={canvasWidth}
+            height={canvasHeight}
+          />
         );
+      }
 
       case 'drag_drop': {
         // Support multiple config formats: dragDropConfig or direct draggableItems/dropTargets
