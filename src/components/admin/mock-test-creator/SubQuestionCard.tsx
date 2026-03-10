@@ -92,6 +92,18 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
           folder={`questions/q${questionNumber}-${subQuestion.label}/image-drop`}
         />
+      ) : subQuestion.answerBlockType === 'multiple_choice' ? (
+        <MultipleChoiceConfigEditor
+          config={{
+            mode: subQuestion.answerBlockConfig?.mode || 'single',
+            options: subQuestion.answerBlockConfig?.options || createDefaultMCQConfig().options,
+            correctOptionIds: subQuestion.answerBlockConfig?.correctOptionIds || [],
+            shuffleOptions: subQuestion.answerBlockConfig?.shuffleOptions || false,
+            explanation: subQuestion.answerBlockConfig?.explanation || '',
+            evaluationNotes: subQuestion.answerBlockConfig?.evaluationNotes || '',
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+        />
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>

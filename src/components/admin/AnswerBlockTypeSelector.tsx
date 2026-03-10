@@ -70,6 +70,12 @@ const ANSWER_BLOCK_OPTIONS: { value: AnswerBlockType; label: string; icon: React
     icon: <CheckSquare className="w-4 h-4" />,
     description: 'Select from predefined options'
   },
+  { 
+    value: 'table_input', 
+    label: 'Table Input', 
+    icon: <FileText className="w-4 h-4" />,
+    description: 'Fill in table cells'
+  },
 ];
 
 const AnswerBlockTypeSelector: React.FC<AnswerBlockTypeSelectorProps> = ({

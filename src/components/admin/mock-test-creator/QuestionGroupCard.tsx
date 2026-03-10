@@ -146,7 +146,7 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
             </div>
           )}
 
-          {/* Answer key for non-sub questions */}
+          {/* Answer config for non-sub questions */}
           {!hasSubs && group.answerBlockType === 'image_drop' ? (
             <ImageDropZoneEditor
               config={{
@@ -157,6 +157,18 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
               folder={`questions/q${group.number}/image-drop`}
+            />
+          ) : !hasSubs && group.answerBlockType === 'multiple_choice' ? (
+            <MultipleChoiceConfigEditor
+              config={{
+                mode: group.answerBlockConfig?.mode || 'single',
+                options: group.answerBlockConfig?.options || createDefaultMCQConfig().options,
+                correctOptionIds: group.answerBlockConfig?.correctOptionIds || [],
+                shuffleOptions: group.answerBlockConfig?.shuffleOptions || false,
+                explanation: group.answerBlockConfig?.explanation || '',
+                evaluationNotes: group.answerBlockConfig?.evaluationNotes || '',
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
             />
           ) : !hasSubs ? (
             <div>
