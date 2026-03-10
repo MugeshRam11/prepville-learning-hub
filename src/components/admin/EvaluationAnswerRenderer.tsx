@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
 import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
-import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon, ListOrdered } from 'lucide-react';
+import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon, ListOrdered, Calculator } from 'lucide-react';
 
 interface AnswerRendererProps {
   answerBlockType: string;
