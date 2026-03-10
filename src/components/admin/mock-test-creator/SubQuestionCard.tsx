@@ -80,6 +80,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             } else if (v === 'graph_plot') {
               updates.answerBlockConfig = createDefaultGraphPlotConfig();
               updates.answerKey = '';
+            } else if (v === 'drag_drop') {
+              updates.answerBlockConfig = createDefaultDragDropConfig();
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
