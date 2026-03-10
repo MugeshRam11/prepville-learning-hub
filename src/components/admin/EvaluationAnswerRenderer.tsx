@@ -54,6 +54,19 @@ const detectAnswerType = (answerBlockType: string, config: any, parsedAnswer: an
 
 // Compute auto-score for interactive types
 const computeAutoScore = (type: string, config: any, parsedAnswer: any): { correct: number; total: number } | null => {
+  if (!parsedAnswer || typeof parsedAnswer !== 'object' && type !== 'multiple_choice') return null;
+  
+  if (type === 'multiple_choice') {
+    const options = config?.options || config?.mcqConfig?.options || [];
+    const correctIds: string[] = config?.correctOptionIds || 
+      options.filter((o: any) => o.isCorrect).map((o: any) => o.id);
+    const selectedIds = Array.isArray(parsedAnswer) ? parsedAnswer : (parsedAnswer ? [String(parsedAnswer)] : []);
+    const isCorrect = correctIds.length > 0 && 
+      correctIds.every((id: string) => selectedIds.includes(id)) && 
+      selectedIds.every((id: string) => correctIds.includes(id));
+    return { correct: isCorrect ? 1 : 0, total: 1 };
+  }
+  
   if (!parsedAnswer || typeof parsedAnswer !== 'object') return null;
   
   if (type === 'image_drop') {
