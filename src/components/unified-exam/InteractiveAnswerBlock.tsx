@@ -437,15 +437,23 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         );
       }
 
-      case 'smart_math':
+      case 'smart_math': {
+        // Support new SmartMathEditor flat config (palettes, expectedAnswers, inputMode)
+        // and legacy smartMathConfig
+        const flatCfg = config as any;
+        const palettes = flatCfg?.palettes || config?.smartMathConfig?.acceptedFormats || ['fraction', 'script', 'radical', 'bracket', 'operator', 'greek'];
+        const inputMode = flatCfg?.inputMode || 'single_expression';
+
         return (
-          <SmartMathInput
-            expectedAnswer={config?.smartMathConfig?.expectedAnswer || ''}
-            acceptedFormats={config?.smartMathConfig?.acceptedFormats}
-            onAnswerChange={(answer) => onChange(answer)}
-            showFeedback={false}
+          <SmartMathPlayer
+            palettes={palettes}
+            inputMode={inputMode}
+            value={typeof value === 'object' && value?.latex !== undefined ? value : { latex: typeof value === 'string' ? value : '' }}
+            onChange={(answer) => onChange(answer)}
+            disabled={disabled}
           />
         );
+      }
 
       case 'multiple_choice': {
         // Support both nested mcqConfig and flat admin config format
