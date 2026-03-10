@@ -407,14 +407,26 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
       }
 
       case 'arrange_order': {
-        const steps = config?.arrangeConfig?.items?.map((item, i) => ({
-          ...item,
-          correctOrder: item.correctOrder || i + 1
-        })) || [
+        // Support new flat admin config (items/correctOrder) and legacy (arrangeConfig.items with correctOrder field)
+        const flatCfg = config as any;
+        const rawItems = flatCfg?.items || config?.arrangeConfig?.items || [
           { id: 'step-1', content: 'Step 1', correctOrder: 1 },
           { id: 'step-2', content: 'Step 2', correctOrder: 2 },
           { id: 'step-3', content: 'Step 3', correctOrder: 3 }
         ];
+        
+        // Build correctOrder-based index if new format has correctOrder array
+        const correctOrderArr: string[] = flatCfg?.correctOrder || [];
+        
+        const steps = rawItems.map((item: any, i: number) => {
+          // If we have explicit correctOrder array, use position in that array
+          const orderIdx = correctOrderArr.indexOf(item.id);
+          return {
+            ...item,
+            correctOrder: orderIdx >= 0 ? orderIdx + 1 : (item.correctOrder || i + 1),
+          };
+        });
+        
         return (
           <StepBuilder
             steps={steps}

@@ -198,6 +198,14 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
             />
+          ) : !hasSubs && group.answerBlockType === 'arrange_order' ? (
+            <ArrangeOrderEditor
+              config={{
+                ...createDefaultArrangeOrderConfig(),
+                ...(group.answerBlockConfig || {}),
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+            />
           ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
