@@ -26,6 +26,7 @@ import {
 
 // Import interactive components
 import InteractiveGraphCanvas from '@/components/mock-exam/InteractiveGraphCanvas';
+import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
 import PuzzleDragDrop from '@/components/mock-exam/PuzzleDragDrop';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
