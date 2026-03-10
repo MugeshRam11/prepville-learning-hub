@@ -802,8 +802,9 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
       return <TableInputReview config={config} studentAnswer={parsed} />;
     case 'graph_plot':
       return <GraphPlotReview config={config} studentAnswer={parsed} mode={mode} />;
-    case 'text_equation':
     case 'smart_math':
+      return <SmartMathReview config={config} studentAnswer={parsed} mode={mode} />;
+    case 'text_equation':
     default: {
       // For text types, render cleanly
       const text = typeof parsed === 'string' ? parsed : (typeof studentAnswer === 'string' ? studentAnswer : '');
@@ -813,9 +814,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
       }
       return (
         <div className="bg-muted/30 rounded-lg p-3">
-          <p className="text-xs font-medium text-muted-foreground mb-1">
-            {resolvedType === 'smart_math' ? '🤖 Smart Math Answer' : '📝 Student Answer'}
-          </p>
+          <p className="text-xs font-medium text-muted-foreground mb-1">📝 Student Answer</p>
           <p className="text-sm whitespace-pre-wrap">{text || 'No answer'}</p>
         </div>
       );
