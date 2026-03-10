@@ -149,6 +149,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 } else if (v === 'drag_drop') {
                   updates.answerBlockConfig = createDefaultDragDropConfig();
                   updates.answerKey = '';
+                } else if (v === 'arrange_order') {
+                  updates.answerBlockConfig = createDefaultArrangeOrderConfig();
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
