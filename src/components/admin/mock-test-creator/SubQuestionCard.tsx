@@ -72,6 +72,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             if (v === 'image_drop') {
               updates.answerBlockConfig = createDefaultImageDropConfig();
               updates.answerKey = '';
+            } else if (v === 'multiple_choice') {
+              updates.answerBlockConfig = createDefaultMCQConfig();
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
