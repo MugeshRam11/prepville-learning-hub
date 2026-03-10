@@ -12,6 +12,7 @@ import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDrop
 import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
+import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
@@ -87,6 +88,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             } else if (v === 'arrange_order') {
               updates.answerBlockConfig = createDefaultArrangeOrderConfig();
               updates.answerKey = '';
+            } else if (v === 'smart_math') {
+              updates.answerBlockConfig = createDefaultSmartMathConfig();
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
@@ -136,6 +140,14 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
         <ArrangeOrderEditor
           config={{
             ...createDefaultArrangeOrderConfig(),
+            ...(subQuestion.answerBlockConfig || {}),
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+        />
+      ) : subQuestion.answerBlockType === 'smart_math' ? (
+        <SmartMathEditor
+          config={{
+            ...createDefaultSmartMathConfig(),
             ...(subQuestion.answerBlockConfig || {}),
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}

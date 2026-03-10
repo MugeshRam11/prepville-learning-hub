@@ -31,6 +31,7 @@ import PuzzleDragDrop from '@/components/mock-exam/PuzzleDragDrop';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
+import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
 import EquationEditor from '@/components/admin/EquationEditor';
 
@@ -200,7 +201,7 @@ function autoDetectType(questionText?: string, diagramDesc?: string, config?: An
   if (config?.dragDropConfig || flatCfg?.draggableItems || flatCfg?.sourceItems) return 'drag_drop';
   if (config?.imageDropConfig || flatCfg?.zones) return 'image_drop';
   if (config?.arrangeConfig || flatCfg?.correctOrder) return 'arrange_order';
-  if (config?.smartMathConfig) return 'smart_math';
+  if (config?.smartMathConfig || flatCfg?.expectedAnswers || flatCfg?.palettes) return 'smart_math';
   if (config?.mcqConfig || flatCfg?.options) return 'multiple_choice';
   
   // Pattern-based detection with priority ordering
@@ -436,15 +437,23 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         );
       }
 
-      case 'smart_math':
+      case 'smart_math': {
+        // Support new SmartMathEditor flat config (palettes, expectedAnswers, inputMode)
+        // and legacy smartMathConfig
+        const flatCfg = config as any;
+        const palettes = flatCfg?.palettes || config?.smartMathConfig?.acceptedFormats || ['fraction', 'script', 'radical', 'bracket', 'operator', 'greek'];
+        const inputMode = flatCfg?.inputMode || 'single_expression';
+
         return (
-          <SmartMathInput
-            expectedAnswer={config?.smartMathConfig?.expectedAnswer || ''}
-            acceptedFormats={config?.smartMathConfig?.acceptedFormats}
-            onAnswerChange={(answer) => onChange(answer)}
-            showFeedback={false}
+          <SmartMathPlayer
+            palettes={palettes}
+            inputMode={inputMode}
+            value={typeof value === 'object' && value?.latex !== undefined ? value : { latex: typeof value === 'string' ? value : '' }}
+            onChange={(answer) => onChange(answer)}
+            disabled={disabled}
           />
         );
+      }
 
       case 'multiple_choice': {
         // Support both nested mcqConfig and flat admin config format

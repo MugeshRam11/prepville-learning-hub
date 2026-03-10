@@ -15,6 +15,7 @@ import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleC
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
+import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
@@ -152,6 +153,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 } else if (v === 'arrange_order') {
                   updates.answerBlockConfig = createDefaultArrangeOrderConfig();
                   updates.answerKey = '';
+                } else if (v === 'smart_math') {
+                  updates.answerBlockConfig = createDefaultSmartMathConfig();
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
@@ -202,6 +206,14 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
             <ArrangeOrderEditor
               config={{
                 ...createDefaultArrangeOrderConfig(),
+                ...(group.answerBlockConfig || {}),
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+            />
+          ) : !hasSubs && group.answerBlockType === 'smart_math' ? (
+            <SmartMathEditor
+              config={{
+                ...createDefaultSmartMathConfig(),
                 ...(group.answerBlockConfig || {}),
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
