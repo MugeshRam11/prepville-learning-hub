@@ -41,6 +41,7 @@ const detectAnswerType = (answerBlockType: string, config: any, parsedAnswer: an
     if (config.options) return 'multiple_choice';
     if (config.headers && config.rows) return 'table_input';
     if ((config.items && !config.targets && !config.sourceItems) || config.correctOrder) return 'arrange_order';
+    if (config.expectedAnswers || config.palettes) return 'smart_math';
     if (config.xRange || config.yRange || config.showGrid) return 'graph_plot';
   }
   
