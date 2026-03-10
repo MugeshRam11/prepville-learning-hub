@@ -284,12 +284,42 @@ const DragDropReview: React.FC<{
     return <FallbackJsonView data={studentAnswer} label="Drag & Drop" />;
   }
 
-  const items = config.items || [];
-  const targets = config.targets || [];
-  const itemMap: Record<string, string> = {};
-  items.forEach((item: any) => { itemMap[item.id] = item.content || item.label || item.id; });
+  // Support both new flat admin format (sourceItems/targetItems/correctMatches)
+  // and legacy format (items/targets with correctItemId)
+  const sourceItems = config.sourceItems || config.items || [];
+  const targetItems = config.targetItems || config.targets || [];
+  const correctMatches: Record<string, string> = config.correctMatches || {};
+  
+  // Build source item lookup
+  const sourceMap: Record<string, string> = {};
+  sourceItems.forEach((item: any) => { sourceMap[item.id] = item.content || item.label || item.id; });
 
-  const autoScore = computeAutoScore('drag_drop', config, parsed);
+  // Build reverse map: targetId -> sourceId (for new format)
+  const reverseCorrect: Record<string, string> = {};
+  Object.entries(correctMatches).forEach(([srcId, tgtId]) => {
+    reverseCorrect[tgtId as string] = srcId;
+  });
+
+  // Build per-target review rows
+  const reviewRows = targetItems.map((target: any) => {
+    const targetLabel = target.content || target.label || target.id;
+    
+    // What did the student place here?
+    const studentSourceId = parsed[target.id];
+    const studentLabel = studentSourceId ? (sourceMap[studentSourceId] || studentSourceId) : '— Empty —';
+    
+    // What is the correct source for this target?
+    // New format: correctMatches maps sourceId->targetId, so reverse lookup
+    // Legacy format: target.correctItemId
+    const correctSourceId = reverseCorrect[target.id] || target.correctItemId;
+    const correctLabel = correctSourceId ? (sourceMap[correctSourceId] || correctSourceId) : 'N/A';
+    
+    const isCorrect = !!studentSourceId && !!correctSourceId && studentSourceId === correctSourceId;
+    
+    return { targetId: target.id, targetLabel, studentLabel, correctLabel, isCorrect, studentSourceId, correctSourceId };
+  });
+
+  const correctCount = reviewRows.filter((r: any) => r.isCorrect).length;
 
   return (
     <div className="space-y-3 border rounded-xl p-4 bg-background">
@@ -298,70 +328,60 @@ const DragDropReview: React.FC<{
           <GripVertical className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Drag & Drop Matching</span>
         </div>
-        {autoScore && (
-          <Badge variant={autoScore.correct === autoScore.total ? 'default' : 'secondary'} className="text-xs">
-            Auto: {autoScore.correct}/{autoScore.total} correct
-          </Badge>
-        )}
+        <Badge variant={correctCount === reviewRows.length ? 'default' : 'secondary'} className="text-xs">
+          Auto: {correctCount}/{reviewRows.length} correct
+        </Badge>
       </div>
 
       {/* Visual matching layout */}
       <div className="grid gap-2">
-        {targets.map((target: any) => {
-          const studentItemId = parsed[target.id];
-          const correctItemId = target.correctItemId;
-          const isCorrect = studentItemId === correctItemId;
-          const studentLabel = studentItemId ? (itemMap[studentItemId] || studentItemId) : '— Empty —';
-          const correctLabel = correctItemId ? (itemMap[correctItemId] || correctItemId) : 'N/A';
-
-          return (
-            <div
-              key={target.id}
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border text-sm",
-                isCorrect
-                  ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
-                  : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+        {reviewRows.map((row: any) => (
+          <div
+            key={row.targetId}
+            className={cn(
+              "flex items-center gap-3 p-3 rounded-lg border text-sm",
+              row.isCorrect
+                ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+            )}
+          >
+            {/* Target label */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {row.isCorrect ? (
+                <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+              ) : (
+                <XCircle className="w-4 h-4 text-red-600 shrink-0" />
               )}
-            >
-              {/* Target label */}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                {isCorrect ? (
-                  <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-red-600 shrink-0" />
-                )}
-                <span className="font-medium">{target.label || target.id}</span>
-              </div>
-
-              {/* Arrow */}
-              <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-
-              {/* Student's choice */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className={cn(
-                  "px-3 py-1 rounded-md border font-medium text-xs",
-                  isCorrect
-                    ? "bg-green-100 dark:bg-green-900/30 border-green-300 text-green-800 dark:text-green-300"
-                    : "bg-red-100 dark:bg-red-900/30 border-red-300 text-red-800 dark:text-red-300"
-                )}>
-                  {studentLabel}
-                </div>
-                {!isCorrect && (
-                  <div className="px-3 py-1 rounded-md border border-green-300 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 text-xs font-medium">
-                    ✓ {correctLabel}
-                  </div>
-                )}
-              </div>
+              <span className="font-medium">{row.targetLabel}</span>
             </div>
-          );
-        })}
+
+            {/* Arrow */}
+            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+
+            {/* Student's choice */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className={cn(
+                "px-3 py-1 rounded-md border font-medium text-xs",
+                row.isCorrect
+                  ? "bg-green-100 dark:bg-green-900/30 border-green-300 text-green-800 dark:text-green-300"
+                  : "bg-red-100 dark:bg-red-900/30 border-red-300 text-red-800 dark:text-red-300"
+              )}>
+                {row.studentLabel}
+              </div>
+              {!row.isCorrect && row.correctSourceId && (
+                <div className="px-3 py-1 rounded-md border border-green-300 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 text-xs font-medium">
+                  ✓ {row.correctLabel}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Unplaced items */}
       {(() => {
         const placedIds = new Set(Object.values(parsed));
-        const unplaced = items.filter((i: any) => !placedIds.has(i.id));
+        const unplaced = sourceItems.filter((i: any) => !placedIds.has(i.id));
         if (unplaced.length === 0) return null;
         return (
           <div className="pt-2 border-t">
@@ -376,6 +396,20 @@ const DragDropReview: React.FC<{
           </div>
         );
       })()}
+
+      {/* Explanation & eval notes */}
+      {config?.explanation && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Explanation</p>
+          <p className="text-sm">{config.explanation}</p>
+        </div>
+      )}
+      {config?.evaluationNotes && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Evaluation Notes</p>
+          <p className="text-sm">{config.evaluationNotes}</p>
+        </div>
+      )}
     </div>
   );
 };
