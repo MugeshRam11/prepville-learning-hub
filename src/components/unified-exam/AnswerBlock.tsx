@@ -12,6 +12,7 @@ import {
 
 // Import interactive components
 import InteractiveGraphCanvas from '@/components/mock-exam/InteractiveGraphCanvas';
+import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
 import DragDropMatcher from '@/components/mock-exam/DragDropMatcher';
 import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
@@ -84,19 +85,29 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
           </div>
         );
 
-      case 'graph_plot':
+      case 'graph_plot': {
+        const flatCfg = config as any;
+        const graphCanvas = flatCfg?.canvas || config?.graphConfig || {};
         return (
-          <div className="border rounded-lg overflow-hidden bg-white p-4">
-            <InteractiveGraphCanvas
-              onPointsChange={(points) => onChange({ ...value, points })}
-              onLinesChange={(lines) => onChange({ ...value, lines })}
-              initialPoints={value?.points || []}
-              initialLines={value?.lines || []}
-              showGrid={config?.graphConfig?.showGrid ?? true}
-              allowDrawing={true}
+          <div className="border rounded-lg overflow-hidden p-4 bg-card">
+            <GraphPlotPlayer
+              canvasConfig={{
+                xMin: graphCanvas.xMin ?? -10,
+                xMax: graphCanvas.xMax ?? 10,
+                yMin: graphCanvas.yMin ?? -10,
+                yMax: graphCanvas.yMax ?? 10,
+                gridStep: graphCanvas.gridStep ?? 1,
+                showNumbers: graphCanvas.showNumbers ?? true,
+                showAxisLabels: graphCanvas.showAxisLabels ?? true,
+              }}
+              allowedTools={flatCfg?.allowedTools || ['point', 'line', 'move', 'erase']}
+              value={value || { points: [], lines: [] }}
+              onChange={onChange}
+              disabled={disabled}
             />
           </div>
         );
+      }
 
       case 'drag_drop':
         if (!config?.dragDropConfig) {

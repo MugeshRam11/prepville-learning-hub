@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
+import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
 import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon } from 'lucide-react';
 
 interface AnswerRendererProps {
@@ -426,8 +428,79 @@ const ArrangeOrderReview: React.FC<{
 };
 
 // ═══════════════════════════════════════════════
-// Multiple Choice Review
+// Graph Plot — Visual Review with compare overlay
 // ═══════════════════════════════════════════════
+const GraphPlotReview: React.FC<{
+  config: any;
+  studentAnswer: any;
+  mode: string;
+}> = ({ config, studentAnswer, mode }) => {
+  const [viewMode, setViewMode] = useState<'student' | 'correct' | 'compare'>('compare');
+  const parsed = parseAnswer(studentAnswer);
+
+  const studentPts = parsed?.points || [];
+  const studentLns = parsed?.lines || [];
+  const expectedPts = config?.expectedAnswer?.points || [];
+  const expectedLns = config?.expectedAnswer?.lines || [];
+  const canvas = config?.canvas || { xMin: -10, xMax: 10, yMin: -10, yMax: 10, gridStep: 1, showNumbers: true, showAxisLabels: true };
+  const scoring = config?.scoring || {};
+
+  // Auto-score: count matched points within tolerance
+  const tolerance = scoring.pointTolerance || 0.5;
+  let matchedPts = 0;
+  expectedPts.forEach((ep: any) => {
+    if (studentPts.some((sp: any) => Math.abs(sp.x - ep.x) <= tolerance && Math.abs(sp.y - ep.y) <= tolerance)) {
+      matchedPts++;
+    }
+  });
+
+  return (
+    <div className="space-y-3 border rounded-xl p-4 bg-background">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">📊 Graph Plot</span>
+        <div className="flex items-center gap-2">
+          {expectedPts.length > 0 && (
+            <Badge variant={matchedPts === expectedPts.length ? 'default' : 'secondary'} className="text-xs">
+              Points: {matchedPts}/{expectedPts.length}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* View mode switcher */}
+      {mode === 'admin-review' && (expectedPts.length > 0 || expectedLns.length > 0) && (
+        <div className="flex gap-1 bg-muted rounded-lg p-1">
+          {(['compare', 'student', 'correct'] as const).map(m => (
+            <Button key={m} size="sm" variant={viewMode === m ? 'default' : 'ghost'} className="h-7 text-xs flex-1" onClick={() => setViewMode(m)}>
+              {m === 'compare' ? 'Compare' : m === 'student' ? 'Student' : 'Expected'}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      <GraphPlotPlayer
+        canvasConfig={canvas}
+        allowedTools={[]}
+        value={{ points: studentPts, lines: studentLns }}
+        onChange={() => {}}
+        readonly
+        expectedAnswer={{ points: expectedPts, lines: expectedLns }}
+        viewMode={viewMode}
+        width={380}
+        height={380}
+      />
+
+      {config?.evaluationNotes && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Evaluation Notes</p>
+          <p className="text-sm">{config.evaluationNotes}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 const MCQReview: React.FC<{
   config: any;
   studentAnswer: any;
@@ -613,12 +686,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
     case 'table_input':
       return <TableInputReview config={config} studentAnswer={parsed} />;
     case 'graph_plot':
-      return (
-        <div className="space-y-2 border rounded-xl p-4 bg-background">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">📊 Graph Answer</span>
-          <FallbackJsonView data={parsed} />
-        </div>
-      );
+      return <GraphPlotReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'text_equation':
     case 'smart_math':
     default: {

@@ -12,6 +12,7 @@ import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
 import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
+import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
@@ -140,6 +141,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 } else if (v === 'multiple_choice') {
                   updates.answerBlockConfig = createDefaultMCQConfig();
                   updates.answerKey = '';
+                } else if (v === 'graph_plot') {
+                  updates.answerBlockConfig = createDefaultGraphPlotConfig();
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
@@ -167,6 +171,14 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 shuffleOptions: group.answerBlockConfig?.shuffleOptions || false,
                 explanation: group.answerBlockConfig?.explanation || '',
                 evaluationNotes: group.answerBlockConfig?.evaluationNotes || '',
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+            />
+          ) : !hasSubs && group.answerBlockType === 'graph_plot' ? (
+            <GraphPlotConfigEditor
+              config={{
+                ...createDefaultGraphPlotConfig(),
+                ...(group.answerBlockConfig || {}),
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
             />
