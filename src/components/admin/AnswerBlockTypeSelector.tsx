@@ -18,7 +18,8 @@ export type AnswerBlockType =
   | 'image_drop'
   | 'arrange_order'
   | 'smart_math'
-  | 'multiple_choice';
+  | 'multiple_choice'
+  | 'table_input';
 
 interface AnswerBlockTypeSelectorProps {
   value: AnswerBlockType;
@@ -68,6 +69,12 @@ const ANSWER_BLOCK_OPTIONS: { value: AnswerBlockType; label: string; icon: React
     label: 'Multiple Choice', 
     icon: <CheckSquare className="w-4 h-4" />,
     description: 'Select from predefined options'
+  },
+  { 
+    value: 'table_input', 
+    label: 'Table Input', 
+    icon: <FileText className="w-4 h-4" />,
+    description: 'Fill in table cells'
   },
 ];
 

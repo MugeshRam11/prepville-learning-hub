@@ -156,18 +156,23 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
           />
         );
 
-      case 'multiple_choice':
-        if (!config?.mcqConfig) {
+      case 'multiple_choice': {
+        const mcqCfg = config?.mcqConfig;
+        const flatCfg = config as any;
+        const options = mcqCfg?.options || flatCfg?.options || [];
+        const allowMultiple = mcqCfg?.allowMultiple || flatCfg?.mode === 'multiple';
+
+        if (options.length === 0) {
           return <div className="text-muted-foreground p-4 text-center">Multiple choice not configured</div>;
         }
         return (
           <div className="space-y-2">
-            {config.mcqConfig.options.map((option, idx) => (
+            {options.map((option: any, idx: number) => (
               <button
                 key={option.id}
                 type="button"
                 onClick={() => {
-                  if (config.mcqConfig?.allowMultiple) {
+                  if (allowMultiple) {
                     const current = Array.isArray(value) ? value : [];
                     const newValue = current.includes(option.id)
                       ? current.filter((id: string) => id !== option.id)
@@ -178,20 +183,27 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
                   }
                 }}
                 disabled={disabled}
-                className={`w-full p-4 text-left rounded-lg border transition-all ${
+                className={`w-full p-4 text-left rounded-lg border-2 transition-all flex items-center gap-3 ${
                   (Array.isArray(value) ? value.includes(option.id) : value === option.id)
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border hover:border-muted-foreground hover:bg-muted/50'
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-muted-foreground/40 hover:bg-muted/50'
                 }`}
               >
-                <span className="font-medium mr-3">
-                  {String.fromCharCode(65 + idx)}.
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors ${
+                  (Array.isArray(value) ? value.includes(option.id) : value === option.id)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border-2 border-muted-foreground/30'
+                }`}>
+                  {option.label || String.fromCharCode(65 + idx)}
                 </span>
-                {option.content}
+                <span className="font-medium">
+                  {option.content || `Option ${String.fromCharCode(65 + idx)}`}
+                </span>
               </button>
             ))}
           </div>
         );
+      }
 
       default:
         return (

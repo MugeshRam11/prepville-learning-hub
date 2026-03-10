@@ -8,6 +8,7 @@ import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
+import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
@@ -71,6 +72,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             if (v === 'image_drop') {
               updates.answerBlockConfig = createDefaultImageDropConfig();
               updates.answerKey = '';
+            } else if (v === 'multiple_choice') {
+              updates.answerBlockConfig = createDefaultMCQConfig();
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
@@ -87,6 +91,18 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
           folder={`questions/q${questionNumber}-${subQuestion.label}/image-drop`}
+        />
+      ) : subQuestion.answerBlockType === 'multiple_choice' ? (
+        <MultipleChoiceConfigEditor
+          config={{
+            mode: subQuestion.answerBlockConfig?.mode || 'single',
+            options: subQuestion.answerBlockConfig?.options || createDefaultMCQConfig().options,
+            correctOptionIds: subQuestion.answerBlockConfig?.correctOptionIds || [],
+            shuffleOptions: subQuestion.answerBlockConfig?.shuffleOptions || false,
+            explanation: subQuestion.answerBlockConfig?.explanation || '',
+            evaluationNotes: subQuestion.answerBlockConfig?.evaluationNotes || '',
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
         />
       ) : (
         <div>

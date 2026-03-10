@@ -11,6 +11,7 @@ import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
+import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
@@ -136,13 +137,16 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 if (v === 'image_drop') {
                   updates.answerBlockConfig = createDefaultImageDropConfig();
                   updates.answerKey = '';
+                } else if (v === 'multiple_choice') {
+                  updates.answerBlockConfig = createDefaultMCQConfig();
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
             </div>
           )}
 
-          {/* Answer key for non-sub questions */}
+          {/* Answer config for non-sub questions */}
           {!hasSubs && group.answerBlockType === 'image_drop' ? (
             <ImageDropZoneEditor
               config={{
@@ -153,6 +157,18 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
               folder={`questions/q${group.number}/image-drop`}
+            />
+          ) : !hasSubs && group.answerBlockType === 'multiple_choice' ? (
+            <MultipleChoiceConfigEditor
+              config={{
+                mode: group.answerBlockConfig?.mode || 'single',
+                options: group.answerBlockConfig?.options || createDefaultMCQConfig().options,
+                correctOptionIds: group.answerBlockConfig?.correctOptionIds || [],
+                shuffleOptions: group.answerBlockConfig?.shuffleOptions || false,
+                explanation: group.answerBlockConfig?.explanation || '',
+                evaluationNotes: group.answerBlockConfig?.evaluationNotes || '',
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
             />
           ) : !hasSubs ? (
             <div>
