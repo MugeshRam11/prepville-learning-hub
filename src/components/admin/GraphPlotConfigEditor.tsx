@@ -281,7 +281,7 @@ const GraphPlotConfigEditor: React.FC<GraphPlotConfigEditorProps> = ({ config, o
               {/* Expected lines */}
               {config.expectedAnswer.lines.map(l => (
                 <line key={l.id} x1={toSvgX(l.from.x)} y1={toSvgY(l.from.y)} x2={toSvgX(l.to.x)} y2={toSvgY(l.to.y)}
-                  className="stroke-green-500" strokeWidth={2} strokeDasharray="6 3" />
+                  stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="6 3" opacity={0.7} />
               ))}
 
               {/* Line start preview */}
@@ -292,8 +292,8 @@ const GraphPlotConfigEditor: React.FC<GraphPlotConfigEditorProps> = ({ config, o
               {/* Expected points */}
               {config.expectedAnswer.points.map(p => (
                 <g key={p.id} className="cursor-pointer" onClick={(e) => { e.stopPropagation(); removePoint(p.id); }}>
-                  <circle cx={toSvgX(p.x)} cy={toSvgY(p.y)} r={6} className="fill-green-500" />
-                  <text x={toSvgX(p.x)} y={toSvgY(p.y) - 10} textAnchor="middle" className="fill-green-700 text-[10px] font-medium">
+                  <circle cx={toSvgX(p.x)} cy={toSvgY(p.y)} r={6} className="fill-primary" />
+                  <text x={toSvgX(p.x)} y={toSvgY(p.y) - 10} textAnchor="middle" className="fill-primary text-[10px] font-medium">
                     ({p.x},{p.y})
                   </text>
                 </g>
