@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
 import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
-import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon } from 'lucide-react';
+import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon, ListOrdered } from 'lucide-react';
 
 interface AnswerRendererProps {
   answerBlockType: string;
@@ -40,7 +40,7 @@ const detectAnswerType = (answerBlockType: string, config: any, parsedAnswer: an
     if ((config.items && config.targets) || (config.sourceItems && config.targetItems)) return 'drag_drop';
     if (config.options) return 'multiple_choice';
     if (config.headers && config.rows) return 'table_input';
-    if (config.items && !config.targets) return 'arrange_order';
+    if ((config.items && !config.targets && !config.sourceItems) || config.correctOrder) return 'arrange_order';
     if (config.xRange || config.yRange || config.showGrid) return 'graph_plot';
   }
   
@@ -430,43 +430,113 @@ const DragDropReview: React.FC<{
 const ArrangeOrderReview: React.FC<{
   config: any;
   studentAnswer: any;
-}> = ({ config, studentAnswer }) => {
+  mode: string;
+}> = ({ config, studentAnswer, mode }) => {
   const parsed = parseAnswer(studentAnswer);
+  // Support both new flat format (items + correctOrder array) and legacy (items with correctOrder field)
   const items = config?.items || [];
+  const correctOrderArr: string[] = config?.correctOrder || [];
 
-  if (!Array.isArray(parsed)) {
+  // If student answer is an object with orderedItemIds key, extract it
+  const studentOrder: string[] = Array.isArray(parsed)
+    ? parsed
+    : (parsed?.orderedItemIds || []);
+
+  if (!Array.isArray(studentOrder) || studentOrder.length === 0) {
     return <FallbackJsonView data={studentAnswer} label="Arrange / Order" />;
   }
 
-  const correctOrder = items
-    .filter((i: any) => i.correctOrder !== undefined)
-    .sort((a: any, b: any) => a.correctOrder - b.correctOrder)
-    .map((i: any) => i.id);
+  // Build correct order: prefer explicit correctOrder array, else sort by correctOrder field
+  const correctOrder = correctOrderArr.length > 0
+    ? correctOrderArr
+    : items
+        .filter((i: any) => i.correctOrder !== undefined)
+        .sort((a: any, b: any) => a.correctOrder - b.correctOrder)
+        .map((i: any) => i.id);
+
+  const itemMap: Record<string, any> = {};
+  items.forEach((i: any) => { itemMap[i.id] = i; });
+
+  const correctCount = studentOrder.filter((id: string, idx: number) => correctOrder[idx] === id).length;
+  const instruction = config?.instruction || '';
 
   return (
-    <div className="space-y-2 border rounded-xl p-4 bg-background">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">🔢 Arrange / Order</span>
-      <div className="grid gap-1.5">
-        {parsed.map((itemId: string, idx: number) => {
-          const item = items.find((i: any) => i.id === itemId);
-          const isCorrectPosition = correctOrder[idx] === itemId;
-          return (
-            <div
-              key={idx}
-              className={cn(
-                "flex items-center gap-2 p-2 rounded border text-sm",
-                isCorrectPosition
-                  ? "bg-green-50 dark:bg-green-950/20 border-green-200"
-                  : "bg-red-50 dark:bg-red-950/20 border-red-200"
-              )}
-            >
-              <span className="text-xs font-bold text-muted-foreground w-5">{idx + 1}.</span>
-              {isCorrectPosition ? <CheckCircle className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-red-600" />}
-              <span>{item?.content || itemId}</span>
-            </div>
-          );
-        })}
+    <div className="space-y-3 border rounded-xl p-4 bg-background">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ListOrdered className="w-4 h-4 text-primary" />
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Arrange / Order</span>
+        </div>
+        <Badge variant={correctCount === correctOrder.length ? 'default' : 'secondary'} className="text-xs">
+          Auto: {correctCount}/{correctOrder.length} correct
+        </Badge>
       </div>
+
+      {instruction && (
+        <p className="text-sm text-muted-foreground italic">{instruction}</p>
+      )}
+
+      {/* Side-by-side comparison */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Student Order</p>
+          <div className="grid gap-1.5">
+            {studentOrder.map((itemId: string, idx: number) => {
+              const item = itemMap[itemId];
+              const isCorrectPosition = correctOrder[idx] === itemId;
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    "flex items-center gap-2 p-2.5 rounded-lg border text-sm",
+                    isCorrectPosition
+                      ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                      : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                  )}
+                >
+                  <span className="text-xs font-bold text-muted-foreground w-5">{idx + 1}.</span>
+                  {isCorrectPosition ? <CheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />}
+                  <span className="flex-1">{item?.content || itemId}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {mode === 'admin-review' && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Correct Order</p>
+            <div className="grid gap-1.5">
+              {correctOrder.map((itemId: string, idx: number) => {
+                const item = itemMap[itemId];
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 p-2.5 rounded-lg border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/10 text-sm"
+                  >
+                    <span className="text-xs font-bold text-muted-foreground w-5">{idx + 1}.</span>
+                    <CheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                    <span className="flex-1">{item?.content || itemId}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {config?.explanation && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Explanation</p>
+          <p className="text-sm">{config.explanation}</p>
+        </div>
+      )}
+      {config?.evaluationNotes && mode === 'admin-review' && (
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Evaluation Notes</p>
+          <p className="text-sm">{config.evaluationNotes}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -724,7 +794,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
     case 'drag_drop':
       return <DragDropReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'arrange_order':
-      return <ArrangeOrderReview config={config} studentAnswer={parsed} />;
+      return <ArrangeOrderReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'multiple_choice':
       return <MCQReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'table_input':

@@ -11,6 +11,7 @@ import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZ
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
 import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
+import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
@@ -83,6 +84,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             } else if (v === 'drag_drop') {
               updates.answerBlockConfig = createDefaultDragDropConfig();
               updates.answerKey = '';
+            } else if (v === 'arrange_order') {
+              updates.answerBlockConfig = createDefaultArrangeOrderConfig();
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
@@ -124,6 +128,14 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
         <DragDropMatchingEditor
           config={{
             ...createDefaultDragDropConfig(),
+            ...(subQuestion.answerBlockConfig || {}),
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+        />
+      ) : subQuestion.answerBlockType === 'arrange_order' ? (
+        <ArrangeOrderEditor
+          config={{
+            ...createDefaultArrangeOrderConfig(),
             ...(subQuestion.answerBlockConfig || {}),
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
