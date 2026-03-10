@@ -145,6 +145,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 } else if (v === 'graph_plot') {
                   updates.answerBlockConfig = createDefaultGraphPlotConfig();
                   updates.answerKey = '';
+                } else if (v === 'drag_drop') {
+                  updates.answerBlockConfig = createDefaultDragDropConfig();
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
