@@ -88,6 +88,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             } else if (v === 'arrange_order') {
               updates.answerBlockConfig = createDefaultArrangeOrderConfig();
               updates.answerKey = '';
+            } else if (v === 'smart_math') {
+              updates.answerBlockConfig = createDefaultSmartMathConfig();
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
