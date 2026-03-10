@@ -174,6 +174,14 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
             />
+          ) : !hasSubs && group.answerBlockType === 'graph_plot' ? (
+            <GraphPlotConfigEditor
+              config={{
+                ...createDefaultGraphPlotConfig(),
+                ...(group.answerBlockConfig || {}),
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+            />
           ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
