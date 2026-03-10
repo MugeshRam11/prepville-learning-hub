@@ -615,12 +615,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
     case 'table_input':
       return <TableInputReview config={config} studentAnswer={parsed} />;
     case 'graph_plot':
-      return (
-        <div className="space-y-2 border rounded-xl p-4 bg-background">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">📊 Graph Answer</span>
-          <FallbackJsonView data={parsed} />
-        </div>
-      );
+      return <GraphPlotReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'text_equation':
     case 'smart_math':
     default: {
