@@ -141,6 +141,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 } else if (v === 'multiple_choice') {
                   updates.answerBlockConfig = createDefaultMCQConfig();
                   updates.answerKey = '';
+                } else if (v === 'graph_plot') {
+                  updates.answerBlockConfig = createDefaultGraphPlotConfig();
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
