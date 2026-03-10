@@ -37,7 +37,7 @@ const detectAnswerType = (answerBlockType: string, config: any, parsedAnswer: an
   // Try to detect from config
   if (config) {
     if (config.dropZones || config.zones || config.draggableLabels || config.elements) return 'image_drop';
-    if (config.items && config.targets) return 'drag_drop';
+    if ((config.items && config.targets) || (config.sourceItems && config.targetItems)) return 'drag_drop';
     if (config.options) return 'multiple_choice';
     if (config.headers && config.rows) return 'table_input';
     if (config.items && !config.targets) return 'arrange_order';
