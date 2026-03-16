@@ -41,3 +41,12 @@ verify_jwt = true
 
 [functions.ai-feedback]
 verify_jwt = true
+
+[functions.submit-mock-test]
+verify_jwt = true
+
+[functions.save-admin-evaluation]
+verify_jwt = true
+
+[functions.publish-evaluation]
+verify_jwt = true
