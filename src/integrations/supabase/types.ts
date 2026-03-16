@@ -314,6 +314,80 @@ export type Database = {
         }
         Relationships: []
       }
+      evaluation_items: {
+        Row: {
+          ai_suggestions: Json | null
+          attempt_id: string
+          created_at: string | null
+          evaluation_id: string
+          feedback: string | null
+          id: string
+          marks_awarded: number | null
+          question_id: string | null
+          reviewed_by: string | null
+          sub_question_id: string | null
+          suggestions: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_suggestions?: Json | null
+          attempt_id: string
+          created_at?: string | null
+          evaluation_id: string
+          feedback?: string | null
+          id?: string
+          marks_awarded?: number | null
+          question_id?: string | null
+          reviewed_by?: string | null
+          sub_question_id?: string | null
+          suggestions?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_suggestions?: Json | null
+          attempt_id?: string
+          created_at?: string | null
+          evaluation_id?: string
+          feedback?: string | null
+          id?: string
+          marks_awarded?: number | null
+          question_id?: string | null
+          reviewed_by?: string | null
+          sub_question_id?: string | null
+          suggestions?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_items_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "test_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_items_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "exam_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_items_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "mock_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_items_sub_question_id_fkey"
+            columns: ["sub_question_id"]
+            isOneToOne: false
+            referencedRelation: "mock_sub_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluation_training_data: {
         Row: {
           ai_feedback: string | null
