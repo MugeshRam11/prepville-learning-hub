@@ -6,10 +6,20 @@ import 'katex/dist/katex.min.css';
  * Render text containing LaTeX math expressions.
  * Supports:
  * - HTML with data-latex / data-math-latex attributes
- * - $$...$$ block math
- * - $...$ inline math
+ * - \[...\] and $$...$$ block math
+ * - \(...\) and $...$ inline math
  * - Markdown bold and line breaks
  */
+
+// Pre-process \(...\) and \[...\] into $...$ and $$...$$ for unified handling
+const normalizeDelimiters = (text: string): string => {
+  // \[...\] → $$...$$  (block)
+  text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => `$$${inner}$$`);
+  // \(...\) → $...$  (inline)
+  text = text.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => `$${inner}$`);
+  return text;
+};
+
 export const renderLatexContent = (text: string): React.ReactNode => {
   if (!text) return null;
 
@@ -37,8 +47,11 @@ export const renderLatexContent = (text: string): React.ReactNode => {
     return <span dangerouslySetInnerHTML={{ __html: container.innerHTML }} />;
   }
 
+  // Normalize \(...\) and \[...\] to $ and $$
+  const normalized = normalizeDelimiters(text);
+
   // Split on $$...$$ (block) and $...$ (inline)
-  const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
+  const parts = normalized.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$)/g);
 
   return parts.map((part, index) => {
     if (part.startsWith('$$') && part.endsWith('$$')) {
@@ -58,7 +71,7 @@ export const renderLatexContent = (text: string): React.ReactNode => {
       }
     }
 
-    if (part.startsWith('$') && part.endsWith('$')) {
+    if (part.startsWith('$') && part.endsWith('$') && part.length > 2) {
       const latex = part.slice(1, -1);
       try {
         return (
