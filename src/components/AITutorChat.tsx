@@ -255,7 +255,7 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
                     }`}
                   >
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {renderMathText(msg.content)}
+                      {renderLatexContent(msg.content)}
                     </div>
                   </motion.div>
                   
