@@ -30,7 +30,7 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
   onDelete,
 }) => {
   return (
-    <div className="ml-6 border-l-2 border-primary/30 pl-4 py-3 space-y-3 group relative">
+    <div id={`sub-question-${subQuestion.id}`} className="ml-6 border-l-2 border-primary/30 pl-4 py-3 space-y-3 group relative">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" />
