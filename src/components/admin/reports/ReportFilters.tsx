@@ -46,9 +46,9 @@ const ReportFilters: React.FC<Props> = ({
       <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
     </Button>
 
-    <Button onClick={onExportPDF} disabled={loading}>
+    <Button onClick={onExportPDF} disabled={loading} className="bg-primary hover:bg-primary/90">
       <Download className="w-4 h-4 mr-2" />
-      Export PDF
+      Download PDF Report
     </Button>
   </div>
 );

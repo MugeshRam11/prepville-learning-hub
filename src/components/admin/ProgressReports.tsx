@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import html2canvas from 'html2canvas';
 import ReportOverviewCards from './reports/ReportOverviewCards';
 import ReportCharts from './reports/ReportCharts';
 import ReportFilters from './reports/ReportFilters';
@@ -14,6 +13,8 @@ import {
   type SubjectDistribution,
   type ScoreDistribution,
 } from '@/services/reportsService';
+import { fetchStudentPerformance } from '@/services/studentPerformanceService';
+import { generateReportPDF, type StudentPerformance } from '@/services/reportsPdfGenerator';
 
 const ProgressReports = () => {
   const [period, setPeriod] = useState('7days');
@@ -23,22 +24,25 @@ const ProgressReports = () => {
   const [topicPerf, setTopicPerf] = useState<TopicPerformance[]>([]);
   const [subjectDist, setSubjectDist] = useState<SubjectDistribution[]>([]);
   const [scoreDist, setScoreDist] = useState<ScoreDistribution[]>([]);
+  const [students, setStudents] = useState<StudentPerformance[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const subFilter = subject !== 'all' ? subject : undefined;
-      const [s, tp, sd, sc] = await Promise.all([
+      const [s, tp, sd, sc, st] = await Promise.all([
         fetchOverviewStats(period, subFilter),
         fetchTopicPerformance(period, subFilter),
         fetchSubjectDistribution(period),
         fetchScoreDistribution(period, subFilter),
+        fetchStudentPerformance(period, subFilter),
       ]);
       setStats(s);
       setTopicPerf(tp);
       setSubjectDist(sd);
       setScoreDist(sc);
+      setStudents(st);
     } catch (err) {
       console.error('Report fetch error:', err);
       toast.error('Failed to load report data');
@@ -51,22 +55,21 @@ const ProgressReports = () => {
     loadData();
   }, [loadData]);
 
-  const exportPDF = async () => {
-    if (!reportRef.current) return;
-    toast.info('Generating PDF...');
+  const exportPDF = () => {
+    toast.info('Generating PDF report...');
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
+      generateReportPDF({
+        period,
+        subject,
+        stats,
+        topicPerformance: topicPerf,
+        subjectDistribution: subjectDist,
+        scoreDistribution: scoreDist,
+        students,
       });
-      const link = document.createElement('a');
-      link.download = `PrepVille_Report_${period}_${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      toast.success('Report exported successfully');
+      toast.success('PDF report downloaded successfully');
     } catch {
-      toast.error('Export failed');
+      toast.error('PDF export failed');
     }
   };
 
@@ -91,7 +94,6 @@ const ProgressReports = () => {
       </div>
 
       <div ref={reportRef} className="space-y-6">
-        {/* Period badge */}
         <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
           📊 {periodLabel} {subject !== 'all' && `• ${subject.replace(/\b\w/g, c => c.toUpperCase())}`}
         </div>
