@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles, ChevronDown } from 'lucide-react';
+import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles, ChevronDown, Archive, ArchiveRestore } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
@@ -21,6 +21,7 @@ const AdminMockTests = () => {
   const [loading, setLoading] = useState(true);
   const [showAIUpload, setShowAIUpload] = useState(false);
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   useEffect(() => {
     fetchMockTests();
 
@@ -48,18 +49,17 @@ const AdminMockTests = () => {
       supabase.removeChannel(mockTestsChannel);
       supabase.removeChannel(mockQuestionsChannel);
     };
-  }, []);
+  }, [showArchived]);
   useEffect(() => {
     filterTests();
   }, [mockTests, searchTerm, subjectFilter]);
   const fetchMockTests = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('mock_tests').select('*').order('created_at', {
-        ascending: false
-      });
+      const { data, error } = await supabase
+        .from('mock_tests')
+        .select('*')
+        .eq('is_archived', showArchived)
+        .order('created_at', { ascending: false });
       if (error) throw error;
       setMockTests(data || []);
     } catch (error) {
@@ -79,47 +79,78 @@ const AdminMockTests = () => {
     }
     setFilteredTests(filtered);
   };
-  const handleDelete = async testId => {
-    if (!confirm('Are you sure you want to delete this mock test? This will also delete all related submissions and evaluations. This action cannot be undone.')) return;
+  const handleDelete = async (testId: string) => {
     try {
-      // Delete dependent rows first to avoid foreign key violations
-      const { data: attempts } = await supabase
+      // Check if this test has any student attempts
+      const { data: attempts, error: attemptCheckError } = await supabase
         .from('test_attempts')
         .select('id')
-        .eq('test_id', testId);
+        .eq('test_id', testId)
+        .limit(1);
 
-      if (attempts && attempts.length > 0) {
-        const attemptIds = attempts.map(a => a.id);
-
-        const { data: evaluations } = await supabase
-          .from('exam_evaluations')
-          .select('id')
-          .in('test_attempt_id', attemptIds);
-
-        if (evaluations && evaluations.length > 0) {
-          const evalIds = evaluations.map(e => e.id);
-          await supabase.from('evaluation_items').delete().in('evaluation_id', evalIds);
-          await supabase.from('evaluation_training_data').delete().in('evaluation_id', evalIds);
-          await supabase.from('exam_evaluations').delete().in('test_attempt_id', attemptIds);
-        }
-
-        await supabase.from('user_answers').delete().in('attempt_id', attemptIds);
-        await supabase.from('test_attempts').delete().eq('test_id', testId);
+      if (attemptCheckError) {
+        toast.error(`Cannot check test usage: ${attemptCheckError.message}`);
+        return;
       }
 
-      await supabase.from('exam_sessions').delete().eq('test_id', testId);
-      await supabase.from('admin_exam_actions').delete().eq('test_id', testId);
+      if (attempts && attempts.length > 0) {
+        toast.error(
+          'This mock test has student submissions and cannot be deleted. Use "Archive" to hide it instead.',
+          { duration: 6000 }
+        );
+        return;
+      }
 
+      if (!confirm('This mock test has no student submissions. Delete it permanently?')) return;
+
+      // Safe to delete — remove child records in correct order
+      const { error: sessErr } = await supabase.from('exam_sessions').delete().eq('test_id', testId);
+      if (sessErr) {
+        toast.error(`Failed to clean exam sessions: ${sessErr.message}`);
+        return;
+      }
+
+      const { error: actErr } = await supabase.from('admin_exam_actions').delete().eq('test_id', testId);
+      if (actErr) {
+        toast.error(`Failed to clean admin actions: ${actErr.message}`);
+        return;
+      }
+
+      // Delete the mock test (cascades to mock_questions → mock_sub_questions, mock_test_sections)
       const { error } = await supabase.from('mock_tests').delete().eq('id', testId);
-      if (error) throw error;
+      if (error) {
+        toast.error(`Delete failed: ${error.message}`);
+        return;
+      }
 
       toast.success('Mock test deleted successfully');
       fetchMockTests();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting mock test:', error);
-      toast.error('Failed to delete mock test');
+      toast.error(`Unexpected error: ${error?.message || 'Failed to delete mock test'}`);
     }
   };
+
+  const handleArchive = async (testId: string, currentlyArchived: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('mock_tests')
+        .update({ is_archived: !currentlyArchived, is_published: false })
+        .eq('id', testId);
+
+      if (error) {
+        toast.error(`Archive failed: ${error.message}`);
+        return;
+      }
+
+      toast.success(currentlyArchived ? 'Mock test restored from archive' : 'Mock test archived successfully');
+      fetchMockTests();
+    } catch (error: any) {
+      console.error('Error archiving mock test:', error);
+      toast.error(`Unexpected error: ${error?.message || 'Failed to archive'}`);
+    }
+  };
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedTests(filteredTests.map(test => test.id));
@@ -136,18 +167,46 @@ const AdminMockTests = () => {
   };
   const handleDeleteSelected = async () => {
     if (selectedTests.length === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedTests.length} mock test(s)? This action cannot be undone.`)) return;
+
+    const { data: attemptTests } = await supabase
+      .from('test_attempts')
+      .select('test_id')
+      .in('test_id', selectedTests);
+
+    const testsWithAttempts = new Set((attemptTests || []).map(a => a.test_id));
+    const safeToDelete = selectedTests.filter(id => !testsWithAttempts.has(id));
+    const blocked = selectedTests.filter(id => testsWithAttempts.has(id));
+
+    if (blocked.length > 0 && safeToDelete.length === 0) {
+      toast.error(`All ${blocked.length} selected test(s) have student submissions and cannot be deleted. Archive them instead.`, { duration: 6000 });
+      return;
+    }
+
+    const msg = blocked.length > 0
+      ? `${safeToDelete.length} test(s) can be deleted. ${blocked.length} test(s) have submissions and will be skipped. Continue?`
+      : `Delete ${safeToDelete.length} mock test(s)? This cannot be undone.`;
+
+    if (!confirm(msg)) return;
+
     try {
-      const {
-        error
-      } = await supabase.from('mock_tests').delete().in('id', selectedTests);
-      if (error) throw error;
-      toast.success(`${selectedTests.length} mock test(s) deleted successfully`);
+      await supabase.from('exam_sessions').delete().in('test_id', safeToDelete);
+      await supabase.from('admin_exam_actions').delete().in('test_id', safeToDelete);
+
+      const { error } = await supabase.from('mock_tests').delete().in('id', safeToDelete);
+      if (error) {
+        toast.error(`Bulk delete failed: ${error.message}`);
+        return;
+      }
+
+      const message = blocked.length > 0
+        ? `${safeToDelete.length} test(s) deleted. ${blocked.length} skipped (have submissions).`
+        : `${safeToDelete.length} mock test(s) deleted successfully`;
+      toast.success(message);
       setSelectedTests([]);
       fetchMockTests();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting mock tests:', error);
-      toast.error('Failed to delete mock tests');
+      toast.error(`Unexpected error: ${error?.message || 'Failed to delete mock tests'}`);
     }
   };
   const togglePublished = async (testId, currentStatus) => {
@@ -213,8 +272,12 @@ const AdminMockTests = () => {
           <div className="px-8 py-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Mock Tests Management</h1>
-                <p className="text-gray-600 mt-1">Create and manage mock examination content</p>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {showArchived ? 'Archived Mock Tests' : 'Mock Tests Management'}
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  {showArchived ? 'View and restore archived mock tests' : 'Create and manage mock examination content'}
+                </p>
               </div>
               <div className="flex gap-3">
                 {selectedTests.length > 0 && <Button onClick={handleDeleteSelected} variant="outline" className="border-red-600 text-red-600 hover:bg-red-50">
@@ -225,6 +288,10 @@ const AdminMockTests = () => {
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Publish All ({mockTests.filter(t => !t.is_published).length})
                   </Button>}
+                <Button onClick={() => { setShowArchived(!showArchived); setSelectedTests([]); }} variant="outline" className={showArchived ? "border-amber-600 text-amber-600 hover:bg-amber-50" : "border-gray-300 hover:bg-gray-50"}>
+                    <Archive className="w-4 h-4 mr-2" />
+                    {showArchived ? 'Show Active' : 'Show Archived'}
+                  </Button>
                 
                 <Button onClick={() => navigate('/admin/mock-tests/create')} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
@@ -378,11 +445,22 @@ const AdminMockTests = () => {
                         <Eye className="w-4 h-4 mr-1" />
                         View
                       </Button>
-                      <Button onClick={() => navigate(`/admin/mock-tests/edit/${test.id}`)} variant="outline" size="sm" className="flex-1 border-gray-300 hover:bg-gray-50">
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
+                      {!test.is_archived && (
+                        <Button onClick={() => navigate(`/admin/mock-tests/edit/${test.id}`)} variant="outline" size="sm" className="flex-1 border-gray-300 hover:bg-gray-50">
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => handleArchive(test.id, test.is_archived)}
+                        variant="outline"
+                        size="sm"
+                        className={test.is_archived ? "border-green-300 text-green-600 hover:bg-green-50" : "border-amber-300 text-amber-600 hover:bg-amber-50"}
+                        title={test.is_archived ? "Restore from archive" : "Archive this test"}
+                      >
+                        {test.is_archived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                       </Button>
-                      <Button onClick={() => handleDelete(test.id)} variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
+                      <Button onClick={() => handleDelete(test.id)} variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50" title="Delete permanently">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
