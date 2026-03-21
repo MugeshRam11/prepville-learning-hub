@@ -980,6 +980,7 @@ export type Database = {
           exam_state: Database["public"]["Enums"]["exam_state"] | null
           exam_type: Database["public"]["Enums"]["exam_type"] | null
           id: string
+          is_archived: boolean
           is_published: boolean
           subject: Database["public"]["Enums"]["test_subject"]
           time_limit_minutes: number | null
@@ -997,6 +998,7 @@ export type Database = {
           exam_state?: Database["public"]["Enums"]["exam_state"] | null
           exam_type?: Database["public"]["Enums"]["exam_type"] | null
           id?: string
+          is_archived?: boolean
           is_published?: boolean
           subject: Database["public"]["Enums"]["test_subject"]
           time_limit_minutes?: number | null
@@ -1014,6 +1016,7 @@ export type Database = {
           exam_state?: Database["public"]["Enums"]["exam_state"] | null
           exam_type?: Database["public"]["Enums"]["exam_type"] | null
           id?: string
+          is_archived?: boolean
           is_published?: boolean
           subject?: Database["public"]["Enums"]["test_subject"]
           time_limit_minutes?: number | null
