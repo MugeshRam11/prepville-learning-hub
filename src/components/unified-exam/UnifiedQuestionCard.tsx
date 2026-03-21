@@ -8,6 +8,34 @@ import AnswerBlock from './AnswerBlock';
 import InteractiveAnswerBlock from './InteractiveAnswerBlock';
 import { renderLatexContent } from '@/lib/renderLatex';
 
+interface UnifiedQuestionCardProps {
+  question: UnifiedQuestion;
+  answers: UnifiedAnswer[];
+  onAnswerChange: (questionId: string, value: any, subQuestionId?: string) => void;
+  interactiveMode?: boolean;
+}
+
+function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undefined {
+  if (!interactiveType) return undefined;
+  const typeMap: Record<string, AnswerBlockType> = {
+    'graph_interaction': 'graph_plot',
+    'graph_plot': 'graph_plot',
+    'drag_drop_match': 'drag_drop',
+    'drag_drop': 'drag_drop',
+    'image_drop_zone': 'image_drop',
+    'image_drop': 'image_drop',
+    'step_builder': 'arrange_order',
+    'arrange_order': 'arrange_order',
+    'math_input': 'smart_math',
+    'smart_math': 'smart_math',
+    'text_input': 'text_equation',
+    'text_equation': 'text_equation',
+    'multiple_choice': 'multiple_choice'
+  };
+  return typeMap[interactiveType] || 'text_equation';
+}
+
+
 const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
   question,
   answers,
