@@ -80,12 +80,39 @@ const AdminMockTests = () => {
     setFilteredTests(filtered);
   };
   const handleDelete = async testId => {
-    if (!confirm('Are you sure you want to delete this mock test? This action cannot be undone.')) return;
+    if (!confirm('Are you sure you want to delete this mock test? This will also delete all related submissions and evaluations. This action cannot be undone.')) return;
     try {
-      const {
-        error
-      } = await supabase.from('mock_tests').delete().eq('id', testId);
+      // Delete dependent rows first to avoid foreign key violations
+      const { data: attempts } = await supabase
+        .from('test_attempts')
+        .select('id')
+        .eq('test_id', testId);
+
+      if (attempts && attempts.length > 0) {
+        const attemptIds = attempts.map(a => a.id);
+
+        const { data: evaluations } = await supabase
+          .from('exam_evaluations')
+          .select('id')
+          .in('test_attempt_id', attemptIds);
+
+        if (evaluations && evaluations.length > 0) {
+          const evalIds = evaluations.map(e => e.id);
+          await supabase.from('evaluation_items').delete().in('evaluation_id', evalIds);
+          await supabase.from('evaluation_training_data').delete().in('evaluation_id', evalIds);
+          await supabase.from('exam_evaluations').delete().in('test_attempt_id', attemptIds);
+        }
+
+        await supabase.from('user_answers').delete().in('attempt_id', attemptIds);
+        await supabase.from('test_attempts').delete().eq('test_id', testId);
+      }
+
+      await supabase.from('exam_sessions').delete().eq('test_id', testId);
+      await supabase.from('admin_exam_actions').delete().eq('test_id', testId);
+
+      const { error } = await supabase.from('mock_tests').delete().eq('id', testId);
       if (error) throw error;
+
       toast.success('Mock test deleted successfully');
       fetchMockTests();
     } catch (error) {
