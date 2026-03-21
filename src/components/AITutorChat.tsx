@@ -329,6 +329,7 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
+                      onPaste={handlePaste}
                       placeholder="Ask your question..."
                       className="min-h-[50px] max-h-[100px] resize-none pr-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-colors"
                     />
