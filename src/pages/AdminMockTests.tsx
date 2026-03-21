@@ -55,12 +55,11 @@ const AdminMockTests = () => {
   }, [mockTests, searchTerm, subjectFilter]);
   const fetchMockTests = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('mock_tests').select('*').order('created_at', {
-        ascending: false
-      });
+      const { data, error } = await supabase
+        .from('mock_tests')
+        .select('*')
+        .eq('is_archived', showArchived)
+        .order('created_at', { ascending: false });
       if (error) throw error;
       setMockTests(data || []);
     } catch (error) {
