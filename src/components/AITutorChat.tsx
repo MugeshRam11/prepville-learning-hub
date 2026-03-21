@@ -219,17 +219,33 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
             </div>
           </div>
           
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              setIsExpanded(false);
-              setShowMathEditor(false);
-            }}
-            className="relative w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-          >
-            <X className="w-4 h-4 text-white" />
-          </motion.button>
+          <div className="relative flex items-center gap-1">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="relative w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4 text-white" />
+              ) : (
+                <Maximize2 className="w-4 h-4 text-white" />
+              )}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                setIsExpanded(false);
+                setShowMathEditor(false);
+                setIsFullscreen(false);
+              }}
+              className="relative w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-white" />
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Messages */}
