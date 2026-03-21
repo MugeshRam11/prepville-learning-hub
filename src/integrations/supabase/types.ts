@@ -1062,6 +1062,39 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_verifications: {
+        Row: {
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          is_verified: boolean | null
+          otp_code: string
+          otp_type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          is_verified?: boolean | null
+          otp_code: string
+          otp_type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          is_verified?: boolean | null
+          otp_code?: string
+          otp_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_emoji: string | null
@@ -1072,11 +1105,20 @@ export type Database = {
           email: string
           first_name: string | null
           id: string
+          institution_name: string | null
           is_active: boolean | null
           last_name: string | null
+          onboarding_completed: boolean | null
+          parent_email: string | null
+          parent_email_verified: boolean | null
+          parent_name: string | null
+          parent_phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           roll_number: string | null
+          signup_method: string | null
+          student_email_verified: boolean | null
           student_id: string | null
+          student_phone: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1088,11 +1130,20 @@ export type Database = {
           email: string
           first_name?: string | null
           id: string
+          institution_name?: string | null
           is_active?: boolean | null
           last_name?: string | null
+          onboarding_completed?: boolean | null
+          parent_email?: string | null
+          parent_email_verified?: boolean | null
+          parent_name?: string | null
+          parent_phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           roll_number?: string | null
+          signup_method?: string | null
+          student_email_verified?: boolean | null
           student_id?: string | null
+          student_phone?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1104,11 +1155,20 @@ export type Database = {
           email?: string
           first_name?: string | null
           id?: string
+          institution_name?: string | null
           is_active?: boolean | null
           last_name?: string | null
+          onboarding_completed?: boolean | null
+          parent_email?: string | null
+          parent_email_verified?: boolean | null
+          parent_name?: string | null
+          parent_phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           roll_number?: string | null
+          signup_method?: string | null
+          student_email_verified?: boolean | null
           student_id?: string | null
+          student_phone?: string | null
           updated_at?: string | null
         }
         Relationships: []
