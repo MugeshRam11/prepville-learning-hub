@@ -24,6 +24,7 @@ import StudyMaterialReader from "./pages/StudyMaterialReader";
 import Pricing from "./pages/Pricing";
 import Subscription from "./pages/Subscription";
 import Auth from "./pages/Auth";
+import Onboarding from "./pages/Onboarding";
 import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
