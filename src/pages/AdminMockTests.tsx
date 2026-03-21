@@ -284,6 +284,10 @@ const AdminMockTests = () => {
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Publish All ({mockTests.filter(t => !t.is_published).length})
                   </Button>}
+                <Button onClick={() => { setShowArchived(!showArchived); setSelectedTests([]); }} variant="outline" className={showArchived ? "border-amber-600 text-amber-600 hover:bg-amber-50" : "border-gray-300 hover:bg-gray-50"}>
+                    <Archive className="w-4 h-4 mr-2" />
+                    {showArchived ? 'Show Active' : 'Show Archived'}
+                  </Button>
                 
                 <Button onClick={() => navigate('/admin/mock-tests/create')} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
