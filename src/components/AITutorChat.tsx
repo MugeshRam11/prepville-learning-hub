@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Send, Loader2, MessageSquare, Calculator } from 'lucide-react';
+import { X, Send, Loader2, MessageSquare, Calculator, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useChatbot } from '@/contexts/ChatbotContext';
@@ -30,6 +30,7 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMathEditor, setShowMathEditor] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -192,7 +193,11 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="fixed bottom-6 right-6 w-[380px] max-h-[85vh] bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
+        className={`fixed z-50 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
+          isFullscreen
+            ? 'inset-0 rounded-none max-h-screen'
+            : 'bottom-6 right-6 w-[380px] max-h-[85vh] rounded-2xl'
+        }`}
       >
         {/* Header with gradient */}
         <motion.div 
@@ -214,17 +219,33 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
             </div>
           </div>
           
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              setIsExpanded(false);
-              setShowMathEditor(false);
-            }}
-            className="relative w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-          >
-            <X className="w-4 h-4 text-white" />
-          </motion.button>
+          <div className="relative flex items-center gap-1">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="relative w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4 text-white" />
+              ) : (
+                <Maximize2 className="w-4 h-4 text-white" />
+              )}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                setIsExpanded(false);
+                setShowMathEditor(false);
+                setIsFullscreen(false);
+              }}
+              className="relative w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-white" />
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Messages */}
