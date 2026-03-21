@@ -43,6 +43,7 @@ interface SubjectQuestion {
   tags?: string[];
   is_published: boolean;
   created_at: string;
+  source?: 'subject_questions' | 'quick_test';
 }
 
 const SUBJECTS = [
@@ -93,13 +94,76 @@ const SubjectQuestionManager = () => {
 
   const fetchQuestions = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch from subject_questions (primary source)
+      const { data: subjectQuestionsData, error: sqError } = await supabase
         .from('subject_questions')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setQuestions(data || []);
+      if (sqError) throw sqError;
+
+      // Also fetch from questions/tests (quick_test type) — same source student /practice reads
+      const { data: quickTestQuestions, error: qtError } = await supabase
+        .from('questions')
+        .select(`
+          id, 
+          question_text, 
+          question_image_url,
+          difficulty_level,
+          correct_answer,
+          explanation,
+          option_a,
+          option_b,
+          option_c,
+          option_d,
+          created_at,
+          tests!inner (
+            id,
+            title,
+            test_type,
+            is_active
+          )
+        `)
+        .eq('tests.test_type', 'quick_test')
+        .eq('tests.is_active', true);
+
+      if (qtError) {
+        console.error('Error fetching quick test questions:', qtError);
+      }
+
+      // Map subject_questions
+      const sqMapped: SubjectQuestion[] = (subjectQuestionsData || []).map(q => ({
+        ...q,
+        source: 'subject_questions' as const
+      }));
+
+      // Map quick_test questions to same interface
+      const qtMapped: SubjectQuestion[] = (quickTestQuestions || []).map(q => ({
+        id: q.id,
+        title: q.tests?.title || 'Practice Question',
+        question_text: q.question_text,
+        question_image_url: q.question_image_url || undefined,
+        subject: 'quick_test',
+        topic: 'Practice-QA',
+        level: 'General',
+        difficulty: q.difficulty_level || 'Medium',
+        answer_key: q.correct_answer || '',
+        explanation: q.explanation || undefined,
+        hints: undefined,
+        tags: undefined,
+        is_published: true,
+        created_at: q.created_at || new Date().toISOString(),
+        source: 'quick_test' as const
+      }));
+
+      // Combine, avoiding duplicates
+      const existingIds = new Set(sqMapped.map(q => q.id));
+      const combined = [
+        ...sqMapped,
+        ...qtMapped.filter(q => !existingIds.has(q.id))
+      ];
+
+      setQuestions(combined);
     } catch (error) {
       console.error('Error fetching questions:', error);
       toast({
@@ -781,33 +845,50 @@ const SubjectQuestionManager = () => {
                   </Badge>
                 </div>
 
+                {/* Source Badge */}
+                {question.source === 'quick_test' && (
+                  <div className="mb-4 pb-2 border-b border-dashed border-amber-200">
+                    <Badge className="bg-amber-100 text-amber-700 text-xs">
+                      From Quick Test
+                    </Badge>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleEdit(question)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-gray-300 hover:bg-gray-50"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => togglePublished(question.id, question.is_published)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-gray-300 hover:bg-gray-50"
-                  >
-                    {question.is_published ? 'Unpublish' : 'Publish'}
-                  </Button>
-                  <Button
-                    onClick={() => deleteQuestion(question.id)}
-                    variant="outline"
-                    size="sm"
-                    className="border-red-300 text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {question.source !== 'quick_test' ? (
+                    <>
+                      <Button
+                        onClick={() => handleEdit(question)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-gray-300 hover:bg-gray-50"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => togglePublished(question.id, question.is_published)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-gray-300 hover:bg-gray-50"
+                      >
+                        {question.is_published ? 'Unpublish' : 'Publish'}
+                      </Button>
+                      <Button
+                        onClick={() => deleteQuestion(question.id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      Managed via Quick Tests — edit from original test
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
