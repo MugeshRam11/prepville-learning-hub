@@ -427,7 +427,7 @@ const Onboarding = () => {
                     <Crown className="w-5 h-5 text-yellow-500" />
                     <h3 className="font-semibold">Pro</h3>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">2 Months Free</Badge>
+                  <Badge variant="secondary">2 Months Free</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">Mathematics • All features unlocked</p>
                 <ul className="text-xs text-muted-foreground mt-2 space-y-1">
