@@ -187,7 +187,7 @@ export async function fetchScoreDistribution(period: string, subjectFilter?: str
 
   let filtered = attempts;
   if (subjectFilter && subjectFilter !== 'all') {
-    const { data: tests } = await supabase.from('mock_tests').select('id').eq('subject', subjectFilter);
+    const { data: tests } = await supabase.from('mock_tests').select('id').eq('subject', subjectFilter as TestSubject);
     const testIds = new Set((tests || []).map(t => t.id));
     filtered = filtered.filter(a => testIds.has(a.test_id));
   }
