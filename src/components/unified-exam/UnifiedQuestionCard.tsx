@@ -6,8 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { UnifiedQuestion, UnifiedAnswer, getDefaultAnswerBlockType, AnswerBlockType } from '@/types/answerBlock';
 import AnswerBlock from './AnswerBlock';
 import InteractiveAnswerBlock from './InteractiveAnswerBlock';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { renderLatexContent } from '@/lib/renderLatex';
 
 interface UnifiedQuestionCardProps {
   question: UnifiedQuestion;
@@ -16,10 +15,8 @@ interface UnifiedQuestionCardProps {
   interactiveMode?: boolean;
 }
 
-// Map interactiveType to AnswerBlockType
 function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undefined {
   if (!interactiveType) return undefined;
-  
   const typeMap: Record<string, AnswerBlockType> = {
     'graph_interaction': 'graph_plot',
     'graph_plot': 'graph_plot',
@@ -35,95 +32,9 @@ function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undef
     'text_equation': 'text_equation',
     'multiple_choice': 'multiple_choice'
   };
-  
   return typeMap[interactiveType] || 'text_equation';
 }
 
-// Helper to render LaTeX content - supports $...$ inline, $$...$$ block, 
-// HTML with data-latex spans, and raw LaTeX commands
-const renderLatexContent = (text: string): React.ReactNode => {
-  if (!text) return null;
-
-  // If text contains HTML with data-latex attributes, parse it properly
-  if (text.includes('data-latex')) {
-    const container = document.createElement('div');
-    container.innerHTML = text;
-    
-    // Render all data-latex spans with KaTeX
-    container.querySelectorAll('[data-latex]').forEach((node) => {
-      const latex = (node as HTMLElement).getAttribute('data-latex') || 
-                    (node as HTMLElement).dataset.mathLatex || '';
-      const isBlock = (node as HTMLElement).dataset.display === 'block';
-      try {
-        (node as HTMLElement).innerHTML = katex.renderToString(latex, {
-          throwOnError: false,
-          displayMode: isBlock,
-          trust: true,
-          strict: false
-        });
-      } catch {
-        (node as HTMLElement).textContent = latex;
-      }
-    });
-    
-    return (
-      <span dangerouslySetInnerHTML={{ __html: container.innerHTML }} />
-    );
-  }
-
-  // Split on $$...$$ (block) and $...$ (inline)
-  const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
-  
-  return parts.map((part, index) => {
-    // Block math $$...$$
-    if (part.startsWith('$$') && part.endsWith('$$')) {
-      const latex = part.slice(2, -2);
-      try {
-        return (
-          <div
-            key={index}
-            className="my-2"
-            dangerouslySetInnerHTML={{
-              __html: katex.renderToString(latex, { throwOnError: false, displayMode: true })
-            }}
-          />
-        );
-      } catch {
-        return <div key={index}>{part}</div>;
-      }
-    }
-    // Inline math $...$
-    if (part.startsWith('$') && part.endsWith('$')) {
-      const latex = part.slice(1, -1);
-      try {
-        return (
-          <span
-            key={index}
-            dangerouslySetInnerHTML={{
-              __html: katex.renderToString(latex, { throwOnError: false })
-            }}
-          />
-        );
-      } catch {
-        return <span key={index}>{part}</span>;
-      }
-    }
-    
-    // Handle markdown bold and line breaks in plain text
-    const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
-    return boldParts.map((boldPart, boldIndex) => {
-      if (boldPart.startsWith('**') && boldPart.endsWith('**')) {
-        return <strong key={`${index}-${boldIndex}`}>{boldPart.slice(2, -2)}</strong>;
-      }
-      return boldPart.split('\n').map((line, lineIndex) => (
-        <React.Fragment key={`${index}-${boldIndex}-${lineIndex}`}>
-          {lineIndex > 0 && <br />}
-          {line}
-        </React.Fragment>
-      ));
-    });
-  });
-};
 
 const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
   question,

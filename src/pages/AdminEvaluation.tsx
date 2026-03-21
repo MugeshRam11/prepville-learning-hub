@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { renderLatexContent } from '@/lib/renderLatex';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import EvaluationAnswerRenderer from '@/components/admin/EvaluationAnswerRenderer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -821,7 +822,7 @@ const AdminEvaluation = () => {
                               <p className="font-semibold text-sm">
                                 Q{qNum}{subLabel ? `(${subLabel})` : ''}
                               </p>
-                              <p className="text-sm text-muted-foreground mt-1">{pq.questionText}</p>
+                              <div className="text-sm text-muted-foreground mt-1">{renderLatexContent(pq.questionText)}</div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {selectedEvaluation?.evaluation_status !== 'finalized' ? (
@@ -858,7 +859,7 @@ const AdminEvaluation = () => {
                           {pq.correctAnswer && (
                             <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
                               <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">Reference Answer</p>
-                              <p className="text-sm whitespace-pre-wrap">{pq.correctAnswer}</p>
+                              <div className="text-sm whitespace-pre-wrap">{renderLatexContent(pq.correctAnswer)}</div>
                             </div>
                           )}
 
