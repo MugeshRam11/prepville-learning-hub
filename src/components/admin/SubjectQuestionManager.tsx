@@ -845,33 +845,50 @@ const SubjectQuestionManager = () => {
                   </Badge>
                 </div>
 
+                {/* Source Badge */}
+                {question.source === 'quick_test' && (
+                  <div className="mb-4 pb-2 border-b border-dashed border-amber-200">
+                    <Badge className="bg-amber-100 text-amber-700 text-xs">
+                      From Quick Test
+                    </Badge>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleEdit(question)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-gray-300 hover:bg-gray-50"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => togglePublished(question.id, question.is_published)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-gray-300 hover:bg-gray-50"
-                  >
-                    {question.is_published ? 'Unpublish' : 'Publish'}
-                  </Button>
-                  <Button
-                    onClick={() => deleteQuestion(question.id)}
-                    variant="outline"
-                    size="sm"
-                    className="border-red-300 text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {question.source !== 'quick_test' ? (
+                    <>
+                      <Button
+                        onClick={() => handleEdit(question)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-gray-300 hover:bg-gray-50"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => togglePublished(question.id, question.is_published)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-gray-300 hover:bg-gray-50"
+                      >
+                        {question.is_published ? 'Unpublish' : 'Publish'}
+                      </Button>
+                      <Button
+                        onClick={() => deleteQuestion(question.id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      Managed via Quick Tests — edit from original test
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
