@@ -193,7 +193,11 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="fixed bottom-6 right-6 w-[380px] max-h-[85vh] bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
+        className={`fixed z-50 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
+          isFullscreen
+            ? 'inset-0 rounded-none max-h-screen'
+            : 'bottom-6 right-6 w-[380px] max-h-[85vh] rounded-2xl'
+        }`}
       >
         {/* Header with gradient */}
         <motion.div 
