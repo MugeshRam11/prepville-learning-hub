@@ -39,13 +39,60 @@ function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undef
   return typeMap[interactiveType] || 'text_equation';
 }
 
-// Helper to render LaTeX content
+// Helper to render LaTeX content - supports $...$ inline, $$...$$ block, 
+// HTML with data-latex spans, and raw LaTeX commands
 const renderLatexContent = (text: string): React.ReactNode => {
   if (!text) return null;
 
-  const parts = text.split(/(\$[^$]+\$)/g);
+  // If text contains HTML with data-latex attributes, parse it properly
+  if (text.includes('data-latex')) {
+    const container = document.createElement('div');
+    container.innerHTML = text;
+    
+    // Render all data-latex spans with KaTeX
+    container.querySelectorAll('[data-latex]').forEach((node) => {
+      const latex = (node as HTMLElement).getAttribute('data-latex') || 
+                    (node as HTMLElement).dataset.mathLatex || '';
+      const isBlock = (node as HTMLElement).dataset.display === 'block';
+      try {
+        (node as HTMLElement).innerHTML = katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode: isBlock,
+          trust: true,
+          strict: false
+        });
+      } catch {
+        (node as HTMLElement).textContent = latex;
+      }
+    });
+    
+    return (
+      <span dangerouslySetInnerHTML={{ __html: container.innerHTML }} />
+    );
+  }
+
+  // Split on $$...$$ (block) and $...$ (inline)
+  const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
   
   return parts.map((part, index) => {
+    // Block math $$...$$
+    if (part.startsWith('$$') && part.endsWith('$$')) {
+      const latex = part.slice(2, -2);
+      try {
+        return (
+          <div
+            key={index}
+            className="my-2"
+            dangerouslySetInnerHTML={{
+              __html: katex.renderToString(latex, { throwOnError: false, displayMode: true })
+            }}
+          />
+        );
+      } catch {
+        return <div key={index}>{part}</div>;
+      }
+    }
+    // Inline math $...$
     if (part.startsWith('$') && part.endsWith('$')) {
       const latex = part.slice(1, -1);
       try {
@@ -62,13 +109,12 @@ const renderLatexContent = (text: string): React.ReactNode => {
       }
     }
     
-    // Handle markdown bold
+    // Handle markdown bold and line breaks in plain text
     const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
     return boldParts.map((boldPart, boldIndex) => {
       if (boldPart.startsWith('**') && boldPart.endsWith('**')) {
         return <strong key={`${index}-${boldIndex}`}>{boldPart.slice(2, -2)}</strong>;
       }
-      // Handle line breaks
       return boldPart.split('\n').map((line, lineIndex) => (
         <React.Fragment key={`${index}-${boldIndex}-${lineIndex}`}>
           {lineIndex > 0 && <br />}
