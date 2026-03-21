@@ -281,11 +281,6 @@ const App = () => (
               <AdminSettings />
             </ProtectedRoute>
           } />
-          <Route path="/admin/question-generator" element={
-            <ProtectedRoute>
-              <AdminQuestionGenerator />
-            </ProtectedRoute>
-          } />
           <Route path="/admin/exam-builder" element={
             <ProtectedRoute>
               <AdminExamBuilder />
