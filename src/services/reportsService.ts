@@ -114,7 +114,7 @@ export async function fetchTopicPerformance(period: string, subjectFilter?: stri
 
   let testsQuery = supabase.from('mock_tests').select('id, topic').in('id', testIds.slice(0, 200));
   if (subjectFilter && subjectFilter !== 'all') {
-    testsQuery = testsQuery.eq('subject', subjectFilter);
+    testsQuery = testsQuery.eq('subject', subjectFilter as TestSubject);
   }
   const { data: tests } = await testsQuery;
   if (!tests) return [];
