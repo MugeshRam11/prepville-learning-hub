@@ -30,6 +30,7 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMathEditor, setShowMathEditor] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
