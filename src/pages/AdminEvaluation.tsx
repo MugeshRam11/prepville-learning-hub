@@ -822,7 +822,7 @@ const AdminEvaluation = () => {
                               <p className="font-semibold text-sm">
                                 Q{qNum}{subLabel ? `(${subLabel})` : ''}
                               </p>
-                              <p className="text-sm text-muted-foreground mt-1">{pq.questionText}</p>
+                              <div className="text-sm text-muted-foreground mt-1">{renderLatexContent(pq.questionText)}</div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {selectedEvaluation?.evaluation_status !== 'finalized' ? (
