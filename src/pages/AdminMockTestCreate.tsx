@@ -105,6 +105,13 @@ const AdminMockTestCreate = () => {
 
   // Sub-question operations
   const addSubQuestion = useCallback((sectionId: string, groupId: string) => {
+    const newSub = createSubQuestion(
+      state.sections
+        .find(s => s.id === sectionId)
+        ?.questionGroups.find(g => g.id === groupId)
+        ?.subQuestions.length ?? 0
+    );
+    
     setState(prev => ({
       ...prev,
       sections: prev.sections.map(s =>
@@ -113,14 +120,23 @@ const AdminMockTestCreate = () => {
               ...s,
               questionGroups: s.questionGroups.map(g =>
                 g.id === groupId
-                  ? { ...g, subQuestions: [...g.subQuestions, createSubQuestion(g.subQuestions.length)] }
+                  ? { ...g, subQuestions: [...g.subQuestions, newSub] }
                   : g
               ),
             }
           : s
       ),
     }));
-  }, []);
+
+    // Scroll to the new sub-question after render
+    setTimeout(() => {
+      const el = document.getElementById(`sub-question-${newSub.id}`);
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 100;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }, 150);
+  }, [state.sections]);
 
   const updateSubQuestion = useCallback((sectionId: string, groupId: string, subId: string, updates: Partial<CreatorSubQuestion>) => {
     setState(prev => ({
