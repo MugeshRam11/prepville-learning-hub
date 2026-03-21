@@ -402,7 +402,7 @@ const Onboarding = () => {
                     <Star className="w-5 h-5 text-primary" />
                     <h3 className="font-semibold">Basic</h3>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">2 Months Free</Badge>
+                  <Badge variant="secondary">2 Months Free</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">Mathematics • Essential features</p>
                 <ul className="text-xs text-muted-foreground mt-2 space-y-1">
