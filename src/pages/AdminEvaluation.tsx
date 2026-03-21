@@ -859,7 +859,7 @@ const AdminEvaluation = () => {
                           {pq.correctAnswer && (
                             <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
                               <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">Reference Answer</p>
-                              <p className="text-sm whitespace-pre-wrap">{pq.correctAnswer}</p>
+                              <div className="text-sm whitespace-pre-wrap">{renderLatexContent(pq.correctAnswer)}</div>
                             </div>
                           )}
 
