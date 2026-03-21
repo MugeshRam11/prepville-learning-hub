@@ -94,6 +94,7 @@ const App = () => (
           <Route path="/command-terms" element={<CommandTerms />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           
           {/* Protected routes */}
           <Route path="/dashboard" element={
