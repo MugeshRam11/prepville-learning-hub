@@ -59,7 +59,7 @@ export async function fetchOverviewStats(period: string, subjectFilter?: string)
     const { data: tests } = await supabase
       .from('mock_tests')
       .select('id')
-      .eq('subject', subjectFilter);
+      .eq('subject', subjectFilter as TestSubject);
     const testIds = new Set((tests || []).map(t => t.id));
     filtered = filtered.filter(a => testIds.has(a.test_id));
   }
