@@ -21,6 +21,7 @@ const AdminMockTests = () => {
   const [loading, setLoading] = useState(true);
   const [showAIUpload, setShowAIUpload] = useState(false);
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   useEffect(() => {
     fetchMockTests();
 
