@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles, ChevronDown } from 'lucide-react';
+import { Plus, Search, FileText, Database, Upload, Eye, Edit, Trash2, CheckCircle2, Sparkles, ChevronDown, Archive, ArchiveRestore } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
