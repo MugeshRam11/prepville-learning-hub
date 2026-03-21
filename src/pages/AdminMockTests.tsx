@@ -437,11 +437,22 @@ const AdminMockTests = () => {
                         <Eye className="w-4 h-4 mr-1" />
                         View
                       </Button>
-                      <Button onClick={() => navigate(`/admin/mock-tests/edit/${test.id}`)} variant="outline" size="sm" className="flex-1 border-gray-300 hover:bg-gray-50">
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
+                      {!test.is_archived && (
+                        <Button onClick={() => navigate(`/admin/mock-tests/edit/${test.id}`)} variant="outline" size="sm" className="flex-1 border-gray-300 hover:bg-gray-50">
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => handleArchive(test.id, test.is_archived)}
+                        variant="outline"
+                        size="sm"
+                        className={test.is_archived ? "border-green-300 text-green-600 hover:bg-green-50" : "border-amber-300 text-amber-600 hover:bg-amber-50"}
+                        title={test.is_archived ? "Restore from archive" : "Archive this test"}
+                      >
+                        {test.is_archived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                       </Button>
-                      <Button onClick={() => handleDelete(test.id)} variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
+                      <Button onClick={() => handleDelete(test.id)} variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50" title="Delete permanently">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
