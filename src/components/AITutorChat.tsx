@@ -115,45 +115,31 @@ export const AITutorChat = ({ subject, isOpen, onClose, mode = 'learner' }: AITu
     }
   };
 
-  const renderMathText = (text: string) => {
-    const hasLatex = /\\[a-zA-Z]+/.test(text);
+  // Detect pasted LaTeX and wrap it with $ delimiters for proper rendering
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text/plain');
+    if (!pasted) return;
+
+    // Detect LaTeX patterns: \frac, \sqrt, \int, ^{}, _{}, etc.
+    const latexPattern = /\\(frac|sqrt|int|sum|prod|lim|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|nabla|cdot|times|div|pm|mp|leq|geq|neq|approx|equiv|text|mathbb|mathcal|left|right|begin|end)\b|[_^]\{/;
     
-    if (hasLatex) {
-      try {
-        const html = katex.renderToString(text, {
-          displayMode: false,
-          throwOnError: false,
-          errorColor: '#cc0000',
-          strict: false
-        });
-        return <span dangerouslySetInnerHTML={{ __html: html }} />;
-      } catch (error) {
-        console.error('LaTeX rendering error:', error);
-        return <span className="text-destructive">LaTeX Error: {text}</span>;
-      }
-    } else {
-      const parts = text.split(/(\$[^$]+\$)/g);
+    if (latexPattern.test(pasted)) {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = input.slice(0, start);
+      const after = input.slice(end);
       
-      return parts.map((part, index) => {
-        if (part.startsWith('$') && part.endsWith('$')) {
-          const equation = part.slice(1, -1);
-          try {
-            const html = katex.renderToString(equation, {
-              displayMode: false,
-              throwOnError: false,
-              errorColor: '#cc0000',
-              strict: false
-            });
-            return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
-          } catch (error) {
-            return <span key={index} className="text-destructive">Error: {equation}</span>;
-          }
-        } else {
-          return <span key={index}>{part}</span>;
-        }
-      });
+      // Wrap pasted LaTeX in $ delimiters if not already wrapped
+      const trimmed = pasted.trim();
+      const alreadyWrapped = (trimmed.startsWith('$') && trimmed.endsWith('$')) ||
+                              (trimmed.startsWith('$$') && trimmed.endsWith('$$'));
+      const wrapped = alreadyWrapped ? trimmed : `$${trimmed}$`;
+      
+      setInput(before + wrapped + after);
     }
-  };
+  }, [input]);
 
   // Note: isOpen check is done at top with isChatbotEnabled
 
