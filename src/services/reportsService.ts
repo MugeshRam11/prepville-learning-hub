@@ -1,4 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type TestSubject = Database['public']['Enums']['test_subject'];
 
 export interface DateRange {
   startDate: string;
