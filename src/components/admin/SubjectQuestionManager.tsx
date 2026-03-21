@@ -43,6 +43,7 @@ interface SubjectQuestion {
   tags?: string[];
   is_published: boolean;
   created_at: string;
+  source?: 'subject_questions' | 'quick_test';
 }
 
 const SUBJECTS = [
