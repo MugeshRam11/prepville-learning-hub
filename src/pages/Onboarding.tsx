@@ -424,7 +424,7 @@ const Onboarding = () => {
                 <Badge className="absolute -top-2 right-3 bg-primary">Recommended</Badge>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-yellow-500" />
+                    <Crown className="w-5 h-5 text-accent" />
                     <h3 className="font-semibold">Pro</h3>
                   </div>
                   <Badge variant="secondary">2 Months Free</Badge>
