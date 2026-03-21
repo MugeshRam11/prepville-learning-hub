@@ -49,7 +49,7 @@ const AdminMockTests = () => {
       supabase.removeChannel(mockTestsChannel);
       supabase.removeChannel(mockQuestionsChannel);
     };
-  }, []);
+  }, [showArchived]);
   useEffect(() => {
     filterTests();
   }, [mockTests, searchTerm, subjectFilter]);
