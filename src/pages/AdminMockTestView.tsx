@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Edit, Copy, Trash2, BarChart3 } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import { renderLatexContent } from '@/lib/renderLatex';
 
 const AdminMockTestView = () => {
   const { id } = useParams();
