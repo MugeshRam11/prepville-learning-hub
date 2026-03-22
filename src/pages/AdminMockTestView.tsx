@@ -165,7 +165,7 @@ const AdminMockTestView = () => {
                               </h4>
                               <Badge variant="outline">{subQ.marks} marks</Badge>
                             </div>
-                            <p className="text-muted-foreground text-sm">{subQ.sub_question_text}</p>
+                            <div className="text-muted-foreground text-sm">{renderLatexContent(subQ.sub_question_text)}</div>
                             {subQ.sub_question_image_url && (
                               <div className="my-2">
                                 <img src={subQ.sub_question_image_url} alt="Sub-question image" className="max-w-sm rounded" />
