@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Edit, Copy, Trash2, BarChart3 } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import { renderLatexContent } from '@/lib/renderLatex';
 
 const AdminMockTestView = () => {
   const { id } = useParams();
@@ -131,7 +132,7 @@ const AdminMockTestView = () => {
                         <Badge variant="outline">{question.marks} marks</Badge>
                       </div>
                     </div>
-                    <p className="text-foreground mb-2">{question.question_text}</p>
+                    <div className="text-foreground mb-2 leading-relaxed">{renderLatexContent(question.question_text)}</div>
                     {/* Diagram Description */}
                     {question.diagram_description && (
                       <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
@@ -151,7 +152,7 @@ const AdminMockTestView = () => {
                     )}
                     {question.answer_key && (
                       <div className="bg-primary/10 p-2 rounded">
-                        <strong>Answer:</strong> {question.answer_key}
+                        <strong>Answer:</strong> <span className="inline">{renderLatexContent(question.answer_key)}</span>
                       </div>
                     )}
                     {question.mock_sub_questions && question.mock_sub_questions.length > 0 && (
@@ -164,7 +165,7 @@ const AdminMockTestView = () => {
                               </h4>
                               <Badge variant="outline">{subQ.marks} marks</Badge>
                             </div>
-                            <p className="text-muted-foreground text-sm">{subQ.sub_question_text}</p>
+                            <div className="text-muted-foreground text-sm">{renderLatexContent(subQ.sub_question_text)}</div>
                             {subQ.sub_question_image_url && (
                               <div className="my-2">
                                 <img src={subQ.sub_question_image_url} alt="Sub-question image" className="max-w-sm rounded" />
@@ -172,7 +173,7 @@ const AdminMockTestView = () => {
                             )}
                             {subQ.answer_key && (
                               <div className="bg-primary/10 p-1 rounded text-sm mt-1">
-                                <strong>Answer:</strong> {subQ.answer_key}
+                                <strong>Answer:</strong> <span className="inline">{renderLatexContent(subQ.answer_key)}</span>
                               </div>
                             )}
                           </div>
