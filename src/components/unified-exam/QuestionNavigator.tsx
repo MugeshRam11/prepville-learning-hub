@@ -211,7 +211,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-72 border-r bg-card hidden lg:flex flex-col"
+      className="w-72 border-r bg-card hidden lg:flex flex-col min-h-0 overflow-hidden"
     >
       {/* Header with progress */}
       <div className="p-4 border-b space-y-3">
@@ -234,7 +234,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 space-y-1">
           {/* Extracts Section */}
           {extracts.length > 0 && (
