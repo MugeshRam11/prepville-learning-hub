@@ -33,7 +33,8 @@ import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
-import EquationEditor from '@/components/admin/EquationEditor';
+import { EquationTextEditor } from '@/components/equation-editor';
+import type { EquationData } from '@/components/equation-editor';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
@@ -236,6 +237,9 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
   const autoType = autoDetectType(questionText, diagramDescription, config);
   const [currentType, setCurrentType] = useState<InteractiveType>(detectedType || autoType);
   const [validationTriggered, setValidationTriggered] = useState(false);
+  const [equations, setEquations] = useState<EquationData[]>(
+    (typeof value === 'object' && value?.equations) ? value.equations : []
+  );
 
   // Validate table answers
   const tableValidation = useCallback(() => {
@@ -645,25 +649,42 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
       }
 
       case 'text_equation':
-      default:
+      default: {
+        const textValue = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
+        const wordCount = getWordCount(textValue);
+
+        const handleTextChange = (text: string) => {
+          onChange({ text, equations });
+        };
+
+        const handleEquationsChange = (newEqs: EquationData[]) => {
+          setEquations(newEqs);
+          const currentText = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
+          onChange({ text: currentText, equations: newEqs });
+        };
+
         return (
           <div className="space-y-3">
             {wordLimit && (
               <div className="flex justify-end">
-                <Badge variant={getWordCount(value) > wordLimit ? 'destructive' : 'secondary'}>
-                  {getWordCount(value)} / {wordLimit} words
+                <Badge variant={wordCount > wordLimit ? 'destructive' : 'secondary'}>
+                  {wordCount} / {wordLimit} words
                 </Badge>
               </div>
             )}
             
-            {/* Word-like Equation Editor */}
-            <EquationEditor
-              value={value || ''}
-              onChange={onChange}
+            <EquationTextEditor
+              value={textValue}
+              equations={equations}
+              onValueChange={handleTextChange}
+              onEquationsChange={handleEquationsChange}
               placeholder={placeholder}
+              disabled={disabled}
+              minHeight="120px"
             />
           </div>
         );
+      }
     }
   };
 
