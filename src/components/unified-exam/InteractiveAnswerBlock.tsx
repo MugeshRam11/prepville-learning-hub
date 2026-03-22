@@ -237,6 +237,9 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
   const autoType = autoDetectType(questionText, diagramDescription, config);
   const [currentType, setCurrentType] = useState<InteractiveType>(detectedType || autoType);
   const [validationTriggered, setValidationTriggered] = useState(false);
+  const [equations, setEquations] = useState<EquationData[]>(
+    (typeof value === 'object' && value?.equations) ? value.equations : []
+  );
 
   // Validate table answers
   const tableValidation = useCallback(() => {
