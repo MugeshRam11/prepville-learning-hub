@@ -152,7 +152,7 @@ const AdminMockTestView = () => {
                     )}
                     {question.answer_key && (
                       <div className="bg-primary/10 p-2 rounded">
-                        <strong>Answer:</strong> {question.answer_key}
+                        <strong>Answer:</strong> <span className="inline">{renderLatexContent(question.answer_key)}</span>
                       </div>
                     )}
                     {question.mock_sub_questions && question.mock_sub_questions.length > 0 && (
