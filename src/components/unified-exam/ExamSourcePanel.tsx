@@ -55,7 +55,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
       </div>
 
       {/* Scrollable source content */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-4 space-y-4">
           {/* Question text / passage */}
           <div>
