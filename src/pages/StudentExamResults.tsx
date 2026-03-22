@@ -246,7 +246,7 @@ const StudentExamResults = () => {
                             <p className="font-medium text-sm">
                               Q{index + 1}{qe.subQuestionId ? ` (${qe.subQuestionId})` : ''}
                             </p>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{qe.questionText}</p>
+                            <div className="text-sm text-muted-foreground line-clamp-2">{renderLatexContent(qe.questionText)}</div>
                           </div>
                         </div>
                         <Badge
