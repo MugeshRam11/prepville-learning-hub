@@ -14,7 +14,7 @@ interface ExamSourcePanelProps {
 const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }) => {
   if (!question) {
     return (
-      <div className={cn("flex flex-col bg-card border-r", className)}>
+      <div className={cn("flex flex-col bg-card overflow-hidden", className)}>
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center text-muted-foreground">
             <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
