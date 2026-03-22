@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Wifi, WifiOff } from 'lucide-react';
 import UnifiedExamHeader from '@/components/unified-exam/UnifiedExamHeader';
-import UnifiedExamSidebar from '@/components/unified-exam/UnifiedExamSidebar';
 import QuestionNavigator from '@/components/unified-exam/QuestionNavigator';
-import UnifiedQuestionCard from '@/components/unified-exam/UnifiedQuestionCard';
+import ExamSourcePanel from '@/components/unified-exam/ExamSourcePanel';
+import ExamQuestionCardsPanel from '@/components/unified-exam/ExamQuestionCardsPanel';
 import ExamSyncOverlay from '@/components/unified-exam/ExamSyncOverlay';
 import { ExamModeProvider, useExamMode } from '@/contexts/ExamModeContext';
 import { ExamSyncProvider, useExamSync } from '@/contexts/ExamSyncContext';
@@ -22,9 +20,7 @@ import {
 } from '@/types/answerBlock';
 
 import { 
-  mapDBQuestionsToInteractive, 
   detectQuestionType,
-  getQuestionTypeLabel 
 } from '@/lib/interactiveQuestionMapper';
 import type { QuestionType } from '@/data/mocktest2';
 
@@ -37,10 +33,9 @@ const UnifiedMockExamContent = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
   
-  // Resolve testId from: URL params > query string > location state
   const rawState = location.state || {};
   const resolvedTestId = params.testId || searchParams.get('testId') || rawState.testId;
-  const { subject, topic, title, questions: passedQuestions } = rawState;
+  const { subject, topic, title } = rawState;
   
   const [examData, setExamData] = useState<UnifiedExamData | null>(null);
   const [answers, setAnswers] = useState<UnifiedAnswer[]>([]);
@@ -51,79 +46,49 @@ const UnifiedMockExamContent = () => {
   const [hasStartedExam, setHasStartedExam] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
   
-  // Interactive mode is always ON (Feature E)
   const interactiveMode = true;
-  const [detectedQuestionTypes, setDetectedQuestionTypes] = useState<Map<string, QuestionType>>(new Map());
   
-  // Get exam mode context
   const { mode, config, focusMode } = useExamMode();
   
-  // Get exam sync context (optional - only when wrapped)
   let syncContext: ReturnType<typeof useExamSync> | null = null;
   try {
     syncContext = useExamSync();
   } catch {
-    // Not wrapped in ExamSyncProvider - that's okay for demo mode
+    // Not wrapped in ExamSyncProvider
   }
   
-  const mainContentRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
 
-  // Auto-save hook
   const { isSaving, lastSaved, saveNow, loadSavedAnswers } = useAutoSave(answers, {
     testId: examData?.id || '',
     enabled: config.autoSaveEnabled
   });
 
-  // Helper to safely parse JSON config
-  const safeParseConfig = (config: any) => {
-    if (!config) return undefined;
-    if (typeof config === 'object') return config;
-    try {
-      return JSON.parse(config);
-    } catch {
-      return undefined;
-    }
+  const safeParseConfig = (cfg: any) => {
+    if (!cfg) return undefined;
+    if (typeof cfg === 'object') return cfg;
+    try { return JSON.parse(cfg); } catch { return undefined; }
   };
 
-  // Map database questions to unified format with interactive type detection
   const mapDBQuestionsToUnified = (dbQuestions: any[]): UnifiedQuestion[] => {
-    const typeMap = new Map<string, QuestionType>();
-    
     return dbQuestions.map((q, index) => {
-      // Use explicit answer_block_type if provided, otherwise detect
       const explicitType = q.answer_block_type;
       const detectedType = explicitType || detectQuestionType({
-        id: q.id,
-        question_text: q.question_text,
-        marks: q.marks,
-        question_number: q.question_number,
-        diagram_description: q.diagram_description,
-        question_image_url: q.question_image_url,
-        answer_key: q.answer_key,
-        command_term: q.command_term,
-        graph_type: q.graph_type,
-        has_table: q.has_table
+        id: q.id, question_text: q.question_text, marks: q.marks,
+        question_number: q.question_number, diagram_description: q.diagram_description,
+        question_image_url: q.question_image_url, answer_key: q.answer_key,
+        command_term: q.command_term, graph_type: q.graph_type, has_table: q.has_table
       });
       
-      typeMap.set(q.id, detectedType);
-      
       const subQuestions = q.mock_sub_questions?.map((sq: any, sqIndex: number) => {
-        // Use explicit sub-question type if provided
-        const subExplicitType = sq.answer_block_type;
-        const subType = subExplicitType || detectQuestionType({
-          id: sq.id,
-          question_text: sq.sub_question_text,
-          marks: sq.marks,
-          question_number: sqIndex + 1,
-          answer_key: sq.answer_key,
-          command_term: sq.command_term
+        const subType = sq.answer_block_type || detectQuestionType({
+          id: sq.id, question_text: sq.sub_question_text, marks: sq.marks,
+          question_number: sqIndex + 1, answer_key: sq.answer_key, command_term: sq.command_term
         });
-        
-        typeMap.set(sq.id, subType);
         
         return {
           id: sq.id,
-          label: sq.sub_question_label || String.fromCharCode(97 + sqIndex), // a, b, c...
+          label: sq.sub_question_label || String.fromCharCode(97 + sqIndex),
           text: sq.sub_question_text,
           imageUrl: sq.sub_question_image_url,
           marks: sq.marks || 1,
@@ -160,16 +125,11 @@ const UnifiedMockExamContent = () => {
   useEffect(() => {
     const loadExamData = async () => {
       setIsLoading(true);
-      
       try {
-        // Always fetch from database using resolvedTestId (ignore passedQuestions to avoid subject-wide merging)
         if (resolvedTestId) {
           const { data: questionsData, error } = await supabase
             .from('mock_questions')
-            .select(`
-              *,
-              mock_sub_questions (*)
-            `)
+            .select(`*, mock_sub_questions (*)`)
             .eq('mock_test_id', resolvedTestId)
             .order('question_number');
 
@@ -182,7 +142,6 @@ const UnifiedMockExamContent = () => {
               return sum + (q.subQuestions?.length ? subMarks : q.marks);
             }, 0);
 
-            // Get test metadata
             const { data: testMeta } = await supabase
               .from('mock_tests')
               .select('title, subject, topic')
@@ -205,20 +164,16 @@ const UnifiedMockExamContent = () => {
                 setActiveSubQuestionId(unifiedQuestions[0].subQuestions[0].id);
               }
             }
-            // Successfully loaded from DB — skip demo fallback
             return;
           } else {
-            // testId exists but no questions found
-            toast.error('No questions found for this test. Returning to test list.');
+            toast.error('No questions found for this test.');
             navigate('/mock-exams/select');
             return;
           }
         }
 
-        // No testId at all — redirect instead of showing demo
-        toast.error('Test ID missing. Please start the exam from the Mock Exams list.');
+        toast.error('Test ID missing. Please start from Mock Exams list.');
         navigate('/mock-exams/select');
-        
       } catch (error) {
         console.error('Error loading exam:', error);
         toast.error('Failed to load exam');
@@ -228,41 +183,33 @@ const UnifiedMockExamContent = () => {
     };
 
     loadExamData();
-    // Only re-run when testId changes — NOT on passedQuestions/title/subject (object refs cause loops)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedTestId]);
 
   // Load saved answers
   useEffect(() => {
     if (!examData) return;
-    
     const saveKey = `unifiedExam_${examData.id}`;
     const savedData = localStorage.getItem(saveKey);
-    
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
         setAnswers(parsed.answers || []);
-      } catch (e) {
-        console.error('Failed to load saved answers');
-      }
+      } catch (e) { console.error('Failed to load saved answers'); }
     }
   }, [examData?.id]);
 
-  // Auto-save answers
+  // Auto-save
   useEffect(() => {
     if (!examData) return;
-    
     const saveKey = `unifiedExam_${examData.id}`;
-    const saveData = () => {
+    const interval = setInterval(() => {
       localStorage.setItem(saveKey, JSON.stringify({ answers }));
-    };
-    
-    const interval = setInterval(saveData, 10000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [answers, examData?.id]);
 
-  // Handle scroll-sync from IntersectionObserver in QuestionNavigator
+  // Scroll-sync from IntersectionObserver
   useEffect(() => {
     const handleScrollSync = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -271,32 +218,24 @@ const UnifiedMockExamContent = () => {
         setActiveSubQuestionId(detail.subQuestionId || null);
       }
     };
-    
     window.addEventListener('exam-scroll-sync', handleScrollSync);
     return () => window.removeEventListener('exam-scroll-sync', handleScrollSync);
   }, []);
 
-  // Handle answer changes
   const handleAnswerChange = (questionId: string, value: any, subQuestionId?: string) => {
-    // Mark exam as started when user types something
-    if (!hasStartedExam) {
-      setHasStartedExam(true);
-    }
+    if (!hasStartedExam) setHasStartedExam(true);
     
     setAnswers(prev => {
       const existingIndex = prev.findIndex(
         a => a.questionId === questionId && a.subQuestionId === subQuestionId
       );
-
       const newAnswer: UnifiedAnswer = {
-        questionId,
-        subQuestionId,
+        questionId, subQuestionId,
         answerType: getDefaultAnswerBlockType(),
         content: value,
         wordCount: typeof value === 'string' ? value.trim().split(/\s+/).filter(Boolean).length : 0,
         timestamp: new Date()
       };
-
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = newAnswer;
@@ -306,115 +245,77 @@ const UnifiedMockExamContent = () => {
     });
   };
 
-  // Navigate to question
   const handleNavigate = (questionId: string, subQuestionId?: string) => {
-    const targetId = subQuestionId ? `question-${questionId}-${subQuestionId}` : `question-${questionId}`;
-    const element = document.getElementById(targetId);
-    
-    if (element && mainContentRef.current) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setActiveQuestionId(questionId);
-      setActiveSubQuestionId(subQuestionId || null);
+    setActiveQuestionId(questionId);
+    setActiveSubQuestionId(subQuestionId || null);
+
+    // Scroll right panel to sub-question card
+    if (subQuestionId) {
+      setTimeout(() => {
+        const el = document.getElementById(`question-${questionId}-${subQuestionId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
     }
   };
 
-  // Toggle flag on question
   const handleToggleFlag = (questionId: string, subQuestionId?: string) => {
     const key = subQuestionId ? `${questionId}-${subQuestionId}` : questionId;
     setFlaggedQuestions(prev => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
+      if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
   };
 
-  // Submit exam
   const handleSubmit = async () => {
     if (!examData) return;
     
-    // Hard guardrail: block submit without a valid test ID
     const isValidTestId = examData.id && examData.id !== 'demo-exam' && examData.id !== 'dynamic-test';
     if (!isValidTestId) {
-      toast.error('Cannot submit: Test ID is missing. Please start the exam from the Mock Exams list.');
+      toast.error('Cannot submit: Test ID is missing.');
       return;
     }
     
-    // Save final answers before submitting
     await saveNow();
     
-    // Mark session as submitted if sync is active
     if (syncContext) {
-      try {
-        await syncContext.submitExam();
-      } catch (error) {
+      try { await syncContext.submitExam(); } catch (error) {
         console.error('Failed to sync submission:', error);
       }
     }
     
     localStorage.removeItem(`unifiedExam_${examData.id}`);
-    
     const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / (1000 * 60));
     
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Not authenticated');
+      if (!user) { toast.error('Not authenticated'); return; }
+
+      const { data: attemptData, error: attemptError } = await supabase
+        .from('test_attempts')
+        .insert({
+          user_id: user.id, test_id: examData.id, answers: answers as any,
+          score: 0, total_questions: getTotalQuestionSlots(),
+          time_taken_seconds: timeSpent * 60,
+          completed_at: new Date().toISOString(), submission_status: 'submitted'
+        })
+        .select().single();
+
+      if (attemptError || !attemptData) {
+        toast.error(`Failed to save submission: ${attemptError?.message || 'No data returned'}`);
         return;
       }
 
-      // Save test attempt to database with submission_status = 'submitted'
-      const insertPayload = {
-        user_id: user.id,
-        test_id: examData.id,
-        answers: answers as any,
-        score: 0, // Will be calculated during evaluation
-        total_questions: getTotalQuestionSlots(),
-        time_taken_seconds: timeSpent * 60,
-        completed_at: new Date().toISOString(),
-        submission_status: 'submitted'
-      };
-      
-      const { data: attemptData, error: attemptError } = await supabase
-        .from('test_attempts')
-        .insert(insertPayload)
-        .select()
-        .single();
-
-      if (attemptError || !attemptData) {
-        console.error('Error saving attempt:', attemptError);
-        console.error('Insert payload was:', JSON.stringify(insertPayload));
-        toast.error(`Failed to save submission: ${attemptError?.message || 'No data returned'}`);
-        return; // DO NOT navigate — submission did not persist
-      }
-
-      // Create evaluation record with pending_review status
-      const { error: evalError } = await supabase
-        .from('exam_evaluations')
-        .insert({
-          test_attempt_id: attemptData.id,
-          student_id: user.id,
-          test_id: examData.id,
-          evaluation_status: 'pending_review'
-        });
-
-      if (evalError) {
-        console.error('Error creating evaluation record:', evalError);
-        // Non-fatal — attempt was saved, evaluation record can be created later
-      }
-
-      // Only navigate AFTER confirmed DB insert
-      navigate('/mock-exams/submitted', {
-        state: {
-          testTitle: examData.title,
-          attemptId: attemptData.id
-        }
+      await supabase.from('exam_evaluations').insert({
+        test_attempt_id: attemptData.id, student_id: user.id,
+        test_id: examData.id, evaluation_status: 'pending_review'
       });
 
+      navigate('/mock-exams/submitted', {
+        state: { testTitle: examData.title, attemptId: attemptData.id }
+      });
       toast.success('Exam submitted successfully!');
     } catch (error) {
       console.error('Submit error:', error);
@@ -422,14 +323,12 @@ const UnifiedMockExamContent = () => {
     }
   };
   
-  // Sync current question position
   useEffect(() => {
     if (syncContext && activeQuestionId) {
       syncContext.updateCurrentQuestion(activeQuestionId, activeSubQuestionId || undefined);
     }
   }, [activeQuestionId, activeSubQuestionId, syncContext]);
 
-  // Get answered count
   const getAnsweredCount = () => {
     return answers.filter(a => {
       const content = a.content;
@@ -439,16 +338,16 @@ const UnifiedMockExamContent = () => {
     }).length;
   };
 
-  // Get total question slots
   const getTotalQuestionSlots = () => {
     if (!examData) return 0;
     return examData.questions.reduce((total, q) => {
-      if (q.subQuestions && q.subQuestions.length > 0) {
-        return total + q.subQuestions.length;
-      }
+      if (q.subQuestions && q.subQuestions.length > 0) return total + q.subQuestions.length;
       return total + 1;
     }, 0);
   };
+
+  // Get active question object
+  const activeQuestion = examData?.questions.find(q => q.id === activeQuestionId) || null;
 
   if (isLoading || !examData) {
     return (
@@ -475,10 +374,8 @@ const UnifiedMockExamContent = () => {
       "h-screen flex flex-col bg-background overflow-hidden transition-all",
       focusMode.isActive && "focus-mode-container"
     )}>
-      {/* Sync Overlay for paused/locked/secondary tab states */}
       <ExamSyncOverlay onForceNavigate={() => navigate('/mock-exams/select')} />
       
-      {/* Header */}
       <UnifiedExamHeader
         title={examData.title}
         subject={examData.subject}
@@ -493,11 +390,9 @@ const UnifiedMockExamContent = () => {
         isConnected={syncContext?.isConnected}
       />
 
-      {/* Interactive Mode is always ON - toggle removed (Feature E) */}
-
-      {/* Main content */}
+      {/* Split layout: Navigator | Source Panel | Question Cards */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Navigator - visible when focus mode is off */}
+        {/* Left: Question Navigator */}
         {!focusMode.isActive && (
           <QuestionNavigator
             examData={examData}
@@ -507,34 +402,31 @@ const UnifiedMockExamContent = () => {
             onNavigate={handleNavigate}
             flaggedQuestions={flaggedQuestions}
             onToggleFlag={handleToggleFlag}
-            scrollContainerRef={mainContentRef}
+            scrollContainerRef={rightPanelRef}
           />
         )}
 
-        {/* Scrollable question area */}
-        <div 
-          ref={mainContentRef}
-          className="flex-1 overflow-y-auto"
-        >
-          <div className="max-w-4xl mx-auto p-6 space-y-8 pb-32">
-            {examData.questions.map((question) => (
-              <UnifiedQuestionCard
-                key={question.id}
-                question={question}
-                answers={answers}
-                onAnswerChange={handleAnswerChange}
-                interactiveMode={interactiveMode}
-              />
-            ))}
-          </div>
-        </div>
+        {/* Center: Source / Extract Panel */}
+        <ExamSourcePanel
+          question={activeQuestion}
+          className="hidden xl:flex w-[380px] shrink-0"
+        />
 
+        {/* Right: Sub-question Cards */}
+        <ExamQuestionCardsPanel
+          question={activeQuestion}
+          answers={answers}
+          onAnswerChange={handleAnswerChange}
+          activeSubQuestionId={activeSubQuestionId}
+          scrollRef={rightPanelRef}
+          className="flex-1 min-w-0"
+        />
       </div>
     </div>
   );
 };
 
-// Inner wrapper that adds sync when we have a testId
+// Inner wrapper with sync
 const UnifiedMockExamWithSync: React.FC<{ testId: string }> = ({ testId }) => {
   const navigate = useNavigate();
   
@@ -561,10 +453,7 @@ const UnifiedMockExam = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
   
-  // Resolve testId from: URL params > query string > location state
   const resolvedTestId = params.testId || searchParams.get('testId') || (location.state as any)?.testId;
-  
-  // Guardrail: if no testId and no passed questions, redirect to select page
   const hasPassedQuestions = (location.state as any)?.questions?.length > 0;
   
   if (!resolvedTestId && !hasPassedQuestions) {
@@ -574,7 +463,7 @@ const UnifiedMockExam = () => {
           <div className="text-5xl">⚠️</div>
           <h2 className="text-xl font-bold text-foreground">Test ID Missing</h2>
           <p className="text-muted-foreground">
-            Please start the exam from the Mock Exams list. Direct URL access requires a valid test ID.
+            Please start the exam from the Mock Exams list.
           </p>
           <button
             onClick={() => navigate('/mock-exams/select')}
@@ -587,7 +476,6 @@ const UnifiedMockExam = () => {
     );
   }
   
-  // If we have a valid testId, use sync provider
   if (resolvedTestId && resolvedTestId !== 'dynamic-test' && resolvedTestId !== 'demo-exam') {
     return (
       <ExamModeProvider initialMode="study">
@@ -596,7 +484,6 @@ const UnifiedMockExam = () => {
     );
   }
   
-  // Otherwise just render without sync (demo mode)
   return (
     <ExamModeProvider initialMode="study">
       <UnifiedMockExamContent />

@@ -1,0 +1,133 @@
+import React from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { UnifiedQuestion, UnifiedAnswer, AnswerBlockType } from '@/types/answerBlock';
+import ExamSubQuestionCard from './ExamSubQuestionCard';
+import InteractiveAnswerBlock from './InteractiveAnswerBlock';
+import { renderLatexContent } from '@/lib/renderLatex';
+import { cn } from '@/lib/utils';
+
+function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undefined {
+  if (!interactiveType) return undefined;
+  const typeMap: Record<string, AnswerBlockType> = {
+    'graph_interaction': 'graph_plot',
+    'graph_plot': 'graph_plot',
+    'drag_drop_match': 'drag_drop',
+    'drag_drop': 'drag_drop',
+    'image_drop_zone': 'image_drop',
+    'image_drop': 'image_drop',
+    'step_builder': 'arrange_order',
+    'arrange_order': 'arrange_order',
+    'math_input': 'smart_math',
+    'smart_math': 'smart_math',
+    'text_input': 'text_equation',
+    'text_equation': 'text_equation',
+    'multiple_choice': 'multiple_choice'
+  };
+  return typeMap[interactiveType] || 'text_equation';
+}
+
+interface ExamQuestionCardsPanelProps {
+  question: UnifiedQuestion | null;
+  answers: UnifiedAnswer[];
+  onAnswerChange: (questionId: string, value: any, subQuestionId?: string) => void;
+  activeSubQuestionId: string | null;
+  scrollRef: React.RefObject<HTMLDivElement>;
+  className?: string;
+}
+
+const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
+  question,
+  answers,
+  onAnswerChange,
+  activeSubQuestionId,
+  scrollRef,
+  className,
+}) => {
+  if (!question) {
+    return (
+      <div className={cn("flex flex-col", className)}>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <p className="text-sm text-muted-foreground">Select a question to begin answering</p>
+        </div>
+      </div>
+    );
+  }
+
+  const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
+
+  const getAnswer = (questionId: string, subQuestionId?: string) => {
+    const answer = answers.find(
+      a => a.questionId === questionId && a.subQuestionId === subQuestionId
+    );
+    return answer?.content || '';
+  };
+
+  return (
+    <div className={cn("flex flex-col", className)}>
+      {/* Panel header */}
+      <div className="p-4 border-b bg-muted/20">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">
+            {hasSubQuestions
+              ? `Question ${question.questionNumber} — Sub-parts`
+              : `Question ${question.questionNumber} — Answer`
+            }
+          </h3>
+          {hasSubQuestions && (
+            <Badge variant="secondary" className="text-[10px]">
+              {question.subQuestions!.length} parts
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Scrollable cards */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-4 pb-32">
+          {hasSubQuestions ? (
+            question.subQuestions!.map((subQ) => (
+              <ExamSubQuestionCard
+                key={subQ.id}
+                parentQuestion={question}
+                subQuestion={subQ}
+                answers={answers}
+                onAnswerChange={onAnswerChange}
+                isActive={activeSubQuestionId === subQ.id}
+              />
+            ))
+          ) : (
+            /* Single question without sub-parts */
+            <div
+              id={`question-${question.id}`}
+              data-question-id={question.id}
+              className="scroll-mt-24"
+            >
+              {/* Show question text if not long enough for source panel */}
+              {question.questionText && question.questionText.length <= 200 && (
+                <div className="mb-4 text-sm text-foreground leading-relaxed">
+                  {renderLatexContent(question.questionText)}
+                </div>
+              )}
+
+              <InteractiveAnswerBlock
+                questionId={question.id}
+                detectedType={mapToAnswerBlockType(question.interactiveType) || (question.answerBlockType as AnswerBlockType)}
+                config={question.answerBlockConfig}
+                value={getAnswer(question.id)}
+                onChange={(value) => onAnswerChange(question.id, value)}
+                wordLimit={question.wordLimit}
+                placeholder="Enter your answer here..."
+                questionText={question.questionText}
+                diagramDescription={question.diagramDescription}
+                allowTypeChange={false}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ExamQuestionCardsPanel;
