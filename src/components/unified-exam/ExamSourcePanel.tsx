@@ -113,7 +113,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
