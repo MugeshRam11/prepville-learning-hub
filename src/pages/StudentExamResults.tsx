@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { renderLatexContent } from '@/lib/renderLatex';
 
 interface QuestionEvaluation {
   questionId: string;
@@ -245,7 +246,7 @@ const StudentExamResults = () => {
                             <p className="font-medium text-sm">
                               Q{index + 1}{qe.subQuestionId ? ` (${qe.subQuestionId})` : ''}
                             </p>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{qe.questionText}</p>
+                            <div className="text-sm text-muted-foreground line-clamp-2">{renderLatexContent(qe.questionText)}</div>
                           </div>
                         </div>
                         <Badge
@@ -268,7 +269,7 @@ const StudentExamResults = () => {
                       {/* Feedback */}
                       {qe.feedback && (
                         <div className="text-sm text-muted-foreground bg-muted/20 p-3 rounded-lg">
-                          {qe.feedback}
+                          {renderLatexContent(qe.feedback)}
                         </div>
                       )}
 
