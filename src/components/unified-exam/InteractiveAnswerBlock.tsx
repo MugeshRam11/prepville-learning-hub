@@ -649,25 +649,42 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
       }
 
       case 'text_equation':
-      default:
+      default: {
+        const textValue = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
+        const wordCount = getWordCount(textValue);
+
+        const handleTextChange = (text: string) => {
+          onChange({ text, equations });
+        };
+
+        const handleEquationsChange = (newEqs: EquationData[]) => {
+          setEquations(newEqs);
+          const currentText = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
+          onChange({ text: currentText, equations: newEqs });
+        };
+
         return (
           <div className="space-y-3">
             {wordLimit && (
               <div className="flex justify-end">
-                <Badge variant={getWordCount(value) > wordLimit ? 'destructive' : 'secondary'}>
-                  {getWordCount(value)} / {wordLimit} words
+                <Badge variant={wordCount > wordLimit ? 'destructive' : 'secondary'}>
+                  {wordCount} / {wordLimit} words
                 </Badge>
               </div>
             )}
             
-            {/* Word-like Equation Editor */}
-            <EquationEditor
-              value={value || ''}
-              onChange={onChange}
+            <EquationTextEditor
+              value={textValue}
+              equations={equations}
+              onValueChange={handleTextChange}
+              onEquationsChange={handleEquationsChange}
               placeholder={placeholder}
+              disabled={disabled}
+              minHeight="120px"
             />
           </div>
         );
+      }
     }
   };
 
