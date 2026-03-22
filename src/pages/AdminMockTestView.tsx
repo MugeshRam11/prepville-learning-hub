@@ -132,7 +132,7 @@ const AdminMockTestView = () => {
                         <Badge variant="outline">{question.marks} marks</Badge>
                       </div>
                     </div>
-                    <p className="text-foreground mb-2">{question.question_text}</p>
+                    <div className="text-foreground mb-2 leading-relaxed">{renderLatexContent(question.question_text)}</div>
                     {/* Diagram Description */}
                     {question.diagram_description && (
                       <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md">
