@@ -54,12 +54,13 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
   }
 
   const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
+  const mainAnswerConfig = question.answerBlockConfig as Record<string, unknown> | undefined;
   const shouldRenderMainQuestionAnswerCard =
     !hasSubQuestions ||
     Boolean(
-      question.answerBlockConfig?.requiresMainAnswer ||
-      question.answerBlockConfig?.renderMainAnswerCard ||
-      question.answerBlockConfig?.mainQuestionAnswer
+      mainAnswerConfig?.requiresMainAnswer ||
+      mainAnswerConfig?.renderMainAnswerCard ||
+      mainAnswerConfig?.mainQuestionAnswer
     );
 
   const getAnswer = (questionId: string, subQuestionId?: string) => {
