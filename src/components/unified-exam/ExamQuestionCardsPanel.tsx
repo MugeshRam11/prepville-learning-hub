@@ -54,7 +54,7 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
   }
 
   const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
-  const mainAnswerConfig = question.answerBlockConfig as Record<string, unknown> | undefined;
+  const mainAnswerConfig = question.answerBlockConfig as unknown as Record<string, unknown> | undefined;
   const shouldRenderMainQuestionAnswerCard =
     !hasSubQuestions ||
     Boolean(
