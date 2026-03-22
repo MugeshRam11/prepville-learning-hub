@@ -173,7 +173,7 @@ const AdminMockTestView = () => {
                             )}
                             {subQ.answer_key && (
                               <div className="bg-primary/10 p-1 rounded text-sm mt-1">
-                                <strong>Answer:</strong> {subQ.answer_key}
+                                <strong>Answer:</strong> <span className="inline">{renderLatexContent(subQ.answer_key)}</span>
                               </div>
                             )}
                           </div>
