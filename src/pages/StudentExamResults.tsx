@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { renderLatexContent } from '@/lib/renderLatex';
 
 interface QuestionEvaluation {
   questionId: string;
