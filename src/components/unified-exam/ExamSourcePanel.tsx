@@ -31,7 +31,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
   const hasSourceContent = hasImage || hasDiagram || hasExtract;
 
   return (
-    <div className={cn("flex flex-col bg-card border-r", className)}>
+    <div className={cn("flex flex-col bg-card overflow-hidden", className)}>
       {/* Source panel header */}
       <div className="p-4 border-b bg-muted/30">
         <div className="flex items-center gap-2">
