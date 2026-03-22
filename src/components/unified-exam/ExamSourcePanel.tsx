@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Image as ImageIcon, BarChart3 } from 'lucide-react';
 import { UnifiedQuestion } from '@/types/answerBlock';
@@ -14,7 +13,7 @@ interface ExamSourcePanelProps {
 const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }) => {
   if (!question) {
     return (
-      <div className={cn("flex flex-col bg-card border-r", className)}>
+      <div className={cn("flex flex-col bg-card overflow-hidden", className)}>
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center text-muted-foreground">
             <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
@@ -31,7 +30,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
   const hasSourceContent = hasImage || hasDiagram || hasExtract;
 
   return (
-    <div className={cn("flex flex-col bg-card border-r", className)}>
+    <div className={cn("flex flex-col bg-card overflow-hidden", className)}>
       {/* Source panel header */}
       <div className="p-4 border-b bg-muted/30">
         <div className="flex items-center gap-2">
@@ -55,7 +54,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
       </div>
 
       {/* Scrollable source content */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-4 space-y-4">
           {/* Question text / passage */}
           <div>
@@ -113,7 +112,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

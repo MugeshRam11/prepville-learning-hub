@@ -83,7 +83,7 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
       </div>
 
       {/* Scrollable cards */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-4 space-y-4 pb-32">
           {hasSubQuestions ? (
             question.subQuestions!.map((subQ) => (
