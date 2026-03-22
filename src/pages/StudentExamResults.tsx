@@ -269,7 +269,7 @@ const StudentExamResults = () => {
                       {/* Feedback */}
                       {qe.feedback && (
                         <div className="text-sm text-muted-foreground bg-muted/20 p-3 rounded-lg">
-                          {qe.feedback}
+                          {renderLatexContent(qe.feedback)}
                         </div>
                       )}
 
