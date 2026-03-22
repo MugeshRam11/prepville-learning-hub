@@ -249,15 +249,25 @@ const UnifiedMockExamContent = () => {
     setActiveQuestionId(questionId);
     setActiveSubQuestionId(subQuestionId || null);
 
-    // Scroll right panel to sub-question card
-    if (subQuestionId) {
-      setTimeout(() => {
-        const el = document.getElementById(`question-${questionId}-${subQuestionId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 50);
-    }
+    requestAnimationFrame(() => {
+      const container = rightPanelRef.current;
+      if (!container) return;
+
+      const targetId = subQuestionId
+        ? `question-${questionId}-${subQuestionId}`
+        : `question-${questionId}`;
+
+      const target = document.getElementById(targetId);
+      if (!target || !container.contains(target)) return;
+
+      const topOffset = 16;
+      const nextTop = Math.max(target.offsetTop - topOffset, 0);
+
+      container.scrollTo({
+        top: nextTop,
+        behavior: 'smooth',
+      });
+    });
   };
 
   const handleToggleFlag = (questionId: string, subQuestionId?: string) => {
@@ -391,7 +401,7 @@ const UnifiedMockExamContent = () => {
       />
 
       {/* Split layout: Navigator | Source Panel | Question Cards */}
-      <div className="flex-1 grid grid-cols-[auto_1fr] lg:grid-cols-[auto_minmax(300px,2fr)_minmax(300px,2.4fr)] overflow-hidden h-full">
+      <div className="flex-1 min-h-0 grid grid-cols-[auto_1fr] lg:grid-cols-[auto_minmax(300px,2fr)_minmax(300px,2.4fr)] overflow-hidden">
         {/* Left: Question Navigator */}
         {!focusMode.isActive && (
           <QuestionNavigator
@@ -409,7 +419,7 @@ const UnifiedMockExamContent = () => {
         {/* Center: Source / Extract Panel — visible on lg+ */}
         <ExamSourcePanel
           question={activeQuestion}
-          className="hidden lg:flex border-r border-border"
+          className="hidden lg:flex border-r border-border min-h-0"
         />
 
         {/* Right: Sub-question Cards */}
@@ -419,7 +429,7 @@ const UnifiedMockExamContent = () => {
           onAnswerChange={handleAnswerChange}
           activeSubQuestionId={activeSubQuestionId}
           scrollRef={rightPanelRef}
-          className="min-w-0"
+          className="min-w-0 min-h-0"
         />
       </div>
     </div>
