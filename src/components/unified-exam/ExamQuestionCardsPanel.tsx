@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { UnifiedQuestion, UnifiedAnswer, AnswerBlockType } from '@/types/answerBlock';
 import ExamSubQuestionCard from './ExamSubQuestionCard';
@@ -55,6 +54,14 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
   }
 
   const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
+  const mainAnswerConfig = question.answerBlockConfig as unknown as Record<string, unknown> | undefined;
+  const shouldRenderMainQuestionAnswerCard =
+    !hasSubQuestions ||
+    Boolean(
+      mainAnswerConfig?.requiresMainAnswer ||
+      mainAnswerConfig?.renderMainAnswerCard ||
+      mainAnswerConfig?.mainQuestionAnswer
+    );
 
   const getAnswer = (questionId: string, subQuestionId?: string) => {
     const answer = answers.find(
@@ -64,7 +71,7 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
   };
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("flex min-h-0 flex-col overflow-hidden", className)}>
       {/* Panel header */}
       <div className="p-4 border-b bg-muted/20">
         <div className="flex items-center justify-between">
@@ -83,19 +90,61 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
       </div>
 
       {/* Scrollable cards */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+      >
         <div className="p-4 space-y-4 pb-32">
           {hasSubQuestions ? (
-            question.subQuestions!.map((subQ) => (
-              <ExamSubQuestionCard
-                key={subQ.id}
-                parentQuestion={question}
-                subQuestion={subQ}
-                answers={answers}
-                onAnswerChange={onAnswerChange}
-                isActive={activeSubQuestionId === subQ.id}
-              />
-            ))
+            <>
+              {shouldRenderMainQuestionAnswerCard && (
+                <div
+                  id={`question-${question.id}`}
+                  data-question-id={question.id}
+                  className="scroll-mt-24"
+                >
+                  <div className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold">Main Question Answer</h4>
+                      <Badge variant="outline" className="text-[10px] font-mono">
+                        [{question.marks}]
+                      </Badge>
+                    </div>
+
+                    <div className="text-sm text-foreground leading-relaxed">
+                      {renderLatexContent(question.questionText)}
+                    </div>
+
+                    <InteractiveAnswerBlock
+                      questionId={question.id}
+                      detectedType={
+                        mapToAnswerBlockType(question.interactiveType) ||
+                        (question.answerBlockType as AnswerBlockType)
+                      }
+                      config={question.answerBlockConfig}
+                      value={getAnswer(question.id)}
+                      onChange={(value) => onAnswerChange(question.id, value)}
+                      wordLimit={question.wordLimit}
+                      placeholder="Enter your main question answer here..."
+                      questionText={question.questionText}
+                      diagramDescription={question.diagramDescription}
+                      allowTypeChange={false}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {question.subQuestions!.map((subQ) => (
+                <ExamSubQuestionCard
+                  key={subQ.id}
+                  parentQuestion={question}
+                  subQuestion={subQ}
+                  answers={answers}
+                  onAnswerChange={onAnswerChange}
+                  isActive={activeSubQuestionId === subQ.id}
+                />
+              ))}
+            </>
           ) : (
             /* Single question without sub-parts */
             <div
@@ -103,25 +152,37 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
               data-question-id={question.id}
               className="scroll-mt-24"
             >
-              {/* Show question text if not long enough for source panel */}
-              {question.questionText && question.questionText.length <= 200 && (
-                <div className="mb-4 text-sm text-foreground leading-relaxed">
-                  {renderLatexContent(question.questionText)}
+              <div className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-sm font-semibold">Question {question.questionNumber}</h4>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    [{question.marks}]
+                  </Badge>
                 </div>
-              )}
 
-              <InteractiveAnswerBlock
-                questionId={question.id}
-                detectedType={mapToAnswerBlockType(question.interactiveType) || (question.answerBlockType as AnswerBlockType)}
-                config={question.answerBlockConfig}
-                value={getAnswer(question.id)}
-                onChange={(value) => onAnswerChange(question.id, value)}
-                wordLimit={question.wordLimit}
-                placeholder="Enter your answer here..."
-                questionText={question.questionText}
-                diagramDescription={question.diagramDescription}
-                allowTypeChange={false}
-              />
+                {/* Show question text if not long enough for source panel */}
+                {question.questionText && question.questionText.length <= 200 && (
+                  <div className="text-sm text-foreground leading-relaxed">
+                    {renderLatexContent(question.questionText)}
+                  </div>
+                )}
+
+                <InteractiveAnswerBlock
+                  questionId={question.id}
+                  detectedType={
+                    mapToAnswerBlockType(question.interactiveType) ||
+                    (question.answerBlockType as AnswerBlockType)
+                  }
+                  config={question.answerBlockConfig}
+                  value={getAnswer(question.id)}
+                  onChange={(value) => onAnswerChange(question.id, value)}
+                  wordLimit={question.wordLimit}
+                  placeholder="Enter your answer here..."
+                  questionText={question.questionText}
+                  diagramDescription={question.diagramDescription}
+                  allowTypeChange={false}
+                />
+              </div>
             </div>
           )}
         </div>
