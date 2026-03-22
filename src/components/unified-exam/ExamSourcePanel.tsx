@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Image as ImageIcon, BarChart3 } from 'lucide-react';
 import { UnifiedQuestion } from '@/types/answerBlock';
