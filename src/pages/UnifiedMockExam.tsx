@@ -391,7 +391,7 @@ const UnifiedMockExamContent = () => {
       />
 
       {/* Split layout: Navigator | Source Panel | Question Cards */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 grid grid-cols-[auto_1fr] lg:grid-cols-[auto_minmax(300px,2fr)_minmax(300px,2.4fr)] overflow-hidden h-full">
         {/* Left: Question Navigator */}
         {!focusMode.isActive && (
           <QuestionNavigator
@@ -406,10 +406,10 @@ const UnifiedMockExamContent = () => {
           />
         )}
 
-        {/* Center: Source / Extract Panel */}
+        {/* Center: Source / Extract Panel — visible on lg+ */}
         <ExamSourcePanel
           question={activeQuestion}
-          className="hidden xl:flex w-[380px] shrink-0"
+          className="hidden lg:flex border-r border-border"
         />
 
         {/* Right: Sub-question Cards */}
@@ -419,7 +419,7 @@ const UnifiedMockExamContent = () => {
           onAnswerChange={handleAnswerChange}
           activeSubQuestionId={activeSubQuestionId}
           scrollRef={rightPanelRef}
-          className="flex-1 min-w-0"
+          className="min-w-0"
         />
       </div>
     </div>
