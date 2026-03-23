@@ -2,14 +2,15 @@
 // Each sub-question can have a different answer type
 
 export type AnswerBlockType = 
-  | 'text_equation'    // Text/LaTeX Answer
-  | 'graph_plot'       // Graph Plotting
-  | 'drag_drop'        // Drag & Drop Matching
-  | 'image_drop'       // Image Drop / Image Select
-  | 'arrange_order'    // Arrange / Order items
-  | 'smart_math'       // Smart Math (step-based)
-  | 'multiple_choice'  // MCQ options
-  | 'table_input';     // Table completion/fill
+  | 'text_equation'       // Text/LaTeX Answer
+  | 'graph_plot'          // Graph Plotting
+  | 'drag_drop'           // Drag & Drop Matching
+  | 'image_drop'          // Image Drop / Image Select
+  | 'arrange_order'       // Arrange / Order items
+  | 'smart_math'          // Smart Math (step-based)
+  | 'multiple_choice'     // MCQ options
+  | 'table_input'         // Table completion/fill
+  | 'image_fill_blanks';  // Image-based typed input zones
 
 export interface AnswerBlockConfig {
   type: AnswerBlockType;
