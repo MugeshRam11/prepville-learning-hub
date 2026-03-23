@@ -284,9 +284,10 @@ const AdminMockTestCreate = () => {
 
       toast.success(`Mock test ${publish ? 'published' : 'saved as draft'}!`);
       navigate('/admin/mock-tests');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save error:', error);
-      toast.error('Failed to save mock test');
+      const msg = error?.message || error?.details || 'Unknown error';
+      toast.error(`Failed to save mock test: ${msg}`);
     } finally {
       setLoading(false);
     }
