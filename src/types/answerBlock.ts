@@ -186,7 +186,8 @@ export const getAnswerBlockTypeIcon = (type: AnswerBlockType): string => {
     arrange_order: '🔢',
     smart_math: '🤖',
     multiple_choice: '☑️',
-    table_input: '📋'
+    table_input: '📋',
+    image_fill_blanks: '✏️'
   };
   return icons[type];
 };
