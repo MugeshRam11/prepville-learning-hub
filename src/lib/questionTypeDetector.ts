@@ -216,6 +216,7 @@ export function countInteractiveTypes(questions: QuestionData[]): Record<Interac
     'smart_math': 0,
     'multiple_choice': 0,
     'table_input': 0,
+    'image_fill_blanks': 0,
   };
 
   questions.forEach(q => {
