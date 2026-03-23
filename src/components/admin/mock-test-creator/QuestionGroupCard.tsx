@@ -219,6 +219,15 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
             />
+          ) : !hasSubs && group.answerBlockType === 'image_fill_blanks' ? (
+            <ImageFillBlanksEditor
+              config={{
+                ...createDefaultImageFillBlanksConfig(),
+                ...(group.answerBlockConfig || {}),
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+              folder={`questions/q${group.number}/fill-blanks`}
+            />
           ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
