@@ -650,6 +650,21 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         );
       }
 
+      case 'image_fill_blanks': {
+        const fillConfig = config as any;
+        const ImageFillBlanksPlayer = React.lazy(() => import('@/components/answer-types/ImageFillBlanksPlayer'));
+        return (
+          <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
+            <ImageFillBlanksPlayer
+              config={fillConfig}
+              value={value || {}}
+              onChange={onChange}
+              disabled={disabled}
+            />
+          </React.Suspense>
+        );
+      }
+
       case 'text_equation':
       default: {
         const textValue = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
