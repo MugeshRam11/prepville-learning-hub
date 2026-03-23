@@ -16,6 +16,7 @@ import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlo
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
+import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/ImageFillBlanksEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
