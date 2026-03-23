@@ -198,6 +198,7 @@ export function getInteractiveTypeIcon(type: InteractiveType): string {
     'smart_math': 'Hash',
     'multiple_choice': 'CheckSquare',
     'table_input': 'Table2',
+    'image_fill_blanks': 'PenTool',
   };
   return icons[type] || 'FileText';
 }
