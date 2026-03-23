@@ -13,6 +13,7 @@ import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleC
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
+import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/ImageFillBlanksEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
