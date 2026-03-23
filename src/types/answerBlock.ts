@@ -170,7 +170,8 @@ export const getAnswerBlockTypeLabel = (type: AnswerBlockType): string => {
     arrange_order: 'Arrange / Order',
     smart_math: 'Smart Math Input',
     multiple_choice: 'Multiple Choice',
-    table_input: 'Table Input'
+    table_input: 'Table Input',
+    image_fill_blanks: 'Image Fill Blanks'
   };
   return labels[type];
 };
