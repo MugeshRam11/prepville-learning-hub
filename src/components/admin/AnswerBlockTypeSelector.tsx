@@ -19,7 +19,8 @@ export type AnswerBlockType =
   | 'arrange_order'
   | 'smart_math'
   | 'multiple_choice'
-  | 'table_input';
+  | 'table_input'
+  | 'image_fill_blanks';
 
 interface AnswerBlockTypeSelectorProps {
   value: AnswerBlockType;
