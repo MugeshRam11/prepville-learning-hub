@@ -16,6 +16,7 @@ import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlo
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
+import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/ImageFillBlanksEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
@@ -217,6 +218,15 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 ...(group.answerBlockConfig || {}),
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+            />
+          ) : !hasSubs && group.answerBlockType === 'image_fill_blanks' ? (
+            <ImageFillBlanksEditor
+              config={{
+                ...createDefaultImageFillBlanksConfig(),
+                ...(group.answerBlockConfig || {}),
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
+              folder={`questions/q${group.number}/fill-blanks`}
             />
           ) : !hasSubs ? (
             <div>

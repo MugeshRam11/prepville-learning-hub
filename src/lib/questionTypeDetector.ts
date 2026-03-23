@@ -180,6 +180,7 @@ export function getInteractiveTypeLabel(type: InteractiveType): string {
     'smart_math': 'Math Input',
     'multiple_choice': 'Multiple Choice',
     'table_input': 'Table Input',
+    'image_fill_blanks': 'Image Fill Blanks',
   };
   return labels[type] || type;
 }
@@ -197,6 +198,7 @@ export function getInteractiveTypeIcon(type: InteractiveType): string {
     'smart_math': 'Hash',
     'multiple_choice': 'CheckSquare',
     'table_input': 'Table2',
+    'image_fill_blanks': 'PenTool',
   };
   return icons[type] || 'FileText';
 }
@@ -214,6 +216,7 @@ export function countInteractiveTypes(questions: QuestionData[]): Record<Interac
     'smart_math': 0,
     'multiple_choice': 0,
     'table_input': 0,
+    'image_fill_blanks': 0,
   };
 
   questions.forEach(q => {

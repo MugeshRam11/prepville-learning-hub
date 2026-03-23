@@ -223,6 +223,20 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
         );
       }
 
+      case 'image_fill_blanks': {
+        const ImageFillBlanksPlayer = React.lazy(() => import('@/components/answer-types/ImageFillBlanksPlayer'));
+        return (
+          <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
+            <ImageFillBlanksPlayer
+              config={config as any}
+              value={value || {}}
+              onChange={onChange}
+              disabled={disabled}
+            />
+          </React.Suspense>
+        );
+      }
+
       default:
         return (
           <Textarea

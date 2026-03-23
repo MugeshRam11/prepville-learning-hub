@@ -19,7 +19,8 @@ export type AnswerBlockType =
   | 'arrange_order'
   | 'smart_math'
   | 'multiple_choice'
-  | 'table_input';
+  | 'table_input'
+  | 'image_fill_blanks';
 
 interface AnswerBlockTypeSelectorProps {
   value: AnswerBlockType;
@@ -75,6 +76,12 @@ const ANSWER_BLOCK_OPTIONS: { value: AnswerBlockType; label: string; icon: React
     label: 'Table Input', 
     icon: <FileText className="w-4 h-4" />,
     description: 'Fill in table cells'
+  },
+  { 
+    value: 'image_fill_blanks', 
+    label: 'Image Fill Blanks', 
+    icon: <FileText className="w-4 h-4" />,
+    description: 'Type answers into zones on an image'
   },
 ];
 

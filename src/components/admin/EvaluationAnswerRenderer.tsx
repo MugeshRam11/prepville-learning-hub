@@ -916,6 +916,14 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
   const resolvedType = detectAnswerType(answerBlockType, config, parsed);
 
   switch (resolvedType) {
+    case 'image_fill_blanks': {
+      const ImageFillBlanksReview = React.lazy(() => import('@/components/answer-types/ImageFillBlanksReview'));
+      return (
+        <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
+          <ImageFillBlanksReview config={config as any} studentAnswer={parsed} mode={mode} />
+        </React.Suspense>
+      );
+    }
     case 'image_drop':
       return <ImageDropZoneReview config={config} studentAnswer={parsed} questionImageUrl={questionImageUrl} mode={mode} />;
     case 'drag_drop':

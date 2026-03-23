@@ -13,6 +13,7 @@ import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleC
 import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
+import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/ImageFillBlanksEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
@@ -151,6 +152,15 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             ...(subQuestion.answerBlockConfig || {}),
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+        />
+      ) : subQuestion.answerBlockType === 'image_fill_blanks' ? (
+        <ImageFillBlanksEditor
+          config={{
+            ...createDefaultImageFillBlanksConfig(),
+            ...(subQuestion.answerBlockConfig || {}),
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+          folder={`questions/q${questionNumber}-${subQuestion.label}/fill-blanks`}
         />
       ) : (
         <div>

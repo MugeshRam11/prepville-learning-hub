@@ -47,7 +47,8 @@ export type InteractiveType =
   | 'arrange_order'
   | 'smart_math'
   | 'multiple_choice'
-  | 'table_input';
+  | 'table_input'
+  | 'image_fill_blanks';
 
 interface InteractiveAnswerBlockProps {
   questionId: string;
@@ -75,6 +76,7 @@ const TYPE_OPTIONS: { type: InteractiveType; label: string; icon: React.ReactNod
   { type: 'smart_math', label: 'Smart Math', icon: <Hash className="w-4 h-4" /> },
   { type: 'multiple_choice', label: 'Multiple Choice', icon: <CheckSquare className="w-4 h-4" /> },
   { type: 'table_input', label: 'Table Input', icon: <Table2 className="w-4 h-4" /> },
+  { type: 'image_fill_blanks', label: 'Image Fill Blanks', icon: <PenTool className="w-4 h-4" /> },
 ];
 
 // IB MYP eAssessment patterns for interactive type detection
@@ -645,6 +647,21 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
               />
             )}
           </div>
+        );
+      }
+
+      case 'image_fill_blanks': {
+        const fillConfig = config as any;
+        const ImageFillBlanksPlayer = React.lazy(() => import('@/components/answer-types/ImageFillBlanksPlayer'));
+        return (
+          <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
+            <ImageFillBlanksPlayer
+              config={fillConfig}
+              value={value || {}}
+              onChange={onChange}
+              disabled={disabled}
+            />
+          </React.Suspense>
         );
       }
 
