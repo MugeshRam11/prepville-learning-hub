@@ -103,9 +103,9 @@ export default function EquationEditor({
   placeholder,
   className = "",
 }: EquationEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const isInternalUpdate = useRef(false);
   const { toast } = useToast();
-  const [showPreview, setShowPreview] = useState(true);
 
   const greekLetters = Object.entries(greekMap).map(([name, char]) => ({
     name,
@@ -116,22 +116,128 @@ export default function EquationEditor({
     char,
   }));
 
+  // Convert raw value (with $...$) to HTML with rendered KaTeX
+  const valueToHtml = useCallback((text: string): string => {
+    if (!text) return "";
+    let result = text
+      .replace(/\$\$([^$]+)\$\$/g, (_, latex) => {
+        try {
+          const rendered = katex.renderToString(latex, { displayMode: true, throwOnError: false });
+          return `<span class="katex-block" data-latex="${latex.replace(/"/g, '&quot;')}" contenteditable="false">${rendered}</span>`;
+        } catch { return `<span class="katex-block" data-latex="${latex.replace(/"/g, '&quot;')}" contenteditable="false" style="color:#cc0000">${latex}</span>`; }
+      })
+      .replace(/\$([^$]+)\$/g, (_, latex) => {
+        try {
+          const rendered = katex.renderToString(latex, { displayMode: false, throwOnError: false });
+          return `<span class="katex-inline" data-latex="${latex.replace(/"/g, '&quot;')}" contenteditable="false">${rendered}</span>`;
+        } catch { return `<span class="katex-inline" data-latex="${latex.replace(/"/g, '&quot;')}" contenteditable="false" style="color:#cc0000">${latex}</span>`; }
+      });
+    result = result.replace(/\n/g, "<br/>");
+    return result;
+  }, []);
+
+  // Extract raw value from HTML (convert rendered KaTeX spans back to $...$)
+  const htmlToValue = useCallback((el: HTMLDivElement): string => {
+    let result = "";
+    el.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += node.textContent || "";
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const elem = node as HTMLElement;
+        if (elem.dataset.latex) {
+          const isBlock = elem.classList.contains("katex-block");
+          result += isBlock ? `$$${elem.dataset.latex}$$` : `$${elem.dataset.latex}$`;
+        } else if (elem.tagName === "BR") {
+          result += "\n";
+        } else {
+          // Recurse for nested elements
+          const inner = elem.dataset.latex;
+          if (inner) {
+            result += `$${inner}$`;
+          } else {
+            result += elem.textContent || "";
+          }
+        }
+      }
+    });
+    return result;
+  }, []);
+
+  // Sync external value → editor HTML
+  useEffect(() => {
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
+    if (editorRef.current) {
+      const html = valueToHtml(value || "");
+      if (editorRef.current.innerHTML !== html) {
+        editorRef.current.innerHTML = html;
+      }
+    }
+  }, [value, valueToHtml]);
+
+  const handleInput = useCallback(() => {
+    if (!editorRef.current) return;
+    isInternalUpdate.current = true;
+    const raw = htmlToValue(editorRef.current);
+    onChange(raw);
+  }, [htmlToValue, onChange]);
+
+  const insertTextAtCursor = useCallback((text: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      // Check if it contains LaTeX
+      if (/\$[^$]+\$/.test(text)) {
+        const temp = document.createElement("span");
+        temp.innerHTML = valueToHtml(text);
+        const frag = document.createDocumentFragment();
+        while (temp.firstChild) frag.appendChild(temp.firstChild);
+        range.insertNode(frag);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        const textNode = document.createTextNode(text);
+        range.insertNode(textNode);
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } else {
+      editorRef.current.innerHTML += valueToHtml(text);
+    }
+    handleInput();
+  }, [valueToHtml, handleInput]);
+
   const handleInsert = useCallback(
     (text: string) => {
-      if (!textareaRef.current) return;
-      const next = insertAtCursor(textareaRef.current, text);
-      onChange(next);
+      insertTextAtCursor(text);
     },
-    [onChange]
+    [insertTextAtCursor]
   );
 
   const handleTransform = useCallback(
     (fn: (s: string) => string) => {
-      if (!textareaRef.current) return;
-      const next = transformSelection(textareaRef.current, fn);
-      onChange(next);
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+      const selectedText = sel.toString();
+      const transformed = fn(selectedText);
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(transformed);
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      handleInput();
     },
-    [onChange]
+    [handleInput]
   );
 
   const handleCopy = useCallback(() => {
@@ -142,28 +248,24 @@ export default function EquationEditor({
   }, [value, toast]);
 
   const handlePaste = useCallback(
-    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
+      e.preventDefault();
       const text = e.clipboardData.getData("text/plain");
-      // If pasted text contains LaTeX patterns but no $ delimiters, wrap them
-      if (text && /\\(frac|sqrt|sum|int|cap|cup|neq|leq|geq|infty|textbf|color|alpha|beta|gamma|delta|theta|pi|sigma|omega)\b/.test(text) && !text.includes("$")) {
-        e.preventDefault();
-        const wrapped = `$${text}$`;
-        if (textareaRef.current) {
-          const next = insertAtCursor(textareaRef.current, wrapped);
-          onChange(next);
-        }
+      if (!text) return;
+      // Auto-wrap raw LaTeX if no $ delimiters
+      let toInsert = text;
+      if (/\\(frac|sqrt|sum|int|cap|cup|neq|leq|geq|infty|textbf|color|alpha|beta|gamma|delta|theta|pi|sigma|omega)\b/.test(text) && !text.includes("$")) {
+        toInsert = `$${text}$`;
       }
+      insertTextAtCursor(toInsert);
     },
-    [onChange]
+    [insertTextAtCursor]
   );
-
-  const hasLatex = value && /\$[^$]+\$/.test(value);
 
   return (
     <div className={className}>
       <Card className="overflow-hidden border-border/60 shadow-sm">
         <CardContent className="p-4 space-y-3">
-          {/* Toolbar */}
           <div className="space-y-3">
             {/* Tool groups */}
             <div className="flex flex-wrap gap-1.5">
@@ -236,54 +338,21 @@ export default function EquationEditor({
               ))}
             </div>
 
-            {/* Equation input textarea */}
-            <textarea
-              ref={textareaRef}
-              value={value || ""}
-              onChange={(e) => onChange(e.target.value)}
+            {/* Rich Math Editor - contenteditable with inline KaTeX rendering */}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleInput}
               onPaste={handlePaste}
-              placeholder={placeholder || "Type equation here... Use $...$ for inline math, $$...$$ for display math"}
-              className="w-full min-h-[100px] p-4 text-lg bg-background border-2 border-border rounded-2xl resize-y focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-foreground placeholder:text-muted-foreground"
-              style={{ fontFamily: "'Cambria Math', 'Segoe UI', 'Arial Unicode MS', sans-serif" }}
+              data-placeholder={placeholder || "Type here... Use $...$ for inline math. Pasted LaTeX auto-renders."}
+              className="w-full min-h-[100px] p-4 text-lg bg-background border-2 border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-foreground empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none"
+              style={{ fontFamily: "'Cambria Math', 'Segoe UI', 'Arial Unicode MS', sans-serif", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
             />
-
-            {/* Live Math Preview */}
-            {hasLatex && showPreview && (
-              <div className="border-2 border-primary/20 rounded-2xl p-4 bg-primary/5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-primary">Math Preview</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPreview(false)}
-                    className="h-6 text-xs"
-                  >
-                    Hide
-                  </Button>
-                </div>
-                <div
-                  className="text-lg leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: renderMathPreview(value) }}
-                />
-              </div>
-            )}
-
-            {hasLatex && !showPreview && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPreview(true)}
-                className="text-xs text-primary"
-              >
-                Show Math Preview
-              </Button>
-            )}
 
             {/* Tip */}
             <div className="text-xs text-muted-foreground text-center">
-              Click symbols to insert · Use <code className="bg-muted px-1 rounded">$...$</code> for inline math · Paste LaTeX auto-detected · Select text then click "sup ↑" or "sub ↓" to transform
+              Click symbols to insert · Use <code className="bg-muted px-1 rounded">$...$</code> for inline math · Paste LaTeX auto-renders inline
             </div>
           </div>
         </CardContent>
