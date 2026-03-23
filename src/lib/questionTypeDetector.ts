@@ -180,6 +180,7 @@ export function getInteractiveTypeLabel(type: InteractiveType): string {
     'smart_math': 'Math Input',
     'multiple_choice': 'Multiple Choice',
     'table_input': 'Table Input',
+    'image_fill_blanks': 'Image Fill Blanks',
   };
   return labels[type] || type;
 }
