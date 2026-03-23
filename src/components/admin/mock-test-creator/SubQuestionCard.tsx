@@ -153,6 +153,15 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
         />
+      ) : subQuestion.answerBlockType === 'image_fill_blanks' ? (
+        <ImageFillBlanksEditor
+          config={{
+            ...createDefaultImageFillBlanksConfig(),
+            ...(subQuestion.answerBlockConfig || {}),
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
+          folder={`questions/q${questionNumber}-${subQuestion.label}/fill-blanks`}
+        />
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
