@@ -77,6 +77,12 @@ const ANSWER_BLOCK_OPTIONS: { value: AnswerBlockType; label: string; icon: React
     icon: <FileText className="w-4 h-4" />,
     description: 'Fill in table cells'
   },
+  { 
+    value: 'image_fill_blanks', 
+    label: 'Image Fill Blanks', 
+    icon: <FileText className="w-4 h-4" />,
+    description: 'Type answers into zones on an image'
+  },
 ];
 
 const AnswerBlockTypeSelector: React.FC<AnswerBlockTypeSelectorProps> = ({
