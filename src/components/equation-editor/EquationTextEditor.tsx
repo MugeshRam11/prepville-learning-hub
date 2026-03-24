@@ -211,40 +211,35 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     handleInput();
   }, [handleInput]);
 
-  // Open modal for new equation
+  // Open modal for new equation — save cursor position first
   const handleInsertEquation = () => {
+    savedCursorOffset.current = getCursorOffsetInValue();
     setEditingEquation(null);
     setIsEditorOpen(true);
   };
 
-  // Save from modal
+  // Save from modal — insert equation placeholder into value string
   const handleSaveEquation = (data: { latex: string; mathml: string; renderedHtml: string }) => {
     if (editingEquation) {
-      // Update existing equation
+      // Update existing equation data
       const updatedEqs = equations.map(eq =>
         eq.id === editingEquation.id ? { ...eq, ...data } : eq
       );
       onEquationsChange(updatedEqs);
-      
-      // Re-render the updated equation in the editor
-      if (editorRef.current) {
-        const eqEl = editorRef.current.querySelector(`[data-eq-id="${editingEquation.id}"]`);
-        if (eqEl) {
-          try {
-            eqEl.innerHTML = katex.renderToString(data.latex, { throwOnError: false, displayMode: false });
-          } catch {
-            eqEl.textContent = data.latex;
-          }
-        }
-      }
     } else {
-      // Insert new equation
+      // Insert new equation at saved cursor position
       const newEquation: EquationData = {
         id: generateId(),
         ...data
       };
       onEquationsChange([...equations, newEquation]);
-      insertEquationAtCursor(newEquation);
+
+      const placeholder = `[[EQ:${newEquation.id}]]`;
+      const pos = savedCursorOffset.current ?? value.length;
+      const before = value.slice(0, pos);
+      const after = value.slice(pos);
+      isInternalUpdate.current = false; // let useEffect re-render
+      onValueChange(before + placeholder + after);
     }
 
     setIsEditorOpen(false);
