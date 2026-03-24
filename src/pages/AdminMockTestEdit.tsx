@@ -327,7 +327,17 @@ const AdminMockTestEdit = () => {
         .eq('id', id);
       if (testError) throw testError;
 
-      // 2. Delete existing sections, questions, sub-questions
+      // 2. Delete existing sub-questions, questions, sections (correct FK order)
+      // First get all question IDs to delete their sub-questions
+      const { data: existingQuestions } = await supabase
+        .from('mock_questions')
+        .select('id')
+        .eq('mock_test_id', id);
+      
+      if (existingQuestions && existingQuestions.length > 0) {
+        const questionIds = existingQuestions.map(q => q.id);
+        await supabase.from('mock_sub_questions').delete().in('question_id', questionIds);
+      }
       await supabase.from('mock_questions').delete().eq('mock_test_id', id);
       await supabase.from('mock_test_sections').delete().eq('mock_test_id', id);
 
