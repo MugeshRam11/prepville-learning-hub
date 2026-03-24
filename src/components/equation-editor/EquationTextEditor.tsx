@@ -38,8 +38,49 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
   const [editingEquation, setEditingEquation] = useState<EquationData | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalUpdate = useRef(false);
+  const savedCursorOffset = useRef<number | null>(null);
 
   const generateId = () => `eq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Get cursor offset as character position in the raw value string
+  const getCursorOffsetInValue = useCallback((): number => {
+    if (!editorRef.current) return value.length;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return value.length;
+    
+    const range = sel.getRangeAt(0);
+    let offset = 0;
+    
+    const walk = (node: Node): boolean => {
+      if (node === range.startContainer) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          offset += range.startOffset;
+        }
+        return true; // found
+      }
+      if (node.nodeType === Node.TEXT_NODE) {
+        offset += (node.textContent || "").length;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const elem = node as HTMLElement;
+        if (elem.dataset.eqId) {
+          offset += `[[EQ:${elem.dataset.eqId}]]`.length;
+        } else if (elem.tagName === "BR") {
+          offset += 1;
+        } else {
+          for (const child of Array.from(elem.childNodes)) {
+            if (walk(child)) return true;
+          }
+        }
+      }
+      return false;
+    };
+    
+    for (const child of Array.from(editorRef.current.childNodes)) {
+      if (walk(child)) break;
+    }
+    
+    return offset;
+  }, [value]);
 
   // Convert raw value (with [[EQ:id]] placeholders) to HTML with rendered KaTeX
   const valueToHtml = useCallback((text: string, eqs: EquationData[]): string => {
