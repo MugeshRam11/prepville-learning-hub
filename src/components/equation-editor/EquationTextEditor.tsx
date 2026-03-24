@@ -252,20 +252,24 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     const text = e.clipboardData.getData('text/plain');
     if (!text) return;
 
-    // If it looks like raw LaTeX, insert as equation
+    // If it looks like raw LaTeX, create an equation object and insert via value string
     if (/\\(frac|sqrt|sum|int|alpha|beta|gamma|pi|theta|sigma|infty|leq|geq|neq|times|div|pm)\b/.test(text) && !text.includes('[[EQ:')) {
       const newEq: EquationData = {
         id: generateId(),
-        latex: text.replace(/^\$+|\$+$/g, ''), // strip $ wrappers
+        latex: text.replace(/^\$+|\$+$/g, ''),
         mathml: '',
         renderedHtml: ''
       };
+      const pos = getCursorOffsetInValue();
       onEquationsChange([...equations, newEq]);
-      insertEquationAtCursor(newEq);
+      const placeholder = `[[EQ:${newEq.id}]]`;
+      const before = value.slice(0, pos);
+      const after = value.slice(pos);
+      onValueChange(before + placeholder + after);
       return;
     }
 
-    // Regular text paste
+    // Regular text paste — insert via DOM (cursor is active during paste)
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
@@ -278,7 +282,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
       sel.addRange(range);
       handleInput();
     }
-  }, [equations, onEquationsChange, insertEquationAtCursor, handleInput]);
+  }, [equations, onEquationsChange, getCursorOffsetInValue, handleInput, value, onValueChange]);
 
   return (
     <div className={cn("space-y-3", className)}>
