@@ -38,8 +38,49 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
   const [editingEquation, setEditingEquation] = useState<EquationData | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalUpdate = useRef(false);
+  const savedCursorOffset = useRef<number | null>(null);
 
   const generateId = () => `eq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Get cursor offset as character position in the raw value string
+  const getCursorOffsetInValue = useCallback((): number => {
+    if (!editorRef.current) return value.length;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return value.length;
+    
+    const range = sel.getRangeAt(0);
+    let offset = 0;
+    
+    const walk = (node: Node): boolean => {
+      if (node === range.startContainer) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          offset += range.startOffset;
+        }
+        return true; // found
+      }
+      if (node.nodeType === Node.TEXT_NODE) {
+        offset += (node.textContent || "").length;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const elem = node as HTMLElement;
+        if (elem.dataset.eqId) {
+          offset += `[[EQ:${elem.dataset.eqId}]]`.length;
+        } else if (elem.tagName === "BR") {
+          offset += 1;
+        } else {
+          for (const child of Array.from(elem.childNodes)) {
+            if (walk(child)) return true;
+          }
+        }
+      }
+      return false;
+    };
+    
+    for (const child of Array.from(editorRef.current.childNodes)) {
+      if (walk(child)) break;
+    }
+    
+    return offset;
+  }, [value]);
 
   // Convert raw value (with [[EQ:id]] placeholders) to HTML with rendered KaTeX
   const valueToHtml = useCallback((text: string, eqs: EquationData[]): string => {
@@ -130,80 +171,35 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     }
   }, [equations, disabled]);
 
-  // Insert a rendered equation span at the current cursor position
-  const insertEquationAtCursor = useCallback((eq: EquationData) => {
-    if (!editorRef.current) return;
-    editorRef.current.focus();
-
-    let rendered: string;
-    try {
-      rendered = katex.renderToString(eq.latex, { throwOnError: false, displayMode: false });
-    } catch {
-      rendered = eq.latex;
-    }
-
-    const span = document.createElement('span');
-    span.className = 'eq-inline-obj';
-    span.dataset.eqId = eq.id;
-    span.contentEditable = 'false';
-    span.style.cssText = 'display:inline-block;padding:2px 6px;margin:0 2px;background:hsl(var(--primary)/0.08);border:1px solid hsl(var(--primary)/0.2);border-radius:6px;cursor:pointer;vertical-align:middle;';
-    span.innerHTML = rendered;
-
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(span);
-
-      // Move cursor after the inserted equation
-      const spaceNode = document.createTextNode('\u200B'); // zero-width space
-      range.setStartAfter(span);
-      range.insertNode(spaceNode);
-      range.setStartAfter(spaceNode);
-      range.setEndAfter(spaceNode);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    } else {
-      editorRef.current.appendChild(span);
-    }
-
-    handleInput();
-  }, [handleInput]);
-
-  // Open modal for new equation
+  // Open modal for new equation — save cursor position first
   const handleInsertEquation = () => {
+    savedCursorOffset.current = getCursorOffsetInValue();
     setEditingEquation(null);
     setIsEditorOpen(true);
   };
 
-  // Save from modal
+  // Save from modal — insert equation placeholder into value string
   const handleSaveEquation = (data: { latex: string; mathml: string; renderedHtml: string }) => {
     if (editingEquation) {
-      // Update existing equation
+      // Update existing equation data
       const updatedEqs = equations.map(eq =>
         eq.id === editingEquation.id ? { ...eq, ...data } : eq
       );
       onEquationsChange(updatedEqs);
-      
-      // Re-render the updated equation in the editor
-      if (editorRef.current) {
-        const eqEl = editorRef.current.querySelector(`[data-eq-id="${editingEquation.id}"]`);
-        if (eqEl) {
-          try {
-            eqEl.innerHTML = katex.renderToString(data.latex, { throwOnError: false, displayMode: false });
-          } catch {
-            eqEl.textContent = data.latex;
-          }
-        }
-      }
     } else {
-      // Insert new equation
+      // Insert new equation at saved cursor position
       const newEquation: EquationData = {
         id: generateId(),
         ...data
       };
       onEquationsChange([...equations, newEquation]);
-      insertEquationAtCursor(newEquation);
+
+      const placeholder = `[[EQ:${newEquation.id}]]`;
+      const pos = savedCursorOffset.current ?? value.length;
+      const before = value.slice(0, pos);
+      const after = value.slice(pos);
+      isInternalUpdate.current = false; // let useEffect re-render
+      onValueChange(before + placeholder + after);
     }
 
     setIsEditorOpen(false);
@@ -216,20 +212,24 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     const text = e.clipboardData.getData('text/plain');
     if (!text) return;
 
-    // If it looks like raw LaTeX, insert as equation
+    // If it looks like raw LaTeX, create an equation object and insert via value string
     if (/\\(frac|sqrt|sum|int|alpha|beta|gamma|pi|theta|sigma|infty|leq|geq|neq|times|div|pm)\b/.test(text) && !text.includes('[[EQ:')) {
       const newEq: EquationData = {
         id: generateId(),
-        latex: text.replace(/^\$+|\$+$/g, ''), // strip $ wrappers
+        latex: text.replace(/^\$+|\$+$/g, ''),
         mathml: '',
         renderedHtml: ''
       };
+      const pos = getCursorOffsetInValue();
       onEquationsChange([...equations, newEq]);
-      insertEquationAtCursor(newEq);
+      const placeholder = `[[EQ:${newEq.id}]]`;
+      const before = value.slice(0, pos);
+      const after = value.slice(pos);
+      onValueChange(before + placeholder + after);
       return;
     }
 
-    // Regular text paste
+    // Regular text paste — insert via DOM (cursor is active during paste)
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
@@ -242,7 +242,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
       sel.addRange(range);
       handleInput();
     }
-  }, [equations, onEquationsChange, insertEquationAtCursor, handleInput]);
+  }, [equations, onEquationsChange, getCursorOffsetInValue, handleInput, value, onValueChange]);
 
   return (
     <div className={cn("space-y-3", className)}>
