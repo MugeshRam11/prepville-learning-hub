@@ -171,46 +171,6 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     }
   }, [equations, disabled]);
 
-  // Insert a rendered equation span at the current cursor position
-  const insertEquationAtCursor = useCallback((eq: EquationData) => {
-    if (!editorRef.current) return;
-    editorRef.current.focus();
-
-    let rendered: string;
-    try {
-      rendered = katex.renderToString(eq.latex, { throwOnError: false, displayMode: false });
-    } catch {
-      rendered = eq.latex;
-    }
-
-    const span = document.createElement('span');
-    span.className = 'eq-inline-obj';
-    span.dataset.eqId = eq.id;
-    span.contentEditable = 'false';
-    span.style.cssText = 'display:inline-block;padding:2px 6px;margin:0 2px;background:hsl(var(--primary)/0.08);border:1px solid hsl(var(--primary)/0.2);border-radius:6px;cursor:pointer;vertical-align:middle;';
-    span.innerHTML = rendered;
-
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(span);
-
-      // Move cursor after the inserted equation
-      const spaceNode = document.createTextNode('\u200B'); // zero-width space
-      range.setStartAfter(span);
-      range.insertNode(spaceNode);
-      range.setStartAfter(spaceNode);
-      range.setEndAfter(spaceNode);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    } else {
-      editorRef.current.appendChild(span);
-    }
-
-    handleInput();
-  }, [handleInput]);
-
   // Open modal for new equation — save cursor position first
   const handleInsertEquation = () => {
     savedCursorOffset.current = getCursorOffsetInValue();
