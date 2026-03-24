@@ -6,10 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Upload, Plus, FileSpreadsheet, Clock, Award } from 'lucide-react';
+import {
+  ArrowLeft, Save, Upload, Plus, FileSpreadsheet,
+  Wand2, Database as DatabaseIcon, Clock, Award
+} from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
+import QuestionBankSelector from '@/components/admin/QuestionBankSelector';
 import SectionCard from '@/components/admin/mock-test-creator/SectionCard';
 import CSVImportModal from '@/components/admin/mock-test-creator/CSVImportModal';
 import {
@@ -37,7 +43,6 @@ function buildSectionsFromDB(
   dbSections: any[],
   dbQuestions: any[]
 ): CreatorSection[] {
-  // If no sections exist, create a default one and put all questions in it
   if (!dbSections || dbSections.length === 0) {
     const section: CreatorSection = {
       id: genId(),
@@ -80,7 +85,7 @@ function questionToGroup(q: any): CreatorQuestionGroup {
     wordLimit: q.word_limit?.toString() || '',
     subQuestions: (q.mock_sub_questions || [])
       .sort((a: any, b: any) => a.sub_question_label.localeCompare(b.sub_question_label))
-      .map((sq: any, idx: number): CreatorSubQuestion => ({
+      .map((sq: any): CreatorSubQuestion => ({
         id: sq.id,
         label: sq.sub_question_label,
         text: sq.sub_question_text,
@@ -101,6 +106,8 @@ const AdminMockTestEdit = () => {
   const [loading, setLoading] = useState(false);
   const [state, setState] = useState<CreatorState | null>(null);
   const [showCSVImport, setShowCSVImport] = useState(false);
+  const [showAIParser, setShowAIParser] = useState(false);
+  const [showQuestionBank, setShowQuestionBank] = useState(false);
 
   // Fetch test with sections, questions, sub-questions
   const { data: mockTest, isLoading } = useQuery({
@@ -136,7 +143,7 @@ const AdminMockTestEdit = () => {
     }
   }, [mockTest, state]);
 
-  // --- Operations (same as create page) ---
+  // --- Section operations ---
   const addSection = useCallback(() => {
     setState(prev => prev ? {
       ...prev,
@@ -158,6 +165,7 @@ const AdminMockTestEdit = () => {
     } : prev);
   }, []);
 
+  // --- Question group operations ---
   const addQuestionGroup = useCallback((sectionId: string) => {
     setState(prev => {
       if (!prev) return prev;
@@ -195,22 +203,42 @@ const AdminMockTestEdit = () => {
     } : prev);
   }, []);
 
+  // --- Sub-question operations ---
   const addSubQuestion = useCallback((sectionId: string, groupId: string) => {
-    setState(prev => prev ? {
-      ...prev,
-      sections: prev.sections.map(s =>
-        s.id === sectionId
-          ? {
-              ...s,
-              questionGroups: s.questionGroups.map(g =>
-                g.id === groupId
-                  ? { ...g, subQuestions: [...g.subQuestions, createSubQuestion(g.subQuestions.length)] }
-                  : g
-              ),
-            }
-          : s
-      ),
-    } : prev);
+    setState(prev => {
+      if (!prev) return prev;
+      const group = prev.sections
+        .find(s => s.id === sectionId)
+        ?.questionGroups.find(g => g.id === groupId);
+      const newSub = createSubQuestion(group?.subQuestions.length ?? 0);
+
+      const newState = {
+        ...prev,
+        sections: prev.sections.map(s =>
+          s.id === sectionId
+            ? {
+                ...s,
+                questionGroups: s.questionGroups.map(g =>
+                  g.id === groupId
+                    ? { ...g, subQuestions: [...g.subQuestions, newSub] }
+                    : g
+                ),
+              }
+            : s
+        ),
+      };
+
+      // Scroll to the new sub-question after render
+      setTimeout(() => {
+        const el = document.getElementById(`sub-question-${newSub.id}`);
+        if (el) {
+          const y = el.getBoundingClientRect().top + window.scrollY - 100;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 150);
+
+      return newState;
+    });
   }, []);
 
   const updateSubQuestion = useCallback((sectionId: string, groupId: string, subId: string, updates: Partial<CreatorSubQuestion>) => {
@@ -249,6 +277,7 @@ const AdminMockTestEdit = () => {
     } : prev);
   }, []);
 
+  // --- CSV Import ---
   const handleCSVImport = useCallback((importedSections: CreatorSection[]) => {
     setState(prev => prev ? {
       ...prev,
@@ -265,6 +294,22 @@ const AdminMockTestEdit = () => {
     if (!state.topic.trim()) { toast.error('Enter a topic'); return; }
     const totalQuestions = getTotalQuestions(state.sections);
     if (totalQuestions === 0) { toast.error('Add at least one question'); return; }
+
+    // Validate all questions have text (same as create page)
+    for (const section of state.sections) {
+      for (const group of section.questionGroups) {
+        if (!group.stem.trim() && group.subQuestions.length === 0) {
+          toast.error(`Q${group.number} is missing question text`);
+          return;
+        }
+        for (const sq of group.subQuestions) {
+          if (!sq.text.trim()) {
+            toast.error(`Q${group.number}(${sq.label}) is missing text`);
+            return;
+          }
+        }
+      }
+    }
 
     setLoading(true);
     try {
@@ -283,7 +328,6 @@ const AdminMockTestEdit = () => {
       if (testError) throw testError;
 
       // 2. Delete existing sections, questions, sub-questions
-      // Deleting questions cascades to sub-questions via FK
       await supabase.from('mock_questions').delete().eq('mock_test_id', id);
       await supabase.from('mock_test_sections').delete().eq('mock_test_id', id);
 
@@ -346,9 +390,10 @@ const AdminMockTestEdit = () => {
 
       toast.success(`Mock test ${publish ? 'updated and published' : 'updated'}!`);
       navigate('/admin/mock-tests');
-    } catch (error) {
-      console.error('Error updating mock test:', error);
-      toast.error('Failed to update mock test');
+    } catch (error: any) {
+      console.error('Save error:', error);
+      const msg = error?.message || error?.details || 'Unknown error';
+      toast.error(`Failed to update mock test: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -445,10 +490,16 @@ const AdminMockTestEdit = () => {
             </CardContent>
           </Card>
 
-          {/* Import toolbar */}
+          {/* Import toolbar — same as create page */}
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowCSVImport(true)}>
               <FileSpreadsheet className="w-4 h-4 mr-1" /> Import CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowAIParser(true)}>
+              <Wand2 className="w-4 h-4 mr-1" /> AI Upload
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowQuestionBank(true)}>
+              <DatabaseIcon className="w-4 h-4 mr-1" /> Question Bank
             </Button>
           </div>
 
@@ -484,6 +535,65 @@ const AdminMockTestEdit = () => {
         open={showCSVImport}
         onClose={() => setShowCSVImport(false)}
         onImport={handleCSVImport}
+      />
+
+      {/* AI Parser Modal */}
+      <Dialog open={showAIParser} onOpenChange={setShowAIParser}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>AI Document Parser</DialogTitle>
+            <DialogDescription>Upload PDF, Word, CSV, or images for AI parsing.</DialogDescription>
+          </DialogHeader>
+          <QuestionUploadCard
+            mode="mock"
+            onSuccess={(data) => {
+              if (data.mockTest) {
+                toast.success('Questions parsed! Redirecting...');
+                setTimeout(() => navigate(`/admin/mock-tests/edit/${data.mockTest.id}`), 1500);
+              }
+              setShowAIParser(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Question Bank Selector */}
+      <QuestionBankSelector
+        open={showQuestionBank}
+        onClose={() => setShowQuestionBank(false)}
+        onSelectQuestions={(selectedQuestions) => {
+          const firstSection = state.sections[0];
+          if (!firstSection) return;
+
+          const startNum = getNextQuestionNumber(state.sections);
+          const newGroups: CreatorQuestionGroup[] = selectedQuestions.map((q, idx) => ({
+            id: genId(),
+            number: startNum + idx,
+            stem: q.question_text,
+            stemImageUrl: q.question_image_url || '',
+            marks: q.marks,
+            difficulty: q.difficulty || 'medium',
+            commandTerm: q.command_term || '',
+            category: q.category || '',
+            diagramDescription: q.diagram_description || '',
+            answerBlockType: (q.answer_block_type || 'text_equation') as AnswerBlockType,
+            answerBlockConfig: q.answer_block_config || {},
+            answerKey: q.answer_key || '',
+            wordLimit: q.word_limit?.toString() || '',
+            subQuestions: [],
+          }));
+
+          setState(prev => prev ? {
+            ...prev,
+            sections: prev.sections.map(s =>
+              s.id === firstSection.id
+                ? { ...s, questionGroups: [...s.questionGroups, ...newGroups] }
+                : s
+            ),
+          } : prev);
+
+          toast.success(`${selectedQuestions.length} questions added from bank`);
+        }}
       />
     </div>
   );
