@@ -82,6 +82,7 @@ function questionToGroup(q: any): CreatorQuestionGroup {
     answerBlockType: (q.answer_block_type || 'text_equation') as AnswerBlockType,
     answerBlockConfig: q.answer_block_config || {},
     answerKey: q.answer_key || '',
+    answerKeyEquations: q.answer_block_config?.answerKeyEquations || [],
     wordLimit: q.word_limit?.toString() || '',
     subQuestions: (q.mock_sub_questions || [])
       .sort((a: any, b: any) => a.sub_question_label.localeCompare(b.sub_question_label))
@@ -96,6 +97,7 @@ function questionToGroup(q: any): CreatorQuestionGroup {
         commandTerm: sq.command_term || '',
         answerBlockType: (sq.answer_block_type || 'text_equation') as AnswerBlockType,
         answerBlockConfig: sq.answer_block_config || {},
+        answerKeyEquations: sq.answer_block_config?.answerKeyEquations || [],
       })),
   };
 }
