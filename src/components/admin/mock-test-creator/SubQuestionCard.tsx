@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, GripVertical } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
-import EquationEditor from '../EquationEditor';
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
+import { EquationTextEditor } from '@/components/equation-editor';
+import type { EquationData } from '@/components/equation-editor/EquationObject';
 import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
@@ -165,10 +166,13 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-          <EquationEditor
+          <EquationTextEditor
             value={subQuestion.answerKey}
-            onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
+            equations={subQuestion.answerKeyEquations || []}
+            onValueChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
+            onEquationsChange={(eqs) => onUpdate(subQuestion.id, { answerKeyEquations: eqs })}
             placeholder="Correct answer..."
+            minHeight="80px"
           />
         </div>
       )}

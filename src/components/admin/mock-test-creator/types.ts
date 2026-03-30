@@ -1,4 +1,5 @@
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
+import type { EquationData } from '@/components/equation-editor/EquationObject';
 
 export interface CreatorSubQuestion {
   id: string;
@@ -11,6 +12,7 @@ export interface CreatorSubQuestion {
   commandTerm: string;
   answerBlockType: AnswerBlockType;
   answerBlockConfig: Record<string, any>;
+  answerKeyEquations?: EquationData[];
 }
 
 export interface CreatorQuestionGroup {
@@ -27,6 +29,7 @@ export interface CreatorQuestionGroup {
   answerBlockConfig: Record<string, any>;
   answerKey: string;
   wordLimit: string;
+  answerKeyEquations?: EquationData[];
   subQuestions: CreatorSubQuestion[];
 }
 
