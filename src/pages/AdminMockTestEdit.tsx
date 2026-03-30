@@ -82,6 +82,7 @@ function questionToGroup(q: any): CreatorQuestionGroup {
     answerBlockType: (q.answer_block_type || 'text_equation') as AnswerBlockType,
     answerBlockConfig: q.answer_block_config || {},
     answerKey: q.answer_key || '',
+    answerKeyEquations: q.answer_block_config?.answerKeyEquations || [],
     wordLimit: q.word_limit?.toString() || '',
     subQuestions: (q.mock_sub_questions || [])
       .sort((a: any, b: any) => a.sub_question_label.localeCompare(b.sub_question_label))
@@ -96,6 +97,7 @@ function questionToGroup(q: any): CreatorQuestionGroup {
         commandTerm: sq.command_term || '',
         answerBlockType: (sq.answer_block_type || 'text_equation') as AnswerBlockType,
         answerBlockConfig: sq.answer_block_config || {},
+        answerKeyEquations: sq.answer_block_config?.answerKeyEquations || [],
       })),
   };
 }
@@ -372,7 +374,7 @@ const AdminMockTestEdit = () => {
               category: group.category || null,
               command_term: group.commandTerm || null,
               answer_block_type: hasSubs ? null : group.answerBlockType,
-              answer_block_config: hasSubs ? {} : (group.answerBlockConfig || {}),
+              answer_block_config: hasSubs ? {} : { ...(group.answerBlockConfig || {}), answerKeyEquations: group.answerKeyEquations || [] } as any,
               diagram_description: group.diagramDescription || null,
             })
             .select()
@@ -390,7 +392,7 @@ const AdminMockTestEdit = () => {
               word_limit: sq.wordLimit ? parseInt(sq.wordLimit) : null,
               command_term: sq.commandTerm || null,
               answer_block_type: sq.answerBlockType,
-              answer_block_config: sq.answerBlockConfig || {},
+              answer_block_config: { ...(sq.answerBlockConfig || {}), answerKeyEquations: sq.answerKeyEquations || [] } as any,
             }));
             const { error: sqError } = await supabase.from('mock_sub_questions').insert(subInserts);
             if (sqError) throw sqError;
