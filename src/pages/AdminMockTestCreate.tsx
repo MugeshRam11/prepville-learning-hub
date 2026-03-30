@@ -255,7 +255,7 @@ const AdminMockTestCreate = () => {
               category: group.category || null,
               command_term: group.commandTerm || null,
               answer_block_type: hasSubs ? null : group.answerBlockType,
-              answer_block_config: hasSubs ? {} : (group.answerBlockConfig || {}),
+              answer_block_config: hasSubs ? {} : { ...(group.answerBlockConfig || {}), answerKeyEquations: group.answerKeyEquations || [] } as any,
               diagram_description: group.diagramDescription || null,
             })
             .select()
@@ -274,7 +274,7 @@ const AdminMockTestCreate = () => {
               word_limit: sq.wordLimit ? parseInt(sq.wordLimit) : null,
               command_term: sq.commandTerm || null,
               answer_block_type: sq.answerBlockType,
-              answer_block_config: sq.answerBlockConfig || {},
+              answer_block_config: { ...(sq.answerBlockConfig || {}), answerKeyEquations: sq.answerKeyEquations || [] } as any,
             }));
             const { error: sqError } = await supabase.from('mock_sub_questions').insert(subInserts);
             if (sqError) throw sqError;
