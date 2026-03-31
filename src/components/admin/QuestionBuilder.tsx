@@ -244,11 +244,9 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <Label>Answer Key</Label>
-              <EquationTextEditor
+              <MathTextArea
                 value={newQuestionData.answer_key}
-                equations={newQuestionData.answer_key_equations}
-                onValueChange={(value) => setNewQuestionData({...newQuestionData, answer_key: value})}
-                onEquationsChange={(eqs) => setNewQuestionData({...newQuestionData, answer_key_equations: eqs})}
+                onChange={(value) => setNewQuestionData({...newQuestionData, answer_key: value})}
                 placeholder="Enter the correct answer and explanation..."
                 minHeight="80px"
               />
