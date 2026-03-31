@@ -92,7 +92,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
       if (segment.startsWith('$$') && segment.endsWith('$$')) {
         const latex = segment.slice(2, -2).trim();
         try {
-          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: true });
+          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: true, trust: true, strict: false });
           return `<span class="eq-inline-rendered" contenteditable="false" style="display:inline-block;vertical-align:middle;">${rendered}</span>`;
         } catch {
           return segment.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
