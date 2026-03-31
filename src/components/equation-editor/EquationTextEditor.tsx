@@ -83,6 +83,39 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
   }, [value]);
 
   // Convert raw value (with [[EQ:id]] placeholders) to HTML with rendered KaTeX
+  // Render inline $...$ and $$...$$ LaTeX within a plain text segment
+  const renderInlineLatex = useCallback((text: string): string => {
+    if (!text) return "";
+    // Split on $$...$$ (block) and $...$ (inline) patterns
+    const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$)/g);
+    return parts.map(segment => {
+      if (segment.startsWith('$$') && segment.endsWith('$$')) {
+        const latex = segment.slice(2, -2).trim();
+        try {
+          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: true });
+          return `<span class="eq-inline-rendered" contenteditable="false" style="display:inline-block;vertical-align:middle;">${rendered}</span>`;
+        } catch {
+          return segment.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+      }
+      if (segment.startsWith('$') && segment.endsWith('$') && segment.length > 2) {
+        const latex = segment.slice(1, -1).trim();
+        try {
+          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: false });
+          return `<span class="eq-inline-rendered" contenteditable="false" style="display:inline-block;vertical-align:middle;">${rendered}</span>`;
+        } catch {
+          return segment.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+      }
+      // Plain text — escape and preserve newlines
+      return segment
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br/>');
+    }).join('');
+  }, []);
+
   const valueToHtml = useCallback((text: string, eqs: EquationData[]): string => {
     if (!text) return "";
     
@@ -103,16 +136,12 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
             return `<span class="eq-inline-obj" data-eq-id="${eqId}" contenteditable="false" style="display:inline-block;padding:2px 6px;margin:0 2px;background:hsl(var(--destructive)/0.1);border-radius:6px;color:hsl(var(--destructive));">${eq.latex}</span>`;
           }
         }
-        return ''; // equation not found, skip
+        return '';
       }
-      // Regular text — escape HTML and preserve newlines
-      return part
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\n/g, '<br/>');
+      // For non-placeholder text, also render $...$ LaTeX inline
+      return renderInlineLatex(part);
     }).join('');
-  }, []);
+  }, [renderInlineLatex]);
 
   // Extract raw value from the contenteditable HTML
   const htmlToValue = useCallback((el: HTMLDivElement): string => {
