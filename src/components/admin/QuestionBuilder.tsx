@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Minus, Upload, X, BarChart3, AlertCircle, Blocks } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import ImageUpload from './ImageUpload';
-import MathTextArea from '@/components/MathTextArea';
+
 import { Textarea } from '@/components/ui/textarea';
 import AnswerBlockTypeSelector, { AnswerBlockType } from './AnswerBlockTypeSelector';
 import CommandTermSelector from './CommandTermSelector';
@@ -244,11 +244,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <Label>Answer Key</Label>
-              <MathTextArea
+              <RichTextEditor
                 value={newQuestionData.answer_key}
                 onChange={(value) => setNewQuestionData({...newQuestionData, answer_key: value})}
                 placeholder="Enter the correct answer and explanation..."
-                minHeight="80px"
               />
             </div>
 
@@ -423,11 +422,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <label className="block text-sm font-medium mb-2">Answer Key</label>
-              <MathTextArea
+              <RichTextEditor
                 value={question.answer_key}
                 onChange={(value) => updateQuestion(question.id, 'answer_key', value)}
-                placeholder="Enter the correct answer or explanation - supports math equations and normal text..."
-                minHeight="80px"
+                placeholder="Enter the correct answer or explanation..."
               />
             </div>
 
@@ -542,11 +540,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
 
                       <div>
                         <label className="block text-xs font-medium mb-1">Answer Key</label>
-                        <MathTextArea
+                        <RichTextEditor
                           value={subQuestion.answer_key}
                           onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'answer_key', value)}
-                          placeholder="Enter the correct answer - supports math equations and normal text..."
-                          minHeight="80px"
+                          placeholder="Enter the correct answer..."
                         />
                       </div>
                     </CardContent>

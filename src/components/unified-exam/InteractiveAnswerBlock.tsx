@@ -33,7 +33,7 @@ import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
-import MathTextArea from '@/components/MathTextArea';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
@@ -689,12 +689,10 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
               </div>
             )}
             
-            <MathTextArea
+            <RichTextEditor
               value={textValue}
               onChange={handleTextChange}
               placeholder={placeholder}
-              disabled={disabled}
-              minHeight="120px"
             />
           </div>
         );

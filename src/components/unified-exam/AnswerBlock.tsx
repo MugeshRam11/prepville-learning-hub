@@ -18,7 +18,7 @@ import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
-import MathTextArea from '@/components/MathTextArea';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 
 interface AnswerBlockProps {
   questionId: string;
@@ -74,12 +74,10 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
             )}
 
             {/* Equation Text Editor - Object-based equation UX */}
-            <MathTextArea
+            <RichTextEditor
               value={value?.text || ''}
               onChange={handleTextEquationChange}
               placeholder={placeholder}
-              disabled={disabled}
-              minHeight="150px"
             />
           </div>
         );

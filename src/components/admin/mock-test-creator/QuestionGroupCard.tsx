@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, X, ChevronDown, ChevronUp, GripVertical, Blocks } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
-import MathTextArea from '@/components/MathTextArea';
+
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';
@@ -231,11 +231,10 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
           ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-              <MathTextArea
+              <RichTextEditor
                 value={group.answerKey}
                 onChange={(v) => onUpdate({ answerKey: v })}
                 placeholder="Correct answer..."
-                minHeight="80px"
               />
             </div>
           ) : null}
