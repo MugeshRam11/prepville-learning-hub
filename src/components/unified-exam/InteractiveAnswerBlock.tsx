@@ -33,8 +33,7 @@ import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
-import { EquationTextEditor } from '@/components/equation-editor';
-import type { EquationData } from '@/components/equation-editor';
+import MathTextArea from '@/components/MathTextArea';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
