@@ -37,8 +37,8 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingEquation, setEditingEquation] = useState<EquationData | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
-  const isInternalUpdate = useRef(false);
-  const savedCursorOffset = useRef<number | null>(null);
+  const isComposing = useRef(false);
+  const lastRenderedValue = useRef<string>("");
 
   const generateId = () => `eq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
