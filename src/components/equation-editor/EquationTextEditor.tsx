@@ -153,10 +153,18 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
         const elem = node as HTMLElement;
         if (elem.dataset.eqId) {
           result += `[[EQ:${elem.dataset.eqId}]]`;
+        } else if (elem.classList.contains('eq-inline-rendered')) {
+          // Rendered $...$ LaTeX — extract the original LaTeX from KaTeX annotation
+          const annotation = elem.querySelector('annotation[encoding="application/x-tex"]');
+          if (annotation) {
+            result += `$${annotation.textContent || ''}$`;
+          } else {
+            // Fallback: just grab text content
+            result += elem.textContent || "";
+          }
         } else if (elem.tagName === "BR") {
           result += "\n";
         } else {
-          // Recurse children
           elem.childNodes.forEach(walk);
         }
       }
