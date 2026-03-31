@@ -689,11 +689,9 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
               </div>
             )}
             
-            <EquationTextEditor
+            <MathTextArea
               value={textValue}
-              equations={equations}
-              onValueChange={handleTextChange}
-              onEquationsChange={handleEquationsChange}
+              onChange={handleTextChange}
               placeholder={placeholder}
               disabled={disabled}
               minHeight="120px"

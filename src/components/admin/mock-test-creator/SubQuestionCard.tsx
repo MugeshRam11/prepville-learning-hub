@@ -165,11 +165,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-          <EquationTextEditor
+          <MathTextArea
             value={subQuestion.answerKey}
-            equations={subQuestion.answerKeyEquations || []}
-            onValueChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
-            onEquationsChange={(eqs) => onUpdate(subQuestion.id, { answerKeyEquations: eqs })}
+            onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
             placeholder="Correct answer..."
             minHeight="80px"
           />

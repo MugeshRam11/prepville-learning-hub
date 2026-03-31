@@ -231,11 +231,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
           ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-              <EquationTextEditor
+              <MathTextArea
                 value={group.answerKey}
-                equations={group.answerKeyEquations || []}
-                onValueChange={(v) => onUpdate({ answerKey: v })}
-                onEquationsChange={(eqs) => onUpdate({ answerKeyEquations: eqs })}
+                onChange={(v) => onUpdate({ answerKey: v })}
                 placeholder="Correct answer..."
                 minHeight="80px"
               />
