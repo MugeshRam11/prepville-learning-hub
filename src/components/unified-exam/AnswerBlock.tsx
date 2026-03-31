@@ -44,7 +44,7 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
   disabled = false
 }) => {
   // For equation editor, we store both text and equations
-  const [equations, setEquations] = useState<EquationData[]>(value?.equations || []);
+  const [equations, setEquations] = useState<any[]>(value?.equations || []);
 
   const getWordCount = (text: string): number => {
     if (!text) return 0;
