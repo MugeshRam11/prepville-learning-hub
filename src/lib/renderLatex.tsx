@@ -62,7 +62,7 @@ export const renderLatexContent = (text: string): React.ReactNode => {
             key={index}
             className="my-2"
             dangerouslySetInnerHTML={{
-              __html: katex.renderToString(latex, { throwOnError: false, displayMode: true })
+              __html: katex.renderToString(latex, { throwOnError: false, displayMode: true, trust: true, strict: false })
             }}
           />
         );
