@@ -5,7 +5,7 @@ import { X, GripVertical } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
-import MathTextArea from '@/components/MathTextArea';
+
 import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';

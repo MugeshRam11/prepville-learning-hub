@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, X, ChevronDown, ChevronUp, GripVertical, Blocks } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
-import MathTextArea from '@/components/MathTextArea';
+
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 import CommandTermSelector from '../CommandTermSelector';

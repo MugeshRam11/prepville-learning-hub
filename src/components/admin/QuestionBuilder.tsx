@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Minus, Upload, X, BarChart3, AlertCircle, Blocks } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import ImageUpload from './ImageUpload';
-import MathTextArea from '@/components/MathTextArea';
+
 import { Textarea } from '@/components/ui/textarea';
 import AnswerBlockTypeSelector, { AnswerBlockType } from './AnswerBlockTypeSelector';
 import CommandTermSelector from './CommandTermSelector';
