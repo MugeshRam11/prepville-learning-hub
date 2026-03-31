@@ -18,7 +18,7 @@ import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
-import { EquationTextEditor, EquationData } from '@/components/equation-editor';
+import MathTextArea from '@/components/MathTextArea';
 
 interface AnswerBlockProps {
   questionId: string;
