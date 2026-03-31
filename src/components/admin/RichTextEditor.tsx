@@ -110,13 +110,27 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     return DOMPurify.sanitize(html, PURIFY_CONFIG);
   };
 
-  // Initialize editor content
+  // Initialize editor content and sync when value prop changes externally
+  const lastExternalValue = useRef(value);
   useEffect(() => {
-    if (editorRef.current && !editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = sanitizeHtml(value || '');
+    if (!editorRef.current) return;
+    // On mount or when value changes externally (not from user input)
+    if (!editorRef.current.innerHTML || (!isUpdatingRef.current && value !== lastExternalValue.current)) {
+      const sanitized = sanitizeHtml(value || '');
+      editorRef.current.innerHTML = sanitized;
       rerenderMathExpressions();
+      lastExternalValue.current = value;
     }
-  }, []);
+  }, [value]);
+
+  // Keep lastExternalValue in sync after user edits
+  const handleInputInternal = () => {
+    if (editorRef.current && !isUpdatingRef.current) {
+      const html = editorRef.current.innerHTML;
+      lastExternalValue.current = html;
+      onChange(html);
+    }
+  };
 
   // Re-render KaTeX for any math-expression spans in the editor
   const rerenderMathExpressions = useCallback(() => {
