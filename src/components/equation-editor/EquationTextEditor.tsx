@@ -129,7 +129,9 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
           try {
             const rendered = katex.renderToString(eq.latex, { 
               throwOnError: false, 
-              displayMode: false 
+              displayMode: false,
+              trust: true,
+              strict: false
             });
             return `<span class="eq-inline-obj" data-eq-id="${eqId}" contenteditable="false" style="display:inline-block;padding:2px 6px;margin:0 2px;background:hsl(var(--primary)/0.08);border:1px solid hsl(var(--primary)/0.2);border-radius:6px;cursor:pointer;vertical-align:middle;">${rendered}</span>`;
           } catch {
