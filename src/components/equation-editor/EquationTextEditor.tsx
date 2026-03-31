@@ -144,9 +144,8 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     }
     if (editorRef.current) {
       const html = valueToHtml(value || "", equations);
-      if (editorRef.current.innerHTML !== html) {
-        editorRef.current.innerHTML = html;
-      }
+      // Always update if content differs
+      editorRef.current.innerHTML = html;
     }
   }, [value, equations, valueToHtml]);
 
