@@ -92,7 +92,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
       if (segment.startsWith('$$') && segment.endsWith('$$')) {
         const latex = segment.slice(2, -2).trim();
         try {
-          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: true });
+          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: true, trust: true, strict: false });
           return `<span class="eq-inline-rendered" contenteditable="false" style="display:inline-block;vertical-align:middle;">${rendered}</span>`;
         } catch {
           return segment.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -101,7 +101,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
       if (segment.startsWith('$') && segment.endsWith('$') && segment.length > 2) {
         const latex = segment.slice(1, -1).trim();
         try {
-          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: false });
+          const rendered = katex.renderToString(latex, { throwOnError: false, displayMode: false, trust: true, strict: false });
           return `<span class="eq-inline-rendered" contenteditable="false" style="display:inline-block;vertical-align:middle;">${rendered}</span>`;
         } catch {
           return segment.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -129,7 +129,9 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
           try {
             const rendered = katex.renderToString(eq.latex, { 
               throwOnError: false, 
-              displayMode: false 
+              displayMode: false,
+              trust: true,
+              strict: false
             });
             return `<span class="eq-inline-obj" data-eq-id="${eqId}" contenteditable="false" style="display:inline-block;padding:2px 6px;margin:0 2px;background:hsl(var(--primary)/0.08);border:1px solid hsl(var(--primary)/0.2);border-radius:6px;cursor:pointer;vertical-align:middle;">${rendered}</span>`;
           } catch {
@@ -193,6 +195,14 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     const raw = htmlToValue(editorRef.current);
     onValueChange(raw);
   }, [htmlToValue, onValueChange]);
+
+  // On blur, force re-render so any typed $...$ LaTeX gets rendered as KaTeX
+  const handleBlur = useCallback(() => {
+    if (!editorRef.current) return;
+    const raw = htmlToValue(editorRef.current);
+    const html = valueToHtml(raw, equations);
+    editorRef.current.innerHTML = html;
+  }, [htmlToValue, valueToHtml, equations]);
 
   // Handle clicks on equation objects for editing
   const handleEditorClick = useCallback((e: React.MouseEvent) => {
@@ -298,6 +308,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
           contentEditable={!disabled}
           suppressContentEditableWarning
           onInput={handleInput}
+          onBlur={handleBlur}
           onClick={handleEditorClick}
           onPaste={handlePaste}
           data-placeholder={placeholder}
