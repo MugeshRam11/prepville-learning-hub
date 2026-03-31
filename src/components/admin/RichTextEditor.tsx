@@ -149,11 +149,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     });
   }, []);
 
-  const handleInput = () => {
-    if (editorRef.current && !isUpdatingRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  };
+  const handleInput = handleInputInternal;
 
   const execCommand = (command: string, cmdValue?: string) => {
     document.execCommand(command, false, cmdValue);
