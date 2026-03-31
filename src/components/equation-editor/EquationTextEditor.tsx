@@ -144,9 +144,8 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     }
     if (editorRef.current) {
       const html = valueToHtml(value || "", equations);
-      if (editorRef.current.innerHTML !== html) {
-        editorRef.current.innerHTML = html;
-      }
+      // Always update if content differs
+      editorRef.current.innerHTML = html;
     }
   }, [value, equations, valueToHtml]);
 
@@ -212,19 +211,28 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     const text = e.clipboardData.getData('text/plain');
     if (!text) return;
 
-    // If it looks like raw LaTeX, create an equation object and insert via value string
-    if (/\\(frac|sqrt|sum|int|alpha|beta|gamma|pi|theta|sigma|infty|leq|geq|neq|times|div|pm)\b/.test(text) && !text.includes('[[EQ:')) {
+    // Broader LaTeX detection: commands, dollar delimiters, common patterns
+    const isLatex = /\\(frac|sqrt|sum|int|prod|lim|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|leq|geq|neq|times|div|pm|cdot|left|right|begin|end|overline|underline|hat|bar|vec|dot|tilde|log|ln|sin|cos|tan|sec|csc|cot|partial|nabla|forall|exists|in|cup|cap|subset|supset|mathbb|mathcal|mathbf|mathrm|text)\b/.test(text)
+      || /\$[^$]+\$/.test(text)
+      || /\$\$[\s\S]+?\$\$/.test(text)
+      || /\^{[^}]+}|_{[^}]+}/.test(text);
+
+    if (isLatex && !text.includes('[[EQ:')) {
+      // Create an equation object from pasted LaTeX
+      const cleanLatex = text.replace(/^\$+|\$+$/g, '').trim();
       const newEq: EquationData = {
         id: generateId(),
-        latex: text.replace(/^\$+|\$+$/g, ''),
+        latex: cleanLatex,
         mathml: '',
         renderedHtml: ''
       };
       const pos = getCursorOffsetInValue();
-      onEquationsChange([...equations, newEq]);
+      const newEquations = [...equations, newEq];
+      onEquationsChange(newEquations);
       const placeholder = `[[EQ:${newEq.id}]]`;
       const before = value.slice(0, pos);
       const after = value.slice(pos);
+      // Don't set isInternalUpdate - let useEffect re-render with new equation
       onValueChange(before + placeholder + after);
       return;
     }
