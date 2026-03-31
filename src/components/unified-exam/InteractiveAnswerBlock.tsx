@@ -689,12 +689,10 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
               </div>
             )}
             
-            <MathTextArea
+            <RichTextEditor
               value={textValue}
               onChange={handleTextChange}
               placeholder={placeholder}
-              disabled={disabled}
-              minHeight="120px"
             />
           </div>
         );

@@ -74,12 +74,10 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
             )}
 
             {/* Equation Text Editor - Object-based equation UX */}
-            <MathTextArea
+            <RichTextEditor
               value={value?.text || ''}
               onChange={handleTextEquationChange}
               placeholder={placeholder}
-              disabled={disabled}
-              minHeight="150px"
             />
           </div>
         );
