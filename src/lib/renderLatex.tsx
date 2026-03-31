@@ -78,7 +78,7 @@ export const renderLatexContent = (text: string): React.ReactNode => {
           <span
             key={index}
             dangerouslySetInnerHTML={{
-              __html: katex.renderToString(latex, { throwOnError: false })
+              __html: katex.renderToString(latex, { throwOnError: false, trust: true, strict: false })
             }}
           />
         );
