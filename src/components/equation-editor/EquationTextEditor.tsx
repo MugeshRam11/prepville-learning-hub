@@ -194,6 +194,14 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     onValueChange(raw);
   }, [htmlToValue, onValueChange]);
 
+  // On blur, force re-render so any typed $...$ LaTeX gets rendered as KaTeX
+  const handleBlur = useCallback(() => {
+    if (!editorRef.current) return;
+    const raw = htmlToValue(editorRef.current);
+    const html = valueToHtml(raw, equations);
+    editorRef.current.innerHTML = html;
+  }, [htmlToValue, valueToHtml, equations]);
+
   // Handle clicks on equation objects for editing
   const handleEditorClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
