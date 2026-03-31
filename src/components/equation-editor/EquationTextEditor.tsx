@@ -39,6 +39,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalUpdate = useRef(false);
   const savedCursorOffset = useRef<number | null>(null);
+  const lastRenderedValue = useRef<string>("");
 
   const generateId = () => `eq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -175,7 +176,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     return result;
   }, []);
 
-  // Sync external value → editor HTML
+  // Sync external value → editor HTML (skip only when user is actively typing)
   useEffect(() => {
     if (isInternalUpdate.current) {
       isInternalUpdate.current = false;
@@ -183,10 +184,20 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     }
     if (editorRef.current) {
       const html = valueToHtml(value || "", equations);
-      // Always update if content differs
       editorRef.current.innerHTML = html;
+      lastRenderedValue.current = value || "";
     }
   }, [value, equations, valueToHtml]);
+
+  // Also render on mount to ensure initial content has KaTeX
+  useEffect(() => {
+    if (editorRef.current && value) {
+      const html = valueToHtml(value, equations);
+      editorRef.current.innerHTML = html;
+      lastRenderedValue.current = value;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle input events from contenteditable
   const handleInput = useCallback(() => {
@@ -202,6 +213,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
     const raw = htmlToValue(editorRef.current);
     const html = valueToHtml(raw, equations);
     editorRef.current.innerHTML = html;
+    lastRenderedValue.current = raw;
   }, [htmlToValue, valueToHtml, equations]);
 
   // Handle clicks on equation objects for editing
