@@ -165,11 +165,10 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-          <MathTextArea
+          <RichTextEditor
             value={subQuestion.answerKey}
             onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
             placeholder="Correct answer..."
-            minHeight="80px"
           />
         </div>
       )}

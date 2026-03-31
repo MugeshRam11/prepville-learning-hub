@@ -231,11 +231,10 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
           ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-              <MathTextArea
+              <RichTextEditor
                 value={group.answerKey}
                 onChange={(v) => onUpdate({ answerKey: v })}
                 placeholder="Correct answer..."
-                minHeight="80px"
               />
             </div>
           ) : null}
