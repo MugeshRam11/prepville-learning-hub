@@ -306,6 +306,7 @@ const EquationTextEditor: React.FC<EquationTextEditorProps> = ({
           contentEditable={!disabled}
           suppressContentEditableWarning
           onInput={handleInput}
+          onBlur={handleBlur}
           onClick={handleEditorClick}
           onPaste={handlePaste}
           data-placeholder={placeholder}
