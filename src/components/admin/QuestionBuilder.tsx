@@ -42,7 +42,7 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
       difficulty: 'medium',
       word_limit: '',
       answer_key: '',
-      answer_key_equations: [] as EquationData[],
+      answer_key_equations: [] as any[],
       has_sub_questions: false,
       diagram_description: '',
       command_term: '',

@@ -673,7 +673,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
           onChange({ text, equations });
         };
 
-        const handleEquationsChange = (newEqs: EquationData[]) => {
+        const handleEquationsChange = (newEqs: any[]) => {
           setEquations(newEqs);
           const currentText = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
           onChange({ text: currentText, equations: newEqs });

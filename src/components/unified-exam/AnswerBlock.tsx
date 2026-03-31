@@ -55,7 +55,7 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
     onChange({ text, equations });
   };
 
-  const handleEquationsChange = (newEquations: EquationData[]) => {
+  const handleEquationsChange = (newEquations: any[]) => {
     setEquations(newEquations);
     onChange({ text: value?.text || '', equations: newEquations });
   };
