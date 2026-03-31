@@ -5,8 +5,7 @@ import { X, GripVertical } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
-import { EquationTextEditor } from '@/components/equation-editor';
-import type { EquationData } from '@/components/equation-editor/EquationObject';
+import MathTextArea from '@/components/MathTextArea';
 import CommandTermSelector from '../CommandTermSelector';
 import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
 import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
@@ -166,11 +165,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-          <EquationTextEditor
+          <MathTextArea
             value={subQuestion.answerKey}
-            equations={subQuestion.answerKeyEquations || []}
-            onValueChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
-            onEquationsChange={(eqs) => onUpdate(subQuestion.id, { answerKeyEquations: eqs })}
+            onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
             placeholder="Correct answer..."
             minHeight="80px"
           />

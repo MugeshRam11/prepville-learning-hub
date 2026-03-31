@@ -33,8 +33,7 @@ import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
-import { EquationTextEditor } from '@/components/equation-editor';
-import type { EquationData } from '@/components/equation-editor';
+import MathTextArea from '@/components/MathTextArea';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
@@ -239,7 +238,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
   const autoType = autoDetectType(questionText, diagramDescription, config);
   const [currentType, setCurrentType] = useState<InteractiveType>(detectedType || autoType);
   const [validationTriggered, setValidationTriggered] = useState(false);
-  const [equations, setEquations] = useState<EquationData[]>(
+  const [equations, setEquations] = useState<any[]>(
     (typeof value === 'object' && value?.equations) ? value.equations : []
   );
 
@@ -674,7 +673,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
           onChange({ text, equations });
         };
 
-        const handleEquationsChange = (newEqs: EquationData[]) => {
+        const handleEquationsChange = (newEqs: any[]) => {
           setEquations(newEqs);
           const currentText = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
           onChange({ text: currentText, equations: newEqs });
@@ -690,11 +689,9 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
               </div>
             )}
             
-            <EquationTextEditor
+            <MathTextArea
               value={textValue}
-              equations={equations}
-              onValueChange={handleTextChange}
-              onEquationsChange={handleEquationsChange}
+              onChange={handleTextChange}
               placeholder={placeholder}
               disabled={disabled}
               minHeight="120px"

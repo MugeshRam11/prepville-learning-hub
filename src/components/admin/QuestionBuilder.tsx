@@ -10,8 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Minus, Upload, X, BarChart3, AlertCircle, Blocks } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import ImageUpload from './ImageUpload';
-import { EquationTextEditor } from '@/components/equation-editor';
-import type { EquationData } from '@/components/equation-editor/EquationObject';
+import MathTextArea from '@/components/MathTextArea';
 import { Textarea } from '@/components/ui/textarea';
 import AnswerBlockTypeSelector, { AnswerBlockType } from './AnswerBlockTypeSelector';
 import CommandTermSelector from './CommandTermSelector';
@@ -26,7 +25,7 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
     difficulty: 'medium',
     word_limit: '',
     answer_key: '',
-    answer_key_equations: [] as EquationData[],
+    answer_key_equations: [] as any[],
     has_sub_questions: false,
     diagram_description: '',
     command_term: '',
@@ -43,7 +42,7 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
       difficulty: 'medium',
       word_limit: '',
       answer_key: '',
-      answer_key_equations: [] as EquationData[],
+      answer_key_equations: [] as any[],
       has_sub_questions: false,
       diagram_description: '',
       command_term: '',
@@ -245,11 +244,9 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <Label>Answer Key</Label>
-              <EquationTextEditor
+              <MathTextArea
                 value={newQuestionData.answer_key}
-                equations={newQuestionData.answer_key_equations}
-                onValueChange={(value) => setNewQuestionData({...newQuestionData, answer_key: value})}
-                onEquationsChange={(eqs) => setNewQuestionData({...newQuestionData, answer_key_equations: eqs})}
+                onChange={(value) => setNewQuestionData({...newQuestionData, answer_key: value})}
                 placeholder="Enter the correct answer and explanation..."
                 minHeight="80px"
               />
@@ -426,11 +423,9 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <label className="block text-sm font-medium mb-2">Answer Key</label>
-              <EquationTextEditor
+              <MathTextArea
                 value={question.answer_key}
-                equations={question.answer_key_equations || []}
-                onValueChange={(value) => updateQuestion(question.id, 'answer_key', value)}
-                onEquationsChange={(eqs) => updateQuestion(question.id, 'answer_key_equations', eqs)}
+                onChange={(value) => updateQuestion(question.id, 'answer_key', value)}
                 placeholder="Enter the correct answer or explanation - supports math equations and normal text..."
                 minHeight="80px"
               />
@@ -547,11 +542,9 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
 
                       <div>
                         <label className="block text-xs font-medium mb-1">Answer Key</label>
-                        <EquationTextEditor
+                        <MathTextArea
                           value={subQuestion.answer_key}
-                          equations={subQuestion.answer_key_equations || []}
-                          onValueChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'answer_key', value)}
-                          onEquationsChange={(eqs) => updateSubQuestion(question.id, subQuestion.id, 'answer_key_equations', eqs)}
+                          onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'answer_key', value)}
                           placeholder="Enter the correct answer - supports math equations and normal text..."
                           minHeight="80px"
                         />

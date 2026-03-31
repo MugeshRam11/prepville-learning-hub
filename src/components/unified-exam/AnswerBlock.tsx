@@ -18,7 +18,7 @@ import ImageDropZone from '@/components/mock-exam/ImageDropZone';
 import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
-import { EquationTextEditor, EquationData } from '@/components/equation-editor';
+import MathTextArea from '@/components/MathTextArea';
 
 interface AnswerBlockProps {
   questionId: string;
@@ -44,7 +44,7 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
   disabled = false
 }) => {
   // For equation editor, we store both text and equations
-  const [equations, setEquations] = useState<EquationData[]>(value?.equations || []);
+  const [equations, setEquations] = useState<any[]>(value?.equations || []);
 
   const getWordCount = (text: string): number => {
     if (!text) return 0;
@@ -55,7 +55,7 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
     onChange({ text, equations });
   };
 
-  const handleEquationsChange = (newEquations: EquationData[]) => {
+  const handleEquationsChange = (newEquations: any[]) => {
     setEquations(newEquations);
     onChange({ text: value?.text || '', equations: newEquations });
   };
@@ -74,11 +74,9 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
             )}
 
             {/* Equation Text Editor - Object-based equation UX */}
-            <EquationTextEditor
+            <MathTextArea
               value={value?.text || ''}
-              equations={equations}
-              onValueChange={handleTextEquationChange}
-              onEquationsChange={handleEquationsChange}
+              onChange={handleTextEquationChange}
               placeholder={placeholder}
               disabled={disabled}
               minHeight="150px"
