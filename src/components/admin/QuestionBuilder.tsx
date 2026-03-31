@@ -422,11 +422,10 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <label className="block text-sm font-medium mb-2">Answer Key</label>
-              <MathTextArea
+              <RichTextEditor
                 value={question.answer_key}
                 onChange={(value) => updateQuestion(question.id, 'answer_key', value)}
-                placeholder="Enter the correct answer or explanation - supports math equations and normal text..."
-                minHeight="80px"
+                placeholder="Enter the correct answer or explanation..."
               />
             </div>
 
