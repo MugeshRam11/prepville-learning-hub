@@ -104,7 +104,9 @@ const MockExamStart = () => {
             marks: q.marks,
             image: q.question_image_url || undefined,
             passage: undefined,
-            subQuestions: q.mock_sub_questions?.map(sq => ({
+            subQuestions: [...(q.mock_sub_questions || [])]
+              .sort((a, b) => (a.sub_question_label || '').localeCompare(b.sub_question_label || '', undefined, { numeric: true }))
+              .map(sq => ({
               id: sq.id,
               text: sq.sub_question_text,
               marks: sq.marks,
