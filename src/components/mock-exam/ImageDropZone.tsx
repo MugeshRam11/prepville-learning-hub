@@ -198,7 +198,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   <motion.div
                     key={zone.id}
                     className={cn(
-                      "absolute flex items-center justify-center transition-all rounded-md p-1",
+                    "absolute flex items-center justify-center transition-all rounded-md p-1 overflow-hidden",
                       !placedLabel && "border-2 border-dashed border-primary/50 bg-primary/10",
                       hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/15 scale-105",
                       placedLabel && "border border-primary/40 bg-background/40 backdrop-blur-sm",
