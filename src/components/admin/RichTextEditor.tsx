@@ -210,9 +210,17 @@ export default function RichTextEditor({ value, onChange, placeholder, className
       temp.innerHTML = mathHtml;
       const mathNode = temp.firstChild as HTMLElement;
 
+      // Restore saved selection range (modal stole focus)
       const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
+      let range: Range | null = null;
+
+      if (savedRangeRef.current && editorRef.current.contains(savedRangeRef.current.startContainer)) {
+        range = savedRangeRef.current;
+      } else if (selection && selection.rangeCount > 0 && editorRef.current.contains(selection.getRangeAt(0).startContainer)) {
+        range = selection.getRangeAt(0);
+      }
+
+      if (range) {
         range.deleteContents();
         range.insertNode(mathNode);
         // Add a space after for continued typing
@@ -221,11 +229,16 @@ export default function RichTextEditor({ value, onChange, placeholder, className
         range.insertNode(space);
         range.setStartAfter(space);
         range.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
       } else {
+        // Fallback: append to end of editor
         editorRef.current.appendChild(mathNode);
+        const space = document.createTextNode('\u00A0');
+        editorRef.current.appendChild(space);
       }
+
+      savedRangeRef.current = null;
     }
 
     setTimeout(() => {
