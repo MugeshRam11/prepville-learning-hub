@@ -175,6 +175,11 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   };
 
   const openMathEditor = (initialLatex = "", targetNode: HTMLElement | null = null) => {
+    // Save current cursor position before modal steals focus
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      savedRangeRef.current = selection.getRangeAt(0).cloneRange();
+    }
     setEditingLatex(initialLatex);
     setEditingMathNode(targetNode);
     setShowMathEditor(true);
