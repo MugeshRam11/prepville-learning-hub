@@ -23,7 +23,7 @@ const normalizeDelimiters = (text: string): string => {
 export const renderLatexContent = (text: string): React.ReactNode => {
   if (!text) return null;
 
-  // If text contains HTML with data-latex attributes, parse it
+  // If text contains HTML with data-latex attributes, parse and render math
   if (text.includes('data-latex') || text.includes('data-math-latex')) {
     const container = document.createElement('div');
     container.innerHTML = text;
@@ -45,6 +45,24 @@ export const renderLatexContent = (text: string): React.ReactNode => {
     });
 
     return <span dangerouslySetInnerHTML={{ __html: container.innerHTML }} />;
+  }
+
+  // If text contains HTML tags (e.g. from RichTextEditor), render as HTML
+  // while also processing any $...$ LaTeX delimiters within
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    // Process $...$ inside the HTML by replacing them with rendered KaTeX
+    let processed = normalizeDelimiters(text);
+    processed = processed.replace(/\$\$([^$]+?)\$\$/g, (_, latex) => {
+      try {
+        return katex.renderToString(latex, { throwOnError: false, displayMode: true, trust: true, strict: false });
+      } catch { return latex; }
+    });
+    processed = processed.replace(/\$([^$]+?)\$/g, (_, latex) => {
+      try {
+        return katex.renderToString(latex, { throwOnError: false, displayMode: false, trust: true, strict: false });
+      } catch { return latex; }
+    });
+    return <span dangerouslySetInnerHTML={{ __html: processed }} />;
   }
 
   // Normalize \(...\) and \[...\] to $ and $$
