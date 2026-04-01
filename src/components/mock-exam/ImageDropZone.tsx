@@ -198,7 +198,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   <motion.div
                     key={zone.id}
                     className={cn(
-                      "absolute flex items-center justify-center transition-all rounded-md p-1",
+                    "absolute flex items-center justify-center transition-all rounded-md p-1 overflow-hidden",
                       !placedLabel && "border-2 border-dashed border-primary/50 bg-primary/10",
                       hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/15 scale-105",
                       placedLabel && "border border-primary/40 bg-background/40 backdrop-blur-sm",
@@ -221,8 +221,8 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     whileHover={{ scale: placedLabel && !showFeedback ? 1.02 : 1 }}
                   >
                     {placedLabel ? (
-                      <div className="w-full h-full flex items-center justify-center p-1">
-                        <div className="max-w-full max-h-full rounded-md border bg-background/80 px-2 py-1 shadow-sm">
+                      <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                        <div className="max-w-full max-h-full rounded-md border bg-background/80 px-1 py-0.5 shadow-sm text-xs truncate overflow-hidden">
                           <DraggableElementContent element={placedLabel} size="zone" />
                         </div>
                         {showFeedback && (
@@ -246,7 +246,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   key={zone.id}
                   className={cn(
                     "absolute w-16 h-16 rounded-full -translate-x-1/2 -translate-y-1/2",
-                    "flex items-center justify-center transition-all p-1",
+                    "flex items-center justify-center transition-all p-1 overflow-hidden",
                     !placedLabel && "border-2 border-dashed border-primary/50 bg-primary/10",
                     hoveredZone === zone.id && !placedLabel && "border-primary bg-primary/15 scale-110",
                     placedLabel && "border border-primary/40 bg-background/40 backdrop-blur-sm",
