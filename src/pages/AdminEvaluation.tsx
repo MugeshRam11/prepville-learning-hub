@@ -230,7 +230,9 @@ const AdminEvaluation = () => {
         answerBlockType: q.answer_block_type || 'text_equation',
         answerBlockConfig: q.answer_block_config || {},
         questionImageUrl: q.question_image_url || null,
-        subQuestions: (q.mock_sub_questions || []).map((sq: any) => ({
+        subQuestions: [...(q.mock_sub_questions || [])]
+          .sort((a: any, b: any) => (a.sub_question_label || '').localeCompare(b.sub_question_label || '', undefined, { numeric: true }))
+          .map((sq: any) => ({
           id: sq.id,
           label: sq.sub_question_label,
           text: sq.sub_question_text,

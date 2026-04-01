@@ -80,7 +80,10 @@ const UnifiedMockExamContent = () => {
         command_term: q.command_term, graph_type: q.graph_type, has_table: q.has_table
       });
       
-      const subQuestions = q.mock_sub_questions?.map((sq: any, sqIndex: number) => {
+      const sortedSubs = [...(q.mock_sub_questions || [])].sort((a: any, b: any) => 
+        (a.sub_question_label || '').localeCompare(b.sub_question_label || '', undefined, { numeric: true })
+      );
+      const subQuestions = sortedSubs.map((sq: any, sqIndex: number) => {
         const subType = sq.answer_block_type || detectQuestionType({
           id: sq.id, question_text: sq.sub_question_text, marks: sq.marks,
           question_number: sqIndex + 1, answer_key: sq.answer_key, command_term: sq.command_term

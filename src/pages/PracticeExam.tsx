@@ -69,7 +69,10 @@ const PracticeExam = () => {
         has_table: q.has_table
       });
       
-      const subQuestions = q.mock_sub_questions?.map((sq: any, sqIndex: number) => {
+      const sortedSubs = [...(q.mock_sub_questions || [])].sort((a: any, b: any) =>
+        (a.sub_question_label || '').localeCompare(b.sub_question_label || '', undefined, { numeric: true })
+      );
+      const subQuestions = sortedSubs.map((sq: any, sqIndex: number) => {
         const subExplicitType = sq.answer_block_type;
         const subType = subExplicitType || detectQuestionType({
           id: sq.id,
