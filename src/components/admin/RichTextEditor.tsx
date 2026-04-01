@@ -105,6 +105,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   const [currentFont, setCurrentFont] = useState("Arial");
   const [currentSize, setCurrentSize] = useState("16px");
   const isUpdatingRef = useRef(false);
+  const savedRangeRef = useRef<Range | null>(null);
 
   const sanitizeHtml = (html: string): string => {
     return DOMPurify.sanitize(html, PURIFY_CONFIG);
