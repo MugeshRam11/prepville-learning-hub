@@ -386,7 +386,6 @@ export default function RichTextEditor({ value, onChange, placeholder, className
                 <Button variant="outline" size="sm" onClick={() => openMathEditor()} className="h-9 px-3" title="Insert Math Equation">
                   <Type className="h-4 w-4 mr-1" />Math
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowSymbolPicker(!showSymbolPicker)} className="h-9 px-3" title="Insert Symbol">Σ</Button>
               </div>
             </div>
 
