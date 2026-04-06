@@ -205,9 +205,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
 
       {/* Score Display */}
       {showFeedback && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className={cn(
             "text-center p-4 rounded-xl",
             allCorrect 
@@ -226,7 +224,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
           <div className="text-xs text-muted-foreground mt-2">
             Marks: {correctCount + (allCorrect ? 1 : 0)} / 5
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );
