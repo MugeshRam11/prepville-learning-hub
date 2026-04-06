@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, Reorder, AnimatePresence } from 'framer-motion';
+import { Reorder } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, ArrowDown, Shuffle, RotateCcw } from 'lucide-react';
