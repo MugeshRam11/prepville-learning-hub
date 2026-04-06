@@ -34,6 +34,7 @@ import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import ImageFillBlanksPlayer from '@/components/answer-types/ImageFillBlanksPlayer';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
@@ -651,16 +652,13 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
 
       case 'image_fill_blanks': {
         const fillConfig = config as any;
-        const ImageFillBlanksPlayer = React.lazy(() => import('@/components/answer-types/ImageFillBlanksPlayer'));
         return (
-          <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
-            <ImageFillBlanksPlayer
-              config={fillConfig}
-              value={value || {}}
-              onChange={onChange}
-              disabled={disabled}
-            />
-          </React.Suspense>
+          <ImageFillBlanksPlayer
+            config={fillConfig}
+            value={value || {}}
+            onChange={onChange}
+            disabled={disabled}
+          />
         );
       }
 
