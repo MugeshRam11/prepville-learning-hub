@@ -1,0 +1,2 @@
+ALTER TABLE public.mock_sub_questions DROP CONSTRAINT valid_answer_block_type_sub_questions;
+ALTER TABLE public.mock_sub_questions ADD CONSTRAINT valid_answer_block_type_sub_questions CHECK (answer_block_type = ANY (ARRAY['text_equation','graph_plot','drag_drop','image_drop','arrange_order','smart_math','multiple_choice','table_input','image_fill_blanks']));
