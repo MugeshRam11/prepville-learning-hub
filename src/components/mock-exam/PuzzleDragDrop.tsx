@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, GripVertical, Sparkles, Undo2, Volume2 } from 'lucide-react';
+import { Check, X, GripVertical, Sparkles, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import katex from 'katex';
@@ -21,7 +20,7 @@ interface PuzzleSlot {
   shape?: 'notch' | 'tab' | 'square';
   correctItemId: string;
   image?: string;
-  targetValue?: string; // What the puzzle represents (e.g., "16:24" for equivalent ratio)
+  targetValue?: string;
 }
 
 interface PuzzleDragDropProps {
@@ -30,62 +29,20 @@ interface PuzzleDragDropProps {
   onMatchesChange?: (matches: Record<string, string>) => void;
   showFeedback?: boolean;
   puzzleTitle?: string;
-  showMatchedValues?: boolean; // Show "Matched ratio: 6:4 = 16:24" style feedback
+  showMatchedValues?: boolean;
 }
 
-// Rich, vibrant puzzle piece colors matching the reference image
-const PUZZLE_COLORS = {
-  red: {
-    bg: 'bg-gradient-to-br from-red-500 via-red-600 to-red-700',
-    bgHex: '#dc2626',
-    border: 'border-red-800',
-    shadow: 'shadow-red-600/50',
-    glow: 'shadow-[0_0_25px_rgba(239,68,68,0.6)]',
-    ring: 'ring-red-400/60',
-    text: 'text-white',
-    highlight: 'from-red-400/40'
-  },
-  blue: {
-    bg: 'bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700',
-    bgHex: '#2563eb',
-    border: 'border-blue-800',
-    shadow: 'shadow-blue-600/50',
-    glow: 'shadow-[0_0_25px_rgba(59,130,246,0.6)]',
-    ring: 'ring-blue-400/60',
-    text: 'text-white',
-    highlight: 'from-blue-400/40'
-  },
-  green: {
-    bg: 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700',
-    bgHex: '#10b981',
-    border: 'border-emerald-800',
-    shadow: 'shadow-emerald-600/50',
-    glow: 'shadow-[0_0_25px_rgba(16,185,129,0.6)]',
-    ring: 'ring-emerald-400/60',
-    text: 'text-white',
-    highlight: 'from-emerald-400/40'
-  },
-  orange: {
-    bg: 'bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700',
-    bgHex: '#ea580c',
-    border: 'border-orange-800',
-    shadow: 'shadow-orange-600/50',
-    glow: 'shadow-[0_0_25px_rgba(234,88,12,0.6)]',
-    ring: 'ring-orange-400/60',
-    text: 'text-white',
-    highlight: 'from-orange-400/40'
-  },
-  purple: {
-    bg: 'bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700',
-    bgHex: '#9333ea',
-    border: 'border-purple-800',
-    shadow: 'shadow-purple-600/50',
-    glow: 'shadow-[0_0_25px_rgba(147,51,234,0.6)]',
-    ring: 'ring-purple-400/60',
-    text: 'text-white',
-    highlight: 'from-purple-400/40'
-  }
+const PUZZLE_COLORS: Record<string, { bgHex: string; darkHex: string }> = {
+  red: { bgHex: '#dc2626', darkHex: '#991b1b' },
+  blue: { bgHex: '#2563eb', darkHex: '#1e40af' },
+  green: { bgHex: '#10b981', darkHex: '#065f46' },
+  orange: { bgHex: '#ea580c', darkHex: '#9a3412' },
+  purple: { bgHex: '#9333ea', darkHex: '#6b21a8' },
 };
+
+// Shared puzzle SVG path
+const PUZZLE_PATH = "M 20 5 L 130 5 L 130 22 C 130 22 140 22 140 35 C 140 48 130 48 130 48 L 130 75 L 20 75 L 20 48 C 20 48 10 48 10 35 C 10 22 20 22 20 22 Z";
+const PUZZLE_PATH_INNER = "M 23 8 L 127 8 L 127 24 C 127 24 137 24 137 35 C 137 46 127 46 127 46 L 127 72 L 23 72 L 23 46 C 23 46 13 46 13 35 C 13 24 23 24 23 24 Z";
 
 const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
   items,
@@ -99,80 +56,71 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
   const [lastMatch, setLastMatch] = useState<{ slotId: string; itemId: string; correct?: boolean; matchText?: string } | null>(null);
-  const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const slotRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const dragImageRef = useRef<HTMLDivElement>(null);
 
-  // Assign colors to items
   const coloredItems = items.map((item, idx) => ({
     ...item,
     color: item.color || (['red', 'blue', 'green', 'orange', 'purple'] as const)[idx % 5]
   }));
 
   const renderLatex = (content: string, isLatex?: boolean) => {
-    if (!isLatex) return <span className="text-xl font-black tracking-wide">{content}</span>;
+    if (!isLatex) return <span className="font-bold text-base">{content}</span>;
     try {
-      const html = katex.renderToString(content, {
-        displayMode: false,
-        throwOnError: false
-      });
-      return <span dangerouslySetInnerHTML={{ __html: html }} className="text-xl" />;
+      const html = katex.renderToString(content, { displayMode: false, throwOnError: false });
+      return <span dangerouslySetInnerHTML={{ __html: html }} className="text-base" />;
     } catch {
-      return <span className="text-xl font-black">{content}</span>;
+      return <span className="font-bold text-base">{content}</span>;
     }
   };
 
-  const handleDragStart = (itemId: string) => {
+  const handleDragStart = (e: React.DragEvent, itemId: string) => {
     setDraggingItem(itemId);
     setLastMatch(null);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', itemId);
+    // Use a small transparent image so native ghost doesn't interfere
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
   };
 
   const handleDragEnd = () => {
-    if (draggingItem && hoveredSlot) {
-      handleDrop(hoveredSlot);
-    }
     setDraggingItem(null);
     setHoveredSlot(null);
   };
 
-  const handleDrop = (slotId: string) => {
-    if (!draggingItem) return;
+  const handleDrop = (e: React.DragEvent, slotId: string) => {
+    e.preventDefault();
+    const itemId = e.dataTransfer.getData('text/plain') || draggingItem;
+    if (!itemId) return;
 
     const newMatches = { ...matches };
-    
     // Remove item from any previous slot
     Object.keys(newMatches).forEach(key => {
-      if (newMatches[key] === draggingItem) {
-        delete newMatches[key];
-      }
+      if (newMatches[key] === itemId) delete newMatches[key];
     });
-
-    // Add to new slot
-    newMatches[slotId] = draggingItem;
+    newMatches[slotId] = itemId;
     setMatches(newMatches);
     onMatchesChange?.(newMatches);
 
-    // Check if correct for feedback
     const slot = slots.find(s => s.id === slotId);
-    const item = coloredItems.find(i => i.id === draggingItem);
-    const isCorrect = slot?.correctItemId === draggingItem;
-    
-    // Create match text for feedback (e.g., "6:4 = 16:24")
-    const matchText = item && slot?.targetValue 
-      ? `${item.content} = ${slot.targetValue}`
-      : undefined;
-    
-    setLastMatch({ slotId, itemId: draggingItem, correct: isCorrect, matchText });
-    
-    if (isCorrect) {
-      setShowCorrectAnimation(true);
-      setTimeout(() => setShowCorrectAnimation(false), 2000);
-    }
+    const item = coloredItems.find(i => i.id === itemId);
+    const isCorrect = slot?.correctItemId === itemId;
+    const matchText = item && slot?.targetValue ? `${item.content} = ${slot.targetValue}` : undefined;
+    setLastMatch({ slotId, itemId, correct: isCorrect, matchText });
+
+    setDraggingItem(null);
+    setHoveredSlot(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, slotId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setHoveredSlot(slotId);
   };
 
   const handleRemoveMatch = (slotId: string) => {
     if (showFeedback) return;
-    
     const newMatches = { ...matches };
     delete newMatches[slotId];
     setMatches(newMatches);
@@ -204,382 +152,175 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
   const unmatchedItems = getUnmatchedItems();
   const correctCount = slots.filter(s => isCorrectMatch(s.id)).length;
 
-  // Puzzle piece with interlocking shape (notch on left, tab on right)
-  const PuzzlePiece = ({ 
-    item, 
-    isDragging, 
-    isInSlot = false,
-    slotColor
-  }: { 
-    item: PuzzleItem & { color: 'red' | 'blue' | 'green' | 'orange' | 'purple' }; 
-    isDragging?: boolean;
-    isInSlot?: boolean;
-    slotColor?: 'red' | 'blue' | 'green' | 'orange' | 'purple';
-  }) => {
-    const colorKey = slotColor || item.color || 'blue';
-    const colorStyle = PUZZLE_COLORS[colorKey] || PUZZLE_COLORS.blue;
-    
+  const PuzzlePieceSVG = ({ color, content, isLatex, size = 'normal' }: { color: string; content: string; isLatex?: boolean; size?: 'normal' | 'small' }) => {
+    const c = PUZZLE_COLORS[color] || PUZZLE_COLORS.blue;
+    const w = size === 'small' ? 'w-28' : 'w-36';
+    const h = size === 'small' ? 'h-16' : 'h-20';
     return (
-      <div 
-        className={cn(
-          "relative",
-          isDragging && colorStyle.glow
-        )}
-        style={{ 
-          filter: isDragging ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' : undefined 
-        }}
-      >
-        {/* Main puzzle body with interlocking shape */}
-        <svg 
-          viewBox="0 0 160 80" 
-          className={cn(
-            "w-36 h-18",
-            isInSlot ? "w-32 h-16" : "w-36 h-18"
-          )}
-          style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.3))' }}
-        >
+      <div className={cn("relative", w, h)}>
+        <svg viewBox="0 0 150 80" className="w-full h-full" style={{ filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.25))' }}>
           <defs>
-            <linearGradient id={`puzzle-gradient-${item.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style={{ stopColor: colorStyle.bgHex, stopOpacity: 0.9 }} />
-              <stop offset="50%" style={{ stopColor: colorStyle.bgHex, stopOpacity: 1 }} />
-              <stop offset="100%" style={{ stopColor: colorStyle.bgHex, stopOpacity: 0.8 }} />
-            </linearGradient>
-            <linearGradient id={`shine-${item.id}`} x1="0%" y1="0%" x2="50%" y2="50%">
-              <stop offset="0%" style={{ stopColor: 'white', stopOpacity: 0.4 }} />
-              <stop offset="100%" style={{ stopColor: 'white', stopOpacity: 0 }} />
+            <linearGradient id={`pg-${color}-${content}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={c.bgHex} stopOpacity="1" />
+              <stop offset="100%" stopColor={c.darkHex} stopOpacity="1" />
             </linearGradient>
           </defs>
-          
-          {/* Puzzle piece path with notch (left) and tab (right) */}
-          <path 
-            d="M 25 5 
-               L 130 5 
-               L 130 25 
-               C 145 25 155 40 145 40 
-               C 155 40 145 55 130 55 
-               L 130 75 
-               L 25 75 
-               L 25 55 
-               C 10 55 0 40 10 40 
-               C 0 40 10 25 25 25 
-               Z"
-            fill={`url(#puzzle-gradient-${item.id})`}
-            stroke={colorStyle.bgHex}
-            strokeWidth="2"
-          />
-          
-          {/* Shine overlay */}
-          <path 
-            d="M 25 5 
-               L 130 5 
-               L 130 25 
-               C 145 25 155 40 145 40 
-               C 155 40 145 55 130 55 
-               L 130 75 
-               L 25 75 
-               L 25 55 
-               C 10 55 0 40 10 40 
-               C 0 40 10 25 25 25 
-               Z"
-            fill={`url(#shine-${item.id})`}
-            opacity="0.5"
-          />
-          
-          {/* Inner border highlight */}
-          <path 
-            d="M 28 8 
-               L 127 8 
-               L 127 26 
-               C 140 26 148 40 140 40 
-               C 148 40 140 54 127 54 
-               L 127 72 
-               L 28 72 
-               L 28 54 
-               C 15 54 7 40 15 40 
-               C 7 40 15 26 28 26 
-               Z"
-            fill="none"
-            stroke="rgba(255,255,255,0.3)"
-            strokeWidth="1"
-          />
+          <path d={PUZZLE_PATH} fill={`url(#pg-${color}-${content})`} stroke={c.darkHex} strokeWidth="2" />
+          <path d={PUZZLE_PATH_INNER} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+          <path d={PUZZLE_PATH} fill="url(#shine)" opacity="0.15" />
         </svg>
-        
-        {/* Content overlay */}
-        <div className="absolute inset-0 flex items-center justify-center text-white font-black text-xl drop-shadow-lg">
-          {renderLatex(item.content, item.isLatex)}
+        <div className="absolute inset-0 flex items-center justify-center text-white drop-shadow-md pointer-events-none px-4">
+          {renderLatex(content, isLatex)}
         </div>
       </div>
     );
   };
 
-  // Empty puzzle slot with notch shape
-  const EmptyPuzzleSlot = ({ isHovered, slotLabel }: { isHovered: boolean; slotLabel?: string }) => (
-    <div className="relative">
-      <svg 
-        viewBox="0 0 160 80" 
-        className="w-32 h-16"
-      >
-        <defs>
-          <linearGradient id="slot-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: isHovered ? '#3b82f6' : '#94a3b8', stopOpacity: 0.2 }} />
-            <stop offset="100%" style={{ stopColor: isHovered ? '#3b82f6' : '#94a3b8', stopOpacity: 0.1 }} />
-          </linearGradient>
-        </defs>
-        
-        {/* Slot outline with matching puzzle shape */}
-        <path 
-          d="M 25 5 
-             L 130 5 
-             L 130 25 
-             C 145 25 155 40 145 40 
-             C 155 40 145 55 130 55 
-             L 130 75 
-             L 25 75 
-             L 25 55 
-             C 10 55 0 40 10 40 
-             C 0 40 10 25 25 25 
-             Z"
-          fill="url(#slot-gradient)"
+  const EmptySlotSVG = ({ isHovered, label }: { isHovered: boolean; label?: string }) => (
+    <div className="relative w-28 h-16">
+      <svg viewBox="0 0 150 80" className="w-full h-full">
+        <path
+          d={PUZZLE_PATH}
+          fill={isHovered ? 'rgba(59,130,246,0.15)' : 'rgba(148,163,184,0.1)'}
           stroke={isHovered ? '#3b82f6' : '#94a3b8'}
           strokeWidth="2"
-          strokeDasharray={isHovered ? "0" : "8 4"}
-          className="transition-all duration-200"
+          strokeDasharray={isHovered ? '0' : '6 4'}
         />
       </svg>
-      
-      {/* Slot label */}
-      <div className={cn(
-        "absolute inset-0 flex items-center justify-center transition-all",
-        isHovered ? "text-primary font-medium" : "text-muted-foreground"
-      )}>
-        <span className="text-sm">{slotLabel || 'Drop here'}</span>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span className={cn("text-xs", isHovered ? "text-primary font-medium" : "text-muted-foreground")}>
+          {label || 'Drop here'}
+        </span>
       </div>
     </div>
   );
 
   return (
-    <div ref={containerRef} className="space-y-6 py-4">
-      {/* Header with title and reset */}
+    <div className="space-y-5 py-3">
+      {/* Global SVG defs */}
+      <svg className="absolute w-0 h-0">
+        <defs>
+          <linearGradient id="shine" x1="0%" y1="0%" x2="50%" y2="50%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <GripVertical className="w-5 h-5 text-muted-foreground" />
-          <h4 className="font-semibold text-foreground">Draggable:</h4>
+          <h4 className="font-semibold text-foreground text-sm">Drag pieces to their matching slots</h4>
         </div>
         {Object.keys(matches).length > 0 && !showFeedback && (
           <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground hover:text-foreground">
-            <Undo2 className="w-4 h-4 mr-1" />
-            Reset
+            <Undo2 className="w-4 h-4 mr-1" /> Reset
           </Button>
         )}
       </div>
 
-      {/* Draggable Items Pool - Gradient background */}
-      <Card className="bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 border-2 border-slate-300 dark:border-slate-700 shadow-inner overflow-visible">
-        <CardContent className="p-6">
-          <div className="flex flex-wrap gap-6 min-h-[100px] items-center justify-center">
-            <AnimatePresence mode="popLayout">
-              {unmatchedItems.map((item) => (
-                <motion.div
-                  key={item.id}
-                  layout
-                  initial={{ scale: 0.8, opacity: 0, rotate: -5, y: 20 }}
-                  animate={{ 
-                    scale: draggingItem === item.id ? 1.1 : 1, 
-                    opacity: 1, 
-                    rotate: 0,
-                    y: 0,
-                    zIndex: draggingItem === item.id ? 50 : 1
-                  }}
-                  exit={{ scale: 0.5, opacity: 0, rotate: 10, y: -20 }}
-                  whileHover={{ 
-                    scale: 1.05,
-                    y: -4,
-                    transition: { duration: 0.2 }
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  drag
-                  dragConstraints={containerRef}
-                  dragElastic={0.8}
-                  onDragStart={() => handleDragStart(item.id)}
-                  onDragEnd={handleDragEnd}
-                  className="cursor-grab active:cursor-grabbing select-none"
-                  style={{ touchAction: 'none' }}
-                >
-                  <PuzzlePiece 
-                    item={item as PuzzleItem & { color: 'red' | 'blue' | 'green' | 'orange' | 'purple' }} 
-                    isDragging={draggingItem === item.id}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            
-            {unmatchedItems.length === 0 && (
+      {/* Draggable Pool */}
+      <div className="bg-gradient-to-br from-muted/60 to-muted/30 border-2 border-border rounded-xl p-4 shadow-inner">
+        <div className="flex flex-wrap gap-4 min-h-[80px] items-center justify-center">
+          <AnimatePresence mode="popLayout">
+            {unmatchedItems.map((item) => (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-3 text-green-600 dark:text-green-400 font-semibold py-4"
+                key={item.id}
+                layout
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: draggingItem === item.id ? 0.4 : 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                draggable
+                onDragStart={(e: any) => handleDragStart(e, item.id)}
+                onDragEnd={handleDragEnd}
+                className="cursor-grab active:cursor-grabbing select-none"
+                style={{ touchAction: 'none' }}
               >
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                >
-                  <Sparkles className="w-6 h-6" />
-                </motion.div>
-                <span className="text-lg">All pieces placed!</span>
-                <motion.div
-                  animate={{ rotate: [0, -10, 10, 0] }}
-                  transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}
-                >
-                  <Sparkles className="w-6 h-6" />
-                </motion.div>
+                <PuzzlePieceSVG
+                  color={item.color || 'blue'}
+                  content={item.content}
+                  isLatex={item.isLatex}
+                />
               </motion.div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            ))}
+          </AnimatePresence>
+
+          {unmatchedItems.length === 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold py-3">
+              <Sparkles className="w-5 h-5" />
+              <span>All pieces placed!</span>
+              <Sparkles className="w-5 h-5" />
+            </motion.div>
+          )}
+        </div>
+      </div>
 
       {/* Drop Slots Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {slots.map((slot, idx) => {
           const matchedItem = getMatchedItem(slot.id);
           const isCorrect = showFeedback && matchedItem && isCorrectMatch(slot.id);
           const isIncorrect = showFeedback && matchedItem && !isCorrectMatch(slot.id);
-          const isHovered = hoveredSlot === slot.id && draggingItem && !matchedItem;
-          const wasJustMatched = lastMatch?.slotId === slot.id;
-          const colorStyle = matchedItem ? PUZZLE_COLORS[matchedItem.color || 'blue'] : null;
+          const isHovered = hoveredSlot === slot.id && !!draggingItem;
 
           return (
             <motion.div
               key={slot.id}
-              ref={(el) => { slotRefs.current[slot.id] = el; }}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (!matchedItem) setHoveredSlot(slot.id);
-              }}
+              transition={{ delay: idx * 0.04 }}
+              onDragOver={(e: any) => handleDragOver(e, slot.id)}
               onDragLeave={() => setHoveredSlot(null)}
-              onDrop={() => handleDrop(slot.id)}
+              onDrop={(e: any) => handleDrop(e, slot.id)}
               className={cn(
-                "relative p-4 rounded-2xl border-3 transition-all duration-300 min-h-[100px]",
-                "flex flex-col items-center justify-center gap-2",
-                
-                // Empty slot
-                !matchedItem && !isHovered && [
-                  "border-dashed border-slate-300 dark:border-slate-600",
-                  "bg-slate-50/50 dark:bg-slate-800/50"
-                ],
-                
-                // Hovered (glowing)
-                isHovered && [
-                  "border-solid border-primary",
-                  "bg-primary/10",
-                  "shadow-lg shadow-primary/30",
-                  "ring-4 ring-primary/20",
-                  "scale-105"
-                ],
-                
-                // Filled
-                matchedItem && !showFeedback && [
-                  "border-solid border-slate-400 dark:border-slate-500",
-                  "bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800"
-                ],
-                
-                // Correct
-                isCorrect && [
-                  "border-solid border-green-500",
-                  "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30",
-                  "shadow-lg shadow-green-500/30",
-                  "ring-2 ring-green-400/50"
-                ],
-                
-                // Incorrect
-                isIncorrect && [
-                  "border-solid border-red-500",
-                  "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30",
-                  "shadow-lg shadow-red-500/30"
-                ]
+                "relative p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 min-h-[100px]",
+                !matchedItem && !isHovered && "border-dashed border-muted-foreground/30 bg-muted/20",
+                isHovered && "border-solid border-primary bg-primary/10 shadow-lg shadow-primary/20 scale-[1.03]",
+                matchedItem && !showFeedback && "border-solid border-muted-foreground/40 bg-muted/30",
+                isCorrect && "border-solid border-green-500 bg-green-50 dark:bg-green-950/30 shadow-green-500/20 shadow-md",
+                isIncorrect && "border-solid border-red-500 bg-red-50 dark:bg-red-950/30 shadow-red-500/20 shadow-md"
               )}
             >
               {/* Slot label */}
               {slot.label && (
-                <span className="text-xs font-medium text-muted-foreground mb-1">
-                  {slot.label}
-                </span>
-              )}
-              
-              {/* Slot image preview */}
-              {slot.image && (
-                <img 
-                  src={slot.image} 
-                  alt="" 
-                  className="w-16 h-16 object-contain rounded-lg mb-2 opacity-60"
-                />
+                <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
               )}
 
-              {/* Matched Item or Placeholder */}
+              {/* Slot image */}
+              {slot.image && (
+                <img src={slot.image} alt="" className="w-14 h-14 object-contain rounded-lg opacity-60" />
+              )}
+
+              {/* Matched piece or empty slot */}
               {matchedItem ? (
                 <motion.div
-                  initial={{ scale: 0.5, rotate: -20 }}
-                  animate={{ 
-                    scale: wasJustMatched ? [1, 1.1, 1] : 1, 
-                    rotate: 0 
-                  }}
-                  className={cn(
-                    "relative px-6 py-4 rounded-xl font-bold",
-                    "bg-gradient-to-br", colorStyle?.bg,
-                    "border-2", colorStyle?.border,
-                    "shadow-md",
-                    colorStyle?.text,
-                    !showFeedback && "cursor-pointer hover:scale-105 transition-transform"
-                  )}
+                  initial={{ scale: 0.7 }}
+                  animate={{ scale: 1 }}
+                  className={cn(!showFeedback && "cursor-pointer")}
                   onClick={() => handleRemoveMatch(slot.id)}
                   title={!showFeedback ? "Click to remove" : undefined}
                 >
-                  {/* Puzzle notch (left side) */}
-                  <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-6 bg-gradient-to-l from-transparent to-black/10 rounded-l-full" />
-                  
-                  {renderLatex(matchedItem.content, matchedItem.isLatex)}
-                  
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/30 via-transparent to-transparent pointer-events-none" />
+                  <PuzzlePieceSVG
+                    color={matchedItem.color || 'blue'}
+                    content={matchedItem.content}
+                    isLatex={matchedItem.isLatex}
+                    size="small"
+                  />
                 </motion.div>
               ) : (
-                <motion.div
-                  animate={{ 
-                    scale: isHovered ? 1.1 : 1,
-                    opacity: isHovered ? 1 : 0.4
-                  }}
-                  className="flex flex-col items-center gap-1"
-                >
-                  {/* Empty puzzle slot shape */}
-                  <div className={cn(
-                    "w-24 h-12 rounded-xl border-2 border-dashed flex items-center justify-center",
-                    isHovered 
-                      ? "border-primary bg-primary/5" 
-                      : "border-muted-foreground/30"
-                  )}>
-                    <span className="text-xs text-muted-foreground">
-                      Drop here
-                    </span>
-                  </div>
-                </motion.div>
+                <EmptySlotSVG isHovered={isHovered} />
               )}
 
-              {/* Feedback badges */}
+              {/* Feedback badge */}
               {showFeedback && matchedItem && (
-                <motion.div
-                  initial={{ scale: 0, y: -10 }}
-                  animate={{ scale: 1, y: 0 }}
-                  className="absolute -top-2 -right-2"
-                >
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2">
                   <Badge className={cn(
-                    "rounded-full w-8 h-8 flex items-center justify-center p-0 shadow-lg",
+                    "rounded-full w-7 h-7 flex items-center justify-center p-0 shadow-lg",
                     isCorrect && "bg-green-500 hover:bg-green-500",
                     isIncorrect && "bg-red-500 hover:bg-red-500"
                   )}>
-                    {isCorrect ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                    {isCorrect ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                   </Badge>
                 </motion.div>
               )}
@@ -588,48 +329,31 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
         })}
       </div>
 
-      {/* Match Feedback Toast with matched values */}
+      {/* Match feedback toast */}
       <AnimatePresence>
         {lastMatch && lastMatch.correct !== undefined && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.9 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             className={cn(
-              "fixed bottom-6 left-1/2 -translate-x-1/2 z-50",
-              "px-6 py-3 rounded-2xl shadow-2xl",
-              "flex items-center gap-3 font-semibold",
+              "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-xl shadow-xl flex items-center gap-2 font-semibold text-sm",
               lastMatch.correct
-                ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
-                : "bg-gradient-to-r from-red-500 to-rose-500 text-white"
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
             )}
           >
             {lastMatch.correct ? (
               <>
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ repeat: 3, duration: 0.3 }}
-                >
-                  <Check className="w-5 h-5" />
-                </motion.div>
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-bold">Correct!</span>
-                  {showMatchedValues && lastMatch.matchText && (
-                    <span className="text-xs opacity-90">
-                      Matched: {lastMatch.matchText}
-                    </span>
-                  )}
-                </div>
-                <motion.div
-                  animate={{ rotate: [0, 15, -15, 0] }}
-                  transition={{ repeat: Infinity, duration: 1 }}
-                >
-                  <Sparkles className="w-5 h-5" />
-                </motion.div>
+                <Check className="w-4 h-4" />
+                <span>Correct!</span>
+                {showMatchedValues && lastMatch.matchText && (
+                  <span className="text-xs opacity-90 ml-1">({lastMatch.matchText})</span>
+                )}
               </>
             ) : (
               <>
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
                 <span>Try again!</span>
               </>
             )}
@@ -637,35 +361,23 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Score Display */}
+      {/* Score */}
       {showFeedback && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "text-center p-6 rounded-2xl",
+            "text-center p-5 rounded-xl",
             correctCount === slots.length
-              ? "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30"
-              : "bg-gradient-to-br from-primary/10 to-accent/10"
+              ? "bg-green-50 dark:bg-green-950/30"
+              : "bg-muted/30"
           )}
         >
-          <motion.div 
-            className="text-3xl font-bold text-foreground mb-2"
-            initial={{ scale: 0.5 }}
-            animate={{ scale: 1 }}
-          >
-            {correctCount} / {slots.length}
-          </motion.div>
+          <div className="text-2xl font-bold text-foreground mb-1">{correctCount} / {slots.length}</div>
           <div className="text-sm text-muted-foreground">
-            {correctCount === slots.length ? (
-              <span className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
-                <Sparkles className="w-4 h-4" />
-                🎉 Perfect! All puzzles solved correctly!
-                <Sparkles className="w-4 h-4" />
-              </span>
-            ) : (
-              'Keep going! Check the incorrect matches.'
-            )}
+            {correctCount === slots.length
+              ? '🎉 Perfect! All puzzles solved!'
+              : 'Check the incorrect matches.'}
           </div>
         </motion.div>
       )}
