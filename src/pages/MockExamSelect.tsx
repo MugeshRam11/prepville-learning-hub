@@ -46,6 +46,7 @@ const MockExamSelect = () => {
         .from('mock_tests')
         .select('id, title, subject, topic, total_questions, time_limit_minutes, is_published, created_at')
         .eq('is_published', true)
+        .eq('is_archived', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
