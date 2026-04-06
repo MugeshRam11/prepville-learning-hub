@@ -140,15 +140,10 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
               value={step}
               className="list-none"
             >
-              <motion.div
-                layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: showFeedback ? 1 : 1.02 }}
-                whileDrag={{ scale: 1.05, zIndex: 10 }}
+              <div
                 className={cn(
                   "relative flex items-center gap-3 p-4 rounded-xl cursor-grab active:cursor-grabbing",
-                  "bg-card border-2 shadow-md transition-all",
+                  "bg-card border-2 shadow-md",
                   !showFeedback && "border-border hover:border-primary hover:shadow-lg",
                   isCorrect && "border-green-500 bg-green-50 dark:bg-green-950/30",
                   isIncorrect && "border-red-500 bg-red-50 dark:bg-red-950/30"
