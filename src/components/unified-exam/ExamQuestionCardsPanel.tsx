@@ -21,7 +21,8 @@ function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undef
     'smart_math': 'smart_math',
     'text_input': 'text_equation',
     'text_equation': 'text_equation',
-    'multiple_choice': 'multiple_choice'
+    'multiple_choice': 'multiple_choice',
+    'image_fill_blanks': 'image_fill_blanks'
   };
   return typeMap[interactiveType] || 'text_equation';
 }
