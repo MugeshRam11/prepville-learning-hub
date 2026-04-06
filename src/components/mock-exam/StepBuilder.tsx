@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, Reorder, AnimatePresence } from 'framer-motion';
+import { Reorder } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, ArrowDown, Shuffle, RotateCcw } from 'lucide-react';
@@ -140,15 +140,10 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
               value={step}
               className="list-none"
             >
-              <motion.div
-                layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: showFeedback ? 1 : 1.02 }}
-                whileDrag={{ scale: 1.05, zIndex: 10 }}
+              <div
                 className={cn(
                   "relative flex items-center gap-3 p-4 rounded-xl cursor-grab active:cursor-grabbing",
-                  "bg-card border-2 shadow-md transition-all",
+                  "bg-card border-2 shadow-md",
                   !showFeedback && "border-border hover:border-primary hover:shadow-lg",
                   isCorrect && "border-green-500 bg-green-50 dark:bg-green-950/30",
                   isIncorrect && "border-red-500 bg-red-50 dark:bg-red-950/30"
@@ -174,11 +169,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
 
                 {/* Feedback Icon */}
                 {showFeedback && (
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    className="flex-shrink-0"
-                  >
+                  <div className="flex-shrink-0">
                     {isCorrect ? (
                       <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                         <Check className="w-4 h-4 text-white" />
@@ -188,32 +179,24 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
                         <X className="w-4 h-4 text-white" />
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 )}
 
                 {/* Correct Position Indicator */}
                 {showFeedback && isIncorrect && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute -right-2 top-1/2 -translate-y-1/2"
-                  >
+                  <div className="absolute -right-2 top-1/2 -translate-y-1/2">
                     <Badge variant="outline" className="bg-background text-xs">
                       Should be #{step.correctOrder}
                     </Badge>
-                  </motion.div>
+                  </div>
                 )}
-              </motion.div>
+              </div>
 
               {/* Arrow between steps */}
               {index < orderedSteps.length - 1 && (
-                <motion.div 
-                  className="flex justify-center py-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.5 }}
-                >
+                <div className="flex justify-center py-1 opacity-50">
                   <ArrowDown className="w-4 h-4 text-muted-foreground" />
-                </motion.div>
+                </div>
               )}
             </Reorder.Item>
           );
@@ -222,9 +205,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
 
       {/* Score Display */}
       {showFeedback && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className={cn(
             "text-center p-4 rounded-xl",
             allCorrect 
@@ -243,7 +224,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
           <div className="text-xs text-muted-foreground mt-2">
             Marks: {correctCount + (allCorrect ? 1 : 0)} / 5
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );
