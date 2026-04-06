@@ -194,13 +194,9 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
 
               {/* Arrow between steps */}
               {index < orderedSteps.length - 1 && (
-                <motion.div 
-                  className="flex justify-center py-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.5 }}
-                >
+                <div className="flex justify-center py-1 opacity-50">
                   <ArrowDown className="w-4 h-4 text-muted-foreground" />
-                </motion.div>
+                </div>
               )}
             </Reorder.Item>
           );
