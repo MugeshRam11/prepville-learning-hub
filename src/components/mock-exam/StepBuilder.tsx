@@ -184,15 +184,11 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
 
                 {/* Correct Position Indicator */}
                 {showFeedback && isIncorrect && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute -right-2 top-1/2 -translate-y-1/2"
-                  >
+                  <div className="absolute -right-2 top-1/2 -translate-y-1/2">
                     <Badge variant="outline" className="bg-background text-xs">
                       Should be #{step.correctOrder}
                     </Badge>
-                  </motion.div>
+                  </div>
                 )}
               </motion.div>
 
