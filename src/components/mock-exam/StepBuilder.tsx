@@ -169,11 +169,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
 
                 {/* Feedback Icon */}
                 {showFeedback && (
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    className="flex-shrink-0"
-                  >
+                  <div className="flex-shrink-0">
                     {isCorrect ? (
                       <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                         <Check className="w-4 h-4 text-white" />
@@ -183,7 +179,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
                         <X className="w-4 h-4 text-white" />
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 )}
 
                 {/* Correct Position Indicator */}
