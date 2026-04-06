@@ -190,7 +190,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
                     </Badge>
                   </div>
                 )}
-              </motion.div>
+              </div>
 
               {/* Arrow between steps */}
               {index < orderedSteps.length - 1 && (
