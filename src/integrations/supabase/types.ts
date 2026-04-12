@@ -1095,6 +1095,142 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_questions: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          practice_set_id: string
+          question_image_url: string | null
+          question_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          practice_set_id: string
+          question_image_url?: string | null
+          question_text?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          practice_set_id?: string
+          question_image_url?: string | null
+          question_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_questions_practice_set_id_fkey"
+            columns: ["practice_set_id"]
+            isOneToOne: false
+            referencedRelation: "practice_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_sets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          difficulty: string
+          id: string
+          is_archived: boolean
+          is_published: boolean
+          subject: string
+          title: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string
+          id?: string
+          is_archived?: boolean
+          is_published?: boolean
+          subject: string
+          title: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string
+          id?: string
+          is_archived?: boolean
+          is_published?: boolean
+          subject?: string
+          title?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      practice_sub_questions: {
+        Row: {
+          answer_block_config: Json | null
+          answer_key: string | null
+          answer_type: string
+          command_term: string | null
+          created_at: string
+          id: string
+          label: string
+          marks: number
+          order_index: number
+          question_id: string
+          solution: string | null
+          sub_question_image_url: string | null
+          sub_question_text: string
+          updated_at: string
+        }
+        Insert: {
+          answer_block_config?: Json | null
+          answer_key?: string | null
+          answer_type?: string
+          command_term?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          marks?: number
+          order_index?: number
+          question_id: string
+          solution?: string | null
+          sub_question_image_url?: string | null
+          sub_question_text?: string
+          updated_at?: string
+        }
+        Update: {
+          answer_block_config?: Json | null
+          answer_key?: string | null
+          answer_type?: string
+          command_term?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          marks?: number
+          order_index?: number
+          question_id?: string
+          solution?: string | null
+          sub_question_image_url?: string | null
+          sub_question_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_sub_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "practice_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_emoji: string | null
