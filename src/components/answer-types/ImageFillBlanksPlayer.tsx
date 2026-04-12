@@ -17,7 +17,7 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
   onChange,
   disabled = false,
 }) => {
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
 
   const handleZoneChange = useCallback((zoneId: string, inputValue: string) => {
     const zone = config.zones.find(z => z.id === zoneId);
