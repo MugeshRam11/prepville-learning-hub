@@ -2391,7 +2391,12 @@ export type Database = {
       app_role: "admin" | "moderator" | "student"
       difficulty_level: "easy" | "medium" | "hard"
       exam_state: "LIVE" | "PAUSED" | "SUBMITTED" | "CANCELLED"
-      exam_type: "MOCK" | "PUZZLE" | "CHALLENGE" | "INTERACTIVE_DEMO"
+      exam_type:
+        | "MOCK"
+        | "PUZZLE"
+        | "CHALLENGE"
+        | "INTERACTIVE_DEMO"
+        | "PRACTICE"
       group_member_role: "member" | "moderator"
       material_type: "pdf" | "video" | "image" | "document" | "note"
       message_type: "text" | "image" | "file" | "audio"
@@ -2547,7 +2552,13 @@ export const Constants = {
       app_role: ["admin", "moderator", "student"],
       difficulty_level: ["easy", "medium", "hard"],
       exam_state: ["LIVE", "PAUSED", "SUBMITTED", "CANCELLED"],
-      exam_type: ["MOCK", "PUZZLE", "CHALLENGE", "INTERACTIVE_DEMO"],
+      exam_type: [
+        "MOCK",
+        "PUZZLE",
+        "CHALLENGE",
+        "INTERACTIVE_DEMO",
+        "PRACTICE",
+      ],
       group_member_role: ["member", "moderator"],
       material_type: ["pdf", "video", "image", "document", "note"],
       message_type: ["text", "image", "file", "audio"],
