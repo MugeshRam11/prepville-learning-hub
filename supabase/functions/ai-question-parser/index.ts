@@ -61,13 +61,17 @@ Detect ALL visual elements on each page:
 8. BAR/HISTOGRAM: Vertical/horizontal bars, frequency distributions
    - diagram_type: "bar_chart"
 
-For EACH diagram, return bounding_box as percentages (0-100):
+BOUNDING BOX - MANDATORY for ALL diagrams, graphs, figures, and geometric shapes:
+You MUST always return "graph_bounding_box" for EVERY visual element detected.
+Estimate the bounding box as percentages (0-100) of the page image dimensions:
 {
   "x_min": 10,  // Left edge percentage
   "y_min": 20,  // Top edge percentage  
   "x_max": 90,  // Right edge percentage
   "y_max": 80   // Bottom edge percentage
 }
+Even if approximate, ALWAYS provide graph_bounding_box when graph_found is true.
+Never return graph_found: true without a graph_bounding_box.
 
 TABLE EXTRACTION - CRITICAL:
 For ANY table visible on the page:
