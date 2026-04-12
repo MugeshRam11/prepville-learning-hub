@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { renderLatexContent } from '@/lib/renderLatex';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
