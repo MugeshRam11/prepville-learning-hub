@@ -949,7 +949,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
       return (
         <div className="bg-muted/30 rounded-lg p-3">
           <p className="text-xs font-medium text-muted-foreground mb-1">📝 Student Answer</p>
-          <p className="text-sm whitespace-pre-wrap">{text || 'No answer'}</p>
+          <div className="text-sm whitespace-pre-wrap">{text ? renderLatexContent(text) : 'No answer'}</div>
         </div>
       );
     }
