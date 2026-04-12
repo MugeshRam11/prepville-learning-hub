@@ -43,6 +43,7 @@ import AdminMockTestView from "./pages/AdminMockTestView";
 import AdminQuickTestCreate from "./pages/AdminQuickTestCreate";
 import AdminStudyMaterials from "./pages/AdminStudyMaterials";
 import AdminSettings from "./pages/AdminSettings";
+import AdminPracticeCreate from "./pages/AdminPracticeCreate";
 
 import StudyGroups from "./pages/StudyGroups";
 import GraphingTool from "./pages/GraphingTool";
@@ -246,6 +247,11 @@ const App = () => (
           <Route path="/admin/questions" element={
             <ProtectedRoute>
               <AdminQuestions />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/practice/create" element={
+            <ProtectedRoute>
+              <AdminPracticeCreate />
             </ProtectedRoute>
           } />
           <Route path="/admin/reports" element={

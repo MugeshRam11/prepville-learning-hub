@@ -5,11 +5,12 @@ import Footer from '@/components/Footer';
 import GlobalChatbot from '@/components/GlobalChatbot';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, BookOpen } from 'lucide-react';
+import { Loader2, CheckCircle2, BookOpen, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import PracticeFilters, { PracticeFiltersState } from '@/components/practice/PracticeFilters';
 import PracticeQuestionRow from '@/components/practice/PracticeQuestionRow';
 import { usePracticeQuestionStatus } from '@/hooks/usePracticeQuestionStatus';
@@ -26,9 +27,20 @@ interface PracticeQuestion {
   source?: 'subject_questions' | 'quick_test';
 }
 
+interface PracticeSet {
+  id: string;
+  title: string;
+  subject: string;
+  topic: string;
+  is_published: boolean;
+  total_questions: number;
+  mock_questions: { id: string; marks: number; has_sub_questions: boolean }[];
+}
+
 const Practice = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
+  const [practiceSets, setPracticeSets] = useState<PracticeSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState<string>('all');
   const [filters, setFilters] = useState<PracticeFiltersState>({
@@ -41,8 +53,25 @@ const Practice = () => {
 
   const { getStatus, statusMap, isLoading: statusLoading } = usePracticeQuestionStatus();
 
+  const fetchPracticeSets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mock_tests')
+        .select('id, title, subject, topic, is_published, total_questions, mock_questions(id, marks, has_sub_questions)')
+        .eq('exam_type', 'PRACTICE' as any)
+        .eq('is_published', true)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPracticeSets((data || []) as any);
+    } catch (err) {
+      console.error('Error fetching practice sets:', err);
+    }
+  };
+
   useEffect(() => {
     fetchPracticeQuestions();
+    fetchPracticeSets();
 
     // Real-time subscription for practice questions (subject_questions table)
     const subjectQuestionsChannel = supabase.channel('practice_subject_questions_sync')
@@ -300,6 +329,44 @@ const Practice = () => {
             </div>
           </div>
         </section>
+
+        {/* Practice Sets (New Format) */}
+        {practiceSets.length > 0 && (
+          <section className="py-4">
+            <div className="container space-y-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Practice Sets
+              </h2>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {practiceSets.map((ps) => (
+                  <Card key={ps.id} className="hover:shadow-md transition-shadow cursor-pointer group"
+                    onClick={() => navigate(`/mock-exams/unified/${ps.id}`)}>
+                    <CardContent className="py-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                            {ps.title || 'Untitled'}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs">{ps.subject}</Badge>
+                            <Badge variant="outline" className="text-xs">{ps.topic}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {ps.mock_questions?.reduce((s, q) => s + q.marks, 0) || 0} marks
+                            </span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="shrink-0 gap-1">
+                          <Play className="w-4 h-4" /> Start
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Filters and Question List */}
         <section className="py-6">
