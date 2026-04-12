@@ -57,6 +57,7 @@ export async function getPublishedMockTests(): Promise<PublishedMockTest[]> {
     .from("mock_tests")
     .select("id, title, subject, topic, time_limit_minutes, total_questions, is_published, created_at")
     .eq("is_published", true)
+    .eq("is_archived", false)
     .order("created_at", { ascending: false });
 
   if (error) throw error;

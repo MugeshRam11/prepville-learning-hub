@@ -19,6 +19,7 @@ import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import ImageFillBlanksPlayer from '@/components/answer-types/ImageFillBlanksPlayer';
 
 interface AnswerBlockProps {
   questionId: string;
@@ -220,16 +221,13 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
       }
 
       case 'image_fill_blanks': {
-        const ImageFillBlanksPlayer = React.lazy(() => import('@/components/answer-types/ImageFillBlanksPlayer'));
         return (
-          <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
-            <ImageFillBlanksPlayer
-              config={config as any}
-              value={value || {}}
-              onChange={onChange}
-              disabled={disabled}
-            />
-          </React.Suspense>
+          <ImageFillBlanksPlayer
+            config={config as any}
+            value={value || {}}
+            onChange={onChange}
+            disabled={disabled}
+          />
         );
       }
 

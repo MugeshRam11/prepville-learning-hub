@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle } from 'lucide-react';
@@ -17,7 +17,7 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
   onChange,
   disabled = false,
 }) => {
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
 
   const handleZoneChange = useCallback((zoneId: string, inputValue: string) => {
     const zone = config.zones.find(z => z.id === zoneId);
@@ -28,10 +28,6 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
         type: zone?.inputMode === 'math' ? 'latex' : 'text',
       },
     };
-    // Debounce autosave
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onChange(newValue), 400);
-    // Immediate local update
     onChange(newValue);
   }, [config.zones, value, onChange]);
 
