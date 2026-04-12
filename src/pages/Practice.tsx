@@ -5,11 +5,12 @@ import Footer from '@/components/Footer';
 import GlobalChatbot from '@/components/GlobalChatbot';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, BookOpen } from 'lucide-react';
+import { Loader2, CheckCircle2, BookOpen, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import PracticeFilters, { PracticeFiltersState } from '@/components/practice/PracticeFilters';
 import PracticeQuestionRow from '@/components/practice/PracticeQuestionRow';
 import { usePracticeQuestionStatus } from '@/hooks/usePracticeQuestionStatus';
@@ -24,6 +25,16 @@ interface PracticeQuestion {
   xp_reward: number | null;
   subject: string;
   source?: 'subject_questions' | 'quick_test';
+}
+
+interface PracticeSet {
+  id: string;
+  title: string;
+  subject: string;
+  topic: string;
+  is_published: boolean;
+  total_questions: number;
+  mock_questions: { id: string; marks: number; has_sub_questions: boolean }[];
 }
 
 const Practice = () => {
