@@ -14,10 +14,24 @@ import {
   CheckCircle2, Archive, ArchiveRestore
 } from 'lucide-react';
 
+interface PracticeSet {
+  id: string;
+  title: string;
+  subject: string;
+  topic: string;
+  difficulty: string;
+  is_published: boolean;
+  is_archived: boolean;
+  created_at: string;
+  question_count: number;
+  sub_question_count: number;
+  total_marks: number;
+}
+
 const AdminTests = () => {
   const navigate = useNavigate();
-  const [tests, setTests] = useState<any[]>([]);
-  const [filteredTests, setFilteredTests] = useState<any[]>([]);
+  const [tests, setTests] = useState<PracticeSet[]>([]);
+  const [filteredTests, setFilteredTests] = useState<PracticeSet[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -26,10 +40,6 @@ const AdminTests = () => {
 
   useEffect(() => {
     fetchTests();
-    const channel = supabase.channel('admin_practice_tests_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mock_tests' }, () => fetchTests())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
   }, [showArchived]);
 
   useEffect(() => {
@@ -48,41 +58,68 @@ const AdminTests = () => {
 
   const fetchTests = async () => {
     try {
-      const { data, error } = await supabase
-        .from('mock_tests')
+      const { data: sets, error } = await supabase
+        .from('practice_sets')
         .select('*')
-        .eq('exam_type', 'PRACTICE' as any)
         .eq('is_archived', showArchived)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setTests(data || []);
+
+      // Fetch question/sub-question counts
+      const enriched: PracticeSet[] = await Promise.all(
+        (sets || []).map(async (ps: any) => {
+          const { data: qs } = await supabase
+            .from('practice_questions')
+            .select('id')
+            .eq('practice_set_id', ps.id);
+          
+          const qIds = (qs || []).map((q: any) => q.id);
+          let subCount = 0;
+          let totalMarks = 0;
+          
+          if (qIds.length > 0) {
+            const { data: sqs } = await supabase
+              .from('practice_sub_questions')
+              .select('id, marks')
+              .in('question_id', qIds);
+            subCount = sqs?.length || 0;
+            totalMarks = (sqs || []).reduce((s: number, sq: any) => s + (sq.marks || 0), 0);
+          }
+
+          return {
+            id: ps.id,
+            title: ps.title,
+            subject: ps.subject,
+            topic: ps.topic,
+            difficulty: ps.difficulty,
+            is_published: ps.is_published,
+            is_archived: ps.is_archived,
+            created_at: ps.created_at,
+            question_count: qs?.length || 0,
+            sub_question_count: subCount,
+            total_marks: totalMarks,
+          };
+        })
+      );
+
+      setTests(enriched);
     } catch (error) {
-      console.error('Error fetching practice tests:', error);
-      toast.error('Failed to fetch practice tests');
+      console.error('Error fetching practice sets:', error);
+      toast.error('Failed to fetch practice sets');
     } finally {
       setLoading(false);
     }
   };
 
   const togglePublished = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase.from('mock_tests').update({ is_published: !currentStatus }).eq('id', id);
+    const { error } = await supabase.from('practice_sets').update({ is_published: !currentStatus }).eq('id', id);
     if (error) { toast.error('Failed to update status'); return; }
-    toast.success(`Practice question ${!currentStatus ? 'published' : 'set to draft'}`);
-    fetchTests();
-  };
-
-  const publishAll = async () => {
-    const { error } = await supabase.from('mock_tests')
-      .update({ is_published: true })
-      .eq('exam_type', 'PRACTICE' as any)
-      .eq('is_published', false);
-    if (error) { toast.error('Failed to publish all'); return; }
-    toast.success('All practice questions published');
+    toast.success(`Practice set ${!currentStatus ? 'published' : 'set to draft'}`);
     fetchTests();
   };
 
   const handleArchive = async (id: string, currentlyArchived: boolean) => {
-    const { error } = await supabase.from('mock_tests')
+    const { error } = await supabase.from('practice_sets')
       .update({ is_archived: !currentlyArchived, is_published: false })
       .eq('id', id);
     if (error) { toast.error('Archive failed'); return; }
@@ -91,15 +128,8 @@ const AdminTests = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const { data: attempts } = await supabase.from('test_attempts').select('id').eq('test_id', id).limit(1);
-    if (attempts && attempts.length > 0) {
-      toast.error('Has student submissions — archive instead.', { duration: 5000 });
-      return;
-    }
-    if (!confirm('Delete this practice question permanently?')) return;
-    await supabase.from('exam_sessions').delete().eq('test_id', id);
-    await supabase.from('admin_exam_actions').delete().eq('test_id', id);
-    const { error } = await supabase.from('mock_tests').delete().eq('id', id);
+    if (!confirm('Delete this practice set permanently? This will also delete all questions.')) return;
+    const { error } = await supabase.from('practice_sets').delete().eq('id', id);
     if (error) { toast.error('Delete failed'); return; }
     toast.success('Deleted successfully');
     fetchTests();
@@ -107,17 +137,20 @@ const AdminTests = () => {
 
   const handleDeleteSelected = async () => {
     if (selectedTests.length === 0) return;
-    const { data: attemptTests } = await supabase.from('test_attempts').select('test_id').in('test_id', selectedTests);
-    const blocked = new Set((attemptTests || []).map(a => a.test_id));
-    const safe = selectedTests.filter(id => !blocked.has(id));
-    if (safe.length === 0) { toast.error('All selected have submissions — archive instead.'); return; }
-    if (!confirm(`Delete ${safe.length} practice question(s)?`)) return;
-    await supabase.from('exam_sessions').delete().in('test_id', safe);
-    await supabase.from('admin_exam_actions').delete().in('test_id', safe);
-    const { error } = await supabase.from('mock_tests').delete().in('id', safe);
+    if (!confirm(`Delete ${selectedTests.length} practice set(s)?`)) return;
+    const { error } = await supabase.from('practice_sets').delete().in('id', selectedTests);
     if (error) { toast.error('Bulk delete failed'); return; }
-    toast.success(`${safe.length} deleted${blocked.size > 0 ? `, ${blocked.size} skipped` : ''}`);
+    toast.success(`${selectedTests.length} deleted`);
     setSelectedTests([]);
+    fetchTests();
+  };
+
+  const publishAll = async () => {
+    const draftIds = tests.filter(t => !t.is_published).map(t => t.id);
+    if (draftIds.length === 0) return;
+    const { error } = await supabase.from('practice_sets').update({ is_published: true }).in('id', draftIds);
+    if (error) { toast.error('Failed to publish all'); return; }
+    toast.success('All practice sets published');
     fetchTests();
   };
 
@@ -135,14 +168,20 @@ const AdminTests = () => {
   };
 
   const formatSubjectName = (subject: string) =>
-    `MYP ${subject.charAt(0).toUpperCase() + subject.slice(1).replace('_', ' ')}`;
+    subject.charAt(0).toUpperCase() + subject.slice(1).replace('_', ' ');
+
+  const getDifficultyBadge = (d: string) => {
+    if (d === 'easy') return 'bg-green-100 text-green-700';
+    if (d === 'hard') return 'bg-red-100 text-red-700';
+    return 'bg-amber-100 text-amber-700';
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex">
         <AdminSidebar activeTab="tests" onTabChange={() => {}} />
         <div className="flex-1 ml-64 flex items-center justify-center">
-          <div className="text-lg text-muted-foreground">Loading practice questions...</div>
+          <div className="text-lg text-muted-foreground">Loading practice sets...</div>
         </div>
       </div>
     );
@@ -158,10 +197,10 @@ const AdminTests = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {showArchived ? 'Archived Practice Questions' : 'Practice Questions'}
+                  {showArchived ? 'Archived Practice Sets' : 'Practice Sets'}
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  {showArchived ? 'View and restore archived practice questions' : 'Create and manage practice questions with sub-questions and interactive answer types'}
+                  Create and manage practice sets with sub-questions and interactive answer types
                 </p>
               </div>
               <div className="flex gap-3">
@@ -187,7 +226,7 @@ const AdminTests = () => {
                 </Button>
                 <Button onClick={() => navigate('/admin/practice/create')} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Practice Question
+                  Create Practice Set
                 </Button>
               </div>
             </div>
@@ -263,7 +302,7 @@ const AdminTests = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Practice Questions</p>
+                    <p className="text-sm font-medium text-gray-600">Total Practice Sets</p>
                     <p className="text-3xl font-bold text-gray-900 mt-2">{tests.length}</p>
                   </div>
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -279,8 +318,8 @@ const AdminTests = () => {
             <Card className="bg-white border border-gray-200">
               <CardContent className="py-16 text-center">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg text-gray-600">No practice questions found</p>
-                <p className="text-sm text-gray-500 mt-2">Try adjusting your search or create a new practice question</p>
+                <p className="text-lg text-gray-600">No practice sets found</p>
+                <p className="text-sm text-gray-500 mt-2">Create a new practice set to get started</p>
               </CardContent>
             </Card>
           ) : (
@@ -288,7 +327,6 @@ const AdminTests = () => {
               {filteredTests.map(test => (
                 <Card key={test.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden group">
                   <CardContent className="p-6">
-                    {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <Checkbox
@@ -298,28 +336,23 @@ const AdminTests = () => {
                             else setSelectedTests(selectedTests.filter(id => id !== test.id));
                           }}
                         />
-                        <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">Practice</Badge>
+                        <Badge className={`text-xs capitalize ${getDifficultyBadge(test.difficulty)}`}>
+                          {test.difficulty}
+                        </Badge>
                       </div>
                       <div className={`w-3 h-3 rounded-full ${getSubjectColor(test.subject)}`} />
                     </div>
 
-                    {/* Title */}
                     <div className="mb-4">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">{formatSubjectName(test.subject)}</h3>
-                      <p className="text-sm text-gray-600 line-clamp-1">{test.topic}</p>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">{test.title || 'Untitled'}</h3>
+                      <p className="text-sm text-gray-600">{formatSubjectName(test.subject)} · {test.topic}</p>
                     </div>
 
-                    {/* Tags */}
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-normal bg-white border-gray-300">
-                        {test.topic}
-                      </Badge>
                       <Badge
                         variant={test.is_published ? "default" : "secondary"}
-                        className={`rounded-full px-3 py-1 text-xs font-normal cursor-pointer ${
-                          test.is_published
-                            ? 'bg-green-100 text-green-700 border-green-300'
-                            : 'bg-amber-100 text-amber-700 border-amber-300'
+                        className={`rounded-full px-3 py-1 text-xs cursor-pointer ${
+                          test.is_published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
                         }`}
                         onClick={() => togglePublished(test.id, test.is_published)}
                       >
@@ -327,21 +360,14 @@ const AdminTests = () => {
                       </Badge>
                     </div>
 
-                    {/* Stats */}
-                    <div className="flex items-center gap-6 text-sm text-gray-600 mb-6 pb-6 border-b border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        <span className="font-medium">{test.total_questions || 0} Questions</span>
-                      </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-6 pb-4 border-b border-gray-100">
+                      <span>{test.sub_question_count} sub-questions</span>
+                      <span>{test.total_marks} marks</span>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-2">
-                      <Button onClick={() => navigate(`/admin/mock-tests/view/${test.id}`)} variant="outline" size="sm" className="flex-1 border-gray-300 hover:bg-gray-50">
-                        <Eye className="w-4 h-4 mr-1" /> View
-                      </Button>
                       {!test.is_archived && (
-                        <Button onClick={() => navigate(`/admin/mock-tests/edit/${test.id}`)} variant="outline" size="sm" className="flex-1 border-gray-300 hover:bg-gray-50">
+                        <Button onClick={() => navigate(`/admin/practice/edit/${test.id}`)} variant="outline" size="sm" className="flex-1 border-gray-300 hover:bg-gray-50">
                           <Edit className="w-4 h-4 mr-1" /> Edit
                         </Button>
                       )}
