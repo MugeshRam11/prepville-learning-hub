@@ -19,6 +19,7 @@ import StepBuilder from '@/components/mock-exam/StepBuilder';
 import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import ImageFillBlanksPlayer from '@/components/answer-types/ImageFillBlanksPlayer';
 
 interface AnswerBlockProps {
   questionId: string;
