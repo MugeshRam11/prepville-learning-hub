@@ -324,9 +324,10 @@ INSTRUCTIONS:
 1. Read EVERY question number visible: 1a, 1b, 1c, 2, 3a, 3b, 3c, 3d, 3e...
 2. Each sub-question (a, b, c) = SEPARATE JSON entry
 3. Detect ALL diagrams: Venn, graphs, tables, geometric figures
-4. For each diagram: provide precise bounding_box percentages
+4. For EVERY diagram/graph/figure detected, you MUST provide graph_bounding_box with x_min, y_min, x_max, y_max as percentages (0-100)
 5. Extract table data as 2D arrays
 6. Identify interactive type for each question
+7. CRITICAL: If graph_found is true, graph_bounding_box is MANDATORY — estimate if needed
 
 CRITICAL: Do NOT merge sub-questions. "1a", "1b", "1c" = 3 separate entries.
 
