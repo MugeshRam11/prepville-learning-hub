@@ -1,12 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Upload, Award, BookOpen } from 'lucide-react';
+import { ArrowLeft, Save, Upload, Award, BookOpen, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import SectionCard from '@/components/admin/mock-test-creator/SectionCard';
@@ -20,28 +20,102 @@ import {
 import type {
   CreatorState, CreatorSection, CreatorQuestionGroup, CreatorSubQuestion
 } from '@/components/admin/mock-test-creator/types';
-import type { Database } from '@/integrations/supabase/types';
-
-type TestSubject = Database['public']['Enums']['test_subject'];
 
 const AdminPracticeCreate = () => {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditing = !!editId;
+
   const [state, setState] = useState<CreatorState>(() => {
     const defaultState = createDefaultState();
-    return {
-      ...defaultState,
-      title: '',
-      durationMinutes: 0, // no timer for practice
-    };
+    return { ...defaultState, title: '', durationMinutes: 0 };
   });
+  const [difficulty, setDifficulty] = useState('medium');
   const [loading, setLoading] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
-  // In practice mode: only 1 section with 1 question group
   const section = state.sections[0];
   const group = section?.questionGroups[0];
   const totalMarks = getTotalMarks(state.sections);
 
-  // Question group operations (single group only)
+  // Load existing practice set for editing
+  useEffect(() => {
+    if (!editId) return;
+    const loadPracticeSet = async () => {
+      setLoadingEdit(true);
+      try {
+        const { data: ps, error: psErr } = await supabase
+          .from('practice_sets')
+          .select('*')
+          .eq('id', editId)
+          .single();
+        if (psErr) throw psErr;
+
+        const { data: pqs, error: pqErr } = await supabase
+          .from('practice_questions')
+          .select('*')
+          .eq('practice_set_id', editId)
+          .order('order_index');
+        if (pqErr) throw pqErr;
+
+        const mainQ = pqs?.[0];
+        let subQuestions: CreatorSubQuestion[] = [];
+
+        if (mainQ) {
+          const { data: psqs } = await supabase
+            .from('practice_sub_questions')
+            .select('*')
+            .eq('question_id', mainQ.id)
+            .order('order_index');
+
+          subQuestions = (psqs || []).map((sq: any, i: number) => ({
+            id: sq.id,
+            label: sq.label || String.fromCharCode(97 + i),
+            text: sq.sub_question_text || '',
+            imageUrl: sq.sub_question_image_url || '',
+            marks: sq.marks || 1,
+            answerKey: sq.answer_key || '',
+            answerKeyEquations: [],
+            wordLimit: '',
+            commandTerm: sq.command_term || '',
+            answerBlockType: sq.answer_type || 'text_equation',
+            answerBlockConfig: sq.answer_block_config || {},
+            solution: sq.solution || '',
+          }));
+        }
+
+        const defaultState = createDefaultState();
+        const sec = defaultState.sections[0];
+        const grp = sec.questionGroups[0];
+
+        setState({
+          ...defaultState,
+          title: ps.title,
+          subject: ps.subject,
+          topic: ps.topic,
+          durationMinutes: 0,
+          sections: [{
+            ...sec,
+            questionGroups: [{
+              ...grp,
+              stem: mainQ?.question_text || '',
+              stemImageUrl: mainQ?.question_image_url || '',
+              subQuestions,
+            }]
+          }]
+        });
+        setDifficulty(ps.difficulty || 'medium');
+      } catch (err: any) {
+        console.error('Load error:', err);
+        toast.error('Failed to load practice set');
+        navigate('/admin/tests');
+      } finally {
+        setLoadingEdit(false);
+      }
+    };
+    loadPracticeSet();
+  }, [editId]);
+
   const updateQuestionGroup = useCallback((sectionId: string, groupId: string, updates: Partial<CreatorQuestionGroup>) => {
     setState(prev => ({
       ...prev,
@@ -53,35 +127,25 @@ const AdminPracticeCreate = () => {
     }));
   }, []);
 
-  // Sub-question operations
   const addSubQuestion = useCallback((sectionId: string, groupId: string) => {
-    const currentGroup = state.sections
-      .find(s => s.id === sectionId)
-      ?.questionGroups.find(g => g.id === groupId);
+    const currentGroup = state.sections.find(s => s.id === sectionId)?.questionGroups.find(g => g.id === groupId);
     const newSub = createSubQuestion(currentGroup?.subQuestions.length ?? 0);
-
     setState(prev => ({
       ...prev,
       sections: prev.sections.map(s =>
         s.id === sectionId
           ? {
-              ...s,
-              questionGroups: s.questionGroups.map(g =>
-                g.id === groupId
-                  ? { ...g, subQuestions: [...g.subQuestions, newSub] }
-                  : g
-              ),
-            }
+            ...s,
+            questionGroups: s.questionGroups.map(g =>
+              g.id === groupId ? { ...g, subQuestions: [...g.subQuestions, newSub] } : g
+            ),
+          }
           : s
       ),
     }));
-
     setTimeout(() => {
       const el = document.getElementById(`sub-question-${newSub.id}`);
-      if (el) {
-        const y = el.getBoundingClientRect().top + window.scrollY - 100;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
   }, [state.sections]);
 
@@ -91,13 +155,13 @@ const AdminPracticeCreate = () => {
       sections: prev.sections.map(s =>
         s.id === sectionId
           ? {
-              ...s,
-              questionGroups: s.questionGroups.map(g =>
-                g.id === groupId
-                  ? { ...g, subQuestions: g.subQuestions.map(sq => sq.id === subId ? { ...sq, ...updates } : sq) }
-                  : g
-              ),
-            }
+            ...s,
+            questionGroups: s.questionGroups.map(g =>
+              g.id === groupId
+                ? { ...g, subQuestions: g.subQuestions.map(sq => sq.id === subId ? { ...sq, ...updates } : sq) }
+                : g
+            ),
+          }
           : s
       ),
     }));
@@ -109,111 +173,133 @@ const AdminPracticeCreate = () => {
       sections: prev.sections.map(s =>
         s.id === sectionId
           ? {
-              ...s,
-              questionGroups: s.questionGroups.map(g =>
-                g.id === groupId
-                  ? { ...g, subQuestions: g.subQuestions.filter(sq => sq.id !== subId) }
-                  : g
-              ),
-            }
+            ...s,
+            questionGroups: s.questionGroups.map(g =>
+              g.id === groupId
+                ? { ...g, subQuestions: g.subQuestions.filter(sq => sq.id !== subId) }
+                : g
+            ),
+          }
           : s
       ),
     }));
   }, []);
 
-  // Save as practice question (uses mock_tests with exam_type PRACTICE)
   const handleSave = async (publish: boolean) => {
-    if (!state.title.trim()) { toast.error('Enter a question title'); return; }
+    if (!state.title.trim()) { toast.error('Enter a title'); return; }
     if (!state.subject) { toast.error('Select a subject'); return; }
     if (!state.topic.trim()) { toast.error('Enter a topic'); return; }
     if (!group) { toast.error('Add question content'); return; }
-
     if (!group.stem.trim() && group.subQuestions.length === 0) {
-      toast.error('Add question text or sub-questions');
-      return;
+      toast.error('Add question text or sub-questions'); return;
     }
-
     for (const sq of group.subQuestions) {
-      if (!sq.text.trim()) {
-        toast.error(`Sub-question (${sq.label}) is missing text`);
-        return;
-      }
+      if (!sq.text.trim()) { toast.error(`Sub-question (${sq.label}) is missing text`); return; }
     }
 
     setLoading(true);
     try {
-      // 1. Create mock_test with exam_type PRACTICE
-      const { data: mockTest, error: testError } = await supabase
-        .from('mock_tests')
-        .insert({
-          title: state.title,
-          subject: state.subject as TestSubject,
-          topic: state.topic,
-          is_published: publish,
-          exam_type: 'PRACTICE' as any,
-          time_limit_minutes: 0,
-          total_questions: 1,
-        })
-        .select()
-        .single();
-      if (testError) throw testError;
+      if (isEditing) {
+        // Update existing practice set
+        const { error: updateErr } = await supabase
+          .from('practice_sets')
+          .update({
+            title: state.title,
+            subject: state.subject,
+            topic: state.topic,
+            difficulty,
+            is_published: publish,
+          })
+          .eq('id', editId);
+        if (updateErr) throw updateErr;
 
-      // 2. Create single section
-      const { data: dbSection, error: sectionError } = await supabase
-        .from('mock_test_sections')
-        .insert({
-          mock_test_id: mockTest.id,
-          title: section.title,
-          section_order: 0,
-        })
-        .select()
-        .single();
-      if (sectionError) throw sectionError;
+        // Get existing question
+        const { data: existingQs } = await supabase
+          .from('practice_questions')
+          .select('id')
+          .eq('practice_set_id', editId!);
 
-      // 3. Create the question
-      const hasSubs = group.subQuestions.length > 0;
-      const { data: dbQuestion, error: qError } = await supabase
-        .from('mock_questions')
-        .insert({
-          mock_test_id: mockTest.id,
-          section_id: dbSection.id,
-          question_number: 1,
-          question_text: group.stem,
-          question_image_url: group.stemImageUrl || null,
-          has_sub_questions: hasSubs,
-          marks: hasSubs ? group.subQuestions.reduce((s, sq) => s + sq.marks, 0) : group.marks,
-          answer_key: hasSubs ? null : (group.answerKey || null),
-          word_limit: group.wordLimit ? parseInt(group.wordLimit) : null,
-          difficulty: group.difficulty as any,
-          category: group.category || null,
-          command_term: group.commandTerm || null,
-          answer_block_type: hasSubs ? null : group.answerBlockType,
-          answer_block_config: hasSubs ? {} : { ...(group.answerBlockConfig || {}), answerKeyEquations: group.answerKeyEquations || [] } as any,
-          diagram_description: group.diagramDescription || null,
-        })
-        .select()
-        .single();
-      if (qError) throw qError;
+        const mainQId = existingQs?.[0]?.id;
 
-      // 4. Create sub-questions
-      if (hasSubs) {
-        const subInserts = group.subQuestions.map(sq => ({
-          question_id: dbQuestion.id,
-          sub_question_label: sq.label,
-          sub_question_text: sq.text,
-          sub_question_image_url: sq.imageUrl || null,
-          marks: sq.marks,
-          answer_key: sq.answerKey || null,
-          word_limit: sq.wordLimit ? parseInt(sq.wordLimit) : null,
-          command_term: sq.commandTerm || null,
-          answer_block_type: sq.answerBlockType,
-          answer_block_config: { ...(sq.answerBlockConfig || {}), answerKeyEquations: sq.answerKeyEquations || [] } as any,
-        }));
-        const { error: sqError } = await supabase.from('mock_sub_questions').insert(subInserts);
-        if (sqError) throw sqError;
+        if (mainQId) {
+          // Update main question
+          await supabase.from('practice_questions').update({
+            question_text: group.stem,
+            question_image_url: group.stemImageUrl || null,
+          }).eq('id', mainQId);
+
+          // Delete old sub-questions and re-insert
+          await supabase.from('practice_sub_questions').delete().eq('question_id', mainQId);
+
+          if (group.subQuestions.length > 0) {
+            const subInserts = group.subQuestions.map((sq, i) => ({
+              question_id: mainQId,
+              label: sq.label,
+              sub_question_text: sq.text,
+              sub_question_image_url: sq.imageUrl || null,
+              marks: sq.marks,
+              answer_type: sq.answerBlockType || 'text_equation',
+              answer_block_config: { ...(sq.answerBlockConfig || {}), answerKeyEquations: sq.answerKeyEquations || [] },
+              answer_key: sq.answerKey || null,
+              solution: (sq as any).solution || null,
+              command_term: sq.commandTerm || null,
+              order_index: i,
+            }));
+            const { error: sqErr } = await supabase.from('practice_sub_questions').insert(subInserts);
+            if (sqErr) throw sqErr;
+          }
+        }
+
+        toast.success(`Practice set ${publish ? 'published' : 'updated'}!`);
+      } else {
+        // Create new practice set
+        const { data: ps, error: psErr } = await supabase
+          .from('practice_sets')
+          .insert({
+            title: state.title,
+            subject: state.subject,
+            topic: state.topic,
+            difficulty,
+            is_published: publish,
+          })
+          .select()
+          .single();
+        if (psErr) throw psErr;
+
+        // Create main question
+        const { data: pq, error: pqErr } = await supabase
+          .from('practice_questions')
+          .insert({
+            practice_set_id: ps.id,
+            question_text: group.stem,
+            question_image_url: group.stemImageUrl || null,
+            order_index: 0,
+          })
+          .select()
+          .single();
+        if (pqErr) throw pqErr;
+
+        // Create sub-questions
+        if (group.subQuestions.length > 0) {
+          const subInserts = group.subQuestions.map((sq, i) => ({
+            question_id: pq.id,
+            label: sq.label,
+            sub_question_text: sq.text,
+            sub_question_image_url: sq.imageUrl || null,
+            marks: sq.marks,
+            answer_type: sq.answerBlockType || 'text_equation',
+            answer_block_config: { ...(sq.answerBlockConfig || {}), answerKeyEquations: sq.answerKeyEquations || [] },
+            answer_key: sq.answerKey || null,
+            solution: (sq as any).solution || null,
+            command_term: sq.commandTerm || null,
+            order_index: i,
+          }));
+          const { error: sqErr } = await supabase.from('practice_sub_questions').insert(subInserts);
+          if (sqErr) throw sqErr;
+        }
+
+        toast.success(`Practice set ${publish ? 'published' : 'saved as draft'}!`);
       }
-
-      toast.success(`Practice question ${publish ? 'published' : 'saved as draft'}!`);
       navigate('/admin/tests');
     } catch (error: any) {
       console.error('Save error:', error);
@@ -222,6 +308,17 @@ const AdminPracticeCreate = () => {
       setLoading(false);
     }
   };
+
+  if (loadingEdit) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <AdminSidebar activeTab="tests" onTabChange={() => {}} />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -235,16 +332,14 @@ const AdminPracticeCreate = () => {
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
               <Badge variant="secondary" className="gap-1">
-                <BookOpen className="w-3 h-3" /> Practice Mode
+                <BookOpen className="w-3 h-3" /> {isEditing ? 'Edit' : 'Create'} Practice Set
               </Badge>
-              <div>
-                <Input
-                  value={state.title}
-                  onChange={(e) => setState(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Untitled Practice Question"
-                  className="text-xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0"
-                />
-              </div>
+              <Input
+                value={state.title}
+                onChange={(e) => setState(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Untitled Practice Set"
+                className="text-xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0"
+              />
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="gap-1"><Award className="w-3 h-3" />{totalMarks} marks</Badge>
@@ -262,7 +357,7 @@ const AdminPracticeCreate = () => {
           {/* Practice info card */}
           <Card>
             <CardContent className="pt-5 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Subject *</label>
                   <Select value={state.subject} onValueChange={(v) => setState(prev => ({ ...prev, subject: v }))}>
@@ -286,25 +381,36 @@ const AdminPracticeCreate = () => {
                     placeholder="e.g., Algebra, Force & Motion"
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Difficulty</label>
+                  <Select value={difficulty} onValueChange={setDifficulty}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Single question builder - reuse SectionCard but hide section-level controls */}
+          {/* Question builder */}
           {section && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">Question Builder</h3>
               <p className="text-sm text-muted-foreground">
-                Build your practice question below. Add sub-questions (a, b, c...) for multi-part problems. 
+                Build your practice question below. Add sub-questions (a, b, c...) for multi-part problems.
                 Supports text, math, images, and all interactive answer types.
               </p>
               <SectionCard
                 section={{ ...section, title: 'Question' }}
-                allSections={[section]} // single section = can't delete
+                allSections={[section]}
                 onUpdate={() => {}}
                 onDelete={() => {}}
                 onUpdateGroup={(groupId, updates) => updateQuestionGroup(section.id, groupId, updates)}
-                onDeleteGroup={() => {}} // can't delete the only question
+                onDeleteGroup={() => {}}
                 onAddGroup={() => {}}
                 hideAddGroup
                 onUpdateSub={(groupId, subId, updates) => updateSubQuestion(section.id, groupId, subId, updates)}
