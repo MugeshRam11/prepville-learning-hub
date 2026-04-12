@@ -241,6 +241,18 @@ const PracticeQuestionView = () => {
               </Button>
               
               <div className="flex items-center gap-2">
+                {/* Study Mode Toggle */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-muted/50">
+                  <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="study-mode" className="text-sm font-medium cursor-pointer">
+                    Study Mode
+                  </Label>
+                  <Switch
+                    id="study-mode"
+                    checked={studyMode}
+                    onCheckedChange={setStudyMode}
+                  />
+                </div>
                 <MarkSchemeButton
                   hasAttempted={hasAnswer}
                   onClick={() => setShowMarkScheme(true)}
@@ -271,9 +283,35 @@ const PracticeQuestionView = () => {
                 question={question}
                 answers={answers}
                 onAnswerChange={handleAnswerChange}
-                interactiveMode={true}
+                interactiveMode={!studyMode}
               />
             </motion.div>
+
+            {/* Study Mode: Answer Key / Solution */}
+            {studyMode && question.answerKey && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4"
+              >
+                <Card className="border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <BookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-emerald-700 dark:text-emerald-300">Solution / Answer Key</span>
+                      <Badge variant="outline" className="ml-auto border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">
+                        Study Mode
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap text-foreground leading-relaxed">
+                      {question.answerKey}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
             {/* Action Buttons */}
             <div className="mt-6 flex items-center justify-center gap-4">
