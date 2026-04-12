@@ -28,10 +28,6 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
         type: zone?.inputMode === 'math' ? 'latex' : 'text',
       },
     };
-    // Debounce autosave
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onChange(newValue), 400);
-    // Immediate local update
     onChange(newValue);
   }, [config.zones, value, onChange]);
 
