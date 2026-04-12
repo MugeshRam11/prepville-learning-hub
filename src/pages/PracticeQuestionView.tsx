@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -6,395 +6,406 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, RotateCcw, CheckCircle2, XCircle, MessageSquare, Lightbulb, BookOpen, GraduationCap } from 'lucide-react';
-import Header from '@/components/Header';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import UnifiedQuestionCard from '@/components/unified-exam/UnifiedQuestionCard';
-import { EnhancedAITutor } from '@/components/EnhancedAITutor';
-import { UnifiedQuestion, UnifiedAnswer, getDefaultAnswerBlockType } from '@/types/answerBlock';
-import { detectQuestionType } from '@/lib/interactiveQuestionMapper';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  ArrowLeft, CheckCircle2, BookOpen, GraduationCap,
+  MessageSquare, Lightbulb, ChevronRight, Loader2
+} from 'lucide-react';
+import Header from '@/components/Header';
 import { ExamModeProvider } from '@/contexts/ExamModeContext';
-import MarkSchemeButton from '@/components/unified-exam/MarkSchemeButton';
-import MarkSchemeModal from '@/components/unified-exam/MarkSchemeModal';
+import { EnhancedAITutor } from '@/components/EnhancedAITutor';
+import AnswerBlock from '@/components/unified-exam/AnswerBlock';
+import { renderLatexContent } from '@/lib/renderLatex';
 import AIFeedbackButton from '@/components/unified-exam/AIFeedbackButton';
 import AIFeedbackPanel from '@/components/unified-exam/AIFeedbackPanel';
 import { AIFeedbackResponse } from '@/types/examMode';
+import { cn } from '@/lib/utils';
+
+interface SubQuestion {
+  id: string;
+  label: string;
+  marks: number;
+  answer_type: string;
+  answer_block_config: any;
+  answer_key: string | null;
+  solution: string | null;
+  command_term: string | null;
+  sub_question_text: string;
+  sub_question_image_url: string | null;
+  order_index: number;
+}
+
+interface PracticeSetData {
+  id: string;
+  title: string;
+  subject: string;
+  topic: string;
+  difficulty: string;
+  question_text: string;
+  question_image_url: string | null;
+  sub_questions: SubQuestion[];
+}
 
 const PracticeQuestionView = () => {
-  const { questionId } = useParams<{ questionId: string }>();
+  const { setId } = useParams<{ setId: string }>();
   const navigate = useNavigate();
-  
-  const [question, setQuestion] = useState<UnifiedQuestion | null>(null);
-  const [answers, setAnswers] = useState<UnifiedAnswer[]>([]);
+
+  const [data, setData] = useState<PracticeSetData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showResults, setShowResults] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
+  const [mode, setMode] = useState<'exam' | 'study'>('exam');
+  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [showTutor, setShowTutor] = useState(false);
-  const [showMarkScheme, setShowMarkScheme] = useState(false);
   const [showAIFeedback, setShowAIFeedback] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<AIFeedbackResponse | null>(null);
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
-  const [studyMode, setStudyMode] = useState(false);
 
   useEffect(() => {
-    const fetchQuestion = async () => {
-      if (!questionId) return;
-      
+    if (!setId) return;
+    const load = async () => {
       setIsLoading(true);
-      
       try {
-        // Try fetching from subject_questions first (Practice-QA)
-        const { data: subjectQ, error: subjectError } = await supabase
-          .from('subject_questions')
-          .select('*')
-          .eq('id', questionId)
+        const { data: ps, error: psErr } = await supabase
+          .from('practice_sets')
+          .select('id, title, subject, topic, difficulty')
+          .eq('id', setId)
           .single();
+        if (psErr) throw psErr;
 
-        if (subjectQ && !subjectError) {
-          const detectedType = detectQuestionType({
-            id: subjectQ.id,
-            question_text: subjectQ.question_text,
-            marks: 1,
-            question_number: 1,
-            answer_key: subjectQ.answer_key
-          });
-
-          setQuestion({
-            id: subjectQ.id,
-            questionNumber: 1,
-            questionText: subjectQ.question_text,
-            questionImageUrl: subjectQ.question_image_url,
-            marks: subjectQ.xp_reward || 10,
-            commandTerm: undefined,
-            answerKey: subjectQ.answer_key,
-            answerBlockType: getDefaultAnswerBlockType(),
-            interactiveType: detectedType,
-            subQuestions: []
-          });
-          
-          setIsLoading(false);
-          return;
-        }
-
-        // Try fetching from questions table (quick tests)
-        const { data: testQ, error: testError } = await supabase
-          .from('questions')
+        const { data: qs } = await supabase
+          .from('practice_questions')
           .select('*')
-          .eq('id', questionId)
-          .single();
+          .eq('practice_set_id', setId)
+          .order('order_index')
+          .limit(1);
 
-        if (testQ && !testError) {
-          setQuestion({
-            id: testQ.id,
-            questionNumber: 1,
-            questionText: testQ.question_text,
-            questionImageUrl: testQ.question_image_url,
-            marks: 1,
-            commandTerm: undefined,
-            answerKey: testQ.correct_answer,
-            answerBlockType: 'text_equation',
-            interactiveType: 'text_input',
-            subQuestions: []
-          });
-          
-          setIsLoading(false);
-          return;
-        }
+        const mainQ = qs?.[0];
+        if (!mainQ) { toast.error('No questions found'); navigate('/practice'); return; }
 
-        toast.error('Question not found');
-        navigate('/practice');
-      } catch (error) {
-        console.error('Error fetching question:', error);
-        toast.error('Failed to load question');
+        const { data: sqs } = await supabase
+          .from('practice_sub_questions')
+          .select('*')
+          .eq('question_id', mainQ.id)
+          .order('order_index');
+
+        const sorted = (sqs || []).sort((a: any, b: any) => {
+          const la = a.label?.toLowerCase() || '';
+          const lb = b.label?.toLowerCase() || '';
+          return la.localeCompare(lb, undefined, { numeric: true });
+        });
+
+        setData({
+          ...ps,
+          question_text: mainQ.question_text,
+          question_image_url: mainQ.question_image_url,
+          sub_questions: sorted as SubQuestion[],
+        });
+
+        if (sorted.length > 0) setSelectedSubId(sorted[0].id);
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to load practice set');
         navigate('/practice');
       } finally {
         setIsLoading(false);
       }
     };
+    load();
+  }, [setId]);
 
-    fetchQuestion();
-  }, [questionId, navigate]);
+  const selectedSub = useMemo(
+    () => data?.sub_questions.find(sq => sq.id === selectedSubId) || null,
+    [data, selectedSubId]
+  );
 
-  const handleAnswerChange = (questionId: string, value: any, subQuestionId?: string) => {
-    setAnswers(prev => {
-      const existingIndex = prev.findIndex(
-        a => a.questionId === questionId && a.subQuestionId === subQuestionId
-      );
-
-      const newAnswer: UnifiedAnswer = {
-        questionId,
-        subQuestionId,
-        answerType: getDefaultAnswerBlockType(),
-        content: value,
-        wordCount: typeof value === 'string' ? value.trim().split(/\s+/).filter(Boolean).length : 0,
-        timestamp: new Date()
-      };
-
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = newAnswer;
-        return updated;
-      }
-      return [...prev, newAnswer];
-    });
-  };
-
-  const handleSubmit = () => {
-    if (!question) return;
-    
-    // Simple check: compare answer to answer key
-    const userAnswer = answers.find(a => a.questionId === question.id)?.content;
-    const correct = question.answerKey && 
-      String(userAnswer).toLowerCase().trim() === String(question.answerKey).toLowerCase().trim();
-    
-    setIsCorrect(!!correct);
-    setShowResults(true);
-    
-    if (correct) {
-      toast.success('Correct! Well done!');
-    } else {
-      toast.info('Not quite right. Check the solution below.');
-    }
-  };
-
-  const handleRetry = () => {
-    setAnswers([]);
-    setShowResults(false);
-    setIsCorrect(false);
-    setAiFeedback(null);
-  };
+  const handleAnswerChange = useCallback((subId: string, value: any) => {
+    setAnswers(prev => ({ ...prev, [subId]: value }));
+  }, []);
 
   const handleAIFeedback = useCallback(async () => {
-    if (!question) return;
-    const userAnswer = answers.find(a => a.questionId === question.id)?.content;
-    if (!userAnswer) return;
+    if (!selectedSub) return;
+    const userAnswer = answers[selectedSub.id];
+    if (!userAnswer) { toast.info('Write an answer first'); return; }
 
     setAiFeedbackLoading(true);
     setShowAIFeedback(true);
-
     try {
-      const { data, error } = await supabase.functions.invoke('ai-feedback', {
+      const { data: fbData, error } = await supabase.functions.invoke('ai-feedback', {
         body: {
-          questionText: question.questionText,
-          studentAnswer: typeof userAnswer === 'object' && userAnswer !== null && 'text' in userAnswer
-            ? (userAnswer as any).text
-            : String(userAnswer),
-          answerKey: question.answerKey || '',
-          commandTerm: question.commandTerm || '',
-          marks: question.marks,
+          questionText: selectedSub.sub_question_text,
+          studentAnswer: typeof userAnswer === 'object' && userAnswer?.text ? userAnswer.text : String(userAnswer),
+          answerKey: selectedSub.answer_key || '',
+          commandTerm: selectedSub.command_term || '',
+          marks: selectedSub.marks,
         }
       });
-
       if (error) throw error;
-      setAiFeedback(data as AIFeedbackResponse);
+      setAiFeedback(fbData as AIFeedbackResponse);
     } catch (err) {
-      console.error('AI feedback error:', err);
+      console.error(err);
       toast.error('Failed to get AI feedback');
     } finally {
       setAiFeedbackLoading(false);
     }
-  }, [question, answers]);
-
-  const hasAnswer = question ? answers.some(a => a.questionId === question?.id) : false;
+  }, [selectedSub, answers]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center p-8 bg-white dark:bg-card rounded-2xl shadow-xl border"
-          >
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Loading Question...</h2>
-          </motion.div>
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-green-600" />
         </main>
       </div>
     );
   }
 
-  if (!question) {
-    return null;
-  }
+  if (!data) return null;
 
   return (
-    <ExamModeProvider initialMode="study">
+    <ExamModeProvider initialMode={mode === 'study' ? 'study' : 'examination'}>
       <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        
-        <main className="flex-1 py-6">
-          <div className="container max-w-4xl">
-            {/* Back Button and Header */}
-            <div className="flex items-center justify-between mb-6">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/practice')}
-                className="gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Practice
+        {/* Header Bar */}
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b px-4 py-2">
+          <div className="flex items-center justify-between max-w-[1600px] mx-auto">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/practice')}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-              
-              <div className="flex items-center gap-2">
-                {/* Study Mode Toggle */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-muted/50">
-                  <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="study-mode" className="text-sm font-medium cursor-pointer">
-                    Study Mode
-                  </Label>
-                  <Switch
-                    id="study-mode"
-                    checked={studyMode}
-                    onCheckedChange={setStudyMode}
-                  />
-                </div>
-                <MarkSchemeButton
-                  hasAttempted={hasAnswer}
-                  onClick={() => setShowMarkScheme(true)}
-                />
-                <AIFeedbackButton
-                  questionId={question.id}
-                  hasAnswer={hasAnswer}
-                  isLoading={aiFeedbackLoading}
-                  onClick={handleAIFeedback}
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => setShowTutor(true)}
-                  className="gap-2"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Ask Tutor
-                </Button>
+              <div className="hidden sm:block">
+                <h1 className="text-sm font-semibold line-clamp-1">{data.title}</h1>
+                <p className="text-xs text-muted-foreground">{data.subject} · {data.topic}</p>
               </div>
             </div>
 
-            {/* Question Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <UnifiedQuestionCard
-                question={question}
-                answers={answers}
-                onAnswerChange={handleAnswerChange}
-                interactiveMode={!studyMode}
+            <div className="flex items-center gap-3">
+              {/* Mode Toggle */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-muted/50">
+                <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                <Label htmlFor="mode-toggle" className="text-sm font-medium cursor-pointer">
+                  {mode === 'study' ? 'Study' : 'Exam'}
+                </Label>
+                <Switch
+                  id="mode-toggle"
+                  checked={mode === 'study'}
+                  onCheckedChange={(checked) => setMode(checked ? 'study' : 'exam')}
+                />
+              </div>
+
+              <Badge variant="outline" className="capitalize">{data.difficulty}</Badge>
+
+              <AIFeedbackButton
+                questionId={selectedSub?.id || ''}
+                hasAnswer={!!selectedSub && !!answers[selectedSub.id]}
+                isLoading={aiFeedbackLoading}
+                onClick={handleAIFeedback}
               />
-            </motion.div>
+              <Button variant="outline" size="sm" onClick={() => setShowTutor(true)} className="gap-1">
+                <MessageSquare className="w-4 h-4" /> Tutor
+              </Button>
+            </div>
+          </div>
+        </div>
 
-            {/* Study Mode: Answer Key / Solution */}
-            {studyMode && question.answerKey && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4"
-              >
-                <Card className="border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <BookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-emerald-700 dark:text-emerald-300">Solution / Answer Key</span>
-                      <Badge variant="outline" className="ml-auto border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">
-                        Study Mode
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap text-foreground leading-relaxed">
-                      {question.answerKey}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+        {/* 3-Column Layout */}
+        <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 49px)' }}>
+          {/* LEFT: Navigator */}
+          <div className="w-56 border-r bg-muted/30 flex-shrink-0 overflow-y-auto">
+            <div className="p-3 space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">
+                Sub-Questions
+              </p>
+              {data.sub_questions.map((sq) => (
+                <button
+                  key={sq.id}
+                  onClick={() => setSelectedSubId(sq.id)}
+                  className={cn(
+                    "w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-between group",
+                    selectedSubId === sq.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold">({sq.label})</span>
+                    <span className="line-clamp-1 text-xs opacity-80">
+                      {sq.sub_question_text.slice(0, 40)}...
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className={cn(
+                      "text-[10px] px-1.5",
+                      selectedSubId === sq.id ? "border-primary-foreground/30 text-primary-foreground" : ""
+                    )}>
+                      {sq.marks}m
+                    </Badge>
+                    {answers[sq.id] && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="mt-6 flex items-center justify-center gap-4">
-              {!showResults ? (
-                <Button
-                  size="lg"
-                  onClick={handleSubmit}
-                  className="gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                  disabled={answers.length === 0}
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                  Submit Answer
-                </Button>
-              ) : (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={handleRetry}
-                  className="gap-2"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                  Try Again
-                </Button>
+          {/* CENTER: Question / Reading Panel */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-3xl mx-auto p-6 space-y-6">
+              {/* Main Question */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-primary" />
+                    Question
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    {renderLatexContent(data.question_text)}
+                  </div>
+                  {data.question_image_url && (
+                    <img
+                      src={data.question_image_url}
+                      alt="Question diagram"
+                      className="mt-4 max-w-full rounded-lg border"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Selected Sub-Question Text */}
+              {selectedSub && (
+                <motion.div key={selectedSub.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}>
+                  <Card className="border-primary/20">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <span className="font-mono text-primary">({selectedSub.label})</span>
+                        <Badge variant="outline" className="text-xs">{selectedSub.marks} marks</Badge>
+                        {selectedSub.command_term && (
+                          <Badge variant="secondary" className="text-xs">{selectedSub.command_term}</Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        {renderLatexContent(selectedSub.sub_question_text)}
+                      </div>
+                      {selectedSub.sub_question_image_url && (
+                        <img
+                          src={selectedSub.sub_question_image_url}
+                          alt={`Sub-question ${selectedSub.label}`}
+                          className="mt-3 max-w-full rounded-lg border"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
             </div>
-
-            {/* Results Section */}
-            {showResults && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6"
-              >
-                <Card className={isCorrect ? "border-green-500/50 bg-green-50 dark:bg-green-950/20" : "border-amber-500/50 bg-amber-50 dark:bg-amber-950/20"}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      {isCorrect ? (
-                        <>
-                          <CheckCircle2 className="w-6 h-6 text-green-600" />
-                          <span className="text-green-700 dark:text-green-400">Correct!</span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-6 h-6 text-amber-600" />
-                          <span className="text-amber-700 dark:text-amber-400">Not quite right</span>
-                        </>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-sm text-muted-foreground mb-1">Correct Answer:</h4>
-                        <p className="text-foreground">{question.answerKey || 'Answer not available'}</p>
-                      </div>
-                      
-                      {!isCorrect && (
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowTutor(true)}
-                          className="gap-2"
-                        >
-                          <Lightbulb className="w-4 h-4" />
-                          Get Help from Tutor
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
           </div>
-        </main>
 
-        {/* Mark Scheme Modal */}
-        <MarkSchemeModal
-          isOpen={showMarkScheme}
-          onClose={() => setShowMarkScheme(false)}
-          markScheme={null}
-          questionNumber={question.questionNumber}
-          answerKey={question.answerKey}
-          commandTerm={question.commandTerm}
-        />
+          {/* RIGHT: Answer Panel */}
+          <div className="w-[420px] border-l bg-muted/10 flex-shrink-0 overflow-y-auto">
+            <div className="p-4 space-y-4">
+              {selectedSub ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Answer ({selectedSub.label})
+                    </h3>
+                    <Badge variant="outline" className="text-xs">{selectedSub.answer_type.replace('_', ' ')}</Badge>
+                  </div>
+
+                  {/* Answer Input */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <AnswerBlock
+                        questionId={selectedSub.id}
+                        subQuestionId={selectedSub.id}
+                        answerType={selectedSub.answer_type as any}
+                        config={selectedSub.answer_block_config || {}}
+                        value={answers[selectedSub.id] || ''}
+                        onChange={(val) => handleAnswerChange(selectedSub.id, val)}
+                        disabled={false}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Study Mode: Show Answer & Solution */}
+                  {mode === 'study' && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                      {selectedSub.answer_key && (
+                        <Card className="border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                              <CheckCircle2 className="w-4 h-4" /> Answer Key
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="prose prose-sm max-w-none dark:prose-invert">
+                              {renderLatexContent(selectedSub.answer_key)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {selectedSub.solution && (
+                        <Card className="border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                              <Lightbulb className="w-4 h-4" /> Step-by-Step Solution
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
+                              {renderLatexContent(selectedSub.solution)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Navigation */}
+                  <div className="flex gap-2 pt-2">
+                    {data.sub_questions.findIndex(sq => sq.id === selectedSubId) > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          const idx = data.sub_questions.findIndex(sq => sq.id === selectedSubId);
+                          setSelectedSubId(data.sub_questions[idx - 1].id);
+                        }}
+                      >
+                        ← Previous
+                      </Button>
+                    )}
+                    {data.sub_questions.findIndex(sq => sq.id === selectedSubId) < data.sub_questions.length - 1 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          const idx = data.sub_questions.findIndex(sq => sq.id === selectedSubId);
+                          setSelectedSubId(data.sub_questions[idx + 1].id);
+                        }}
+                      >
+                        Next →
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>Select a sub-question to begin.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* AI Feedback Panel */}
         <AIFeedbackPanel
@@ -402,24 +413,21 @@ const PracticeQuestionView = () => {
           onClose={() => setShowAIFeedback(false)}
           feedback={aiFeedback}
           isLoading={aiFeedbackLoading}
-          questionNumber={question.questionNumber}
-          onTryAgain={() => {
-            setShowAIFeedback(false);
-            setAiFeedback(null);
-          }}
+          questionNumber={selectedSub ? data.sub_questions.indexOf(selectedSub) + 1 : 1}
+          onTryAgain={() => { setShowAIFeedback(false); setAiFeedback(null); }}
         />
 
         {/* AI Tutor */}
         <EnhancedAITutor
           question={{
-            id: question.id,
-            title: `Question ${question.questionNumber}`,
-            content: question.questionText,
-            answerKey: question.answerKey || '',
-            topic: 'Practice',
-            difficulty: 'medium'
+            id: selectedSub?.id || data.id,
+            title: data.title,
+            content: selectedSub?.sub_question_text || data.question_text,
+            answerKey: selectedSub?.answer_key || '',
+            topic: data.topic,
+            difficulty: data.difficulty
           }}
-          subject="Mathematics"
+          subject={data.subject}
           isOpen={showTutor}
           onClose={() => setShowTutor(false)}
           mode="practice"

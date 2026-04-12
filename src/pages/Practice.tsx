@@ -5,451 +5,213 @@ import Footer from '@/components/Footer';
 import GlobalChatbot from '@/components/GlobalChatbot';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, BookOpen, Play } from 'lucide-react';
+import { Loader2, CheckCircle2, BookOpen, Play, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import PracticeFilters, { PracticeFiltersState } from '@/components/practice/PracticeFilters';
-import PracticeQuestionRow from '@/components/practice/PracticeQuestionRow';
-import { usePracticeQuestionStatus } from '@/hooks/usePracticeQuestionStatus';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
-interface PracticeQuestion {
+interface PracticeSetDisplay {
   id: string;
   title: string;
+  subject: string;
   topic: string;
   difficulty: string;
-  question_text: string;
-  xp_reward: number | null;
-  subject: string;
-  source?: 'subject_questions' | 'quick_test';
+  sub_question_count: number;
+  total_marks: number;
 }
 
-interface PracticeSet {
-  id: string;
-  title: string;
-  subject: string;
-  topic: string;
-  is_published: boolean;
-  total_questions: number;
-  mock_questions: { id: string; marks: number; has_sub_questions: boolean }[];
-}
+const difficultyColors: Record<string, string> = {
+  easy: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  hard: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
 
 const Practice = () => {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
-  const [practiceSets, setPracticeSets] = useState<PracticeSet[]>([]);
+  const [sets, setSets] = useState<PracticeSetDisplay[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTopic, setSelectedTopic] = useState<string>('all');
-  const [filters, setFilters] = useState<PracticeFiltersState>({
-    search: '',
-    topic: 'all',
-    difficulty: 'all',
-    questionType: 'all',
-    status: 'all'
-  });
+  const [search, setSearch] = useState('');
+  const [topicFilter, setTopicFilter] = useState('all');
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
 
-  const { getStatus, statusMap, isLoading: statusLoading } = usePracticeQuestionStatus();
+  useEffect(() => {
+    fetchPracticeSets();
+  }, []);
 
   const fetchPracticeSets = async () => {
     try {
-      const { data, error } = await supabase
-        .from('mock_tests')
-        .select('id, title, subject, topic, is_published, total_questions, mock_questions(id, marks, has_sub_questions)')
-        .eq('exam_type', 'PRACTICE' as any)
+      const { data: rawSets, error } = await supabase
+        .from('practice_sets')
+        .select('id, title, subject, topic, difficulty')
         .eq('is_published', true)
         .eq('is_archived', false)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setPracticeSets((data || []) as any);
+
+      const enriched: PracticeSetDisplay[] = await Promise.all(
+        (rawSets || []).map(async (ps: any) => {
+          const { data: qs } = await supabase
+            .from('practice_questions')
+            .select('id')
+            .eq('practice_set_id', ps.id);
+          const qIds = (qs || []).map((q: any) => q.id);
+          let subCount = 0;
+          let totalMarks = 0;
+          if (qIds.length > 0) {
+            const { data: sqs } = await supabase
+              .from('practice_sub_questions')
+              .select('id, marks')
+              .in('question_id', qIds);
+            subCount = sqs?.length || 0;
+            totalMarks = (sqs || []).reduce((s: number, sq: any) => s + (sq.marks || 0), 0);
+          }
+          return { ...ps, sub_question_count: subCount, total_marks: totalMarks };
+        })
+      );
+
+      setSets(enriched);
     } catch (err) {
-      console.error('Error fetching practice sets:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchPracticeQuestions();
-    fetchPracticeSets();
-
-    // Real-time subscription for practice questions (subject_questions table)
-    const subjectQuestionsChannel = supabase.channel('practice_subject_questions_sync')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'subject_questions'
-      }, () => {
-        console.log('[Practice] subject_questions changed, refetching...');
-        fetchPracticeQuestions();
-      })
-      .subscribe();
-
-    // Also listen to tests table for admin quick_test changes
-    const testsChannel = supabase.channel('practice_tests_sync')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'tests'
-      }, () => {
-        console.log('[Practice] tests table changed, refetching...');
-        fetchPracticeQuestions();
-      })
-      .subscribe();
-
-    // Listen to questions table as well (questions linked to tests)
-    const questionsChannel = supabase.channel('practice_questions_table_sync')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'questions'
-      }, () => {
-        console.log('[Practice] questions table changed, refetching...');
-        fetchPracticeQuestions();
-      })
-      .subscribe();
-
-    // Listen to test_assignments for solved status sync
-    const assignmentsChannel = supabase.channel('practice_assignments_sync')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'test_assignments'
-      }, () => {
-        console.log('[Practice] test_assignments changed, updating status...');
-        fetchPracticeQuestions();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subjectQuestionsChannel);
-      supabase.removeChannel(testsChannel);
-      supabase.removeChannel(questionsChannel);
-      supabase.removeChannel(assignmentsChannel);
-    };
-  }, []);
-
-  const fetchPracticeQuestions = async () => {
-    try {
-      // Fetch questions from subject_questions table
-      const { data: subjectQuestionsData, error: sqError } = await supabase
-        .from('subject_questions')
-        .select('id, title, topic, difficulty, question_text, xp_reward, subject')
-        .eq('is_published', true)
-        .order('topic')
-        .order('difficulty');
-
-      if (sqError) throw sqError;
-
-      // Also fetch questions from tests/questions tables (admin-created quick tests)
-      const { data: quickTestQuestions, error: qtError } = await supabase
-        .from('questions')
-        .select(`
-          id, 
-          question_text, 
-          difficulty_level,
-          tests!inner (
-            id,
-            title,
-            test_type,
-            is_active
-          )
-        `)
-        .eq('tests.test_type', 'quick_test')
-        .eq('tests.is_active', true);
-
-      if (qtError) {
-        console.error('Error fetching quick test questions:', qtError);
-      }
-
-      // Map subject_questions to common format
-      const sqMapped = (subjectQuestionsData || []).map(q => ({
-        id: q.id,
-        title: q.title,
-        topic: q.topic,
-        difficulty: q.difficulty,
-        question_text: q.question_text,
-        xp_reward: q.xp_reward,
-        subject: q.subject,
-        source: 'subject_questions' as const
-      }));
-
-      // Map quick test questions to common format
-      const qtMapped = (quickTestQuestions || []).map(q => ({
-        id: q.id,
-        title: q.tests?.title || 'Practice Question',
-        topic: 'Practice-QA',
-        difficulty: q.difficulty_level || 'medium',
-        question_text: q.question_text,
-        xp_reward: 10,
-        subject: 'quick_test',
-        source: 'quick_test' as const
-      }));
-
-      // Combine both sources, avoiding duplicates by id
-      const existingIds = new Set(sqMapped.map(q => q.id));
-      const combined = [
-        ...sqMapped,
-        ...qtMapped.filter(q => !existingIds.has(q.id))
-      ];
-
-      setQuestions(combined);
-    } catch (error) {
-      console.error('Error fetching practice questions:', error);
-      toast.error('Failed to load practice questions');
+      console.error('Error:', err);
+      toast.error('Failed to load practice sets');
     } finally {
       setLoading(false);
     }
   };
 
-  // Extract unique topics for pills
-  const uniqueTopics = useMemo(() => {
-    return [...new Set(questions.map(q => q.topic))].sort();
-  }, [questions]);
+  const topics = useMemo(() => [...new Set(sets.map(s => s.topic))].sort(), [sets]);
 
-  // Extract unique question types (simplified from difficulty for now)
-  const questionTypes = useMemo(() => {
-    return ['MCQ', 'Text', 'Math', 'Graph'];
-  }, []);
-
-  // Apply filters
-  const filteredQuestions = useMemo(() => {
-    return questions.filter(q => {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const matchesTitle = q.title.toLowerCase().includes(searchLower);
-        const matchesText = q.question_text?.toLowerCase().includes(searchLower);
-        if (!matchesTitle && !matchesText) return false;
-      }
-
-      // Topic filter (from pills or dropdown)
-      const activeTopic = selectedTopic !== 'all' ? selectedTopic : filters.topic;
-      if (activeTopic !== 'all' && q.topic !== activeTopic) return false;
-
-      // Difficulty filter
-      if (filters.difficulty !== 'all' && q.difficulty !== filters.difficulty) return false;
-
-      // Status filter
-      if (filters.status !== 'all') {
-        const status = getStatus(q.id);
-        if (status !== filters.status) return false;
-      }
-
+  const filtered = useMemo(() => {
+    return sets.filter(s => {
+      if (search && !s.title.toLowerCase().includes(search.toLowerCase()) && !s.topic.toLowerCase().includes(search.toLowerCase())) return false;
+      if (topicFilter !== 'all' && s.topic !== topicFilter) return false;
+      if (difficultyFilter !== 'all' && s.difficulty !== difficultyFilter) return false;
       return true;
     });
-  }, [questions, filters, selectedTopic, getStatus]);
-
-  // Count solved questions
-  const solvedCount = useMemo(() => {
-    return questions.filter(q => getStatus(q.id) === 'solved').length;
-  }, [questions, getStatus, statusMap]);
-
-  const handleTopicPillClick = (topic: string) => {
-    setSelectedTopic(topic);
-    if (topic !== 'all') {
-      setFilters(prev => ({ ...prev, topic: 'all' }));
-    }
-  };
-
-  const getDifficultyLevel = (difficulty: string): 'easy' | 'medium' | 'hard' => {
-    const lower = difficulty?.toLowerCase();
-    if (lower === 'easy') return 'easy';
-    if (lower === 'hard') return 'hard';
-    return 'medium';
-  };
+  }, [sets, search, topicFilter, difficultyFilter]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 bg-gradient-to-br from-background via-background to-green-500/5">
-        {/* Hero Section */}
+        {/* Hero */}
         <section className="py-8 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-b border-border">
           <div className="container">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                   Practice & Learn
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Master concepts at your own pace. No timer, no pressure.
+                  Master concepts at your own pace. Toggle between Study and Exam modes.
                 </p>
               </div>
-
-              {/* Solved Counter */}
               <div className="flex items-center gap-3 bg-white dark:bg-card px-4 py-3 rounded-xl shadow-sm border">
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <BookOpen className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-foreground">
-                    {solvedCount}/{questions.length}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Problems Solved</div>
+                  <div className="text-2xl font-bold text-foreground">{sets.length}</div>
+                  <div className="text-xs text-muted-foreground">Practice Sets</div>
                 </div>
               </div>
             </motion.div>
           </div>
         </section>
 
-        {/* Topic Pills */}
+        {/* Filters */}
         <section className="py-4 border-b border-border bg-background">
-          <div className="container">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-              <Button
-                variant={selectedTopic === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleTopicPillClick('all')}
-                className={cn(
-                  "rounded-full whitespace-nowrap",
-                  selectedTopic === 'all' && "bg-green-600 hover:bg-green-700"
-                )}
-              >
-                <BookOpen className="w-4 h-4 mr-1" />
-                All Topics
-              </Button>
-              {uniqueTopics.map(topic => (
-                <Button
-                  key={topic}
-                  variant={selectedTopic === topic ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleTopicPillClick(topic)}
-                  className={cn(
-                    "rounded-full whitespace-nowrap",
-                    selectedTopic === topic && "bg-green-600 hover:bg-green-700"
-                  )}
-                >
-                  {topic}
-                </Button>
-              ))}
-            </div>
+          <div className="container flex flex-wrap gap-3 items-center">
+            <Input
+              placeholder="Search by title or topic..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="max-w-xs"
+            />
+            <Select value={topicFilter} onValueChange={setTopicFilter}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="All Topics" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Topics</SelectItem>
+                {topics.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="Difficulty" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="easy">Easy</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="hard">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground ml-auto">
+              {filtered.length} of {sets.length} sets
+            </span>
           </div>
         </section>
 
-        {/* Practice Sets (New Format) */}
-        {practiceSets.length > 0 && (
-          <section className="py-4">
-            <div className="container space-y-3">
-              <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
-                <BookOpen className="w-5 h-5 text-primary" />
-                Practice Sets
-              </h2>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {practiceSets.map((ps) => (
-                  <Card key={ps.id} className="hover:shadow-md transition-shadow cursor-pointer group"
-                    onClick={() => navigate(`/mock-exams/unified/${ps.id}`)}>
-                    <CardContent className="py-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <p className="font-medium text-foreground group-hover:text-primary transition-colors">
-                            {ps.title || 'Untitled'}
-                          </p>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="text-xs">{ps.subject}</Badge>
-                            <Badge variant="outline" className="text-xs">{ps.topic}</Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {ps.mock_questions?.reduce((s, q) => s + q.marks, 0) || 0} marks
-                            </span>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" className="shrink-0 gap-1">
-                          <Play className="w-4 h-4" /> Start
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Filters and Question List */}
+        {/* Practice Sets Grid */}
         <section className="py-6">
-          <div className="container space-y-4">
-            {/* Filters */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <PracticeFilters
-                filters={filters}
-                onFilterChange={setFilters}
-                topics={uniqueTopics}
-                questionTypes={questionTypes}
-              />
-            </motion.div>
-
-            {/* Results Count */}
-            <div className="flex items-center justify-between px-1">
-              <span className="text-sm text-muted-foreground">
-                Showing {filteredQuestions.length} of {questions.length} questions
-              </span>
-            </div>
-
-            {/* Question Table */}
-            {loading || statusLoading ? (
-              <div className="flex items-center justify-center py-12">
+          <div className="container">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
                 <Loader2 className="w-8 h-8 animate-spin text-green-600" />
-                <span className="ml-2 text-muted-foreground">Loading questions...</span>
+                <span className="ml-2 text-muted-foreground">Loading practice sets...</span>
               </div>
-            ) : filteredQuestions.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12 space-y-4"
-              >
+            ) : filtered.length === 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 space-y-4">
                 <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
                   <BookOpen className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground text-lg">No questions found.</p>
+                <p className="text-muted-foreground text-lg">No practice sets found.</p>
                 <p className="text-sm text-muted-foreground">
-                  {questions.length > 0 
-                    ? 'Try adjusting your filters.' 
-                    : 'Practice questions will appear here once added by administrators.'}
+                  {sets.length > 0 ? 'Try adjusting your filters.' : 'Practice sets will appear here once added by administrators.'}
                 </p>
               </motion.div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="rounded-lg border bg-card overflow-hidden"
-              >
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-16">#</TableHead>
-                      <TableHead>Question</TableHead>
-                      <TableHead className="hidden md:table-cell">Topic</TableHead>
-                      <TableHead className="hidden sm:table-cell">Difficulty</TableHead>
-                      <TableHead className="hidden lg:table-cell">Type</TableHead>
-                      <TableHead className="hidden lg:table-cell w-20 text-center">XP</TableHead>
-                      <TableHead className="w-28">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredQuestions.map((question, index) => (
-                      <PracticeQuestionRow
-                        key={question.id}
-                        id={question.id}
-                        number={index + 1}
-                        title={question.title}
-                        topic={question.topic}
-                        difficulty={getDifficultyLevel(question.difficulty)}
-                        questionType={question.subject || 'Text'}
-                        status={getStatus(question.id)}
-                        marks={question.xp_reward || undefined}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
-              </motion.div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((ps, i) => (
+                  <motion.div key={ps.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                    <Card
+                      className="hover:shadow-lg transition-all duration-200 cursor-pointer group border-border"
+                      onClick={() => navigate(`/practice/set/${ps.id}`)}
+                    >
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <Badge variant="outline" className="text-xs capitalize">{ps.subject.replace('_', ' ')}</Badge>
+                          <Badge className={cn("text-xs capitalize", difficultyColors[ps.difficulty] || difficultyColors.medium)}>
+                            {ps.difficulty}
+                          </Badge>
+                        </div>
+
+                        <h3 className="text-lg font-semibold text-foreground mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+                          {ps.title || 'Untitled'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">{ps.topic}</p>
+
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4 pt-3 border-t border-border">
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            {ps.sub_question_count} parts
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Award className="w-3.5 h-3.5" />
+                            {ps.total_marks} marks
+                          </span>
+                        </div>
+
+                        <Button variant="outline" size="sm" className="w-full gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          <Play className="w-4 h-4" /> Start Practice
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
             )}
           </div>
         </section>

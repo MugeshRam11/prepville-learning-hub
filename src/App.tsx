@@ -124,6 +124,11 @@ const App = () => (
             </ProtectedRoute>
           } />
           {/* /practice/exam removed - practice is now a direct question bank */}
+          <Route path="/practice/set/:setId" element={
+            <ProtectedRoute requiresSubscription>
+              <PracticeQuestionView />
+            </ProtectedRoute>
+          } />
           <Route path="/practice/question/:questionId" element={
             <ProtectedRoute requiresSubscription>
               <PracticeQuestionView />
@@ -250,6 +255,11 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="/admin/practice/create" element={
+            <ProtectedRoute>
+              <AdminPracticeCreate />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/practice/edit/:id" element={
             <ProtectedRoute>
               <AdminPracticeCreate />
             </ProtectedRoute>
