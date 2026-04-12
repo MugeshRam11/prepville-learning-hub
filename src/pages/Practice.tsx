@@ -330,6 +330,44 @@ const Practice = () => {
           </div>
         </section>
 
+        {/* Practice Sets (New Format) */}
+        {practiceSets.length > 0 && (
+          <section className="py-4">
+            <div className="container space-y-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Practice Sets
+              </h2>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {practiceSets.map((ps) => (
+                  <Card key={ps.id} className="hover:shadow-md transition-shadow cursor-pointer group"
+                    onClick={() => navigate(`/mock-exams/unified/${ps.id}`)}>
+                    <CardContent className="py-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                            {ps.title || 'Untitled'}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs">{ps.subject}</Badge>
+                            <Badge variant="outline" className="text-xs">{ps.topic}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {ps.mock_questions?.reduce((s, q) => s + q.marks, 0) || 0} marks
+                            </span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="shrink-0 gap-1">
+                          <Play className="w-4 h-4" /> Start
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Filters and Question List */}
         <section className="py-6">
           <div className="container space-y-4">
