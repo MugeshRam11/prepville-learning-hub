@@ -61,13 +61,17 @@ Detect ALL visual elements on each page:
 8. BAR/HISTOGRAM: Vertical/horizontal bars, frequency distributions
    - diagram_type: "bar_chart"
 
-For EACH diagram, return bounding_box as percentages (0-100):
+BOUNDING BOX - MANDATORY for ALL diagrams, graphs, figures, and geometric shapes:
+You MUST always return "graph_bounding_box" for EVERY visual element detected.
+Estimate the bounding box as percentages (0-100) of the page image dimensions:
 {
   "x_min": 10,  // Left edge percentage
   "y_min": 20,  // Top edge percentage  
   "x_max": 90,  // Right edge percentage
   "y_max": 80   // Bottom edge percentage
 }
+Even if approximate, ALWAYS provide graph_bounding_box when graph_found is true.
+Never return graph_found: true without a graph_bounding_box.
 
 TABLE EXTRACTION - CRITICAL:
 For ANY table visible on the page:
@@ -320,9 +324,10 @@ INSTRUCTIONS:
 1. Read EVERY question number visible: 1a, 1b, 1c, 2, 3a, 3b, 3c, 3d, 3e...
 2. Each sub-question (a, b, c) = SEPARATE JSON entry
 3. Detect ALL diagrams: Venn, graphs, tables, geometric figures
-4. For each diagram: provide precise bounding_box percentages
+4. For EVERY diagram/graph/figure detected, you MUST provide graph_bounding_box with x_min, y_min, x_max, y_max as percentages (0-100)
 5. Extract table data as 2D arrays
 6. Identify interactive type for each question
+7. CRITICAL: If graph_found is true, graph_bounding_box is MANDATORY — estimate if needed
 
 CRITICAL: Do NOT merge sub-questions. "1a", "1b", "1c" = 3 separate entries.
 
@@ -543,8 +548,8 @@ function flattenResults(questions: any[], pageIndex: number, imageContent: strin
       parsing_verified: q.parsing_verified !== false,
       
       // Metadata
-      page: pageIndex + 1,
-      source_image: imageContent
+      page: pageIndex + 1
+      // NOTE: source_image removed to avoid response bloat — client already has page images locally
     };
   });
 }

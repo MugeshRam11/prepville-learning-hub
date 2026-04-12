@@ -301,7 +301,10 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
         command_term: page.command_term || null,
         difficulty: "medium",
         page: page.page || idx + 1,
+        // source_image comes from local sourceImages array via page index fallback
         source_image: page.source_image || null,
+        // Also store diagram description for AI generation fallback
+        diagram_description: page.graph_description || page.diagram_description || null,
         // MCQ options
         options: page.options || null,
         option_images: page.option_images || null,
