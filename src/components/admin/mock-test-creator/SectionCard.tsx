@@ -18,6 +18,7 @@ interface SectionCardProps {
   onUpdateSub: (groupId: string, subId: string, updates: Partial<CreatorSubQuestion>) => void;
   onDeleteSub: (groupId: string, subId: string) => void;
   onAddSub: (groupId: string) => void;
+  hideAddGroup?: boolean;
 }
 
 const SectionCard: React.FC<SectionCardProps> = ({
@@ -31,6 +32,7 @@ const SectionCard: React.FC<SectionCardProps> = ({
   onUpdateSub,
   onDeleteSub,
   onAddSub,
+  hideAddGroup = false,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -94,10 +96,12 @@ const SectionCard: React.FC<SectionCardProps> = ({
             />
           ))}
 
-          <Button variant="outline" onClick={onAddGroup} className="w-full border-dashed py-6 text-muted-foreground hover:text-foreground">
-            <Plus className="w-5 h-5 mr-2" />
-            Add Question Group
-          </Button>
+          {!hideAddGroup && (
+            <Button variant="outline" onClick={onAddGroup} className="w-full border-dashed py-6 text-muted-foreground hover:text-foreground">
+              <Plus className="w-5 h-5 mr-2" />
+              Add Question Group
+            </Button>
+          )}
         </div>
       )}
     </div>
