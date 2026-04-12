@@ -29,6 +29,10 @@ const PracticeQuestionView = () => {
   const [showResults, setShowResults] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showTutor, setShowTutor] = useState(false);
+  const [showMarkScheme, setShowMarkScheme] = useState(false);
+  const [showAIFeedback, setShowAIFeedback] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<AIFeedbackResponse | null>(null);
+  const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
   useEffect(() => {
     const fetchQuestion = async () => {
