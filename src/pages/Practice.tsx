@@ -40,6 +40,7 @@ interface PracticeSet {
 const Practice = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
+  const [practiceSets, setPracticeSets] = useState<PracticeSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState<string>('all');
   const [filters, setFilters] = useState<PracticeFiltersState>({
