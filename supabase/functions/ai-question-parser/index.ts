@@ -543,8 +543,8 @@ function flattenResults(questions: any[], pageIndex: number, imageContent: strin
       parsing_verified: q.parsing_verified !== false,
       
       // Metadata
-      page: pageIndex + 1,
-      source_image: imageContent
+      page: pageIndex + 1
+      // NOTE: source_image removed to avoid response bloat — client already has page images locally
     };
   });
 }
