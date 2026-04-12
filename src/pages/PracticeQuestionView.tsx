@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -12,6 +12,12 @@ import UnifiedQuestionCard from '@/components/unified-exam/UnifiedQuestionCard';
 import { EnhancedAITutor } from '@/components/EnhancedAITutor';
 import { UnifiedQuestion, UnifiedAnswer, getDefaultAnswerBlockType } from '@/types/answerBlock';
 import { detectQuestionType } from '@/lib/interactiveQuestionMapper';
+import { ExamModeProvider } from '@/contexts/ExamModeContext';
+import MarkSchemeButton from '@/components/unified-exam/MarkSchemeButton';
+import MarkSchemeModal from '@/components/unified-exam/MarkSchemeModal';
+import AIFeedbackButton from '@/components/unified-exam/AIFeedbackButton';
+import AIFeedbackPanel from '@/components/unified-exam/AIFeedbackPanel';
+import { AIFeedbackResponse } from '@/types/examMode';
 
 const PracticeQuestionView = () => {
   const { questionId } = useParams<{ questionId: string }>();
