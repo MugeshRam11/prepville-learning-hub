@@ -159,7 +159,41 @@ const PracticeQuestionView = () => {
     setAnswers([]);
     setShowResults(false);
     setIsCorrect(false);
+    setAiFeedback(null);
   };
+
+  const handleAIFeedback = useCallback(async () => {
+    if (!question) return;
+    const userAnswer = answers.find(a => a.questionId === question.id)?.content;
+    if (!userAnswer) return;
+
+    setAiFeedbackLoading(true);
+    setShowAIFeedback(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-feedback', {
+        body: {
+          questionText: question.questionText,
+          studentAnswer: typeof userAnswer === 'object' && userAnswer !== null && 'text' in userAnswer
+            ? (userAnswer as any).text
+            : String(userAnswer),
+          answerKey: question.answerKey || '',
+          commandTerm: question.commandTerm || '',
+          marks: question.marks,
+        }
+      });
+
+      if (error) throw error;
+      setAiFeedback(data as AIFeedbackResponse);
+    } catch (err) {
+      console.error('AI feedback error:', err);
+      toast.error('Failed to get AI feedback');
+    } finally {
+      setAiFeedbackLoading(false);
+    }
+  }, [question, answers]);
+
+  const hasAnswer = question ? answers.some(a => a.questionId === question?.id) : false;
 
   if (isLoading) {
     return (
@@ -186,136 +220,171 @@ const PracticeQuestionView = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      
-      <main className="flex-1 py-6">
-        <div className="container max-w-4xl">
-          {/* Back Button and Header */}
-          <div className="flex items-center justify-between mb-6">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/practice')}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Practice
-            </Button>
-            
-            <div className="flex items-center gap-2">
+    <ExamModeProvider initialMode="study">
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        
+        <main className="flex-1 py-6">
+          <div className="container max-w-4xl">
+            {/* Back Button and Header */}
+            <div className="flex items-center justify-between mb-6">
               <Button
-                variant="outline"
-                onClick={() => setShowTutor(true)}
+                variant="ghost"
+                onClick={() => navigate('/practice')}
                 className="gap-2"
               >
-                <MessageSquare className="w-4 h-4" />
-                Ask Tutor
+                <ArrowLeft className="w-4 h-4" />
+                Back to Practice
               </Button>
+              
+              <div className="flex items-center gap-2">
+                <MarkSchemeButton
+                  hasAttempted={hasAnswer}
+                  onClick={() => setShowMarkScheme(true)}
+                />
+                <AIFeedbackButton
+                  questionId={question.id}
+                  hasAnswer={hasAnswer}
+                  isLoading={aiFeedbackLoading}
+                  onClick={handleAIFeedback}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setShowTutor(true)}
+                  className="gap-2"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Ask Tutor
+                </Button>
+              </div>
             </div>
-          </div>
 
-          {/* Question Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <UnifiedQuestionCard
-              question={question}
-              answers={answers}
-              onAnswerChange={handleAnswerChange}
-              interactiveMode={true}
-            />
-          </motion.div>
-
-          {/* Action Buttons */}
-          <div className="mt-6 flex items-center justify-center gap-4">
-            {!showResults ? (
-              <Button
-                size="lg"
-                onClick={handleSubmit}
-                className="gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                disabled={answers.length === 0}
-              >
-                <CheckCircle2 className="w-5 h-5" />
-                Submit Answer
-              </Button>
-            ) : (
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={handleRetry}
-                className="gap-2"
-              >
-                <RotateCcw className="w-5 h-5" />
-                Try Again
-              </Button>
-            )}
-          </div>
-
-          {/* Results Section */}
-          {showResults && (
+            {/* Question Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-6"
             >
-              <Card className={isCorrect ? "border-green-500/50 bg-green-50 dark:bg-green-950/20" : "border-amber-500/50 bg-amber-50 dark:bg-amber-950/20"}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {isCorrect ? (
-                      <>
-                        <CheckCircle2 className="w-6 h-6 text-green-600" />
-                        <span className="text-green-700 dark:text-green-400">Correct!</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-6 h-6 text-amber-600" />
-                        <span className="text-amber-700 dark:text-amber-400">Not quite right</span>
-                      </>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-1">Correct Answer:</h4>
-                      <p className="text-foreground">{question.answerKey || 'Answer not available'}</p>
-                    </div>
-                    
-                    {!isCorrect && (
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowTutor(true)}
-                        className="gap-2"
-                      >
-                        <Lightbulb className="w-4 h-4" />
-                        Get Help from Tutor
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <UnifiedQuestionCard
+                question={question}
+                answers={answers}
+                onAnswerChange={handleAnswerChange}
+                interactiveMode={true}
+              />
             </motion.div>
-          )}
-        </div>
-      </main>
 
-      {/* AI Tutor */}
-      <EnhancedAITutor
-        question={{
-          id: question.id,
-          title: `Question ${question.questionNumber}`,
-          content: question.questionText,
-          answerKey: question.answerKey || '',
-          topic: 'Practice',
-          difficulty: 'medium'
-        }}
-        subject="Mathematics"
-        isOpen={showTutor}
-        onClose={() => setShowTutor(false)}
-        mode="practice"
-      />
-    </div>
+            {/* Action Buttons */}
+            <div className="mt-6 flex items-center justify-center gap-4">
+              {!showResults ? (
+                <Button
+                  size="lg"
+                  onClick={handleSubmit}
+                  className="gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                  disabled={answers.length === 0}
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  Submit Answer
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleRetry}
+                  className="gap-2"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  Try Again
+                </Button>
+              )}
+            </div>
+
+            {/* Results Section */}
+            {showResults && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6"
+              >
+                <Card className={isCorrect ? "border-green-500/50 bg-green-50 dark:bg-green-950/20" : "border-amber-500/50 bg-amber-50 dark:bg-amber-950/20"}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      {isCorrect ? (
+                        <>
+                          <CheckCircle2 className="w-6 h-6 text-green-600" />
+                          <span className="text-green-700 dark:text-green-400">Correct!</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-6 h-6 text-amber-600" />
+                          <span className="text-amber-700 dark:text-amber-400">Not quite right</span>
+                        </>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-1">Correct Answer:</h4>
+                        <p className="text-foreground">{question.answerKey || 'Answer not available'}</p>
+                      </div>
+                      
+                      {!isCorrect && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowTutor(true)}
+                          className="gap-2"
+                        >
+                          <Lightbulb className="w-4 h-4" />
+                          Get Help from Tutor
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </div>
+        </main>
+
+        {/* Mark Scheme Modal */}
+        <MarkSchemeModal
+          isOpen={showMarkScheme}
+          onClose={() => setShowMarkScheme(false)}
+          markScheme={null}
+          questionNumber={question.questionNumber}
+          answerKey={question.answerKey}
+          commandTerm={question.commandTerm}
+        />
+
+        {/* AI Feedback Panel */}
+        <AIFeedbackPanel
+          isOpen={showAIFeedback}
+          onClose={() => setShowAIFeedback(false)}
+          feedback={aiFeedback}
+          isLoading={aiFeedbackLoading}
+          questionNumber={question.questionNumber}
+          onTryAgain={() => {
+            setShowAIFeedback(false);
+            setAiFeedback(null);
+          }}
+        />
+
+        {/* AI Tutor */}
+        <EnhancedAITutor
+          question={{
+            id: question.id,
+            title: `Question ${question.questionNumber}`,
+            content: question.questionText,
+            answerKey: question.answerKey || '',
+            topic: 'Practice',
+            difficulty: 'medium'
+          }}
+          subject="Mathematics"
+          isOpen={showTutor}
+          onClose={() => setShowTutor(false)}
+          mode="practice"
+        />
+      </div>
+    </ExamModeProvider>
   );
 };
 
