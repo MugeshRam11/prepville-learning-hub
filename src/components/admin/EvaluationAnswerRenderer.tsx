@@ -948,10 +948,31 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
         // Object answer with text_equation type — likely misclassified, show structured
         return <FallbackJsonView data={parsed} label="Answer" />;
       }
+
+      // If the answer contains pre-rendered HTML from RichTextEditor (math-expression spans, KaTeX),
+      // render it directly as sanitized HTML to preserve the original formatting
+      const isPreRenderedHtml = text && (
+        text.includes('data-latex') || 
+        text.includes('class="katex"') || 
+        text.includes('math-expression')
+      );
+
       return (
         <div className="bg-muted/30 rounded-lg p-3">
           <p className="text-xs font-medium text-muted-foreground mb-1">📝 Student Answer</p>
-          <div className="text-sm whitespace-pre-wrap">{text ? renderLatexContent(text) : 'No answer'}</div>
+          {isPreRenderedHtml ? (
+            <div 
+              className="text-sm whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(text, { 
+                  ADD_TAGS: ['math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'mfrac', 'msup', 'msub', 'munder', 'mover', 'annotation'],
+                  ADD_ATTR: ['data-latex', 'data-math-latex', 'data-display', 'encoding', 'xmlns', 'aria-hidden']
+                }) 
+              }} 
+            />
+          ) : (
+            <div className="text-sm whitespace-pre-wrap">{text ? renderLatexContent(text) : 'No answer'}</div>
+          )}
         </div>
       );
     }
