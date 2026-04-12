@@ -165,7 +165,7 @@ const PracticeQuestionView = () => {
   if (!data) return null;
 
   return (
-    <ExamModeProvider initialMode={mode}>
+    <ExamModeProvider initialMode={mode === 'study' ? 'study' : 'examination'}>
       <div className="min-h-screen flex flex-col bg-background">
         {/* Header Bar */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b px-4 py-2">
@@ -324,9 +324,8 @@ const PracticeQuestionView = () => {
                       <AnswerBlock
                         questionId={selectedSub.id}
                         subQuestionId={selectedSub.id}
-                        answerBlockType={selectedSub.answer_type as any}
-                        answerBlockConfig={selectedSub.answer_block_config || {}}
-                        marks={selectedSub.marks}
+                        answerType={selectedSub.answer_type as any}
+                        config={selectedSub.answer_block_config || {}}
                         value={answers[selectedSub.id] || ''}
                         onChange={(val) => handleAnswerChange(selectedSub.id, val)}
                         disabled={false}
