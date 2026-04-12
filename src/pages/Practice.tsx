@@ -53,8 +53,25 @@ const Practice = () => {
 
   const { getStatus, statusMap, isLoading: statusLoading } = usePracticeQuestionStatus();
 
+  const fetchPracticeSets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mock_tests')
+        .select('id, title, subject, topic, is_published, total_questions, mock_questions(id, marks, has_sub_questions)')
+        .eq('exam_type', 'PRACTICE' as any)
+        .eq('is_published', true)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPracticeSets((data || []) as any);
+    } catch (err) {
+      console.error('Error fetching practice sets:', err);
+    }
+  };
+
   useEffect(() => {
     fetchPracticeQuestions();
+    fetchPracticeSets();
 
     // Real-time subscription for practice questions (subject_questions table)
     const subjectQuestionsChannel = supabase.channel('practice_subject_questions_sync')
