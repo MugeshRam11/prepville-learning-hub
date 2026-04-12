@@ -305,7 +305,8 @@ const AdminPracticeCreate = () => {
                 onDelete={() => {}}
                 onUpdateGroup={(groupId, updates) => updateQuestionGroup(section.id, groupId, updates)}
                 onDeleteGroup={() => {}} // can't delete the only question
-                onAddGroup={() => {}} // can't add more questions in practice mode
+                onAddGroup={() => {}}
+                hideAddGroup
                 onUpdateSub={(groupId, subId, updates) => updateSubQuestion(section.id, groupId, subId, updates)}
                 onDeleteSub={(groupId, subId) => deleteSubQuestion(section.id, groupId, subId)}
                 onAddSub={(groupId) => addSubQuestion(section.id, groupId)}
