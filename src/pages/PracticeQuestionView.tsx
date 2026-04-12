@@ -6,8 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, RotateCcw, CheckCircle2, XCircle, MessageSquare, Lightbulb } from 'lucide-react';
+import { ArrowLeft, RotateCcw, CheckCircle2, XCircle, MessageSquare, Lightbulb, BookOpen, GraduationCap } from 'lucide-react';
 import Header from '@/components/Header';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import UnifiedQuestionCard from '@/components/unified-exam/UnifiedQuestionCard';
 import { EnhancedAITutor } from '@/components/EnhancedAITutor';
 import { UnifiedQuestion, UnifiedAnswer, getDefaultAnswerBlockType } from '@/types/answerBlock';
@@ -33,6 +35,7 @@ const PracticeQuestionView = () => {
   const [showAIFeedback, setShowAIFeedback] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<AIFeedbackResponse | null>(null);
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
+  const [studyMode, setStudyMode] = useState(false);
 
   useEffect(() => {
     const fetchQuestion = async () => {
