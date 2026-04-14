@@ -62,22 +62,17 @@ const MockExamSelect = () => {
     }
   };
 
-  const SUBJECT_MAP: Record<string, string> = {
-    'Mathematics': 'mathematics',
-    'Science': 'science',
-    'Physics': 'physics',
-    'Chemistry': 'chemistry',
-    'Biology': 'biology',
-    'Language & Literature': 'language_literature',
-    'Social Studies': 'social_studies',
-  };
-
   const filteredTests = useMemo(() => {
     let filtered = mockTests;
 
-    if (selectedSubject !== 'All Subjects') {
-      const val = SUBJECT_MAP[selectedSubject];
-      if (val) filtered = filtered.filter(t => t.subject === val);
+    if (topicFilter.subject) {
+      const dbSubject = topicFilter.subject;
+      filtered = filtered.filter(t => t.subject === dbSubject);
+    }
+
+    if (topicFilter.topic) {
+      const q = topicFilter.topic.toLowerCase();
+      filtered = filtered.filter(t => t.topic.toLowerCase().includes(q));
     }
 
     if (searchTerm) {
@@ -90,7 +85,7 @@ const MockExamSelect = () => {
     }
 
     return filtered;
-  }, [mockTests, searchTerm, selectedSubject]);
+  }, [mockTests, searchTerm, topicFilter]);
 
   const handleStartTest = (testId: string) => {
     navigate(`/mock-exams/unified?testId=${testId}`);
