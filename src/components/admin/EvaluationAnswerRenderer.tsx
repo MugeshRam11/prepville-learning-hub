@@ -942,34 +942,8 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
       return <SmartMathReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'text_equation':
     default: {
-      // Extract text from structured answer objects like {text: "...", equations: []}
-      let text = '';
-      if (typeof parsed === 'object' && parsed !== null && 'text' in parsed) {
-        text = String((parsed as any).text || '');
-      } else if (typeof parsed === 'string') {
-        // Try parsing as JSON in case it's a stringified object
-        try {
-          const jsonParsed = JSON.parse(parsed);
-          if (typeof jsonParsed === 'object' && jsonParsed !== null && 'text' in jsonParsed) {
-            text = String(jsonParsed.text || '');
-          } else {
-            text = parsed;
-          }
-        } catch {
-          text = parsed;
-        }
-      } else if (typeof studentAnswer === 'string') {
-        try {
-          const jsonParsed = JSON.parse(studentAnswer);
-          if (typeof jsonParsed === 'object' && jsonParsed !== null && 'text' in jsonParsed) {
-            text = String(jsonParsed.text || '');
-          } else {
-            text = studentAnswer;
-          }
-        } catch {
-          text = studentAnswer;
-        }
-      }
+      // Extract and clean text from various answer formats
+      const text = cleanAnswerText(parsed, studentAnswer);
       if (!text && typeof parsed === 'object' && parsed !== null && !('text' in parsed)) {
         return <FallbackJsonView data={parsed} label="Answer" />;
       }

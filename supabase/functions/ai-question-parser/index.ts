@@ -153,6 +153,43 @@ const EXTRACT_QUESTIONS_TOOL = {
   }
 };
 
+// ============ MATH NORMALIZATION LAYER ============
+
+function normalizeMath(text: string): string {
+  if (!text) return text;
+
+  const unicodeToLatex: Record<string, string> = {
+    '≤': '\\leq', '≥': '\\geq', '≠': '\\neq', '≈': '\\approx',
+    '×': '\\times', '÷': '\\div', '±': '\\pm', '∓': '\\mp',
+    '√': '\\sqrt{}', '∞': '\\infty', '∴': '\\therefore', '∵': '\\because',
+    'π': '\\pi', 'θ': '\\theta', 'α': '\\alpha', 'β': '\\beta',
+    'γ': '\\gamma', 'δ': '\\delta', 'λ': '\\lambda', 'μ': '\\mu',
+    'σ': '\\sigma', 'φ': '\\phi', 'ω': '\\omega', 'ε': '\\epsilon',
+    'Σ': '\\Sigma', 'Δ': '\\Delta', 'Ω': '\\Omega', 'Π': '\\Pi',
+    '∈': '\\in', '∉': '\\notin', '⊂': '\\subset', '⊃': '\\supset',
+    '∪': '\\cup', '∩': '\\cap', '∅': '\\emptyset',
+    '∫': '\\int', '∑': '\\sum', '∏': '\\prod',
+    '→': '\\to', '←': '\\leftarrow', '↔': '\\leftrightarrow',
+    '⇒': '\\Rightarrow', '⇐': '\\Leftarrow', '⇔': '\\Leftrightarrow',
+    '²': '^{2}', '³': '^{3}', '⁴': '^{4}', '⁻': '^{-}', '⁺': '^{+}',
+    '₀': '_{0}', '₁': '_{1}', '₂': '_{2}', '₃': '_{3}',
+    '½': '\\frac{1}{2}', '⅓': '\\frac{1}{3}', '¼': '\\frac{1}{4}',
+    '¾': '\\frac{3}{4}', '⅔': '\\frac{2}{3}',
+    '°': '^{\\circ}',
+  };
+
+  let output = text;
+
+  // Replace unicode math symbols with LaTeX equivalents
+  for (const [unicode, latex] of Object.entries(unicodeToLatex)) {
+    output = output.replaceAll(unicode, latex);
+  }
+
+  // Don't re-wrap text that already has LaTeX delimiters
+  // Just ensure existing delimiters are preserved
+  return output;
+}
+
 // ============ REGEX-FIRST QUESTION GROUPING ENGINE ============
 
 function normalizeQuestionNumber(raw: string): string {
