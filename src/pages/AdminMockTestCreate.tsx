@@ -540,9 +540,6 @@ const AdminMockTestCreate = () => {
             <Button variant="outline" size="sm" onClick={() => setShowAIParser(true)}>
               <Wand2 className="w-4 h-4 mr-1" /> AI Upload
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowQuestionBank(true)}>
-              <DatabaseIcon className="w-4 h-4 mr-1" /> Question Bank
-            </Button>
           </div>
 
           {/* Sections */}
