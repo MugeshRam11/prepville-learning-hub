@@ -37,7 +37,14 @@ RULES:
 9. Detect tables and extract as 2D arrays.
 10. For MCQs, extract options as {"A":"text","B":"text","C":"text","D":"text"}.
 11. Ignore page headers, footers, page numbers, timer elements.
-12. If text is unclear, set parsing_verified to false.`;
+12. If text is unclear, set parsing_verified to false.
+
+BOUNDING BOX RULES (CRITICAL):
+- Return bounding boxes ONLY in percentage (0–100) of the page dimensions.
+- NEVER return pixel values. Values must be between 0 and 100.
+- Ensure x_min < x_max and y_min < y_max always.
+- The box must tightly wrap the diagram/graph/table with minimal padding.
+- If you cannot determine the bounding box accurately, return null instead of guessing.`;
 
 // ============ TOOL SCHEMA (Function Calling) ============
 
@@ -535,11 +542,33 @@ function mergeAcrossPages(allQuestions: GroupedQuestion[]): GroupedQuestion[] {
 
 function clampBoundingBox(box: any): any {
   if (!box) return null;
+
+  let { x_min, y_min, x_max, y_max } = box;
+
+  // Ensure numeric
+  x_min = Number(x_min) || 0;
+  y_min = Number(y_min) || 0;
+  x_max = Number(x_max) || 0;
+  y_max = Number(y_max) || 0;
+
+  // Fix swapped values
+  if (x_min > x_max) [x_min, x_max] = [x_max, x_min];
+  if (y_min > y_max) [y_min, y_max] = [y_max, y_min];
+
+  // Detect pixel-based values and convert to percentage (assuming 2048px render)
+  if (x_max > 100 || y_max > 100) {
+    const dim = 2048;
+    x_min = (x_min / dim) * 100;
+    x_max = (x_max / dim) * 100;
+    y_min = (y_min / dim) * 100;
+    y_max = (y_max / dim) * 100;
+  }
+
   return {
-    x_min: Math.max(0, Math.min(100, box.x_min || 0)),
-    y_min: Math.max(0, Math.min(100, box.y_min || 0)),
-    x_max: Math.max(0, Math.min(100, box.x_max || 100)),
-    y_max: Math.max(0, Math.min(100, box.y_max || 100)),
+    x_min: Math.max(0, Math.min(100, x_min)),
+    y_min: Math.max(0, Math.min(100, y_min)),
+    x_max: Math.max(0, Math.min(100, x_max)),
+    y_max: Math.max(0, Math.min(100, y_max)),
   };
 }
 

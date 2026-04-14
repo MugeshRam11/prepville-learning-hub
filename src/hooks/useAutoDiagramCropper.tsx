@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface BoundingBox {
-  x_min: number;
-  y_min: number;
-  x_max: number;
-  y_max: number;
-}
+import {
+  normalizeBoundingBox,
+  adjustForRotation,
+  isValidBoundingBox,
+  calculateCropCoordinates,
+  BoundingBox,
+} from '@/lib/boundingBoxUtils';
 
 interface DetectedDiagram {
   type: string;
@@ -15,6 +15,7 @@ interface DetectedDiagram {
   boundingBox: BoundingBox;
   pageNumber: number;
   questionNumber?: string | number;
+  rotation?: number;
 }
 
 export interface CroppedDiagram {
@@ -37,66 +38,69 @@ export function useAutoDiagramCropper() {
   const [progress, setProgress] = useState<CropProgress | null>(null);
   const [croppedDiagrams, setCroppedDiagrams] = useState<CroppedDiagram[]>([]);
 
-  /**
-   * Load an image from URL and return as HTMLImageElement
-   */
   const loadImage = async (imageUrl: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => resolve(img);
-      img.onerror = (err) => reject(new Error(`Failed to load image: ${imageUrl}`));
+      img.onerror = () => reject(new Error(`Failed to load image: ${imageUrl}`));
       img.src = imageUrl;
     });
   };
 
   /**
-   * Crop a region from an image using bounding box percentages
+   * Crop a region from an image using a normalized bounding box.
+   * Applies normalization, rotation adjustment, validation, and failsafe.
    */
   const cropFromImage = async (
     img: HTMLImageElement,
-    boundingBox: BoundingBox,
-    padding: number = 0.03 // 3% padding
+    rawBoundingBox: BoundingBox,
+    rotation: number = 0
   ): Promise<Blob> => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas context not available');
 
-    // Calculate crop coordinates from percentages
-    const x = (boundingBox.x_min / 100) * img.naturalWidth;
-    const y = (boundingBox.y_min / 100) * img.naturalHeight;
-    const width = ((boundingBox.x_max - boundingBox.x_min) / 100) * img.naturalWidth;
-    const height = ((boundingBox.y_max - boundingBox.y_min) / 100) * img.naturalHeight;
+    // Step 1: Normalize (fix swaps, convert pixels→%, clamp)
+    let box = normalizeBoundingBox(rawBoundingBox);
+    console.log('[AutoCrop] Original box:', rawBoundingBox, '→ Normalized:', box, 'Rotation:', rotation);
 
-    // Add padding
-    const paddedX = Math.max(0, x - width * padding);
-    const paddedY = Math.max(0, y - height * padding);
-    const paddedWidth = Math.min(img.naturalWidth - paddedX, width * (1 + padding * 2));
-    const paddedHeight = Math.min(img.naturalHeight - paddedY, height * (1 + padding * 2));
+    // Step 2: Adjust for page rotation
+    box = adjustForRotation(box, rotation);
+    console.log('[AutoCrop] After rotation adjustment:', box);
 
-    canvas.width = paddedWidth;
-    canvas.height = paddedHeight;
+    // Step 3: Validate
+    if (!isValidBoundingBox(box)) {
+      console.warn('[AutoCrop] Invalid bounding box, using center fallback');
+      box = { x_min: 20, y_min: 20, x_max: 80, y_max: 80 };
+    }
 
-    // Draw cropped region
-    ctx.drawImage(
-      img,
-      paddedX, paddedY, paddedWidth, paddedHeight,
-      0, 0, paddedWidth, paddedHeight
+    // Step 4: Calculate pixel coordinates with padding and failsafe
+    const { cropX, cropY, cropW, cropH, usedFallback } = calculateCropCoordinates(
+      box!,
+      img.naturalWidth,
+      img.naturalHeight,
+      10
     );
 
-    // Convert to blob
+    if (usedFallback) {
+      console.warn('[AutoCrop] Used center fallback for crop');
+    }
+
+    canvas.width = cropW;
+    canvas.height = cropH;
+
+    ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
     return new Promise((resolve, reject) => {
       canvas.toBlob(
-        (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
+        (blob) => (blob ? resolve(blob) : reject(new Error('Failed to create blob'))),
         'image/png',
         0.95
       );
     });
   };
 
-  /**
-   * Upload a cropped image blob to Supabase storage
-   */
   const uploadCroppedImage = async (
     blob: Blob,
     questionNumber: string | number,
@@ -111,58 +115,42 @@ export function useAutoDiagramCropper() {
 
       const { error } = await supabase.storage
         .from('question-images')
-        .upload(filename, blob, {
-          contentType: 'image/png',
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(filename, blob, { contentType: 'image/png', cacheControl: '3600', upsert: false });
 
       if (error) {
         console.error('Upload error:', error);
         return null;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('question-images')
-        .getPublicUrl(filename);
-
-      return {
-        url: urlData.publicUrl,
-        filename
-      };
+      const { data: urlData } = supabase.storage.from('question-images').getPublicUrl(filename);
+      return { url: urlData.publicUrl, filename };
     } catch (error) {
       console.error('Upload failed:', error);
       return null;
     }
   };
 
-  /**
-   * Crop a single diagram from a source image
-   */
   const cropSingleDiagram = useCallback(async (
     sourceImageUrl: string,
     diagram: DetectedDiagram
   ): Promise<CroppedDiagram | null> => {
     try {
       const img = await loadImage(sourceImageUrl);
-      const blob = await cropFromImage(img, diagram.boundingBox);
-      
+      const blob = await cropFromImage(img, diagram.boundingBox, diagram.rotation || 0);
       const result = await uploadCroppedImage(
         blob,
         diagram.questionNumber || 'unknown',
         diagram.pageNumber,
         diagram.type
       );
-
       if (!result) return null;
-
       return {
         url: result.url,
         filename: result.filename,
         type: diagram.type,
         questionNumber: diagram.questionNumber || 'unknown',
         pageNumber: diagram.pageNumber,
-        originalBoundingBox: diagram.boundingBox
+        originalBoundingBox: diagram.boundingBox,
       };
     } catch (error) {
       console.error('Failed to crop diagram:', error);
@@ -170,42 +158,31 @@ export function useAutoDiagramCropper() {
     }
   }, []);
 
-  /**
-   * Auto-crop all detected diagrams from page images
-   */
   const autoCropAllDiagrams = useCallback(async (
-    pageImages: { pageNumber: number; imageUrl: string }[],
+    pageImages: { pageNumber: number; imageUrl: string; rotation?: number }[],
     detectedDiagrams: DetectedDiagram[]
   ): Promise<CroppedDiagram[]> => {
     setIsCropping(true);
     setCroppedDiagrams([]);
-    
     const results: CroppedDiagram[] = [];
     const total = detectedDiagrams.length;
-    
     setProgress({ total, completed: 0, current: 'Starting...' });
 
     try {
-      // Group diagrams by page number
       const diagramsByPage = detectedDiagrams.reduce((acc, diagram) => {
-        if (!acc[diagram.pageNumber]) {
-          acc[diagram.pageNumber] = [];
-        }
+        if (!acc[diagram.pageNumber]) acc[diagram.pageNumber] = [];
         acc[diagram.pageNumber].push(diagram);
         return acc;
       }, {} as Record<number, DetectedDiagram[]>);
 
-      // Process each page
       for (const [pageNumStr, diagrams] of Object.entries(diagramsByPage)) {
         const pageNumber = parseInt(pageNumStr);
-        const pageImage = pageImages.find(p => p.pageNumber === pageNumber);
-        
+        const pageImage = pageImages.find((p) => p.pageNumber === pageNumber);
         if (!pageImage) {
           console.warn(`No image found for page ${pageNumber}`);
           continue;
         }
 
-        // Load the page image once
         let img: HTMLImageElement;
         try {
           img = await loadImage(pageImage.imageUrl);
@@ -214,16 +191,17 @@ export function useAutoDiagramCropper() {
           continue;
         }
 
-        // Process each diagram on this page
+        const pageRotation = pageImage.rotation || 0;
+
         for (const diagram of diagrams) {
-          setProgress(prev => ({
+          setProgress((prev) => ({
             total,
             completed: prev?.completed || 0,
-            current: `Cropping ${diagram.type} from page ${pageNumber}...`
+            current: `Cropping ${diagram.type} from page ${pageNumber}...`,
           }));
 
           try {
-            const blob = await cropFromImage(img, diagram.boundingBox);
+            const blob = await cropFromImage(img, diagram.boundingBox, diagram.rotation || pageRotation);
             const result = await uploadCroppedImage(
               blob,
               diagram.questionNumber || 'unknown',
@@ -238,28 +216,26 @@ export function useAutoDiagramCropper() {
                 type: diagram.type,
                 questionNumber: diagram.questionNumber || 'unknown',
                 pageNumber,
-                originalBoundingBox: diagram.boundingBox
+                originalBoundingBox: diagram.boundingBox,
               };
-              
               results.push(croppedDiagram);
-              setCroppedDiagrams(prev => [...prev, croppedDiagram]);
+              setCroppedDiagrams((prev) => [...prev, croppedDiagram]);
             }
           } catch (error) {
             console.error(`Failed to crop diagram on page ${pageNumber}:`, error);
           }
 
-          setProgress(prev => ({
+          setProgress((prev) => ({
             total,
             completed: (prev?.completed || 0) + 1,
-            current: `Completed ${(prev?.completed || 0) + 1} of ${total}`
+            current: `Completed ${(prev?.completed || 0) + 1} of ${total}`,
           }));
         }
       }
 
       toast.success(`Cropped ${results.length} diagrams!`, {
-        description: `Successfully extracted ${results.length} of ${total} detected diagrams`
+        description: `Successfully extracted ${results.length} of ${total} detected diagrams`,
       });
-
       return results;
     } catch (error) {
       console.error('Auto-crop failed:', error);
@@ -271,64 +247,55 @@ export function useAutoDiagramCropper() {
     }
   }, []);
 
-  /**
-   * Extract diagrams from parsed question data
-   */
-  const extractDiagramsFromParsedData = useCallback((
-    parsedQuestions: any[]
-  ): DetectedDiagram[] => {
+  const extractDiagramsFromParsedData = useCallback((parsedQuestions: any[]): DetectedDiagram[] => {
     const diagrams: DetectedDiagram[] = [];
 
     for (const question of parsedQuestions) {
-      // Check main question diagrams
       if (question.detected_diagrams && Array.isArray(question.detected_diagrams)) {
         for (const diagram of question.detected_diagrams) {
-          if (diagram.bounding_box || diagram.boundingBox) {
+          const rawBox = diagram.bounding_box || diagram.boundingBox;
+          if (rawBox) {
             diagrams.push({
               type: diagram.type || diagram.diagram_type || 'unknown',
               description: diagram.description,
-              boundingBox: diagram.bounding_box || diagram.boundingBox,
+              boundingBox: rawBox,
               pageNumber: question.page_number || 1,
-              questionNumber: question.question_number
+              questionNumber: question.question_number,
             });
           }
         }
       }
 
-      // Check single diagram field
       if (question.diagram_bounding_box) {
         diagrams.push({
           type: question.diagram_type || 'diagram',
           description: question.diagram_description,
           boundingBox: question.diagram_bounding_box,
           pageNumber: question.page_number || 1,
-          questionNumber: question.question_number
+          questionNumber: question.question_number,
         });
       }
 
-      // Check table bounding boxes
       if (question.table_bounding_box) {
         diagrams.push({
           type: 'table',
           description: question.table_type || 'data table',
           boundingBox: question.table_bounding_box,
           pageNumber: question.page_number || 1,
-          questionNumber: question.question_number
+          questionNumber: question.question_number,
         });
       }
 
-      // Check graph bounding boxes
       if (question.graph_bounding_box) {
         diagrams.push({
           type: question.graph_type || 'graph',
           description: question.graph_description,
           boundingBox: question.graph_bounding_box,
           pageNumber: question.page_number || 1,
-          questionNumber: question.question_number
+          questionNumber: question.question_number,
         });
       }
 
-      // Check sub-questions
       if (question.sub_questions && Array.isArray(question.sub_questions)) {
         for (const sub of question.sub_questions) {
           if (sub.diagram_bounding_box) {
@@ -337,7 +304,7 @@ export function useAutoDiagramCropper() {
               description: sub.diagram_description,
               boundingBox: sub.diagram_bounding_box,
               pageNumber: question.page_number || 1,
-              questionNumber: `${question.question_number}${sub.sub_label || sub.label || ''}`
+              questionNumber: `${question.question_number}${sub.sub_label || sub.label || ''}`,
             });
           }
         }
@@ -347,9 +314,6 @@ export function useAutoDiagramCropper() {
     return diagrams;
   }, []);
 
-  /**
-   * Generate a diagram using AI when source image is not available
-   */
   const generateDiagram = useCallback(async (
     description: string,
     questionText: string,
@@ -358,12 +322,7 @@ export function useAutoDiagramCropper() {
   ): Promise<CroppedDiagram | null> => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-diagram', {
-        body: {
-          prompt: description,
-          questionNumber,
-          questionText,
-          diagramType
-        }
+        body: { prompt: description, questionNumber, questionText, diagramType },
       });
 
       if (error || !data?.imageUrl) {
@@ -376,8 +335,8 @@ export function useAutoDiagramCropper() {
         filename: data.filename || `generated-q${questionNumber}.png`,
         type: diagramType || 'generated',
         questionNumber,
-        pageNumber: 0, // Generated, not from source
-        originalBoundingBox: { x_min: 0, y_min: 0, x_max: 100, y_max: 100 }
+        pageNumber: 0,
+        originalBoundingBox: { x_min: 0, y_min: 0, x_max: 100, y_max: 100 },
       };
     } catch (error) {
       console.error('Generate diagram failed:', error);
@@ -392,6 +351,6 @@ export function useAutoDiagramCropper() {
     cropSingleDiagram,
     autoCropAllDiagrams,
     extractDiagramsFromParsedData,
-    generateDiagram
+    generateDiagram,
   };
 }
