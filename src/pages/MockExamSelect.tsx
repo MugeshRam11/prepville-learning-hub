@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2 } from 'lucide-react';
 import MockTestListCard from '@/components/mock-exam/MockTestListCard';
 import { motion } from 'framer-motion';
+import TopicHierarchyFilter, { type TopicFilterState } from '@/components/TopicHierarchyFilter';
+import { SUBJECT_DB_TO_DISPLAY } from '@/data/topicTree';
 
 interface MockTest {
   id: string;
