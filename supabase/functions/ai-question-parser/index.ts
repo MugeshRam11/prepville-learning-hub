@@ -154,41 +154,105 @@ const EXTRACT_QUESTIONS_TOOL = {
 };
 
 // ============ MATH NORMALIZATION LAYER ============
+// Converts LaTeX commands to human-readable Unicode for editable text fields.
+// The editor stores Unicode; KaTeX rendering is only used at display time.
 
 function normalizeMath(text: string): string {
   if (!text) return text;
 
-  const unicodeToLatex: Record<string, string> = {
-    '≤': '\\leq', '≥': '\\geq', '≠': '\\neq', '≈': '\\approx',
-    '×': '\\times', '÷': '\\div', '±': '\\pm', '∓': '\\mp',
-    '√': '\\sqrt{}', '∞': '\\infty', '∴': '\\therefore', '∵': '\\because',
-    'π': '\\pi', 'θ': '\\theta', 'α': '\\alpha', 'β': '\\beta',
-    'γ': '\\gamma', 'δ': '\\delta', 'λ': '\\lambda', 'μ': '\\mu',
-    'σ': '\\sigma', 'φ': '\\phi', 'ω': '\\omega', 'ε': '\\epsilon',
-    'Σ': '\\Sigma', 'Δ': '\\Delta', 'Ω': '\\Omega', 'Π': '\\Pi',
-    '∈': '\\in', '∉': '\\notin', '⊂': '\\subset', '⊃': '\\supset',
-    '∪': '\\cup', '∩': '\\cap', '∅': '\\emptyset',
-    '∫': '\\int', '∑': '\\sum', '∏': '\\prod',
-    '→': '\\to', '←': '\\leftarrow', '↔': '\\leftrightarrow',
-    '⇒': '\\Rightarrow', '⇐': '\\Leftarrow', '⇔': '\\Leftrightarrow',
-    '²': '^{2}', '³': '^{3}', '⁴': '^{4}', '⁻': '^{-}', '⁺': '^{+}',
-    '₀': '_{0}', '₁': '_{1}', '₂': '_{2}', '₃': '_{3}',
-    '½': '\\frac{1}{2}', '⅓': '\\frac{1}{3}', '¼': '\\frac{1}{4}',
-    '¾': '\\frac{3}{4}', '⅔': '\\frac{2}{3}',
-    '°': '^{\\circ}',
-  };
-
   let output = text;
 
-  // Replace unicode math symbols with LaTeX equivalents
-  for (const [unicode, latex] of Object.entries(unicodeToLatex)) {
-    output = output.replaceAll(unicode, latex);
+  // 1. Strip LaTeX delimiters ($...$, $$...$$, \(...\), \[...\])
+  output = output.replace(/\$\$(.*?)\$\$/g, '$1');
+  output = output.replace(/\$(.*?)\$/g, '$1');
+  output = output.replace(/\\\((.*?)\\\)/g, '$1');
+  output = output.replace(/\\\[(.*?)\\\]/g, '$1');
+
+  // 2. LaTeX commands → Unicode
+  const latexToUnicode: [RegExp, string][] = [
+    // Functions — keep as plain text
+    [/\\ln\b/g, 'ln'],
+    [/\\log\b/g, 'log'],
+    [/\\sin\b/g, 'sin'],
+    [/\\cos\b/g, 'cos'],
+    [/\\tan\b/g, 'tan'],
+    [/\\sec\b/g, 'sec'],
+    [/\\csc\b/g, 'csc'],
+    [/\\cot\b/g, 'cot'],
+    [/\\lim\b/g, 'lim'],
+    [/\\max\b/g, 'max'],
+    [/\\min\b/g, 'min'],
+
+    // Fractions: \frac{a}{b} → a/b (simple) or (a)/(b)
+    [/\\frac\{1\}\{2\}/g, '½'],
+    [/\\frac\{1\}\{3\}/g, '⅓'],
+    [/\\frac\{1\}\{4\}/g, '¼'],
+    [/\\frac\{3\}\{4\}/g, '¾'],
+    [/\\frac\{2\}\{3\}/g, '⅔'],
+    [/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)'],
+
+    // Roots
+    [/\\sqrt\{([^}]*)\}/g, '√($1)'],
+    [/\\sqrt\b/g, '√'],
+
+    // Greek letters
+    [/\\alpha\b/g, 'α'], [/\\beta\b/g, 'β'], [/\\gamma\b/g, 'γ'],
+    [/\\delta\b/g, 'δ'], [/\\epsilon\b/g, 'ε'], [/\\theta\b/g, 'θ'],
+    [/\\lambda\b/g, 'λ'], [/\\mu\b/g, 'μ'], [/\\sigma\b/g, 'σ'],
+    [/\\phi\b/g, 'φ'], [/\\omega\b/g, 'ω'], [/\\pi\b/g, 'π'],
+    [/\\Delta\b/g, 'Δ'], [/\\Sigma\b/g, 'Σ'], [/\\Omega\b/g, 'Ω'], [/\\Pi\b/g, 'Π'],
+
+    // Operators & relations
+    [/\\times\b/g, '×'], [/\\div\b/g, '÷'], [/\\pm\b/g, '±'], [/\\mp\b/g, '∓'],
+    [/\\leq\b/g, '≤'], [/\\geq\b/g, '≥'], [/\\neq\b/g, '≠'], [/\\approx\b/g, '≈'],
+    [/\\infty\b/g, '∞'], [/\\therefore\b/g, '∴'], [/\\because\b/g, '∵'],
+
+    // Set notation
+    [/\\in\b/g, '∈'], [/\\notin\b/g, '∉'],
+    [/\\subset\b/g, '⊂'], [/\\supset\b/g, '⊃'],
+    [/\\cup\b/g, '∪'], [/\\cap\b/g, '∩'], [/\\emptyset\b/g, '∅'],
+
+    // Calculus
+    [/\\int\b/g, '∫'], [/\\sum\b/g, '∑'], [/\\prod\b/g, '∏'],
+
+    // Arrows
+    [/\\to\b/g, '→'], [/\\rightarrow\b/g, '→'], [/\\leftarrow\b/g, '←'],
+    [/\\Rightarrow\b/g, '⇒'], [/\\Leftarrow\b/g, '⇐'], [/\\Leftrightarrow\b/g, '⇔'],
+
+    // Degree
+    [/\^\{\\circ\}/g, '°'],
+
+    // Superscripts & subscripts — simple single-char cases
+    [/\^\{2\}/g, '²'], [/\^\{3\}/g, '³'], [/\^\{4\}/g, '⁴'],
+    [/\^\{-1\}/g, '⁻¹'], [/\^\{-\}/g, '⁻'], [/\^\{n\}/g, 'ⁿ'],
+
+    // Generic braces cleanup: ^{x} → ^x, _{x} → _x for short content
+    [/\^\{([^}]{1,3})\}/g, '^$1'],
+    [/_\{([^}]{1,3})\}/g, '_$1'],
+
+    // Spacing commands
+    [/\\quad\b/g, '  '], [/\\qquad\b/g, '    '],
+    [/\\,/g, ' '], [/\\;/g, ' '], [/\\:/g, ' '],
+    [/\\text\{([^}]*)\}/g, '$1'],
+    [/\\mathrm\{([^}]*)\}/g, '$1'],
+    [/\\left\b/g, ''], [/\\right\b/g, ''],
+    [/\\\\/g, '\n'],
+  ];
+
+  for (const [pattern, replacement] of latexToUnicode) {
+    output = output.replace(pattern, replacement);
   }
 
-  // Don't re-wrap text that already has LaTeX delimiters
-  // Just ensure existing delimiters are preserved
+  // 3. Clean up remaining backslash commands that weren't caught
+  // Remove stray backslashes before known words
+  output = output.replace(/\\([a-zA-Z]+)/g, '$1');
+
+  // 4. Clean up extra whitespace
+  output = output.replace(/\s{2,}/g, ' ').trim();
+
   return output;
 }
+
 
 // ============ REGEX-FIRST QUESTION GROUPING ENGINE ============
 
