@@ -302,7 +302,7 @@ function groupQuestions(flatQuestions: any[], pageIndex: number): GroupedQuestio
       results.push({
         question_number: parentNum,
         parent_question: null,
-        question_text: contextText,
+        question_text: normalizeMath(contextText),
         marks: group.children.reduce((sum, c) => sum + (c.marks || 1), 0),
         command_term: null,
         has_sub_questions: true,
@@ -333,7 +333,7 @@ function groupQuestions(flatQuestions: any[], pageIndex: number): GroupedQuestio
         results.push({
           question_number: `${parentNum}${child._subLabel}`,
           parent_question: parentNum,
-          question_text: child.question_text || '',
+          question_text: normalizeMath(child.question_text || ''),
           marks: child.marks || 1,
           command_term: child.command_term || extractCommandTerm(child.question_text || ''),
           has_sub_questions: false,
@@ -365,7 +365,7 @@ function groupQuestions(flatQuestions: any[], pageIndex: number): GroupedQuestio
       results.push({
         question_number: parentNum,
         parent_question: null,
-        question_text: q.question_text || '',
+        question_text: normalizeMath(q.question_text || ''),
         marks: q.marks || 1,
         command_term: q.command_term || extractCommandTerm(q.question_text || ''),
         has_sub_questions: false,
