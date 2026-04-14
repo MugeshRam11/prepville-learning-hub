@@ -537,9 +537,6 @@ const AdminMockTestCreate = () => {
 
           {/* Import toolbar */}
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowCSVImport(true)}>
-              <FileSpreadsheet className="w-4 h-4 mr-1" /> Import CSV
-            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowAIParser(true)}>
               <Wand2 className="w-4 h-4 mr-1" /> AI Upload
             </Button>
