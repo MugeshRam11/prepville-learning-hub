@@ -330,7 +330,7 @@ const AdminMockTestCreate = () => {
           {/* Test info card */}
           <Card>
             <CardContent className="pt-5 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Subject *</label>
                   <Select value={state.subject} onValueChange={(v) => setState(prev => ({ ...prev, subject: v }))}>
@@ -347,14 +347,6 @@ const AdminMockTestCreate = () => {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Topic *</label>
-                  <Input
-                    value={state.topic}
-                    onChange={(e) => setState(prev => ({ ...prev, topic: e.target.value }))}
-                    placeholder="e.g., Algebra, Force & Motion"
-                  />
-                </div>
-                <div>
                   <label className="text-sm font-medium mb-1 block">Duration (min)</label>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-muted-foreground" />
@@ -366,6 +358,14 @@ const AdminMockTestCreate = () => {
                     />
                   </div>
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Topic *</label>
+                <TopicSelector
+                  subject={state.subject}
+                  value={state.topic}
+                  onChange={(topic) => setState(prev => ({ ...prev, topic }))}
+                />
               </div>
             </CardContent>
           </Card>
