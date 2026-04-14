@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,8 +41,27 @@ type TestSubject = Database['public']['Enums']['test_subject'];
 const TopicSelector = ({ subject, value, onChange }: { subject: string; value: string; onChange: (v: string) => void }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [customTopics, setCustomTopics] = useState<string[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newUnit, setNewUnit] = useState('');
+  const [newTopic, setNewTopic] = useState('');
+  const [creating, setCreating] = useState(false);
+
   const displaySubject = SUBJECT_DB_TO_DISPLAY[subject] || subject;
   const units = useMemo(() => getUnits(displaySubject), [displaySubject]);
+
+  // Fetch custom topics from DB
+  useEffect(() => {
+    if (!subject) return;
+    const fetchCustom = async () => {
+      const { data } = await supabase
+        .from('custom_topics')
+        .select('topic, unit')
+        .eq('subject', subject);
+      if (data) setCustomTopics(data.map(d => d.topic));
+    };
+    fetchCustom();
+  }, [subject]);
 
   const grouped = useMemo(() => {
     const result: Record<string, string[]> = {};
@@ -50,8 +69,12 @@ const TopicSelector = ({ subject, value, onChange }: { subject: string; value: s
       const topics = getTopics(displaySubject, unit);
       if (topics.length) result[unit] = topics;
     }
+    // Merge custom topics under "Custom Topics" group
+    if (customTopics.length > 0) {
+      result['Custom Topics'] = customTopics;
+    }
     return result;
-  }, [displaySubject, units]);
+  }, [displaySubject, units, customTopics]);
 
   const filteredGrouped = useMemo(() => {
     if (!search) return grouped;
@@ -64,7 +87,34 @@ const TopicSelector = ({ subject, value, onChange }: { subject: string; value: s
     return result;
   }, [grouped, search]);
 
-  const hasTopics = Object.keys(grouped).length > 0;
+  const noResults = Object.keys(filteredGrouped).length === 0;
+
+  const handleCreateTopic = async () => {
+    if (!newTopic.trim()) return;
+    setCreating(true);
+    try {
+      const { error } = await supabase.from('custom_topics').insert({
+        subject,
+        unit: newUnit.trim() || 'Custom',
+        topic: newTopic.trim(),
+      });
+      if (error) throw error;
+      setCustomTopics(prev => [...prev, newTopic.trim()]);
+      onChange(newTopic.trim());
+      setNewTopic('');
+      setNewUnit('');
+      setShowCreateForm(false);
+      setOpen(false);
+      setSearch('');
+      toast.success(`Topic "${newTopic.trim()}" created!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create topic');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const hasTopics = Object.keys(grouped).length > 0 || subject;
 
   if (!hasTopics) {
     return (
@@ -101,8 +151,45 @@ const TopicSelector = ({ subject, value, onChange }: { subject: string; value: s
                 ))}
               </div>
             ))}
-            {Object.keys(filteredGrouped).length === 0 && (
-              <p className="px-3 py-4 text-sm text-muted-foreground text-center">No topics found</p>
+
+            {/* No results + create option */}
+            {noResults && !showCreateForm && (
+              <div className="px-3 py-4 text-center space-y-2">
+                <p className="text-sm text-muted-foreground">No topics found for "{search}"</p>
+                <Button size="sm" variant="outline" onClick={() => { setShowCreateForm(true); setNewTopic(search); }}
+                  className="gap-1">
+                  <Plus className="h-3.5 w-3.5" /> Create "{search}"
+                </Button>
+              </div>
+            )}
+
+            {/* Always show create option at bottom */}
+            {!noResults && !showCreateForm && (
+              <div className="border-t border-border mt-1 pt-1">
+                <button onClick={() => setShowCreateForm(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent text-left text-primary">
+                  <Plus className="h-3.5 w-3.5" /> Create new topic
+                </button>
+              </div>
+            )}
+
+            {/* Create form */}
+            {showCreateForm && (
+              <div className="border-t border-border mt-1 p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Create New Topic</p>
+                <Input placeholder="Unit (optional, e.g. Unit 6: Calculus)"
+                  value={newUnit} onChange={(e) => setNewUnit(e.target.value)} className="h-8 text-sm" />
+                <Input placeholder="Topic name *"
+                  value={newTopic} onChange={(e) => setNewTopic(e.target.value)} className="h-8 text-sm" />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleCreateTopic} disabled={!newTopic.trim() || creating} className="flex-1">
+                    {creating ? 'Creating...' : 'Create'}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setShowCreateForm(false); setNewTopic(''); setNewUnit(''); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </ScrollArea>
