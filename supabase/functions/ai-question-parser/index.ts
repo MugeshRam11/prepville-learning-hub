@@ -153,6 +153,43 @@ const EXTRACT_QUESTIONS_TOOL = {
   }
 };
 
+// ============ MATH NORMALIZATION LAYER ============
+
+function normalizeMath(text: string): string {
+  if (!text) return text;
+
+  const unicodeToLatex: Record<string, string> = {
+    '≤': '\\leq', '≥': '\\geq', '≠': '\\neq', '≈': '\\approx',
+    '×': '\\times', '÷': '\\div', '±': '\\pm', '∓': '\\mp',
+    '√': '\\sqrt{}', '∞': '\\infty', '∴': '\\therefore', '∵': '\\because',
+    'π': '\\pi', 'θ': '\\theta', 'α': '\\alpha', 'β': '\\beta',
+    'γ': '\\gamma', 'δ': '\\delta', 'λ': '\\lambda', 'μ': '\\mu',
+    'σ': '\\sigma', 'φ': '\\phi', 'ω': '\\omega', 'ε': '\\epsilon',
+    'Σ': '\\Sigma', 'Δ': '\\Delta', 'Ω': '\\Omega', 'Π': '\\Pi',
+    '∈': '\\in', '∉': '\\notin', '⊂': '\\subset', '⊃': '\\supset',
+    '∪': '\\cup', '∩': '\\cap', '∅': '\\emptyset',
+    '∫': '\\int', '∑': '\\sum', '∏': '\\prod',
+    '→': '\\to', '←': '\\leftarrow', '↔': '\\leftrightarrow',
+    '⇒': '\\Rightarrow', '⇐': '\\Leftarrow', '⇔': '\\Leftrightarrow',
+    '²': '^{2}', '³': '^{3}', '⁴': '^{4}', '⁻': '^{-}', '⁺': '^{+}',
+    '₀': '_{0}', '₁': '_{1}', '₂': '_{2}', '₃': '_{3}',
+    '½': '\\frac{1}{2}', '⅓': '\\frac{1}{3}', '¼': '\\frac{1}{4}',
+    '¾': '\\frac{3}{4}', '⅔': '\\frac{2}{3}',
+    '°': '^{\\circ}',
+  };
+
+  let output = text;
+
+  // Replace unicode math symbols with LaTeX equivalents
+  for (const [unicode, latex] of Object.entries(unicodeToLatex)) {
+    output = output.replaceAll(unicode, latex);
+  }
+
+  // Don't re-wrap text that already has LaTeX delimiters
+  // Just ensure existing delimiters are preserved
+  return output;
+}
+
 // ============ REGEX-FIRST QUESTION GROUPING ENGINE ============
 
 function normalizeQuestionNumber(raw: string): string {
@@ -265,7 +302,7 @@ function groupQuestions(flatQuestions: any[], pageIndex: number): GroupedQuestio
       results.push({
         question_number: parentNum,
         parent_question: null,
-        question_text: contextText,
+        question_text: normalizeMath(contextText),
         marks: group.children.reduce((sum, c) => sum + (c.marks || 1), 0),
         command_term: null,
         has_sub_questions: true,
@@ -296,7 +333,7 @@ function groupQuestions(flatQuestions: any[], pageIndex: number): GroupedQuestio
         results.push({
           question_number: `${parentNum}${child._subLabel}`,
           parent_question: parentNum,
-          question_text: child.question_text || '',
+          question_text: normalizeMath(child.question_text || ''),
           marks: child.marks || 1,
           command_term: child.command_term || extractCommandTerm(child.question_text || ''),
           has_sub_questions: false,
@@ -328,7 +365,7 @@ function groupQuestions(flatQuestions: any[], pageIndex: number): GroupedQuestio
       results.push({
         question_number: parentNum,
         parent_question: null,
-        question_text: q.question_text || '',
+        question_text: normalizeMath(q.question_text || ''),
         marks: q.marks || 1,
         command_term: q.command_term || extractCommandTerm(q.question_text || ''),
         has_sub_questions: false,

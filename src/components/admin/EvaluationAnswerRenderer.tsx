@@ -31,7 +31,35 @@ const parseAnswer = (answer: string | object): any => {
   return answer;
 };
 
-// Auto-detect answer type from data shape when answerBlockType is wrong/default
+// Clean answer text — extracts displayable string from various answer formats
+const cleanAnswerText = (parsed: any, rawAnswer: string | object): string => {
+  // Handle structured objects with .text or .value
+  if (typeof parsed === 'object' && parsed !== null) {
+    if ('text' in parsed) return String((parsed as any).text || '');
+    if ('value' in parsed) return String((parsed as any).value || '');
+  }
+
+  // Handle string answers
+  const str = typeof parsed === 'string' ? parsed : (typeof rawAnswer === 'string' ? rawAnswer : '');
+  if (!str) return '';
+
+  // Try parsing stringified JSON
+  try {
+    const jsonParsed = JSON.parse(str);
+    if (typeof jsonParsed === 'object' && jsonParsed !== null) {
+      if ('text' in jsonParsed) return String(jsonParsed.text || '');
+      if ('value' in jsonParsed) return String(jsonParsed.value || '');
+    }
+  } catch { /* not JSON */ }
+
+  // Clean bracket/quote artifacts from raw strings
+  return str
+    .replace(/^\["|"\]$/g, '')  // remove ["..."]
+    .replace(/^\[|\]$/g, '')    // remove [...]
+    .replace(/^"|"$/g, '')      // remove surrounding quotes
+    .trim();
+};
+
 const detectAnswerType = (answerBlockType: string, config: any, parsedAnswer: any): string => {
   // Trust explicit non-default types
   if (answerBlockType && answerBlockType !== 'text_equation') return answerBlockType;
@@ -942,34 +970,8 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
       return <SmartMathReview config={config} studentAnswer={parsed} mode={mode} />;
     case 'text_equation':
     default: {
-      // Extract text from structured answer objects like {text: "...", equations: []}
-      let text = '';
-      if (typeof parsed === 'object' && parsed !== null && 'text' in parsed) {
-        text = String((parsed as any).text || '');
-      } else if (typeof parsed === 'string') {
-        // Try parsing as JSON in case it's a stringified object
-        try {
-          const jsonParsed = JSON.parse(parsed);
-          if (typeof jsonParsed === 'object' && jsonParsed !== null && 'text' in jsonParsed) {
-            text = String(jsonParsed.text || '');
-          } else {
-            text = parsed;
-          }
-        } catch {
-          text = parsed;
-        }
-      } else if (typeof studentAnswer === 'string') {
-        try {
-          const jsonParsed = JSON.parse(studentAnswer);
-          if (typeof jsonParsed === 'object' && jsonParsed !== null && 'text' in jsonParsed) {
-            text = String(jsonParsed.text || '');
-          } else {
-            text = studentAnswer;
-          }
-        } catch {
-          text = studentAnswer;
-        }
-      }
+      // Extract and clean text from various answer formats
+      const text = cleanAnswerText(parsed, studentAnswer);
       if (!text && typeof parsed === 'object' && parsed !== null && !('text' in parsed)) {
         return <FallbackJsonView data={parsed} label="Answer" />;
       }
