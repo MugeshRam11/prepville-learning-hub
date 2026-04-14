@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2 } from 'lucide-react';
 import MockTestListCard from '@/components/mock-exam/MockTestListCard';
 import { motion } from 'framer-motion';
+import TopicHierarchyFilter, { type TopicFilterState } from '@/components/TopicHierarchyFilter';
+import { SUBJECT_DB_TO_DISPLAY } from '@/data/topicTree';
 
 interface MockTest {
   id: string;
@@ -25,7 +26,9 @@ const MockExamSelect = () => {
   const navigate = useNavigate();
   const [mockTests, setMockTests] = useState<MockTest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('All Subjects');
+  const [topicFilter, setTopicFilter] = useState<TopicFilterState>({
+    subject: '', unit: '', topic: '', subtopic: '', pathway: ''
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,22 +62,17 @@ const MockExamSelect = () => {
     }
   };
 
-  const SUBJECT_MAP: Record<string, string> = {
-    'Mathematics': 'mathematics',
-    'Science': 'science',
-    'Physics': 'physics',
-    'Chemistry': 'chemistry',
-    'Biology': 'biology',
-    'Language & Literature': 'language_literature',
-    'Social Studies': 'social_studies',
-  };
-
   const filteredTests = useMemo(() => {
     let filtered = mockTests;
 
-    if (selectedSubject !== 'All Subjects') {
-      const val = SUBJECT_MAP[selectedSubject];
-      if (val) filtered = filtered.filter(t => t.subject === val);
+    if (topicFilter.subject) {
+      const dbSubject = topicFilter.subject;
+      filtered = filtered.filter(t => t.subject === dbSubject);
+    }
+
+    if (topicFilter.topic) {
+      const q = topicFilter.topic.toLowerCase();
+      filtered = filtered.filter(t => t.topic.toLowerCase().includes(q));
     }
 
     if (searchTerm) {
@@ -87,7 +85,7 @@ const MockExamSelect = () => {
     }
 
     return filtered;
-  }, [mockTests, searchTerm, selectedSubject]);
+  }, [mockTests, searchTerm, topicFilter]);
 
   const handleStartTest = (testId: string) => {
     navigate(`/mock-exams/unified?testId=${testId}`);
@@ -128,8 +126,8 @@ const MockExamSelect = () => {
         <section className="py-8 bg-muted/30">
           <div className="container">
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto mb-8">
-              <div className="relative flex-1">
+            <div className="flex flex-col gap-4 max-w-4xl mx-auto mb-8">
+              <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search tests..."
@@ -138,17 +136,12 @@ const MockExamSelect = () => {
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-full md:w-64">
-                  <SelectValue placeholder="Select Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All Subjects">All Subjects</SelectItem>
-                  {Object.keys(SUBJECT_MAP).map(label => (
-                    <SelectItem key={label} value={label}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TopicHierarchyFilter
+                value={topicFilter}
+                onChange={setTopicFilter}
+                useDbKeys
+                variant="chips"
+              />
             </div>
 
             {/* Cards */}
