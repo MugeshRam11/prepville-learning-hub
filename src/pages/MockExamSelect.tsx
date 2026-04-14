@@ -126,8 +126,8 @@ const MockExamSelect = () => {
         <section className="py-8 bg-muted/30">
           <div className="container">
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto mb-8">
-              <div className="relative flex-1">
+            <div className="flex flex-col gap-4 max-w-4xl mx-auto mb-8">
+              <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search tests..."
@@ -136,17 +136,12 @@ const MockExamSelect = () => {
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-full md:w-64">
-                  <SelectValue placeholder="Select Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All Subjects">All Subjects</SelectItem>
-                  {Object.keys(SUBJECT_MAP).map(label => (
-                    <SelectItem key={label} value={label}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TopicHierarchyFilter
+                value={topicFilter}
+                onChange={setTopicFilter}
+                useDbKeys
+                variant="chips"
+              />
             </div>
 
             {/* Cards */}
