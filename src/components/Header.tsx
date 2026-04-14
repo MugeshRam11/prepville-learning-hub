@@ -33,7 +33,7 @@ const Header = () => {
   const loggedInNavItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/practice', label: 'Practice', icon: Target },
-    { href: '/assignments', label: 'Assignments', icon: ClipboardList },
+    
     { href: '/study-materials', label: 'Study Materials', icon: Library },
     { href: '/videos', label: 'Videos', icon: Play },
     { href: '/mock-exams/select', label: 'Mock Exams', icon: GraduationCap },
