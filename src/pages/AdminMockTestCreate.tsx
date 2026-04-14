@@ -12,6 +12,10 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { TOPIC_TREE, SUBJECT_DB_TO_DISPLAY, getUnits, getTopics, getSubtopics } from '@/data/topicTree';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Search as SearchIcon, Check, ChevronDown } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
 import QuestionBankSelector from '@/components/admin/QuestionBankSelector';
