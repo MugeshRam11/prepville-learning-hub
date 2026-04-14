@@ -26,7 +26,9 @@ const MockExamSelect = () => {
   const navigate = useNavigate();
   const [mockTests, setMockTests] = useState<MockTest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('All Subjects');
+  const [topicFilter, setTopicFilter] = useState<TopicFilterState>({
+    subject: '', unit: '', topic: '', subtopic: '', pathway: ''
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
