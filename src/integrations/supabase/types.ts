@@ -275,6 +275,42 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_topics: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          pathway: string
+          subject: string
+          subtopic: string
+          topic: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pathway?: string
+          subject: string
+          subtopic?: string
+          topic: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pathway?: string
+          subject?: string
+          subtopic?: string
+          topic?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_challenges: {
         Row: {
           challenge_date: string | null
