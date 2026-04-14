@@ -37,6 +37,80 @@ import type { Database } from '@/integrations/supabase/types';
 
 type TestSubject = Database['public']['Enums']['test_subject'];
 
+// ─── Searchable hierarchical topic selector for admin ────────
+const TopicSelector = ({ subject, value, onChange }: { subject: string; value: string; onChange: (v: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const displaySubject = SUBJECT_DB_TO_DISPLAY[subject] || subject;
+  const units = useMemo(() => getUnits(displaySubject), [displaySubject]);
+
+  const grouped = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const unit of units) {
+      const topics = getTopics(displaySubject, unit);
+      if (topics.length) result[unit] = topics;
+    }
+    return result;
+  }, [displaySubject, units]);
+
+  const filteredGrouped = useMemo(() => {
+    if (!search) return grouped;
+    const q = search.toLowerCase();
+    const result: Record<string, string[]> = {};
+    for (const [group, items] of Object.entries(grouped)) {
+      const matches = items.filter(i => i.toLowerCase().includes(q) || group.toLowerCase().includes(q));
+      if (matches.length) result[group] = matches;
+    }
+    return result;
+  }, [grouped, search]);
+
+  const hasTopics = Object.keys(grouped).length > 0;
+
+  if (!hasTopics) {
+    return (
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="e.g., Algebra, Force & Motion" />
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+          <span className="truncate">{value || 'Select topic...'}</span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[360px] p-0" align="start">
+        <div className="p-2 border-b border-border">
+          <div className="relative">
+            <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Search topics..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-sm" />
+          </div>
+        </div>
+        <ScrollArea className="max-h-[300px]">
+          <div className="p-1">
+            {Object.entries(filteredGrouped).map(([unit, topics]) => (
+              <div key={unit}>
+                <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover">{unit}</div>
+                {topics.map((topic) => (
+                  <button key={topic} onClick={() => { onChange(topic); setOpen(false); setSearch(''); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent text-left pl-6">
+                    <Check className={`h-3.5 w-3.5 ${value === topic ? 'opacity-100' : 'opacity-0'}`} />
+                    {topic}
+                  </button>
+                ))}
+              </div>
+            ))}
+            {Object.keys(filteredGrouped).length === 0 && (
+              <p className="px-3 py-4 text-sm text-muted-foreground text-center">No topics found</p>
+            )}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const AdminMockTestCreate = () => {
   const navigate = useNavigate();
   const [state, setState] = useState<CreatorState>(createDefaultState());
