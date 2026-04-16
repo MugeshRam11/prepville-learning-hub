@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChevronDown, X, Search, Check } from 'lucide-react';
 import {
@@ -102,7 +102,7 @@ const FilterDropdown = ({
             />
           </div>
         </div>
-        <ScrollArea className="max-h-[240px] overflow-y-auto">
+        <div className="max-h-[240px] overflow-y-auto">
           <div className="p-1">
             {/* All option */}
             <button
@@ -148,7 +148,7 @@ const FilterDropdown = ({
               <p className="px-3 py-4 text-sm text-muted-foreground text-center">No results found</p>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
