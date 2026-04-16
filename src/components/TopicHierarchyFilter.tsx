@@ -102,7 +102,7 @@ const FilterDropdown = ({
             />
           </div>
         </div>
-        <ScrollArea className="max-h-[280px]">
+        <ScrollArea className="max-h-[240px] overflow-y-auto">
           <div className="p-1">
             {/* All option */}
             <button
