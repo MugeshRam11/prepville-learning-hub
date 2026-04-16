@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -9,6 +9,7 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  MeasuringStrategy,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -16,6 +17,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
+import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { Card, CardContent } from '@/components/ui/card';
 import { GripVertical, Shuffle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,7 +54,7 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -72,8 +74,9 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
       if (!over || active.id === over.id) return;
 
       setOrderedSteps((prev) => {
-        const oldIndex = prev.findIndex((s) => s.id === active.id);
-        const newIndex = prev.findIndex((s) => s.id === over.id);
+        const oldIndex = prev.findIndex((s) => s.id === String(active.id));
+        const newIndex = prev.findIndex((s) => s.id === String(over.id));
+        if (oldIndex === -1 || newIndex === -1) return prev;
         const newOrder = arrayMove(prev, oldIndex, newIndex);
         onOrderChange?.(newOrder.map((s) => s.id));
         return newOrder;
@@ -81,6 +84,10 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
     },
     [onOrderChange]
   );
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
 
   const handleShuffle = () => {
     const shuffled = shuffleArray(orderedSteps);
@@ -129,9 +136,14 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+        modifiers={[restrictToVerticalAxis]}
+        measuring={{
+          droppable: { strategy: MeasuringStrategy.Always },
+        }}
       >
         <SortableContext items={orderedSteps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {orderedSteps.map((step, index) => (
               <SortableStepItem
                 key={step.id}
@@ -144,9 +156,9 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
           </div>
         </SortableContext>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {activeStep ? (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-card border-2 border-primary shadow-xl">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-card border-2 border-primary shadow-2xl scale-[1.02]">
               <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm bg-primary/10 text-primary">
                 ⋮
               </div>
