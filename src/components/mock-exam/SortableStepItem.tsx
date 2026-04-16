@@ -15,6 +15,7 @@ interface Step {
 
 interface SortableStepItemProps {
   step: Step;
+  dragId?: string;
   index: number;
   totalSteps: number;
   showFeedback: boolean;
@@ -44,6 +45,7 @@ const renderContent = (content: string) => {
 
 const SortableStepItem: React.FC<SortableStepItemProps> = ({
   step,
+  dragId,
   index,
   totalSteps,
   showFeedback,
@@ -55,7 +57,7 @@ const SortableStepItem: React.FC<SortableStepItemProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: step.id });
+  } = useSortable({ id: dragId ?? step.id });
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
