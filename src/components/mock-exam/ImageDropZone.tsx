@@ -222,7 +222,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                   >
                     {placedLabel ? (
                       <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                        <div className="max-w-full max-h-full rounded-md border bg-background/80 px-1 py-0.5 shadow-sm text-xs truncate overflow-hidden">
+                        <div className="w-full h-full flex items-center justify-center bg-background rounded-md shadow-sm text-xs font-semibold overflow-hidden">
                           <DraggableElementContent element={placedLabel} size="zone" />
                         </div>
                         {showFeedback && (
