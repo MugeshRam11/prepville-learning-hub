@@ -1,5 +1,4 @@
-import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, Sparkles, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,6 @@ const PUZZLE_COLORS: Record<string, { bgHex: string; darkHex: string }> = {
   purple: { bgHex: '#9333ea', darkHex: '#6b21a8' },
 };
 
-// Shared puzzle SVG path
 const PUZZLE_PATH = "M 20 5 L 130 5 L 130 22 C 130 22 140 22 140 35 C 140 48 130 48 130 48 L 130 75 L 20 75 L 20 48 C 20 48 10 48 10 35 C 10 22 20 22 20 22 Z";
 const PUZZLE_PATH_INNER = "M 23 8 L 127 8 L 127 24 C 127 24 137 24 137 35 C 137 46 127 46 127 46 L 127 72 L 23 72 L 23 46 C 23 46 13 46 13 35 C 13 24 23 24 23 24 Z";
 
@@ -55,8 +53,6 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
   const [matches, setMatches] = useState<Record<string, string>>({});
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
-  const [lastMatch, setLastMatch] = useState<{ slotId: string; itemId: string; correct?: boolean; matchText?: string } | null>(null);
-  const dragImageRef = useRef<HTMLDivElement>(null);
 
   const coloredItems = items.map((item, idx) => ({
     ...item,
@@ -73,70 +69,70 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, itemId: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, itemId: string) => {
     setDraggingItem(itemId);
-    setLastMatch(null);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', itemId);
-    // Use a small transparent image so native ghost doesn't interfere
+    // Set a minimal drag image
     const img = new Image();
     img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     e.dataTransfer.setDragImage(img, 0, 0);
-  };
+  }, []);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggingItem(null);
     setHoveredSlot(null);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent, slotId: string) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, slotId: string) => {
     e.preventDefault();
+    e.stopPropagation();
     const itemId = e.dataTransfer.getData('text/plain') || draggingItem;
     if (!itemId) return;
 
-    const newMatches = { ...matches };
-    // Remove item from any previous slot
-    Object.keys(newMatches).forEach(key => {
-      if (newMatches[key] === itemId) delete newMatches[key];
+    setMatches(prev => {
+      const newMatches = { ...prev };
+      // Remove item from any previous slot
+      Object.keys(newMatches).forEach(key => {
+        if (newMatches[key] === itemId) delete newMatches[key];
+      });
+      newMatches[slotId] = itemId;
+      onMatchesChange?.(newMatches);
+      return newMatches;
     });
-    newMatches[slotId] = itemId;
-    setMatches(newMatches);
-    onMatchesChange?.(newMatches);
-
-    const slot = slots.find(s => s.id === slotId);
-    const item = coloredItems.find(i => i.id === itemId);
-    const isCorrect = slot?.correctItemId === itemId;
-    const matchText = item && slot?.targetValue ? `${item.content} = ${slot.targetValue}` : undefined;
-    setLastMatch({ slotId, itemId, correct: isCorrect, matchText });
 
     setDraggingItem(null);
     setHoveredSlot(null);
-  };
+  }, [draggingItem, onMatchesChange]);
 
-  const handleDragOver = (e: React.DragEvent, slotId: string) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>, slotId: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setHoveredSlot(slotId);
-  };
+  }, []);
 
-  const handleRemoveMatch = (slotId: string) => {
+  const handleDragLeave = useCallback(() => {
+    setHoveredSlot(null);
+  }, []);
+
+  const handleRemoveMatch = useCallback((slotId: string) => {
     if (showFeedback) return;
-    const newMatches = { ...matches };
-    delete newMatches[slotId];
-    setMatches(newMatches);
-    onMatchesChange?.(newMatches);
-    setLastMatch(null);
-  };
+    setMatches(prev => {
+      const newMatches = { ...prev };
+      delete newMatches[slotId];
+      onMatchesChange?.(newMatches);
+      return newMatches;
+    });
+  }, [showFeedback, onMatchesChange]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setMatches({});
     onMatchesChange?.({});
-    setLastMatch(null);
-  };
+  }, [onMatchesChange]);
 
   const getUnmatchedItems = () => {
-    const matchedItemIds = Object.values(matches);
-    return coloredItems.filter(item => !matchedItemIds.includes(item.id));
+    const matchedItemIds = new Set(Object.values(matches));
+    return coloredItems.filter(item => !matchedItemIds.has(item.id));
   };
 
   const getMatchedItem = (slotId: string) => {
@@ -198,7 +194,7 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
   return (
     <div className="space-y-5 py-3">
       {/* Global SVG defs */}
-      <svg className="absolute w-0 h-0">
+      <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
           <linearGradient id="shine" x1="0%" y1="0%" x2="50%" y2="50%">
             <stop offset="0%" stopColor="white" stopOpacity="0.5" />
@@ -223,18 +219,17 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
       {/* Draggable Pool */}
       <div className="bg-gradient-to-br from-muted/60 to-muted/30 border-2 border-border rounded-xl p-4 shadow-inner">
         <div className="flex flex-wrap gap-4 min-h-[80px] items-center justify-center">
-          <AnimatePresence mode="popLayout">
-            {unmatchedItems.map((item) => (
-              <motion.div
+          {unmatchedItems.length > 0 ? (
+            unmatchedItems.map((item) => (
+              <div
                 key={item.id}
-                layout
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: draggingItem === item.id ? 0.4 : 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
                 draggable
-                onDragStart={(e: any) => handleDragStart(e, item.id)}
+                onDragStart={(e) => handleDragStart(e, item.id)}
                 onDragEnd={handleDragEnd}
-                className="cursor-grab active:cursor-grabbing select-none"
+                className={cn(
+                  "cursor-grab active:cursor-grabbing select-none transition-opacity",
+                  draggingItem === item.id && "opacity-40"
+                )}
                 style={{ touchAction: 'none' }}
               >
                 <PuzzlePieceSVG
@@ -242,37 +237,32 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
                   content={item.content}
                   isLatex={item.isLatex}
                 />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {unmatchedItems.length === 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold py-3">
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold py-3">
               <Sparkles className="w-5 h-5" />
               <span>All pieces placed!</span>
               <Sparkles className="w-5 h-5" />
-            </motion.div>
+            </div>
           )}
         </div>
       </div>
 
       {/* Drop Slots Grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {slots.map((slot, idx) => {
+        {slots.map((slot) => {
           const matchedItem = getMatchedItem(slot.id);
           const isCorrect = showFeedback && matchedItem && isCorrectMatch(slot.id);
           const isIncorrect = showFeedback && matchedItem && !isCorrectMatch(slot.id);
           const isHovered = hoveredSlot === slot.id && !!draggingItem;
 
           return (
-            <motion.div
+            <div
               key={slot.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.04 }}
-              onDragOver={(e: any) => handleDragOver(e, slot.id)}
-              onDragLeave={() => setHoveredSlot(null)}
-              onDrop={(e: any) => handleDrop(e, slot.id)}
+              onDragOver={(e) => handleDragOver(e, slot.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, slot.id)}
               className={cn(
                 "relative p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 min-h-[100px]",
                 !matchedItem && !isHovered && "border-dashed border-muted-foreground/30 bg-muted/20",
@@ -294,9 +284,7 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
 
               {/* Matched piece or empty slot */}
               {matchedItem ? (
-                <motion.div
-                  initial={{ scale: 0.7 }}
-                  animate={{ scale: 1 }}
+                <div
                   className={cn(!showFeedback && "cursor-pointer")}
                   onClick={() => handleRemoveMatch(slot.id)}
                   title={!showFeedback ? "Click to remove" : undefined}
@@ -307,14 +295,14 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
                     isLatex={matchedItem.isLatex}
                     size="small"
                   />
-                </motion.div>
+                </div>
               ) : (
                 <EmptySlotSVG isHovered={isHovered} />
               )}
 
               {/* Feedback badge */}
               {showFeedback && matchedItem && (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2">
+                <div className="absolute -top-2 -right-2">
                   <Badge className={cn(
                     "rounded-full w-7 h-7 flex items-center justify-center p-0 shadow-lg",
                     isCorrect && "bg-green-500 hover:bg-green-500",
@@ -322,50 +310,16 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
                   )}>
                     {isCorrect ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                   </Badge>
-                </motion.div>
+                </div>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
-      {/* Match feedback toast */}
-      <AnimatePresence>
-        {lastMatch && lastMatch.correct !== undefined && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={cn(
-              "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-xl shadow-xl flex items-center gap-2 font-semibold text-sm",
-              lastMatch.correct
-                ? "bg-green-500 text-white"
-                : "bg-red-500 text-white"
-            )}
-          >
-            {lastMatch.correct ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Correct!</span>
-                {showMatchedValues && lastMatch.matchText && (
-                  <span className="text-xs opacity-90 ml-1">({lastMatch.matchText})</span>
-                )}
-              </>
-            ) : (
-              <>
-                <X className="w-4 h-4" />
-                <span>Try again!</span>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Score */}
       {showFeedback && (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className={cn(
             "text-center p-5 rounded-xl",
             correctCount === slots.length
@@ -379,7 +333,7 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
               ? '🎉 Perfect! All puzzles solved!'
               : 'Check the incorrect matches.'}
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );
