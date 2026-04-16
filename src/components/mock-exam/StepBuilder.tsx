@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { Card, CardContent } from '@/components/ui/card';
 import { GripVertical, Shuffle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,13 +30,18 @@ interface Step {
   correctOrder: number;
 }
 
+interface NormalizedStep extends Step {
+  dndId: string;
+  sourceId: string;
+}
+
 interface StepBuilderProps {
   steps: Step[];
   onOrderChange?: (orderedStepIds: string[]) => void;
   showFeedback?: boolean;
 }
 
-const shuffleArray = (array: Step[]) => {
+const shuffleArray = <T,>(array: T[]): T[] => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -45,13 +50,36 @@ const shuffleArray = (array: Step[]) => {
   return shuffled;
 };
 
+const createStepSignature = (steps: Step[]) =>
+  steps.map((step, index) => `${step.id ?? `missing-${index}`}::${step.content}::${step.correctOrder}`).join('||');
+
+const normalizeSteps = (steps: Step[]): NormalizedStep[] => {
+  const idCounts = new Map<string, number>();
+
+  return steps.map((step, index) => {
+    const sourceId = String(step.id ?? `step-${index + 1}`);
+    const duplicateCount = idCounts.get(sourceId) ?? 0;
+    idCounts.set(sourceId, duplicateCount + 1);
+
+    return {
+      ...step,
+      id: sourceId,
+      sourceId,
+      dndId: duplicateCount === 0 ? sourceId : `${sourceId}__${index}`,
+    };
+  });
+};
+
 const StepBuilder: React.FC<StepBuilderProps> = ({
   steps,
   onOrderChange,
   showFeedback = false,
 }) => {
-  const [orderedSteps, setOrderedSteps] = useState<Step[]>(() => shuffleArray(steps));
+  const stepsSignature = useMemo(() => createStepSignature(steps), [steps]);
+  const normalizedSteps = useMemo(() => normalizeSteps(steps), [stepsSignature]);
+  const [orderedSteps, setOrderedSteps] = useState<NormalizedStep[]>(() => shuffleArray(normalizedSteps));
   const [activeId, setActiveId] = useState<string | null>(null);
+  const previousSignatureRef = useRef(stepsSignature);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
@@ -59,8 +87,12 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
   );
 
   useEffect(() => {
-    setOrderedSteps(shuffleArray(steps));
-  }, [steps]);
+    if (previousSignatureRef.current === stepsSignature) return;
+
+    previousSignatureRef.current = stepsSignature;
+    setOrderedSteps(shuffleArray(normalizedSteps));
+    setActiveId(null);
+  }, [normalizedSteps, stepsSignature]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id));
@@ -74,11 +106,11 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
       if (!over || active.id === over.id) return;
 
       setOrderedSteps((prev) => {
-        const oldIndex = prev.findIndex((s) => s.id === String(active.id));
-        const newIndex = prev.findIndex((s) => s.id === String(over.id));
+        const oldIndex = prev.findIndex((s) => s.dndId === String(active.id));
+        const newIndex = prev.findIndex((s) => s.dndId === String(over.id));
         if (oldIndex === -1 || newIndex === -1) return prev;
         const newOrder = arrayMove(prev, oldIndex, newIndex);
-        onOrderChange?.(newOrder.map((s) => s.id));
+        onOrderChange?.(newOrder.map((s) => s.sourceId));
         return newOrder;
       });
     },
@@ -92,19 +124,19 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
   const handleShuffle = () => {
     const shuffled = shuffleArray(orderedSteps);
     setOrderedSteps(shuffled);
-    onOrderChange?.(shuffled.map((s) => s.id));
+    onOrderChange?.(shuffled.map((s) => s.sourceId));
   };
 
   const handleReset = () => {
-    const shuffled = shuffleArray(steps);
+    const shuffled = shuffleArray(normalizedSteps);
     setOrderedSteps(shuffled);
-    onOrderChange?.(shuffled.map((s) => s.id));
+    onOrderChange?.(shuffled.map((s) => s.sourceId));
   };
 
   const correctCount = orderedSteps.filter((step, i) => step.correctOrder === i + 1).length;
   const allCorrect = correctCount === steps.length;
 
-  const activeStep = activeId ? orderedSteps.find((s) => s.id === activeId) : null;
+  const activeStep = activeId ? orderedSteps.find((s) => s.dndId === activeId) : null;
 
   return (
     <div className="space-y-4">
@@ -142,12 +174,13 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
           droppable: { strategy: MeasuringStrategy.Always },
         }}
       >
-        <SortableContext items={orderedSteps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={orderedSteps.map((s) => s.dndId)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {orderedSteps.map((step, index) => (
               <SortableStepItem
-                key={step.id}
+                key={step.dndId}
                 step={step}
+                dragId={step.dndId}
                 index={index}
                 totalSteps={orderedSteps.length}
                 showFeedback={showFeedback}
