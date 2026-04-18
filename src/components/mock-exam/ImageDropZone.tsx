@@ -30,6 +30,7 @@ interface ImageDropZoneProps {
   draggableLabels: DraggableLabel[];
   onPlacementsChange?: (placements: Record<string, string>) => void;
   showFeedback?: boolean;
+  initialPlacements?: Record<string, string>;
 }
 
 
@@ -38,9 +39,10 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
   dropZones,
   draggableLabels,
   onPlacementsChange,
-  showFeedback = false
+  showFeedback = false,
+  initialPlacements,
 }) => {
-  const [placements, setPlacements] = useState<Record<string, string>>({});
+  const [placements, setPlacements] = useState<Record<string, string>>(initialPlacements || {});
   const [draggingLabel, setDraggingLabel] = useState<string | null>(null);
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
 

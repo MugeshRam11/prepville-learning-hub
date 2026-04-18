@@ -29,6 +29,7 @@ interface PuzzleDragDropProps {
   showFeedback?: boolean;
   puzzleTitle?: string;
   showMatchedValues?: boolean;
+  initialMatches?: Record<string, string>;
 }
 
 const PUZZLE_COLORS: Record<string, { bgHex: string; darkHex: string }> = {
@@ -48,9 +49,10 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
   onMatchesChange,
   showFeedback = false,
   puzzleTitle = "Drag to complete each puzzle",
-  showMatchedValues = true
+  showMatchedValues = true,
+  initialMatches,
 }) => {
-  const [matches, setMatches] = useState<Record<string, string>>({});
+  const [matches, setMatches] = useState<Record<string, string>>(initialMatches || {});
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
 

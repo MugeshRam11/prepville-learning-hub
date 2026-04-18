@@ -39,6 +39,7 @@ interface StepBuilderProps {
   steps: Step[];
   onOrderChange?: (orderedStepIds: string[]) => void;
   showFeedback?: boolean;
+  initialOrder?: string[];
 }
 
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -70,14 +71,27 @@ const normalizeSteps = (steps: Step[]): NormalizedStep[] => {
   });
 };
 
+const orderBySavedIds = (normalized: NormalizedStep[], savedIds?: string[]): NormalizedStep[] => {
+  if (!savedIds || savedIds.length === 0) return shuffleArray(normalized);
+  const remaining = [...normalized];
+  const result: NormalizedStep[] = [];
+  for (const id of savedIds) {
+    const idx = remaining.findIndex((s) => s.sourceId === id);
+    if (idx >= 0) result.push(remaining.splice(idx, 1)[0]);
+  }
+  // Append any unmatched at the end (shouldn't happen normally)
+  return [...result, ...remaining];
+};
+
 const StepBuilder: React.FC<StepBuilderProps> = ({
   steps,
   onOrderChange,
   showFeedback = false,
+  initialOrder,
 }) => {
   const stepsSignature = useMemo(() => createStepSignature(steps), [steps]);
   const normalizedSteps = useMemo(() => normalizeSteps(steps), [stepsSignature]);
-  const [orderedSteps, setOrderedSteps] = useState<NormalizedStep[]>(() => shuffleArray(normalizedSteps));
+  const [orderedSteps, setOrderedSteps] = useState<NormalizedStep[]>(() => orderBySavedIds(normalizedSteps, initialOrder));
   const [activeId, setActiveId] = useState<string | null>(null);
   const previousSignatureRef = useRef(stepsSignature);
 
@@ -90,9 +104,9 @@ const StepBuilder: React.FC<StepBuilderProps> = ({
     if (previousSignatureRef.current === stepsSignature) return;
 
     previousSignatureRef.current = stepsSignature;
-    setOrderedSteps(shuffleArray(normalizedSteps));
+    setOrderedSteps(orderBySavedIds(normalizedSteps, initialOrder));
     setActiveId(null);
-  }, [normalizedSteps, stepsSignature]);
+  }, [normalizedSteps, stepsSignature, initialOrder]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id));
