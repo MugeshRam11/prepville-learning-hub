@@ -343,6 +343,7 @@ const PracticeQuestionView = () => {
                     </div>
 
                     <InteractiveAnswerBlock
+                      key={`${selectedSub.id}-${selectedSub.answer_type}`}
                       questionId={selectedSub.id}
                       subQuestionId={selectedSub.id}
                       detectedType={selectedSub.answer_type as any}
