@@ -376,10 +376,10 @@ const AdminPracticeCreate = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Topic *</label>
-                  <Input
+                  <TopicSelector
+                    subject={state.subject}
                     value={state.topic}
-                    onChange={(e) => setState(prev => ({ ...prev, topic: e.target.value }))}
-                    placeholder="e.g., Algebra, Force & Motion"
+                    onChange={(v) => setState(prev => ({ ...prev, topic: v }))}
                   />
                 </div>
                 <div>
