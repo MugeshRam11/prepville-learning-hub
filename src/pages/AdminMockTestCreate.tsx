@@ -192,7 +192,7 @@ const TopicSelector = ({ subject, value, onChange }: { subject: string; value: s
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
