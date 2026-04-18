@@ -59,12 +59,8 @@ const ANSWER_BLOCK_OPTIONS: { value: AnswerBlockType; label: string; icon: React
     icon: <ArrowUpDown className="w-4 h-4" />,
     description: 'Reorder items in correct sequence'
   },
-  { 
-    value: 'smart_math', 
-    label: 'Smart Math Input', 
-    icon: <Calculator className="w-4 h-4" />,
-    description: 'Step-by-step math with validation'
-  },
+  // 'smart_math' option intentionally hidden from selection — runtime support retained for legacy questions only.
+
   { 
     value: 'multiple_choice', 
     label: 'Multiple Choice', 
