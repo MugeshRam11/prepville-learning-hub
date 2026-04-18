@@ -137,7 +137,7 @@ const TopicSelector = ({ subject, value, onChange }: { subject: string; value: s
             <Input placeholder="Search topics..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-sm" />
           </div>
         </div>
-        <ScrollArea className="max-h-[300px]">
+        <div className="max-h-[300px] overflow-y-auto overscroll-contain" style={{ scrollBehavior: 'smooth' }}>
           <div className="p-1">
             {Object.entries(filteredGrouped).map(([unit, topics]) => (
               <div key={unit}>
