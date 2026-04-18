@@ -130,7 +130,7 @@ const TopicSelector = ({ subject, value, onChange }: { subject: string; value: s
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0" align="start">
+      <PopoverContent className="w-[360px] p-0 overflow-hidden" align="start">
         <div className="p-2 border-b border-border">
           <div className="relative">
             <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
