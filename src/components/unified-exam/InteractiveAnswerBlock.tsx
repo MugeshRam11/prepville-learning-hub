@@ -344,6 +344,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
             onMatchesChange={(matches) => onChange(matches)}
             showFeedback={showValidation}
             puzzleTitle={questionText || "Match the items"}
+            initialMatches={value && typeof value === 'object' ? value : undefined}
           />
         );
       }
@@ -409,6 +410,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
             draggableLabels={draggableLabels}
             onPlacementsChange={(placements) => onChange(placements)}
             showFeedback={false}
+            initialPlacements={value && typeof value === 'object' ? value : undefined}
           />
         );
       }
@@ -439,6 +441,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
             steps={steps}
             onOrderChange={(orderedIds) => onChange(orderedIds)}
             showFeedback={false}
+            initialOrder={Array.isArray(value) ? value : undefined}
           />
         );
       }
