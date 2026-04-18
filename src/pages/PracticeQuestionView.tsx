@@ -8,15 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   ArrowLeft, CheckCircle2, BookOpen, GraduationCap,
-  MessageSquare, Lightbulb, ChevronRight, Loader2
+  MessageSquare, Lightbulb, Loader2
 } from 'lucide-react';
 import Header from '@/components/Header';
 import { ExamModeProvider } from '@/contexts/ExamModeContext';
 import { EnhancedAITutor } from '@/components/EnhancedAITutor';
-import AnswerBlock from '@/components/unified-exam/AnswerBlock';
+import InteractiveAnswerBlock from '@/components/unified-exam/InteractiveAnswerBlock';
 import { renderLatexContent } from '@/lib/renderLatex';
 import AIFeedbackButton from '@/components/unified-exam/AIFeedbackButton';
 import AIFeedbackPanel from '@/components/unified-exam/AIFeedbackPanel';
@@ -209,10 +208,10 @@ const PracticeQuestionView = () => {
           </div>
         </div>
 
-        {/* 3-Column Layout */}
-        <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 49px)' }}>
+        {/* Workspace Layout */}
+        <div className="flex-1 flex overflow-hidden min-h-0" style={{ height: 'calc(100vh - 49px)' }}>
           {/* LEFT: Navigator */}
-          <div className="w-56 border-r bg-muted/30 flex-shrink-0 overflow-y-auto">
+          <div className="hidden lg:block w-56 border-r bg-muted/30 flex-shrink-0 overflow-y-auto">
             <div className="p-3 space-y-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">
                 Sub-Questions
@@ -250,159 +249,180 @@ const PracticeQuestionView = () => {
             </div>
           </div>
 
-          {/* CENTER: Question / Reading Panel */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-3xl mx-auto p-6 space-y-6">
-              {/* Main Question */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-primary" />
-                    Question
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    {renderLatexContent(data.question_text)}
-                  </div>
-                  {data.question_image_url && (
-                    <img
-                      src={data.question_image_url}
-                      alt="Question diagram"
-                      className="mt-4 max-w-full rounded-lg border"
-                    />
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Selected Sub-Question Text */}
-              {selectedSub && (
-                <motion.div key={selectedSub.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}>
-                  <Card className="border-primary/20">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <span className="font-mono text-primary">({selectedSub.label})</span>
-                        <Badge variant="outline" className="text-xs">{selectedSub.marks} marks</Badge>
-                        {selectedSub.command_term && (
-                          <Badge variant="secondary" className="text-xs">{selectedSub.command_term}</Badge>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        {renderLatexContent(selectedSub.sub_question_text)}
-                      </div>
-                      {selectedSub.sub_question_image_url && (
-                        <img
-                          src={selectedSub.sub_question_image_url}
-                          alt={`Sub-question ${selectedSub.label}`}
-                          className="mt-3 max-w-full rounded-lg border"
-                        />
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </div>
-          </div>
-
-          {/* RIGHT: Answer Panel */}
-          <div className="w-[420px] border-l bg-muted/10 flex-shrink-0 overflow-y-auto">
-            <div className="p-4 space-y-4">
-              {selectedSub ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Answer ({selectedSub.label})
-                    </h3>
-                    <Badge variant="outline" className="text-xs">{selectedSub.answer_type.replace('_', ' ')}</Badge>
-                  </div>
-
-                  {/* Answer Input */}
+          <div className="flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
+            {/* QUESTION PANEL */}
+            <div className="min-w-0 min-h-0 overflow-y-auto border-b lg:border-b-0 lg:border-r bg-background">
+              <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+                <div className="lg:hidden">
                   <Card>
-                    <CardContent className="p-4">
-                      <AnswerBlock
-                        questionId={selectedSub.id}
-                        subQuestionId={selectedSub.id}
-                        answerType={selectedSub.answer_type as any}
-                        config={selectedSub.answer_block_config || {}}
-                        value={answers[selectedSub.id] || ''}
-                        onChange={(val) => handleAnswerChange(selectedSub.id, val)}
-                        disabled={false}
-                      />
+                    <CardContent className="p-3 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Sub-Questions
+                      </p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {data.sub_questions.map((sq) => (
+                          <button
+                            key={sq.id}
+                            onClick={() => setSelectedSubId(sq.id)}
+                            className={cn(
+                              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                              selectedSubId === sq.id
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background text-foreground hover:bg-muted'
+                            )}
+                          >
+                            ({sq.label}) · {sq.marks}m
+                          </button>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
-
-                  {/* Study Mode: Show Answer & Solution */}
-                  {mode === 'study' && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-                      {selectedSub.answer_key && (
-                        <Card className="border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                              <CheckCircle2 className="w-4 h-4" /> Answer Key
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="prose prose-sm max-w-none dark:prose-invert">
-                              {renderLatexContent(selectedSub.answer_key)}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {selectedSub.solution && (
-                        <Card className="border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                              <Lightbulb className="w-4 h-4" /> Step-by-Step Solution
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
-                              {renderLatexContent(selectedSub.solution)}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {/* Navigation */}
-                  <div className="flex gap-2 pt-2">
-                    {data.sub_questions.findIndex(sq => sq.id === selectedSubId) > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          const idx = data.sub_questions.findIndex(sq => sq.id === selectedSubId);
-                          setSelectedSubId(data.sub_questions[idx - 1].id);
-                        }}
-                      >
-                        ← Previous
-                      </Button>
-                    )}
-                    {data.sub_questions.findIndex(sq => sq.id === selectedSubId) < data.sub_questions.length - 1 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          const idx = data.sub_questions.findIndex(sq => sq.id === selectedSubId);
-                          setSelectedSubId(data.sub_questions[idx + 1].id);
-                        }}
-                      >
-                        Next →
-                      </Button>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>Select a sub-question to begin.</p>
                 </div>
-              )}
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 text-primary" />
+                      Question
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      {renderLatexContent(data.question_text)}
+                    </div>
+                    {data.question_image_url && (
+                      <img
+                        src={data.question_image_url}
+                        alt="Question diagram"
+                        className="mt-4 max-w-full rounded-lg border"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {selectedSub && (
+                  <motion.div key={selectedSub.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}>
+                    <Card className="border-primary/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-primary">({selectedSub.label})</span>
+                          <Badge variant="outline" className="text-xs">{selectedSub.marks} marks</Badge>
+                          {selectedSub.command_term && (
+                            <Badge variant="secondary" className="text-xs">{selectedSub.command_term}</Badge>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          {renderLatexContent(selectedSub.sub_question_text)}
+                        </div>
+                        {selectedSub.sub_question_image_url && (
+                          <img
+                            src={selectedSub.sub_question_image_url}
+                            alt={`Sub-question ${selectedSub.label}`}
+                            className="mt-3 max-w-full rounded-lg border"
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            {/* ANSWER PANEL */}
+            <div className="min-w-0 min-h-0 overflow-y-auto bg-muted/10">
+              <div className="p-4 lg:p-6 space-y-4">
+                {selectedSub ? (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold text-foreground">
+                        Answer ({selectedSub.label})
+                      </h3>
+                      <Badge variant="outline" className="text-xs">{selectedSub.answer_type.replace('_', ' ')}</Badge>
+                    </div>
+
+                    <InteractiveAnswerBlock
+                      questionId={selectedSub.id}
+                      subQuestionId={selectedSub.id}
+                      detectedType={selectedSub.answer_type as any}
+                      config={selectedSub.answer_block_config || {}}
+                      value={answers[selectedSub.id] || ''}
+                      onChange={(val) => handleAnswerChange(selectedSub.id, val)}
+                      disabled={false}
+                      allowTypeChange={false}
+                      questionText={selectedSub.sub_question_text}
+                    />
+
+                    {mode === 'study' && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                        {selectedSub.answer_key && (
+                          <Card className="border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                                <CheckCircle2 className="w-4 h-4" /> Answer Key
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="prose prose-sm max-w-none dark:prose-invert">
+                                {renderLatexContent(selectedSub.answer_key)}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {selectedSub.solution && (
+                          <Card className="border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                <Lightbulb className="w-4 h-4" /> Step-by-Step Solution
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
+                                {renderLatexContent(selectedSub.solution)}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </motion.div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      {data.sub_questions.findIndex(sq => sq.id === selectedSubId) > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            const idx = data.sub_questions.findIndex(sq => sq.id === selectedSubId);
+                            setSelectedSubId(data.sub_questions[idx - 1].id);
+                          }}
+                        >
+                          ← Previous
+                        </Button>
+                      )}
+                      {data.sub_questions.findIndex(sq => sq.id === selectedSubId) < data.sub_questions.length - 1 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            const idx = data.sub_questions.findIndex(sq => sq.id === selectedSubId);
+                            setSelectedSubId(data.sub_questions[idx + 1].id);
+                          }}
+                        >
+                          Next →
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p>Select a sub-question to begin.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
