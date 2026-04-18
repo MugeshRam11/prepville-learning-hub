@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Save, Upload, Award, BookOpen, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import TopicSelector from '@/components/admin/TopicSelector';
 import SectionCard from '@/components/admin/mock-test-creator/SectionCard';
 import {
   createSection,
