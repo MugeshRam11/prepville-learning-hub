@@ -22,6 +22,22 @@ import AIFeedbackPanel from '@/components/unified-exam/AIFeedbackPanel';
 import { AIFeedbackResponse } from '@/types/examMode';
 import { cn } from '@/lib/utils';
 
+// Strip HTML tags and LaTeX delimiters for plain-text previews (e.g. sidebar)
+const stripHtmlAndMath = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
+    .replace(/\$([^$]+?)\$/g, '$1')
+    .replace(/\\\(([^)]*?)\\\)/g, '$1')
+    .replace(/\\\[([^\]]*?)\\\]/g, '$1')
+    .replace(/\\[a-zA-Z]+\{?/g, '')
+    .replace(/[{}]/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 interface SubQuestion {
   id: string;
   label: string;
