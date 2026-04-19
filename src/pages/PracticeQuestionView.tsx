@@ -227,10 +227,11 @@ const PracticeQuestionView = () => {
                       : "hover:bg-muted text-foreground"
                   )}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className="font-mono font-bold">({sq.label})</span>
                     <span className="line-clamp-1 text-xs opacity-80">
-                      {sq.sub_question_text.slice(0, 40)}...
+                      {stripHtmlAndMath(sq.sub_question_text).slice(0, 40)}
+                      {stripHtmlAndMath(sq.sub_question_text).length > 40 ? '…' : ''}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
