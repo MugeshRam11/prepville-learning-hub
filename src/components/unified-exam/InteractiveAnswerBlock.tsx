@@ -48,7 +48,8 @@ export type InteractiveType =
   | 'smart_math'
   | 'multiple_choice'
   | 'table_input'
-  | 'image_fill_blanks';
+  | 'image_fill_blanks'
+  | 'venn_drag';
 
 interface InteractiveAnswerBlockProps {
   questionId: string;
@@ -77,6 +78,7 @@ const TYPE_OPTIONS: { type: InteractiveType; label: string; icon: React.ReactNod
   { type: 'multiple_choice', label: 'Multiple Choice', icon: <CheckSquare className="w-4 h-4" /> },
   { type: 'table_input', label: 'Table Input', icon: <Table2 className="w-4 h-4" /> },
   { type: 'image_fill_blanks', label: 'Image Fill Blanks', icon: <PenTool className="w-4 h-4" /> },
+  { type: 'venn_drag', label: 'Venn Diagram', icon: <CheckSquare className="w-4 h-4" /> },
 ];
 
 // IB MYP eAssessment patterns for interactive type detection
