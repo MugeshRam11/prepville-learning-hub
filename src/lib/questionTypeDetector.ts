@@ -24,6 +24,10 @@ export const QUESTION_TYPE_MAP: Record<string, InteractiveType> = {
   'text': 'text_equation',
   'text_equation': 'text_equation',
   'text_input': 'text_equation',
+  'image_fill_blanks': 'image_fill_blanks',
+  'venn_drag': 'venn_drag',
+  'venn': 'venn_drag',
+  'venn_diagram': 'venn_drag',
   // Legacy mappings
   'drag_drop_match': 'drag_drop',
 };
