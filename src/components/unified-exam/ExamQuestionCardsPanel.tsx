@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { UnifiedQuestion, UnifiedAnswer, AnswerBlockType } from '@/types/answerBlock';
 import ExamSubQuestionCard from './ExamSubQuestionCard';
 import InteractiveAnswerBlock from './InteractiveAnswerBlock';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 import { cn } from '@/lib/utils';
 
 function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undefined {

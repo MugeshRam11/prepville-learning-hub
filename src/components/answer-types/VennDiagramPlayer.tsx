@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/core';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { renderFinalText } from '@/lib/renderFinalText';
 import VennDiagram, { VENN_REGIONS, type VennRegionId } from './VennDiagram';
 import type { VennDiagramConfig, VennDraggable } from './VennDiagramEditor';
 
@@ -49,7 +50,7 @@ const Chip: React.FC<{ id: string; label: string; disabled?: boolean }> = ({ id,
         disabled && 'cursor-not-allowed opacity-70'
       )}
     >
-      {label}
+      {renderFinalText(label)}
     </div>
   );
 };

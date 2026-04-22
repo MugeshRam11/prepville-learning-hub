@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DOMPurify from 'dompurify';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

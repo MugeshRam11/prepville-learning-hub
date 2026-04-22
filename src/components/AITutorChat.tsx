@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import EquationEditor from '@/components/admin/EquationEditor';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 import 'katex/dist/katex.min.css';
 import { motion, AnimatePresence } from 'framer-motion';
 

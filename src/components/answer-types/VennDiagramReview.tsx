@@ -12,6 +12,7 @@ import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import VennDiagram, { VENN_REGIONS, type VennRegionId } from './VennDiagram';
 import type { VennDiagramConfig } from './VennDiagramEditor';
 import type { VennPlayerValue } from './VennDiagramPlayer';
+import { renderFinalText } from '@/lib/renderFinalText';
 
 interface VennDiagramReviewProps {
   config: VennDiagramConfig;
@@ -108,7 +109,7 @@ const VennDiagramReview: React.FC<VennDiagramReviewProps> = ({ config, studentAn
           const isOk = placedRegion && (correct[placedRegion] || []).includes(d.id);
           return (
             <div key={d.id} className="flex items-center justify-between text-xs gap-2">
-              <span className="font-medium truncate">{d.label}</span>
+              <span className="font-medium truncate">{renderFinalText(d.label)}</span>
               <span className="text-muted-foreground text-right">
                 {placedRegion ? (
                   <>

@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { UnifiedQuestion, UnifiedAnswer, getDefaultAnswerBlockType, AnswerBlockType } from '@/types/answerBlock';
 import AnswerBlock from './AnswerBlock';
 import InteractiveAnswerBlock from './InteractiveAnswerBlock';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 
 interface UnifiedQuestionCardProps {
   question: UnifiedQuestion;

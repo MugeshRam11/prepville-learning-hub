@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import EvaluationAnswerRenderer from '@/components/admin/EvaluationAnswerRenderer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

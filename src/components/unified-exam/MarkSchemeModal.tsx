@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { MarkSchemeData, MarkingCriterion } from '@/types/examMode';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 
 interface MarkSchemeModalProps {
   isOpen: boolean;
