@@ -161,8 +161,58 @@ const EXTRACT_QUESTIONS_TOOL = {
 };
 
 // ============ MATH NORMALIZATION LAYER ============
-// Converts LaTeX commands to human-readable Unicode for editable text fields.
-// The editor stores Unicode; KaTeX rendering is only used at display time.
+// Dual-format strategy:
+//   • LaTeX (source of truth)  — preserved with $...$ / $$...$$ delimiters
+//     for accurate KaTeX rendering and AI evaluation.
+//   • Unicode (preview)        — lossy human-readable form for sidebars / search.
+// `preserveLatex()` cleans HTML/chip junk but KEEPS the LaTeX intact.
+// `normalizeMath()` is the legacy lossy converter, used only for the
+// optional `*_unicode` companion column.
+
+/**
+ * Strip stray HTML chips / styling that may have leaked from a rich editor
+ * while preserving the LaTeX inside math delimiters and any data-latex chips.
+ * The output is plain text + `$...$` / `$$...$$` math, ready for KaTeX.
+ */
+function preserveLatex(text: string): string {
+  if (!text) return '';
+  let out = text;
+
+  // Unwrap math chips that carry the LaTeX in a data-* attribute.
+  out = out.replace(
+    /<(span|div)[^>]*data-(?:math-)?latex=(?:"([^"]*)"|'([^']*)')[^>]*>[\s\S]*?<\/\1>/gi,
+    (match, _tag, dq, sq) => {
+      const latex = (dq ?? sq ?? '').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+      const isBlock = /data-display=["']block["']/i.test(match);
+      return isBlock ? `$$${latex}$$` : `$${latex}$`;
+    }
+  );
+
+  // Strip leaked style/class attributes (often carry colour codes).
+  out = out.replace(/\sstyle\s*=\s*"[^"]*"/gi, '');
+  out = out.replace(/\sclass\s*=\s*"[^"]*"/gi, '');
+
+  // <br> → newline, then strip remaining structural tags.
+  out = out.replace(/<br\s*\/?>/gi, '\n');
+  out = out.replace(/<\/?(?:p|div|span|font|strong|b|em|i|u|sup|sub|ul|ol|li)[^>]*>/gi, '');
+
+  // Decode common entities.
+  out = out
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"');
+
+  // Drop bare hex colour codes that occasionally leak into text.
+  out = out.replace(/#[0-9A-Fa-f]{6}\b/g, '');
+
+  // Normalize \(...\) and \[...\] to $..$ / $$..$$ for one display path.
+  out = out.replace(/\\\(([\s\S]*?)\\\)/g, (_m, inner) => `$${inner}$`);
+  out = out.replace(/\\\[([\s\S]*?)\\\]/g, (_m, inner) => `$$${inner}$$`);
+
+  return out.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
 
 function normalizeMath(text: string): string {
   if (!text) return text;
