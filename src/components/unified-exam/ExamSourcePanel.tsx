@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Image as ImageIcon, BarChart3 } from 'lucide-react';
 import { UnifiedQuestion } from '@/types/answerBlock';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 import { cn } from '@/lib/utils';
 
 interface ExamSourcePanelProps {

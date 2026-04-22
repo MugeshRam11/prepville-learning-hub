@@ -16,7 +16,7 @@ import Header from '@/components/Header';
 import { ExamModeProvider } from '@/contexts/ExamModeContext';
 import { EnhancedAITutor } from '@/components/EnhancedAITutor';
 import InteractiveAnswerBlock from '@/components/unified-exam/InteractiveAnswerBlock';
-import { renderLatexContent } from '@/lib/renderLatex';
+import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 import AIFeedbackButton from '@/components/unified-exam/AIFeedbackButton';
 import AIFeedbackPanel from '@/components/unified-exam/AIFeedbackPanel';
 import { AIFeedbackResponse } from '@/types/examMode';
