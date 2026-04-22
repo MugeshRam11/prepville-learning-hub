@@ -4,7 +4,21 @@ import 'katex/dist/katex.min.css';
 import { cleanMathContent } from './mathFormat';
 
 /**
- * Render text containing LaTeX math expressions.
+ * ⚠️ INTERNAL — DO NOT IMPORT DIRECTLY ⚠️
+ *
+ * This module is the low-level KaTeX renderer. It is invoked exclusively by
+ * `renderFinalText` (see `@/lib/renderFinalText`), which provides:
+ *   • deep JSON / object extraction
+ *   • HTML / chip cleaning
+ *   • Unicode → LaTeX normalization
+ *   • render-result caching
+ *   • dev-only error logging
+ *
+ * Calling `renderLatexContent` directly bypasses all of that and silently
+ * reintroduces formatting drift across the platform. Always use:
+ *
+ *     import { renderFinalText } from '@/lib/renderFinalText';
+ *
  * Supports:
  * - HTML with data-latex / data-math-latex attributes
  * - \[...\] and $$...$$ block math
