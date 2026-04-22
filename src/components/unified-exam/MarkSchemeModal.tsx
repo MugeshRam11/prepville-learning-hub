@@ -18,8 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { MarkSchemeData, MarkingCriterion } from '@/types/examMode';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { renderLatexContent } from '@/lib/renderLatex';
 
 interface MarkSchemeModalProps {
   isOpen: boolean;
@@ -47,30 +46,8 @@ const MarkSchemeModal: React.FC<MarkSchemeModalProps> = ({
   answerKey,
   commandTerm,
 }) => {
-  // Render content with LaTeX support
-  const renderContent = (text: string) => {
-    if (!text) return null;
-    
-    const parts = text.split(/(\$[^$]+\$)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
-        const latex = part.slice(1, -1);
-        try {
-          return (
-            <span
-              key={index}
-              dangerouslySetInnerHTML={{
-                __html: katex.renderToString(latex, { throwOnError: false })
-              }}
-            />
-          );
-        } catch {
-          return <span key={index}>{part}</span>;
-        }
-      }
-      return <span key={index}>{part}</span>;
-    });
-  };
+  // Unified renderer — single source of truth for all text rendering
+  const renderContent = (text: string) => renderLatexContent(text);
 
   // Use answerKey as model answer if no markScheme provided
   const modelAnswer = markScheme?.modelAnswer || answerKey;
