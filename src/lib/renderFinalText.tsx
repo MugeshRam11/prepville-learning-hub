@@ -103,7 +103,7 @@ const extractDeep = (input: unknown): string => {
  * re-renders the same exam page hundreds of times during a session.
  */
 const RENDER_CACHE = new Map<string, React.ReactNode>();
-const CACHE_LIMIT = 500;
+const CACHE_LIMIT = 1000;
 
 const cacheGet = (key: string) => RENDER_CACHE.get(key);
 const cacheSet = (key: string, value: React.ReactNode) => {
