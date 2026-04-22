@@ -35,6 +35,8 @@ import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 import ImageFillBlanksPlayer from '@/components/answer-types/ImageFillBlanksPlayer';
+import VennDiagramPlayer from '@/components/answer-types/VennDiagramPlayer';
+import { createDefaultVennConfig } from '@/components/answer-types/VennDiagramEditor';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
@@ -661,6 +663,18 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
           <ImageFillBlanksPlayer
             config={fillConfig}
             value={value || {}}
+            onChange={onChange}
+            disabled={disabled}
+          />
+        );
+      }
+
+      case 'venn_drag': {
+        const vennConfig = { ...createDefaultVennConfig(), ...(config as any) };
+        return (
+          <VennDiagramPlayer
+            config={vennConfig}
+            value={value && typeof value === 'object' ? value : {}}
             onChange={onChange}
             disabled={disabled}
           />

@@ -954,6 +954,14 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
         </React.Suspense>
       );
     }
+    case 'venn_drag': {
+      const VennDiagramReview = React.lazy(() => import('@/components/answer-types/VennDiagramReview'));
+      return (
+        <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
+          <VennDiagramReview config={config as any} studentAnswer={parsed} mode={mode} />
+        </React.Suspense>
+      );
+    }
     case 'image_drop':
       return <ImageDropZoneReview config={config} studentAnswer={parsed} questionImageUrl={questionImageUrl} mode={mode} />;
     case 'drag_drop':
