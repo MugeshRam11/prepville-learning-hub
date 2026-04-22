@@ -117,44 +117,199 @@ const SUBSCRIPT_CHARS: Record<string, string> = {
   '₊': '+', '₋': '-', '₌': '=', '₍': '(', '₎': ')',
 };
 
-const SUP_RE = new RegExp(`([${Object.keys(SUPERSCRIPT_CHARS).join('')}]+)`, 'g');
-const SUB_RE = new RegExp(`([${Object.keys(SUBSCRIPT_CHARS).join('')}]+)`, 'g');
+const SUP_KEYS = Object.keys(SUPERSCRIPT_CHARS).join('');
+const SUB_KEYS = Object.keys(SUBSCRIPT_CHARS).join('');
+const GREEK_KEYS = Object.keys(GREEK_TO_LATEX).join('');
+const OP_KEYS = Object.keys(OPERATOR_TO_LATEX).join('');
+const SQRT_GLYPH = '√';
 
-const wrapMath = (latex: string) => `$${latex}$`;
+// Any single character that signals "this run is math, not prose".
+const MATH_GLYPH_CHAR = new RegExp(
+  `[${SUP_KEYS}${SUB_KEYS}${GREEK_KEYS}${OP_KEYS}${SQRT_GLYPH}]|[${Object.keys(VULGAR_FRACTIONS).join('')}]`
+);
+
+// ASCII math signature — `x^2 + y^2 = r^2`, `f(x) = 3*x - 1`.
+// To avoid wrapping prose like "I + you", require either:
+//   • a `^` or `_` (unmistakable math indicator), OR
+//   • a digit on at least one side of an operator.
+const ASCII_MATH_HINT =
+  /(?:[A-Za-z0-9)][\s]*[\^_][\s]*[A-Za-z0-9(])|(?:\d[\s]*[=+\-*/<>][\s]*[A-Za-z0-9(])|(?:[A-Za-z0-9)][\s]*[=+\-*/<>][\s]*\d)/;
+
+/**
+ * Convert a single character to its LaTeX equivalent (when called inside a
+ * math run that we're about to wrap). Falls back to the character itself.
+ *
+ * Greek/operator commands need a trailing space before an alphanumeric so
+ * KaTeX doesn't read `\pir` as one command.
+ */
+const charToLatex = (ch: string, nextCh?: string): string => {
+  const cmd = GREEK_TO_LATEX[ch] || OPERATOR_TO_LATEX[ch];
+  if (cmd) {
+    return nextCh && /[A-Za-z0-9]/.test(nextCh) ? `${cmd} ` : cmd;
+  }
+  return ch;
+};
+
+/**
+ * Walk a plain-text segment character-by-character. Whenever we hit a math
+ * trigger, extend a "math run" greedily through adjacent identifier chars,
+ * digits, simple operators, parentheses, sup/sub, Greek and operator glyphs.
+ * Wrap the whole run once with `$...$`. This avoids `$\pi$r$^{2}$` fragments.
+ */
+const wrapMathTokens = (segment: string): string => {
+  const isMathTrigger = (ch: string) =>
+    !!GREEK_TO_LATEX[ch] || !!OPERATOR_TO_LATEX[ch] || !!SUPERSCRIPT_CHARS[ch] ||
+    !!SUBSCRIPT_CHARS[ch] || ch === SQRT_GLYPH || !!VULGAR_FRACTIONS[ch];
+
+  // A character may extend an already-open math run even if it wouldn't
+  // start one (digits, identifiers, parens, dot).
+  const extendsMathRun = (ch: string) =>
+    isMathTrigger(ch) || /[A-Za-z0-9_().]/.test(ch);
+
+  let out = '';
+  let i = 0;
+  const n = segment.length;
+
+  while (i < n) {
+    const ch = segment[i];
+
+    if (!isMathTrigger(ch)) {
+      out += ch;
+      i++;
+      continue;
+    }
+
+    // Walk BACK through immediately-preceding identifier/digit/paren chars so
+    // that "x²" → `$x^{2}$` (not `x$^{2}$`) and "CO₂" → `$CO_{2}$`.
+    let start = i;
+    while (start > 0 && /[A-Za-z0-9_)]/.test(segment[start - 1])) {
+      start--;
+    }
+    // If we walked back, drop the absorbed characters from `out`.
+    const absorbed = i - start;
+    if (absorbed > 0) {
+      out = out.slice(0, out.length - absorbed);
+    }
+
+    // Walk forward to extend the run.
+    let end = i + 1;
+    while (end < n && extendsMathRun(segment[end])) {
+      end++;
+    }
+
+    const raw = segment.slice(start, end);
+    out += `$${transformMathRun(raw)}$`;
+    i = end;
+  }
+
+  return out;
+};
+
+/**
+ * Inside an already-wrapped math run, convert Unicode glyphs to LaTeX
+ * commands and lift sup/sub characters into `^{…}` / `_{…}`.
+ */
+const transformMathRun = (run: string): string => {
+  let out = '';
+  let i = 0;
+  while (i < run.length) {
+    const ch = run[i];
+
+    // Vulgar fraction → \frac{a}{b}
+    if (VULGAR_FRACTIONS[ch]) {
+      out += VULGAR_FRACTIONS[ch];
+      i++;
+      continue;
+    }
+
+    // √ followed by group / token → \sqrt{...}
+    if (ch === SQRT_GLYPH) {
+      const rest = run.slice(i + 1);
+      const paren = rest.match(/^\s*\(([^)]+)\)/);
+      if (paren) {
+        out += `\\sqrt{${paren[1]}}`;
+        i += 1 + paren[0].length;
+        continue;
+      }
+      const tok = rest.match(/^\s*([A-Za-z0-9]+)/);
+      if (tok) {
+        out += `\\sqrt{${tok[1]}}`;
+        i += 1 + tok[0].length;
+        continue;
+      }
+      out += '\\sqrt{}';
+      i++;
+      continue;
+    }
+
+    // Run of superscript chars → ^{…}
+    if (SUPERSCRIPT_CHARS[ch]) {
+      let j = i;
+      let ascii = '';
+      while (j < run.length && SUPERSCRIPT_CHARS[run[j]]) {
+        ascii += SUPERSCRIPT_CHARS[run[j]];
+        j++;
+      }
+      out += `^{${ascii}}`;
+      i = j;
+      continue;
+    }
+
+    // Run of subscript chars → _{…}
+    if (SUBSCRIPT_CHARS[ch]) {
+      let j = i;
+      let ascii = '';
+      while (j < run.length && SUBSCRIPT_CHARS[run[j]]) {
+        ascii += SUBSCRIPT_CHARS[run[j]];
+        j++;
+      }
+      out += `_{${ascii}}`;
+      i = j;
+      continue;
+    }
+
+    out += charToLatex(ch, run[i + 1]);
+    i++;
+  }
+  return out;
+};
+
+/**
+ * Optional second pass: detect ASCII math expressions like
+ *   x^2 + y^2 = r^2
+ *   f(x) = 3*x - 1
+ * and wrap the whole expression once. Skips text already inside `$...$`.
+ */
+const wrapAsciiMathRuns = (segment: string): string => {
+  if (!ASCII_MATH_HINT.test(segment)) return segment;
+
+  // Split on existing $...$ spans so we don't double-wrap.
+  const parts = segment.split(/(\$[^$]+\$)/g);
+  return parts
+    .map((part) => {
+      if (!part || (part.startsWith('$') && part.endsWith('$'))) return part;
+      // Match expressions that contain ^ or _ (real math) OR involve a digit
+      // around an operator. Mirrors `ASCII_MATH_HINT` so prose stays intact.
+      return part.replace(
+        /([A-Za-z0-9_().]+(?:\s*\^\s*[A-Za-z0-9_().{}]+|\s*_\s*[A-Za-z0-9_().{}]+|\s*[=+\-*/<>]\s*[A-Za-z0-9_().]*\d[A-Za-z0-9_().]*|\s*[=+\-*/<>]\s*\d[A-Za-z0-9_().]*)+)/g,
+        (m) => `$${m.replace(/\s+/g, ' ').trim()}$`
+      );
+    })
+    .join('');
+};
 
 const normaliseSegment = (segment: string): string => {
-  let out = segment;
-
-  // Vulgar fractions → $\frac{a}{b}$
-  for (const [glyph, latex] of Object.entries(VULGAR_FRACTIONS)) {
-    out = out.split(glyph).join(wrapMath(latex));
+  // Fast path: if there's no math glyph and no ASCII math signature, bail out.
+  if (!MATH_GLYPH_CHAR.test(segment) && !ASCII_MATH_HINT.test(segment)) {
+    return segment;
   }
 
-  // √ followed by a single token → $\sqrt{token}$
-  out = out.replace(/√\s*\(([^)]+)\)/g, (_, inner) => wrapMath(`\\sqrt{${inner}}`));
-  out = out.replace(/√\s*([A-Za-z0-9]+)/g, (_, inner) => wrapMath(`\\sqrt{${inner}}`));
+  let out = wrapMathTokens(segment);
+  out = wrapAsciiMathRuns(out);
 
-  // Superscript runs → ^{...}
-  out = out.replace(SUP_RE, (_, run: string) => {
-    const ascii = run.split('').map((c) => SUPERSCRIPT_CHARS[c] || c).join('');
-    return wrapMath(`^{${ascii}}`);
-  });
-  // Subscript runs → _{...}
-  out = out.replace(SUB_RE, (_, run: string) => {
-    const ascii = run.split('').map((c) => SUBSCRIPT_CHARS[c] || c).join('');
-    return wrapMath(`_{${ascii}}`);
-  });
-
-  // Greek letters and operators → $\cmd$
-  for (const [glyph, latex] of Object.entries(GREEK_TO_LATEX)) {
-    out = out.split(glyph).join(wrapMath(latex));
-  }
-  for (const [glyph, latex] of Object.entries(OPERATOR_TO_LATEX)) {
-    out = out.split(glyph).join(wrapMath(latex));
-  }
-
-  // Collapse adjacent inline math spans: `$a$$b$` → `$a b$` for cleaner output.
-  out = out.replace(/\$([^$]+)\$\s*\$([^$]+)\$/g, (_, a, b) => `$${a} ${b}$`);
+  // Collapse adjacent inline math spans separated by only whitespace:
+  //   `$a$ $b$` → `$a\;b$`  (keeps spacing inside math)
+  out = out.replace(/\$([^$]+)\$\s+\$([^$]+)\$/g, (_, a, b) => `$${a}\\;${b}$`);
 
   return out;
 };
