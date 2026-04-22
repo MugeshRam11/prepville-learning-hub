@@ -6,27 +6,7 @@ import { UnifiedQuestion, UnifiedAnswer, AnswerBlockType } from '@/types/answerB
 import InteractiveAnswerBlock from './InteractiveAnswerBlock';
 import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
 import { cn } from '@/lib/utils';
-
-function mapToAnswerBlockType(interactiveType?: string): AnswerBlockType | undefined {
-  if (!interactiveType) return undefined;
-  const typeMap: Record<string, AnswerBlockType> = {
-    'graph_interaction': 'graph_plot',
-    'graph_plot': 'graph_plot',
-    'drag_drop_match': 'drag_drop',
-    'drag_drop': 'drag_drop',
-    'image_drop_zone': 'image_drop',
-    'image_drop': 'image_drop',
-    'step_builder': 'arrange_order',
-    'arrange_order': 'arrange_order',
-    'math_input': 'smart_math',
-    'smart_math': 'smart_math',
-    'text_input': 'text_equation',
-    'text_equation': 'text_equation',
-    'multiple_choice': 'multiple_choice',
-    'image_fill_blanks': 'image_fill_blanks'
-  };
-  return typeMap[interactiveType] || 'text_equation';
-}
+import { mapToAnswerBlockType } from '@/lib/answerBlockTypeMap';
 
 interface SubQuestion {
   id: string;
