@@ -93,7 +93,7 @@ const VennDiagramReview: React.FC<VennDiagramReviewProps> = ({ config, studentAn
           <XCircle className="w-3 h-3 text-destructive" /> Wrong ({wrongCount})
         </span>
         <span className="flex items-center gap-1">
-          <AlertCircle className="w-3 h-3 text-yellow-600" /> Missed ({missedCount})
+          <AlertCircle className="w-3 h-3" style={{ color: 'hsl(45 95% 45%)' }} /> Missed ({missedCount})
         </span>
       </div>
 
@@ -118,7 +118,7 @@ const VennDiagramReview: React.FC<VennDiagramReviewProps> = ({ config, studentAn
                     </span>
                   </>
                 ) : (
-                  <span className="text-yellow-700">not placed</span>
+                  <span style={{ color: 'hsl(45 95% 35%)' }}>not placed</span>
                 )}
                 {!isOk && correctRegions.length > 0 && (
                   <> · expected <span className="text-primary">{correctRegions.join(', ')}</span></>
