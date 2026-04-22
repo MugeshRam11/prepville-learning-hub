@@ -14,6 +14,7 @@ import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlo
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
 import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/ImageFillBlanksEditor';
+import VennDiagramEditor, { createDefaultVennConfig } from '@/components/answer-types/VennDiagramEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 
@@ -92,6 +93,9 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
             } else if (v === 'smart_math') {
               updates.answerBlockConfig = createDefaultSmartMathConfig();
               updates.answerKey = '';
+            } else if (v === 'venn_drag') {
+              updates.answerBlockConfig = createDefaultVennConfig() as any;
+              updates.answerKey = '';
             }
             onUpdate(subQuestion.id, updates);
           }} />
@@ -161,6 +165,14 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
           }}
           onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg })}
           folder={`questions/q${questionNumber}-${subQuestion.label}/fill-blanks`}
+        />
+      ) : subQuestion.answerBlockType === 'venn_drag' ? (
+        <VennDiagramEditor
+          config={{
+            ...createDefaultVennConfig(),
+            ...(subQuestion.answerBlockConfig || {}),
+          }}
+          onChange={(cfg) => onUpdate(subQuestion.id, { answerBlockConfig: cfg as any })}
         />
       ) : (
         <div>
