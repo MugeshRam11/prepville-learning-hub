@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { renderFinalText } from '@/lib/renderFinalText';
 import VennDiagram, { VENN_REGIONS, type VennRegionId } from './VennDiagram';
 
 export interface VennDraggable {
