@@ -288,10 +288,10 @@ const wrapAsciiMathRuns = (segment: string): string => {
   return parts
     .map((part) => {
       if (!part || (part.startsWith('$') && part.endsWith('$'))) return part;
-      // Greedy expression: identifier/number → operator → identifier/number,
-      // optionally repeated. Allows spaces, parens, dots.
+      // Match expressions that contain ^ or _ (real math) OR involve a digit
+      // around an operator. Mirrors `ASCII_MATH_HINT` so prose stays intact.
       return part.replace(
-        /([A-Za-z0-9_]+(?:\s*[\^_=+\-*/<>]\s*[A-Za-z0-9_().]+)+)/g,
+        /([A-Za-z0-9_().]+(?:\s*\^\s*[A-Za-z0-9_().{}]+|\s*_\s*[A-Za-z0-9_().{}]+|\s*[=+\-*/<>]\s*[A-Za-z0-9_().]*\d[A-Za-z0-9_().]*|\s*[=+\-*/<>]\s*\d[A-Za-z0-9_().]*)+)/g,
         (m) => `$${m.replace(/\s+/g, ' ').trim()}$`
       );
     })
