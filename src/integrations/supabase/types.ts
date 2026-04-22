@@ -734,6 +734,8 @@ export type Database = {
           question_image_url: string | null
           question_number: number
           question_text: string
+          question_text_latex: string | null
+          question_text_unicode: string | null
           section_id: string | null
           updated_at: string
           word_limit: number | null
@@ -754,6 +756,8 @@ export type Database = {
           question_image_url?: string | null
           question_number: number
           question_text: string
+          question_text_latex?: string | null
+          question_text_unicode?: string | null
           section_id?: string | null
           updated_at?: string
           word_limit?: number | null
@@ -774,6 +778,8 @@ export type Database = {
           question_image_url?: string | null
           question_number?: number
           question_text?: string
+          question_text_latex?: string | null
+          question_text_unicode?: string | null
           section_id?: string | null
           updated_at?: string
           word_limit?: number | null
@@ -809,6 +815,8 @@ export type Database = {
           sub_question_image_url: string | null
           sub_question_label: string
           sub_question_text: string
+          sub_question_text_latex: string | null
+          sub_question_text_unicode: string | null
           word_limit: number | null
         }
         Insert: {
@@ -824,6 +832,8 @@ export type Database = {
           sub_question_image_url?: string | null
           sub_question_label: string
           sub_question_text: string
+          sub_question_text_latex?: string | null
+          sub_question_text_unicode?: string | null
           word_limit?: number | null
         }
         Update: {
@@ -839,6 +849,8 @@ export type Database = {
           sub_question_image_url?: string | null
           sub_question_label?: string
           sub_question_text?: string
+          sub_question_text_latex?: string | null
+          sub_question_text_unicode?: string | null
           word_limit?: number | null
         }
         Relationships: [
@@ -869,6 +881,8 @@ export type Database = {
           question_image_url: string | null
           question_number: number
           question_text: string
+          question_text_latex: string | null
+          question_text_unicode: string | null
           subject: Database["public"]["Enums"]["test_subject"]
           topic: string
           updated_at: string | null
@@ -891,6 +905,8 @@ export type Database = {
           question_image_url?: string | null
           question_number: number
           question_text: string
+          question_text_latex?: string | null
+          question_text_unicode?: string | null
           subject: Database["public"]["Enums"]["test_subject"]
           topic: string
           updated_at?: string | null
@@ -913,6 +929,8 @@ export type Database = {
           question_image_url?: string | null
           question_number?: number
           question_text?: string
+          question_text_latex?: string | null
+          question_text_unicode?: string | null
           subject?: Database["public"]["Enums"]["test_subject"]
           topic?: string
           updated_at?: string | null
@@ -968,6 +986,8 @@ export type Database = {
           sub_question_image_url: string | null
           sub_question_label: string
           sub_question_text: string
+          sub_question_text_latex: string | null
+          sub_question_text_unicode: string | null
           word_limit: number | null
         }
         Insert: {
@@ -982,6 +1002,8 @@ export type Database = {
           sub_question_image_url?: string | null
           sub_question_label: string
           sub_question_text: string
+          sub_question_text_latex?: string | null
+          sub_question_text_unicode?: string | null
           word_limit?: number | null
         }
         Update: {
@@ -996,6 +1018,8 @@ export type Database = {
           sub_question_image_url?: string | null
           sub_question_label?: string
           sub_question_text?: string
+          sub_question_text_latex?: string | null
+          sub_question_text_unicode?: string | null
           word_limit?: number | null
         }
         Relationships: [
@@ -1139,6 +1163,8 @@ export type Database = {
           practice_set_id: string
           question_image_url: string | null
           question_text: string
+          question_text_latex: string | null
+          question_text_unicode: string | null
           updated_at: string
         }
         Insert: {
@@ -1148,6 +1174,8 @@ export type Database = {
           practice_set_id: string
           question_image_url?: string | null
           question_text?: string
+          question_text_latex?: string | null
+          question_text_unicode?: string | null
           updated_at?: string
         }
         Update: {
@@ -1157,6 +1185,8 @@ export type Database = {
           practice_set_id?: string
           question_image_url?: string | null
           question_text?: string
+          question_text_latex?: string | null
+          question_text_unicode?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1223,6 +1253,8 @@ export type Database = {
           solution: string | null
           sub_question_image_url: string | null
           sub_question_text: string
+          sub_question_text_latex: string | null
+          sub_question_text_unicode: string | null
           updated_at: string
         }
         Insert: {
@@ -1239,6 +1271,8 @@ export type Database = {
           solution?: string | null
           sub_question_image_url?: string | null
           sub_question_text?: string
+          sub_question_text_latex?: string | null
+          sub_question_text_unicode?: string | null
           updated_at?: string
         }
         Update: {
@@ -1255,6 +1289,8 @@ export type Database = {
           solution?: string | null
           sub_question_image_url?: string | null
           sub_question_text?: string
+          sub_question_text_latex?: string | null
+          sub_question_text_unicode?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -21,36 +21,7 @@ import AIFeedbackButton from '@/components/unified-exam/AIFeedbackButton';
 import AIFeedbackPanel from '@/components/unified-exam/AIFeedbackPanel';
 import { AIFeedbackResponse } from '@/types/examMode';
 import { cn } from '@/lib/utils';
-
-// Strip HTML tags, inline styles, color codes and LaTeX delimiters for plain-text previews
-const stripHtmlAndMath = (text: string): string => {
-  if (!text) return '';
-  return text
-    // Remove style/class attribute values that may have leaked outside tags
-    .replace(/style\s*=\s*"[^"]*"/gi, ' ')
-    .replace(/class\s*=\s*"[^"]*"/gi, ' ')
-    // Remove HTML tags
-    .replace(/<[^>]+>/g, ' ')
-    // Remove HTML entities
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&[a-z]+;/gi, ' ')
-    // Strip leaked CSS color codes (#RRGGBB or #RGB)
-    .replace(/#[0-9A-Fa-f]{6}\b/g, '')
-    .replace(/#[0-9A-Fa-f]{3}\b/g, '')
-    // Strip leaked CSS color: declarations
-    .replace(/color\s*:\s*[^;"']+;?/gi, '')
-    // Unwrap math delimiters
-    .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
-    .replace(/\$([^$]+?)\$/g, '$1')
-    .replace(/\\\(([^)]*?)\\\)/g, '$1')
-    .replace(/\\\[([^\]]*?)\\\]/g, '$1')
-    // Strip latex commands
-    .replace(/\\[a-zA-Z]+\{?/g, '')
-    .replace(/[{}]/g, '')
-    // Collapse whitespace
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+import { getPreviewText } from '@/lib/mathFormat';
 
 interface SubQuestion {
   id: string;
@@ -260,8 +231,7 @@ const PracticeQuestionView = () => {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-mono font-bold">({sq.label})</span>
                     <span className="line-clamp-1 text-xs opacity-80">
-                      {stripHtmlAndMath(sq.sub_question_text).slice(0, 40)}
-                      {stripHtmlAndMath(sq.sub_question_text).length > 40 ? '…' : ''}
+                      {getPreviewText(sq.sub_question_text, 40)}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
