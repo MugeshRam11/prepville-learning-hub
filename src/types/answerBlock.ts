@@ -10,7 +10,8 @@ export type AnswerBlockType =
   | 'smart_math'          // Smart Math (step-based)
   | 'multiple_choice'     // MCQ options
   | 'table_input'         // Table completion/fill
-  | 'image_fill_blanks';  // Image-based typed input zones
+  | 'image_fill_blanks'   // Image-based typed input zones
+  | 'venn_drag';          // Venn Diagram (drag labels into regions)
 
 export interface AnswerBlockConfig {
   type: AnswerBlockType;
@@ -171,7 +172,8 @@ export const getAnswerBlockTypeLabel = (type: AnswerBlockType): string => {
     smart_math: 'Smart Math Input',
     multiple_choice: 'Multiple Choice',
     table_input: 'Table Input',
-    image_fill_blanks: 'Image Fill Blanks'
+    image_fill_blanks: 'Image Fill Blanks',
+    venn_drag: 'Venn Diagram'
   };
   return labels[type];
 };
@@ -187,7 +189,8 @@ export const getAnswerBlockTypeIcon = (type: AnswerBlockType): string => {
     smart_math: '🤖',
     multiple_choice: '☑️',
     table_input: '📋',
-    image_fill_blanks: '✏️'
+    image_fill_blanks: '✏️',
+    venn_drag: '🎯'
   };
   return icons[type];
 };
