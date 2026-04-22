@@ -13,8 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { AIFeedbackResponse } from '@/types/examMode';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { renderLatexContent } from '@/lib/renderLatex';
 
 interface AIFeedbackPanelProps {
   isOpen: boolean;
@@ -35,30 +34,8 @@ const AIFeedbackPanel: React.FC<AIFeedbackPanelProps> = ({
   questionNumber,
   subQuestionLabel,
 }) => {
-  // Render content with LaTeX support
-  const renderContent = (text: string) => {
-    if (!text) return null;
-    
-    const parts = text.split(/(\$[^$]+\$)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
-        const latex = part.slice(1, -1);
-        try {
-          return (
-            <span
-              key={index}
-              dangerouslySetInnerHTML={{
-                __html: katex.renderToString(latex, { throwOnError: false })
-              }}
-            />
-          );
-        } catch {
-          return <span key={index}>{part}</span>;
-        }
-      }
-      return <span key={index}>{part}</span>;
-    });
-  };
+  // Unified renderer — single source of truth for all text rendering
+  const renderContent = (text: string) => renderLatexContent(text);
 
   return (
     <AnimatePresence>
