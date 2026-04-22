@@ -181,6 +181,7 @@ export function getInteractiveTypeLabel(type: InteractiveType): string {
     'multiple_choice': 'Multiple Choice',
     'table_input': 'Table Input',
     'image_fill_blanks': 'Image Fill Blanks',
+    'venn_drag': 'Venn Diagram',
   };
   return labels[type] || type;
 }
@@ -199,6 +200,7 @@ export function getInteractiveTypeIcon(type: InteractiveType): string {
     'multiple_choice': 'CheckSquare',
     'table_input': 'Table2',
     'image_fill_blanks': 'PenTool',
+    'venn_drag': 'Target',
   };
   return icons[type] || 'FileText';
 }
@@ -217,6 +219,7 @@ export function countInteractiveTypes(questions: QuestionData[]): Record<Interac
     'multiple_choice': 0,
     'table_input': 0,
     'image_fill_blanks': 0,
+    'venn_drag': 0,
   };
 
   questions.forEach(q => {
