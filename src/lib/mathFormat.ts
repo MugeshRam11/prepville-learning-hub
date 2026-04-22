@@ -268,7 +268,7 @@ const transformMathRun = (run: string): string => {
       continue;
     }
 
-    out += charToLatex(ch);
+    out += charToLatex(ch, run[i + 1]);
     i++;
   }
   return out;
