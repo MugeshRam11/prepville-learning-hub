@@ -1,84 +1,118 @@
 /**
  * renderFinalText — the single, end-to-end pipeline for *every* piece of
- * user-facing text in the platform.
+ * user-facing text in the platform. This is the ONLY public renderer. The
+ * underlying `renderLatexContent` is treated as private.
  *
  *      RAW (DB / AI / form input)
  *           │
  *           ▼
- *    extractDisplayText()   ← strip JSON wrappers / pull `.text` / `.value`
+ *       extractDeep()      ← peel up to 3 layers of JSON / { text } / { value }
  *           │
  *           ▼
- *     cleanMathContent()    ← normalise HTML chips, entities, leaked styles
- *           │              (this is the "normalizeMath" layer)
+ *     cleanMathContent()   ← strip leaked HTML chips, entities, inline styles
+ *           │
  *           ▼
- *    renderLatexContent()   ← KaTeX + markdown + line breaks
+ *      normalizeMath()     ← Unicode glyphs (½, √, π, ²) → LaTeX
+ *           │
+ *           ▼
+ *    _renderLatexInternal  ← KaTeX + markdown + line breaks
  *           │
  *           ▼
  *          UI
  *
- * Every component that displays text — question stems, sub-questions,
- * answer keys, Venn labels, AI feedback, mark schemes, evaluation panels —
- * MUST go through this single entry point. That guarantees identical
- * formatting across the entire app and is the only way to keep math /
- * Unicode / LaTeX rendering consistent.
+ * Cached per-input so re-renders of large exam papers stay cheap.
  */
 import React from 'react';
-import { cleanMathContent } from './mathFormat';
-import { renderLatexContent } from './renderLatex';
+import { cleanMathContent, normalizeMath } from './mathFormat';
+import { renderLatexContent as _renderLatexInternal } from './renderLatex';
 
 /**
- * Pull a displayable string out of whatever shape the caller hands us.
- * Handles the most common malformed inputs we see in production:
- *   • `null` / `undefined`               → ''
- *   • plain string                       → trimmed string
- *   • `{ text: '…' }` / `{ value: '…' }` → the inner field
- *   • stringified JSON wrapping any of the above
- *   • bracketed / quoted artifacts like `["x^2"]` or `"foo"`
+ * Recursive extractor — handles up to 3 nested layers of JSON / object
+ * wrappers. Real AI outputs occasionally look like
+ *   "{\"value\":\"{\\\"text\\\":\\\"x^2\\\"}\"}"
+ * which would defeat a single-pass parser.
  */
-const extractDisplayText = (input: unknown): string => {
-  if (input === null || input === undefined) return '';
+const extractDeep = (input: unknown): string => {
+  let current: unknown = input;
 
-  // Object → look for known display fields.
-  if (typeof input === 'object') {
-    const obj = input as Record<string, unknown>;
-    if (typeof obj.text === 'string') return obj.text;
-    if (typeof obj.value === 'string') return obj.value;
-    // Fall through to JSON.stringify so we at least surface something rather
-    // than silently rendering "[object Object]".
-    try {
-      return JSON.stringify(input);
-    } catch {
-      return '';
-    }
-  }
+  for (let i = 0; i < 3; i++) {
+    if (current === null || current === undefined) return '';
 
-  if (typeof input !== 'string') return String(input);
-
-  let str = input;
-
-  // Try parsing stringified JSON one level deep.
-  if ((str.startsWith('{') && str.endsWith('}')) || (str.startsWith('[') && str.endsWith(']'))) {
-    try {
-      const parsed = JSON.parse(str);
-      if (parsed && typeof parsed === 'object') {
-        const obj = parsed as Record<string, unknown>;
-        if (typeof obj.text === 'string') return obj.text;
-        if (typeof obj.value === 'string') return obj.value;
-        if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'string') {
-          str = parsed[0];
+    if (typeof current === 'string') {
+      const trimmed = current.trim();
+      if (
+        (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']'))
+      ) {
+        try {
+          current = JSON.parse(trimmed);
+          continue;
+        } catch {
+          /* not valid JSON — fall through and treat as plain text */
+          break;
         }
       }
-    } catch {
-      /* not valid JSON — keep the raw string */
+      break;
     }
+
+    if (Array.isArray(current)) {
+      if (current.length === 0) return '';
+      // Single-element arrays are common AI artifacts: ["x^2"] → "x^2"
+      if (current.length === 1) {
+        current = current[0];
+        continue;
+      }
+      // Multi-element arrays: join their textual forms.
+      return current.map((item) => extractDeep(item)).filter(Boolean).join(' ');
+    }
+
+    if (typeof current === 'object') {
+      const obj = current as Record<string, unknown>;
+      if ('text' in obj) {
+        current = obj.text;
+        continue;
+      }
+      if ('value' in obj) {
+        current = obj.value;
+        continue;
+      }
+      // No known display field — bail out with JSON so we surface *something*.
+      try {
+        return JSON.stringify(current);
+      } catch {
+        return '';
+      }
+    }
+
+    // numbers, booleans, etc.
+    return String(current);
   }
 
+  if (typeof current !== 'string') return '';
+
   // Strip lingering bracket / quote artifacts.
-  return str
+  return current
     .replace(/^\["|"\]$/g, '')
     .replace(/^\[|\]$/g, '')
     .replace(/^"|"$/g, '')
     .trim();
+};
+
+/**
+ * Tiny LRU-ish cache. Pure function inputs ⇒ identical outputs, and React
+ * re-renders the same exam page hundreds of times during a session.
+ */
+const RENDER_CACHE = new Map<string, React.ReactNode>();
+const CACHE_LIMIT = 500;
+
+const cacheGet = (key: string) => RENDER_CACHE.get(key);
+const cacheSet = (key: string, value: React.ReactNode) => {
+  if (RENDER_CACHE.size >= CACHE_LIMIT) {
+    // Drop the oldest entry (Map preserves insertion order).
+    const firstKey = RENDER_CACHE.keys().next().value;
+    if (firstKey !== undefined) RENDER_CACHE.delete(firstKey);
+  }
+  RENDER_CACHE.set(key, value);
 };
 
 /**
@@ -88,14 +122,28 @@ const extractDisplayText = (input: unknown): string => {
  */
 export const renderFinalText = (input: unknown): React.ReactNode => {
   try {
-    const display = extractDisplayText(input);
+    const display = extractDeep(input);
     if (!display) return null;
-    const normalised = cleanMathContent(display);
+
+    // Cache key uses the cleaned-but-not-rendered string so different raw
+    // inputs that resolve to the same text share a cache slot.
+    const cleaned = cleanMathContent(display);
+    if (!cleaned) return null;
+    const normalised = normalizeMath(cleaned);
     if (!normalised) return null;
-    return renderLatexContent(normalised);
-  } catch {
-    // Last-resort fallback: render the raw string so the user still sees
-    // *something* rather than a blank surface.
+
+    const cached = cacheGet(normalised);
+    if (cached !== undefined) return cached;
+
+    const node = _renderLatexInternal(normalised);
+    cacheSet(normalised, node);
+    return node;
+  } catch (err) {
+    // Surface failures during development; never crash the UI in production.
+    if (typeof console !== 'undefined' && import.meta.env?.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn('[renderFinalText] failed to render input:', input, err);
+    }
     const fallback = typeof input === 'string' ? input : '';
     return <span>{fallback}</span>;
   }
