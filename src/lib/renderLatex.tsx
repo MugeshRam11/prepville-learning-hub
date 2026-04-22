@@ -1,6 +1,7 @@
 import React from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { cleanMathContent } from './mathFormat';
 
 /**
  * Render text containing LaTeX math expressions.
@@ -9,6 +10,10 @@ import 'katex/dist/katex.min.css';
  * - \[...\] and $$...$$ block math
  * - \(...\) and $...$ inline math
  * - Markdown bold and line breaks
+ *
+ * Input is run through `cleanMathContent` first so any leaked HTML chips,
+ * inline styles, or stray hex codes from upstream editors are stripped while
+ * the underlying LaTeX is preserved.
  */
 
 // Pre-process \(...\) and \[...\] into $...$ and $$...$$ for unified handling
@@ -22,6 +27,21 @@ const normalizeDelimiters = (text: string): string => {
 
 export const renderLatexContent = (text: string): React.ReactNode => {
   if (!text) return null;
+
+  // Decide BEFORE cleaning whether to take the rich-HTML path or the plain
+  // text + LaTeX path. Editors hand us full HTML (with data-latex chips);
+  // everything else is plain text that may contain `$..$` math.
+  const isRichHtml =
+    text.includes('data-latex') ||
+    text.includes('data-math-latex') ||
+    /<(p|div|span|strong|em|sup|sub|br|ul|ol|li)\b/i.test(text);
+
+  // For non-HTML content, run the cleaner so leaked chips/styles disappear
+  // while LaTeX is preserved. For HTML, keep the original markup intact.
+  if (!isRichHtml) {
+    text = cleanMathContent(text);
+    if (!text) return null;
+  }
 
   // If text contains HTML with data-latex attributes, parse and render math
   if (text.includes('data-latex') || text.includes('data-math-latex')) {
