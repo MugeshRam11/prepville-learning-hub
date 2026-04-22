@@ -20,6 +20,8 @@ import SmartMathInput from '@/components/mock-exam/SmartMathInput';
 import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 import ImageFillBlanksPlayer from '@/components/answer-types/ImageFillBlanksPlayer';
+import VennDiagramPlayer from '@/components/answer-types/VennDiagramPlayer';
+import { createDefaultVennConfig } from '@/components/answer-types/VennDiagramEditor';
 
 interface AnswerBlockProps {
   questionId: string;
@@ -225,6 +227,18 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
           <ImageFillBlanksPlayer
             config={config as any}
             value={value || {}}
+            onChange={onChange}
+            disabled={disabled}
+          />
+        );
+      }
+
+      case 'venn_drag': {
+        const vennConfig = { ...createDefaultVennConfig(), ...(config as any) };
+        return (
+          <VennDiagramPlayer
+            config={vennConfig}
+            value={value && typeof value === 'object' ? value : {}}
             onChange={onChange}
             disabled={disabled}
           />

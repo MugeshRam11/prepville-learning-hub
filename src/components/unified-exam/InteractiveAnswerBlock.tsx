@@ -35,6 +35,8 @@ import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/unified-exam/TableAnswerValidator';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 import ImageFillBlanksPlayer from '@/components/answer-types/ImageFillBlanksPlayer';
+import VennDiagramPlayer from '@/components/answer-types/VennDiagramPlayer';
+import { createDefaultVennConfig } from '@/components/answer-types/VennDiagramEditor';
 
 import type { AnswerBlockConfig } from '@/types/answerBlock';
 
@@ -48,7 +50,8 @@ export type InteractiveType =
   | 'smart_math'
   | 'multiple_choice'
   | 'table_input'
-  | 'image_fill_blanks';
+  | 'image_fill_blanks'
+  | 'venn_drag';
 
 interface InteractiveAnswerBlockProps {
   questionId: string;
@@ -77,6 +80,7 @@ const TYPE_OPTIONS: { type: InteractiveType; label: string; icon: React.ReactNod
   { type: 'multiple_choice', label: 'Multiple Choice', icon: <CheckSquare className="w-4 h-4" /> },
   { type: 'table_input', label: 'Table Input', icon: <Table2 className="w-4 h-4" /> },
   { type: 'image_fill_blanks', label: 'Image Fill Blanks', icon: <PenTool className="w-4 h-4" /> },
+  { type: 'venn_drag', label: 'Venn Diagram', icon: <CheckSquare className="w-4 h-4" /> },
 ];
 
 // IB MYP eAssessment patterns for interactive type detection
@@ -659,6 +663,18 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
           <ImageFillBlanksPlayer
             config={fillConfig}
             value={value || {}}
+            onChange={onChange}
+            disabled={disabled}
+          />
+        );
+      }
+
+      case 'venn_drag': {
+        const vennConfig = { ...createDefaultVennConfig(), ...(config as any) };
+        return (
+          <VennDiagramPlayer
+            config={vennConfig}
+            value={value && typeof value === 'object' ? value : {}}
             onChange={onChange}
             disabled={disabled}
           />

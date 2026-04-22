@@ -8,7 +8,8 @@ import {
   Image, 
   ArrowUpDown, 
   Calculator,
-  CheckSquare
+  CheckSquare,
+  Target
 } from 'lucide-react';
 
 export type AnswerBlockType = 
@@ -20,7 +21,8 @@ export type AnswerBlockType =
   | 'smart_math'
   | 'multiple_choice'
   | 'table_input'
-  | 'image_fill_blanks';
+  | 'image_fill_blanks'
+  | 'venn_drag';
 
 interface AnswerBlockTypeSelectorProps {
   value: AnswerBlockType;
@@ -74,6 +76,12 @@ const ANSWER_BLOCK_OPTIONS: { value: AnswerBlockType; label: string; icon: React
     label: 'Image Fill Blanks', 
     icon: <FileText className="w-4 h-4" />,
     description: 'Type answers into zones on an image'
+  },
+  {
+    value: 'venn_drag',
+    label: 'Venn Diagram',
+    icon: <Target className="w-4 h-4" />,
+    description: 'Drag labels into Venn diagram regions (2-set)'
   },
 ];
 

@@ -17,6 +17,7 @@ import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDrop
 import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
 import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
 import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/ImageFillBlanksEditor';
+import VennDiagramEditor, { createDefaultVennConfig } from '@/components/answer-types/VennDiagramEditor';
 import SubQuestionCard from './SubQuestionCard';
 import { createSubQuestion } from './types';
 import type { CreatorQuestionGroup, CreatorSubQuestion } from './types';
@@ -157,6 +158,9 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
                 } else if (v === 'smart_math') {
                   updates.answerBlockConfig = createDefaultSmartMathConfig();
                   updates.answerKey = '';
+                } else if (v === 'venn_drag') {
+                  updates.answerBlockConfig = createDefaultVennConfig() as any;
+                  updates.answerKey = '';
                 }
                 onUpdate(updates);
               }} />
@@ -227,6 +231,14 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
               }}
               onChange={(cfg) => onUpdate({ answerBlockConfig: cfg })}
               folder={`questions/q${group.number}/fill-blanks`}
+            />
+          ) : !hasSubs && group.answerBlockType === 'venn_drag' ? (
+            <VennDiagramEditor
+              config={{
+                ...createDefaultVennConfig(),
+                ...(group.answerBlockConfig || {}),
+              }}
+              onChange={(cfg) => onUpdate({ answerBlockConfig: cfg as any })}
             />
           ) : !hasSubs ? (
             <div>
