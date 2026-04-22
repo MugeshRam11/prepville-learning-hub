@@ -128,17 +128,25 @@ const MATH_GLYPH_CHAR = new RegExp(
   `[${SUP_KEYS}${SUB_KEYS}${GREEK_KEYS}${OP_KEYS}${SQRT_GLYPH}]|[${Object.keys(VULGAR_FRACTIONS).join('')}]`
 );
 
-// ASCII math signature — e.g. `x^2 + y^2 = r^2` or `f(x) = 3*x - 1`.
-// Requires both an operator AND an identifier so prose like "I + you" isn't wrapped.
-const ASCII_MATH_HINT = /[A-Za-z0-9)][\s]*[\^_=+\-*/<>][\s]*[A-Za-z0-9(]/;
+// ASCII math signature — `x^2 + y^2 = r^2`, `f(x) = 3*x - 1`.
+// To avoid wrapping prose like "I + you", require either:
+//   • a `^` or `_` (unmistakable math indicator), OR
+//   • a digit on at least one side of an operator.
+const ASCII_MATH_HINT =
+  /(?:[A-Za-z0-9)][\s]*[\^_][\s]*[A-Za-z0-9(])|(?:\d[\s]*[=+\-*/<>][\s]*[A-Za-z0-9(])|(?:[A-Za-z0-9)][\s]*[=+\-*/<>][\s]*\d)/;
 
 /**
  * Convert a single character to its LaTeX equivalent (when called inside a
  * math run that we're about to wrap). Falls back to the character itself.
+ *
+ * Greek/operator commands need a trailing space before an alphanumeric so
+ * KaTeX doesn't read `\pir` as one command.
  */
-const charToLatex = (ch: string): string => {
-  if (GREEK_TO_LATEX[ch]) return GREEK_TO_LATEX[ch];
-  if (OPERATOR_TO_LATEX[ch]) return OPERATOR_TO_LATEX[ch];
+const charToLatex = (ch: string, nextCh?: string): string => {
+  const cmd = GREEK_TO_LATEX[ch] || OPERATOR_TO_LATEX[ch];
+  if (cmd) {
+    return nextCh && /[A-Za-z0-9]/.test(nextCh) ? `${cmd} ` : cmd;
+  }
   return ch;
 };
 
@@ -154,9 +162,9 @@ const wrapMathTokens = (segment: string): string => {
     !!SUBSCRIPT_CHARS[ch] || ch === SQRT_GLYPH || !!VULGAR_FRACTIONS[ch];
 
   // A character may extend an already-open math run even if it wouldn't
-  // start one (digits, identifiers, basic operators, parens, dot, comma).
+  // start one (digits, identifiers, parens, dot).
   const extendsMathRun = (ch: string) =>
-    isMathTrigger(ch) || /[A-Za-z0-9_^=+\-*/<>().,]/.test(ch);
+    isMathTrigger(ch) || /[A-Za-z0-9_().]/.test(ch);
 
   let out = '';
   let i = 0;
@@ -171,19 +179,16 @@ const wrapMathTokens = (segment: string): string => {
       continue;
     }
 
-    // Walk back through whitespace to pull in a leading identifier (e.g. "πr²"
-    // starting from `π` should still extend left to grab nothing — but for
-    // "x²" starting from `²` we need to grab the `x`).
+    // Walk BACK through immediately-preceding identifier/digit/paren chars so
+    // that "x²" → `$x^{2}$` (not `x$^{2}$`) and "CO₂" → `$CO_{2}$`.
     let start = i;
-    while (start > out.length === false && start > 0) {
-      const prev = segment[start - 1];
-      if (/[A-Za-z0-9_)]/.test(prev) && out.endsWith(prev)) {
-        start--;
-      } else break;
+    while (start > 0 && /[A-Za-z0-9_)]/.test(segment[start - 1])) {
+      start--;
     }
-    // Trim `out` of the chars we just absorbed back into the math run.
-    if (start < i) {
-      out = out.slice(0, out.length - (i - start));
+    // If we walked back, drop the absorbed characters from `out`.
+    const absorbed = i - start;
+    if (absorbed > 0) {
+      out = out.slice(0, out.length - absorbed);
     }
 
     // Walk forward to extend the run.
@@ -191,8 +196,6 @@ const wrapMathTokens = (segment: string): string => {
     while (end < n && extendsMathRun(segment[end])) {
       end++;
     }
-    // Don't trail a math run with a stray operator/space.
-    while (end > i + 1 && /[\s+\-*/=<>]/.test(segment[end - 1])) end--;
 
     const raw = segment.slice(start, end);
     out += `$${transformMathRun(raw)}$`;
