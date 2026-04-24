@@ -54,6 +54,46 @@ export function cleanMathContent(text: string | null | undefined): string {
 }
 
 /**
+ * Strip cosmetic LaTeX formatting commands (color, bold, italic, etc.) that
+ * commonly arrive when users paste from PDFs, coaching materials, or LaTeX
+ * editors. We unwrap the inner content but discard the styling — our
+ * pipeline is plain Unicode, not typeset math.
+ *
+ * Example:  $\color{#0000FF}{\textbf{Apply}}$  →  Apply
+ *
+ * Runs BEFORE normalizeMath so that downstream LaTeX→Unicode conversion
+ * sees clean content. Idempotent.
+ */
+export function stripLatexFormatting(text: string | null | undefined): string {
+  if (!text) return '';
+
+  let out = text;
+
+  // \color{spec}{content} → content   (spec may contain # or rgb(...))
+  // Run repeatedly to peel nested wrappers like \color{#000}{\textbf{x}}.
+  for (let i = 0; i < 4; i++) {
+    const next = out
+      .replace(/\\color\s*\{[^{}]*\}\s*\{([^{}]*)\}/g, '$1')
+      .replace(/\\textcolor\s*\{[^{}]*\}\s*\{([^{}]*)\}/g, '$1')
+      // Single-arg styling commands that wrap visible content.
+      .replace(
+        /\\(?:textbf|textit|textsf|texttt|textrm|emph|underline|mathbf|mathit|mathrm|mathsf|mathtt|boldsymbol|bm|operatorname)\s*\{([^{}]*)\}/g,
+        '$1'
+      )
+      // Size / spacing commands with no visible output.
+      .replace(/\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, '')
+      .replace(/\\(?:displaystyle|textstyle|scriptstyle|scriptscriptstyle)\b/g, '')
+      // Stray \left / \right size hints.
+      .replace(/\\left\b/g, '')
+      .replace(/\\right\b/g, '');
+    if (next === out) break;
+    out = next;
+  }
+
+  return out;
+}
+
+/**
  * Remove `$...$`, `$$...$$`, `\( ... \)`, and `\[ ... \]` wrappers, leaving
  * just the inner content. After this step the string contains no math
  * delimiters at all.
