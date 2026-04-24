@@ -20,7 +20,7 @@
  * Result is plain Unicode text, safe to drop anywhere in JSX.
  */
 import React from 'react';
-import { cleanMathContent, normalizeMath } from './mathFormat';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from './mathFormat';
 
 /**
  * Recursive extractor — handles up to 3 nested layers of JSON / object
@@ -139,7 +139,10 @@ export const renderFinalText = (input: unknown): React.ReactNode => {
     const cleaned = cleanMathContent(display);
     if (!cleaned) return null;
 
-    const normalised = normalizeMath(cleaned);
+    const stripped = stripLatexFormatting(cleaned);
+    if (!stripped) return null;
+
+    const normalised = normalizeMath(stripped);
     if (!normalised) return null;
 
     const cached = cacheGet(normalised);
