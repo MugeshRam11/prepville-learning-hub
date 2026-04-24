@@ -171,18 +171,17 @@ function latexToReadable(input: string): string {
   out = out.replace(/\^([A-Za-z0-9+\-=()])/g, (_m, g) => toSuperscript(g));
   out = out.replace(/_([A-Za-z0-9+\-=()])/g, (_m, g) => toSubscript(g));
 
-  // \command → unicode (longest first to avoid \pi matching inside \pioneer-like junk)
+  // \command → unicode (longest first so \varepsilon matches before \var…)
+  // We swallow only an optional `{}` separator so `\pi r` keeps its space.
   const commandNames = Object.keys(LATEX_TO_UNICODE).sort((a, b) => b.length - a.length);
   for (const name of commandNames) {
     const sym = LATEX_TO_UNICODE[name];
-    // Word-boundary on the command name; allow optional trailing space which is
-    // often just a separator KaTeX needs, e.g. `\pi r` or `\pi{}`.
-    const re = new RegExp(`\\\\${name}(?![A-Za-z])\\s?`, 'g');
+    const re = new RegExp(`\\\\${name}(?![A-Za-z])(?:\\{\\})?`, 'g');
     out = out.replace(re, sym);
   }
 
-  // Drop any remaining unknown \command tokens but keep their contents.
-  out = out.replace(/\\([A-Za-z]+)\s?/g, '$1');
+  // Drop any remaining unknown \command tokens but keep their arguments.
+  out = out.replace(/\\([A-Za-z]+)(?:\{\})?/g, '$1');
 
   // Collapse stray braces left over from LaTeX grouping.
   out = out.replace(/\{([^{}]*)\}/g, '$1');
