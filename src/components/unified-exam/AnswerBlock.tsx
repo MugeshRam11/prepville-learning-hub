@@ -11,17 +11,17 @@ import {
 } from '@/types/answerBlock';
 
 // Import interactive components
-import InteractiveGraphCanvas from '@/components/mock-exam/InteractiveGraphCanvas';
-import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
-import DragDropMatcher from '@/components/mock-exam/DragDropMatcher';
-import ImageDropZone from '@/components/mock-exam/ImageDropZone';
-import StepBuilder from '@/components/mock-exam/StepBuilder';
-import SmartMathInput from '@/components/mock-exam/SmartMathInput';
-import SmartMathPlayer from '@/components/mock-exam/SmartMathPlayer';
+import InteractiveGraphCanvas from '@/components/answer-types/graph-plot/InteractiveGraphCanvas';
+import GraphPlotPlayer from '@/components/answer-types/graph-plot/GraphPlotPlayer';
+import DragDropMatcher from '@/components/answer-types/drag-drop/DragDropMatcher';
+import ImageDropZone from '@/components/answer-types/image-drop/ImageDropZone';
+import StepBuilder from '@/components/answer-types/arrange-order/StepBuilder';
+import SmartMathInput from '@/components/answer-types/smart-math/SmartMathInput';
+import SmartMathPlayer from '@/components/answer-types/smart-math/SmartMathPlayer';
 import RichTextEditor from '@/components/admin/RichTextEditor';
-import ImageFillBlanksPlayer from '@/components/answer-types/ImageFillBlanksPlayer';
-import VennDiagramPlayer from '@/components/answer-types/VennDiagramPlayer';
-import { createDefaultVennConfig } from '@/components/answer-types/VennDiagramEditor';
+import ImageFillBlanksPlayer from '@/components/answer-types/image-fill-blanks/ImageFillBlanksPlayer';
+import VennDiagramPlayer from '@/components/answer-types/venn-diagram/VennDiagramPlayer';
+import { createDefaultVennConfig } from '@/components/answer-types/venn-diagram/VennDiagramEditor';
 
 interface AnswerBlockProps {
   questionId: string;

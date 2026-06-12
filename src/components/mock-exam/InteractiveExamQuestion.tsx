@@ -9,11 +9,11 @@ import 'katex/dist/katex.min.css';
 import { cn } from '@/lib/utils';
 
 // Interactive Components
-import InteractiveGraphCanvas from './InteractiveGraphCanvas';
-import DragDropMatcher from './DragDropMatcher';
-import ImageDropZone from './ImageDropZone';
-import StepBuilder from './StepBuilder';
-import SmartMathInput from './SmartMathInput';
+import InteractiveGraphCanvas from '@/components/answer-types/graph-plot/InteractiveGraphCanvas';
+import DragDropMatcher from '@/components/answer-types/drag-drop/DragDropMatcher';
+import ImageDropZone from '@/components/answer-types/image-drop/ImageDropZone';
+import StepBuilder from '@/components/answer-types/arrange-order/StepBuilder';
+import SmartMathInput from '@/components/answer-types/smart-math/SmartMathInput';
 import EquationEditor from '@/components/admin/EquationEditor';
 
 import type { 

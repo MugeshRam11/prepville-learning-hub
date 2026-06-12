@@ -7,14 +7,14 @@ import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 
 import CommandTermSelector from '../CommandTermSelector';
-import ImageDropZoneEditor, { createDefaultImageDropConfig } from '../ImageDropZoneEditor';
-import DragDropMatchingEditor, { createDefaultDragDropConfig } from '../DragDropMatchingEditor';
-import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '../MultipleChoiceConfigEditor';
-import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '../GraphPlotConfigEditor';
-import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '../ArrangeOrderEditor';
-import SmartMathEditor, { createDefaultSmartMathConfig } from '../SmartMathEditor';
-import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/ImageFillBlanksEditor';
-import VennDiagramEditor, { createDefaultVennConfig } from '@/components/answer-types/VennDiagramEditor';
+import ImageDropZoneEditor, { createDefaultImageDropConfig } from '@/components/answer-types/image-drop/ImageDropZoneEditor';
+import DragDropMatchingEditor, { createDefaultDragDropConfig } from '@/components/answer-types/drag-drop/DragDropMatchingEditor';
+import MultipleChoiceConfigEditor, { createDefaultMCQConfig } from '@/components/answer-types/multiple-choice/MultipleChoiceConfigEditor';
+import GraphPlotConfigEditor, { createDefaultGraphPlotConfig } from '@/components/answer-types/graph-plot/GraphPlotConfigEditor';
+import ArrangeOrderEditor, { createDefaultArrangeOrderConfig } from '@/components/answer-types/arrange-order/ArrangeOrderEditor';
+import SmartMathEditor, { createDefaultSmartMathConfig } from '@/components/answer-types/smart-math/SmartMathEditor';
+import ImageFillBlanksEditor, { createDefaultImageFillBlanksConfig } from '@/components/answer-types/image-fill-blanks/ImageFillBlanksEditor';
+import VennDiagramEditor, { createDefaultVennConfig } from '@/components/answer-types/venn-diagram/VennDiagramEditor';
 import type { CreatorSubQuestion } from './types';
 import type { AnswerBlockType } from '../AnswerBlockTypeSelector';
 

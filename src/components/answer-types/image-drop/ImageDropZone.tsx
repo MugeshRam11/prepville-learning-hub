@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
+import { DraggableElementContent } from '@/components/answer-types/image-drop/DraggableElementContent';
 
 interface DropZone {
   id: string;

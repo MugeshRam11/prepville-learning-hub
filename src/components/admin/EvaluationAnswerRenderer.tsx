@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { DraggableElementContent } from '@/components/image-drop/DraggableElementContent';
-import GraphPlotPlayer from '@/components/mock-exam/GraphPlotPlayer';
+import { DraggableElementContent } from '@/components/answer-types/image-drop/DraggableElementContent';
+import GraphPlotPlayer from '@/components/answer-types/graph-plot/GraphPlotPlayer';
 import { CheckCircle, XCircle, MapPin, ArrowRight, GripVertical, Image as ImageIcon, ListOrdered, Calculator } from 'lucide-react';
 
 interface AnswerRendererProps {
@@ -947,7 +947,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
 
   switch (resolvedType) {
     case 'image_fill_blanks': {
-      const ImageFillBlanksReview = React.lazy(() => import('@/components/answer-types/ImageFillBlanksReview'));
+      const ImageFillBlanksReview = React.lazy(() => import('@/components/answer-types/image-fill-blanks/ImageFillBlanksReview'));
       return (
         <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
           <ImageFillBlanksReview config={config as any} studentAnswer={parsed} mode={mode} />
@@ -955,7 +955,7 @@ const EvaluationAnswerRenderer: React.FC<AnswerRendererProps> = ({
       );
     }
     case 'venn_drag': {
-      const VennDiagramReview = React.lazy(() => import('@/components/answer-types/VennDiagramReview'));
+      const VennDiagramReview = React.lazy(() => import('@/components/answer-types/venn-diagram/VennDiagramReview'));
       return (
         <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading...</div>}>
           <VennDiagramReview config={config as any} studentAnswer={parsed} mode={mode} />

@@ -12,11 +12,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mocktest2, InteractiveQuestion } from '@/data/mocktest2';
-import InteractiveGraphCanvas from '@/components/mock-exam/InteractiveGraphCanvas';
-import DragDropMatcher from '@/components/mock-exam/DragDropMatcher';
-import ImageDropZone from '@/components/mock-exam/ImageDropZone';
-import StepBuilder from '@/components/mock-exam/StepBuilder';
-import SmartMathInput from '@/components/mock-exam/SmartMathInput';
+import InteractiveGraphCanvas from '@/components/answer-types/graph-plot/InteractiveGraphCanvas';
+import DragDropMatcher from '@/components/answer-types/drag-drop/DragDropMatcher';
+import ImageDropZone from '@/components/answer-types/image-drop/ImageDropZone';
+import StepBuilder from '@/components/answer-types/arrange-order/StepBuilder';
+import SmartMathInput from '@/components/answer-types/smart-math/SmartMathInput';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 

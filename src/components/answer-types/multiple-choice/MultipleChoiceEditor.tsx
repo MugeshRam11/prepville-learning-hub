@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { ComponentConfig, MultipleChoiceOption } from '../types';
+import { ComponentConfig, MultipleChoiceOption } from '@/components/exam-builder/types';
 
 interface MultipleChoiceEditorProps {
   component: ComponentConfig;

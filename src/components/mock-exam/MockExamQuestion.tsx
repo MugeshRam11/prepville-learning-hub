@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Save, Check, Eye, Flag, ChevronRight, Lightbulb, ThumbsUp, ArrowRight, ZoomIn, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EquationEditor from '@/components/admin/EquationEditor';
-import InteractiveGraphCanvas from './InteractiveGraphCanvas';
+import InteractiveGraphCanvas from '@/components/answer-types/graph-plot/InteractiveGraphCanvas';
 import MathKeyboard from './MathKeyboard';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
