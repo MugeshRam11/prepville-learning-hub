@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide MathLive's built-in virtual-keyboard toggle — we use our own button */
+math-field::part(virtual-keyboard-toggle) {
+  display: none !important;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
 @layer base {

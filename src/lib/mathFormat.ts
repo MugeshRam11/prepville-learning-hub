@@ -64,6 +64,11 @@ export function cleanMathContent(text: string | null | undefined): string {
  * Runs BEFORE normalizeMath so that downstream LaTeX→Unicode conversion
  * sees clean content. Idempotent.
  */
+// Matches a {…} block where the content may itself contain one level of {…}.
+// This lets us peel \color{spec}{\textbf{x}} in one pass of the outer regex,
+// relying on the 4-iteration loop to handle deeper nesting.
+const BRACE_CONTENT = '(?:[^{}]|\\{[^{}]*\\})*';
+
 export function stripLatexFormatting(text: string | null | undefined): string {
   if (!text) return '';
 
@@ -73,11 +78,11 @@ export function stripLatexFormatting(text: string | null | undefined): string {
   // Run repeatedly to peel nested wrappers like \color{#000}{\textbf{x}}.
   for (let i = 0; i < 4; i++) {
     const next = out
-      .replace(/\\color\s*\{[^{}]*\}\s*\{([^{}]*)\}/g, '$1')
-      .replace(/\\textcolor\s*\{[^{}]*\}\s*\{([^{}]*)\}/g, '$1')
+      .replace(new RegExp(`\\\\color\\s*\\{[^{}]*\\}\\s*\\{(${BRACE_CONTENT})\\}`, 'g'), '$1')
+      .replace(new RegExp(`\\\\textcolor\\s*\\{[^{}]*\\}\\s*\\{(${BRACE_CONTENT})\\}`, 'g'), '$1')
       // Single-arg styling commands that wrap visible content.
       .replace(
-        /\\(?:textbf|textit|textsf|texttt|textrm|emph|underline|mathbf|mathit|mathrm|mathsf|mathtt|boldsymbol|bm|operatorname)\s*\{([^{}]*)\}/g,
+        new RegExp(`\\\\(?:textbf|textit|textsf|texttt|textrm|emph|underline|mathbf|mathit|mathrm|mathsf|mathtt|boldsymbol|bm|operatorname)\\s*\\{(${BRACE_CONTENT})\\}`, 'g'),
         '$1'
       )
       // Size / spacing commands with no visible output.
@@ -262,7 +267,7 @@ export function normalizeMath(text: string | null | undefined): string {
   }
 
   return segments
-    .map((seg) => (seg.math ? latexToReadable(seg.value) : seg.value))
+    .map((seg) => latexToReadable(seg.value))
     .join('')
     // Final tidy: convert any leftover \\ commands in prose too.
     .replace(/\s+\n/g, '\n')
@@ -276,7 +281,8 @@ export function normalizeMath(text: string | null | undefined): string {
 export function getPreviewText(text: string | null | undefined, maxLength = 80): string {
   const cleaned = cleanMathContent(text);
   if (!cleaned) return '';
-  const plain = normalizeMath(cleaned).replace(/\s+/g, ' ').trim();
+  const stripped = stripLatexFormatting(cleaned);
+  const plain = normalizeMath(stripped).replace(/\s+/g, ' ').trim();
   if (plain.length <= maxLength) return plain;
   return plain.slice(0, maxLength).trimEnd() + '…';
 }

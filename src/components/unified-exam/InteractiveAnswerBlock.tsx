@@ -275,7 +275,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         const gridStep = graphCanvas.gridStep ?? 1;
         const showNumbers = graphCanvas.showNumbers ?? true;
         const showAxisLabels = graphCanvas.showAxisLabels ?? true;
-        const allowedTools: string[] = flatCfg?.allowedTools || ['point', 'line', 'move', 'erase'];
+        const allowedTools: string[] = flatCfg?.allowedTools || ['point', 'line', 'move', 'fill_blank', 'erase'];
 
         // Compute grid size in pixels based on range
         const canvasWidth = 400;
@@ -285,7 +285,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
           <GraphPlotPlayer
             canvasConfig={{ xMin, xMax, yMin, yMax, gridStep, showNumbers, showAxisLabels }}
             allowedTools={allowedTools}
-            value={value || { points: [], lines: [] }}
+            value={value || { points: [], lines: [], blanks: [] }}
             onChange={onChange}
             disabled={disabled}
             width={canvasWidth}

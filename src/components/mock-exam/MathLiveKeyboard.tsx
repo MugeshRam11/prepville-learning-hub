@@ -91,13 +91,7 @@ const MathLiveKeyboard: React.FC<MathLiveKeyboardProps> = ({
   };
 
   const handleFocus = () => {
-    if (showKeyboard) {
-      const mathVirtualKeyboard = window.mathVirtualKeyboard;
-      if (mathVirtualKeyboard) {
-        mathVirtualKeyboard.show();
-        setIsKeyboardVisible(true);
-      }
-    }
+    // Do not auto-open keyboard on focus — user controls it via the toggle button.
   };
 
   return (
@@ -111,18 +105,27 @@ const MathLiveKeyboard: React.FC<MathLiveKeyboardProps> = ({
             smart-mode="true"
             smart-superscript="true"
             remove-extraneous-parentheses="true"
+            placeholder={placeholder}
             onFocus={handleFocus}
             className={cn(
-              "w-full min-h-[48px] px-4 py-3 pr-24",
-              "rounded-xl border-2 border-border",
-              "bg-card text-foreground",
-              "focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20",
+              "w-full",
+              "focus:outline-none",
               "transition-all duration-200",
               "[&::part(content)]:text-base",
-              "[&::part(placeholder)]:text-muted-foreground"
+              "[&::part(placeholder)]:text-muted-foreground",
+              "[&::part(virtual-keyboard-toggle)]:hidden"
             )}
             style={{
+              display: 'block',
+              width: '100%',
+              minHeight: '52px',
+              padding: '12px 52px 12px 16px',
+              borderRadius: '12px',
+              border: '2px solid hsl(var(--border, 214.3 31.8% 91.4%))',
+              backgroundColor: 'hsl(var(--card, 0 0% 100%))',
+              color: 'hsl(var(--foreground, 222.2 84% 4.9%))',
               fontSize: '18px',
+              boxSizing: 'border-box',
               '--caret-color': 'hsl(var(--primary))',
               '--selection-background-color': 'hsl(var(--primary) / 0.2)',
             } as React.CSSProperties}

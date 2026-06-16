@@ -1,28 +1,28 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
-  MousePointer2, Circle, Minus, Trash2, RotateCcw
+  MousePointer2, Circle, Minus, Trash2, RotateCcw,
+  ZoomIn, ZoomOut, Type, X, CheckCircle2
 } from 'lucide-react';
+import MathLiveKeyboard from '@/components/mock-exam/MathLiveKeyboard';
 
-interface GraphPoint {
-  id: string;
-  x: number;
-  y: number;
-}
+// ── types ────────────────────────────────────────────────────────────────────
+interface GraphPoint { id: string; x: number; y: number }
+interface GraphLine  { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
+export interface GraphBlank { id: string; x: number; y: number; answer: string }
 
-interface GraphLine {
-  id: string;
-  from: { x: number; y: number };
-  to: { x: number; y: number };
+export interface GraphValue {
+  points: GraphPoint[];
+  lines:  GraphLine[];
+  blanks?: GraphBlank[];
 }
 
 interface CanvasConfig {
-  xMin: number;
-  xMax: number;
-  yMin: number;
-  yMax: number;
+  xMin: number; xMax: number;
+  yMin: number; yMax: number;
   gridStep: number;
   showNumbers: boolean;
   showAxisLabels: boolean;
@@ -31,124 +31,301 @@ interface CanvasConfig {
 interface GraphPlotPlayerProps {
   canvasConfig: CanvasConfig;
   allowedTools: string[];
-  value: { points: GraphPoint[]; lines: GraphLine[] };
-  onChange: (value: { points: GraphPoint[]; lines: GraphLine[] }) => void;
+  value: GraphValue;
+  onChange: (value: GraphValue) => void;
   disabled?: boolean;
   width?: number;
   height?: number;
-  /** Readonly mode for review/evaluation */
   readonly?: boolean;
-  /** Expected answer overlay for comparison */
-  expectedAnswer?: { points: GraphPoint[]; lines: GraphLine[] };
-  /** Which view: 'student' | 'correct' | 'compare' */
+  expectedAnswer?: GraphValue;
   viewMode?: 'student' | 'correct' | 'compare';
 }
 
+// ── constants ─────────────────────────────────────────────────────────────────
+const ZOOM_FACTOR = 1.25;
+const BLANK_W = 68;
+const BLANK_H = 26;
+
 const TOOL_DEFS = [
-  { id: 'point', label: 'Point', icon: <Circle className="w-4 h-4" /> },
-  { id: 'line', label: 'Line', icon: <Minus className="w-4 h-4" /> },
-  { id: 'move', label: 'Move', icon: <MousePointer2 className="w-4 h-4" /> },
-  { id: 'erase', label: 'Erase', icon: <Trash2 className="w-4 h-4" /> },
+  { id: 'point',      label: 'Point',  icon: <Circle       className="w-4 h-4" /> },
+  { id: 'line',       label: 'Line',   icon: <Minus        className="w-4 h-4" /> },
+  { id: 'move',       label: 'Move',   icon: <MousePointer2 className="w-4 h-4" /> },
+  { id: 'fill_blank', label: 'Fill',   icon: <Type         className="w-4 h-4" /> },
+  { id: 'erase',      label: 'Erase',  icon: <Trash2       className="w-4 h-4" /> },
 ];
 
+// ── component ─────────────────────────────────────────────────────────────────
 const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
   canvasConfig,
   allowedTools,
   value,
   onChange,
-  disabled = false,
-  width = 400,
-  height = 400,
-  readonly = false,
+  disabled  = false,
+  width     = 400,
+  height    = 400,
+  readonly  = false,
   expectedAnswer,
-  viewMode = 'student',
+  viewMode  = 'student',
 }) => {
-  const { xMin, xMax, yMin, yMax, gridStep, showNumbers, showAxisLabels } = canvasConfig;
-  const [activeTool, setActiveTool] = useState<string>(allowedTools[0] || 'point');
-  const [lineStart, setLineStart] = useState<{ x: number; y: number } | null>(null);
-  const [dragPointId, setDragPointId] = useState<string | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const { gridStep, showNumbers, showAxisLabels } = canvasConfig;
+  const blanks: GraphBlank[] = value.blanks ?? [];
 
+  // ── view state ──────────────────────────────────────────────────────────────
+  const [view, setView] = useState({
+    xMin: canvasConfig.xMin, xMax: canvasConfig.xMax,
+    yMin: canvasConfig.yMin, yMax: canvasConfig.yMax,
+  });
+
+  useEffect(() => {
+    setView({
+      xMin: canvasConfig.xMin, xMax: canvasConfig.xMax,
+      yMin: canvasConfig.yMin, yMax: canvasConfig.yMax,
+    });
+  }, [canvasConfig.xMin, canvasConfig.xMax, canvasConfig.yMin, canvasConfig.yMax]);
+
+  const { xMin, xMax, yMin, yMax } = view;
   const xRange = (xMax - xMin) || 1;
   const yRange = (yMax - yMin) || 1;
-  const toSvgX = (gx: number) => ((gx - xMin) / xRange) * width;
-  const toSvgY = (gy: number) => height - ((gy - yMin) / yRange) * height;
-  const toGraphX = (sx: number) => {
-    const raw = (sx / width) * xRange + xMin;
-    const step = gridStep || 1;
-    return Math.round(raw / step) * step;
-  };
-  const toGraphY = (sy: number) => {
-    const raw = ((height - sy) / height) * yRange + yMin;
-    const step = gridStep || 1;
-    return Math.round(raw / step) * step;
+
+  const toSvgX     = useCallback((gx: number) => ((gx - xMin) / xRange) * width,         [xMin, xRange, width]);
+  const toSvgY     = useCallback((gy: number) => height - ((gy - yMin) / yRange) * height, [yMin, yRange, height]);
+  const toGraphXRaw = useCallback((sx: number) => (sx / width)  * xRange + xMin,          [width, xRange, xMin]);
+  const toGraphYRaw = useCallback((sy: number) => ((height - sy) / height) * yRange + yMin, [height, yRange, yMin]);
+  const snap = useCallback((v: number) => {
+    const s = gridStep || 1; return Math.round(v / s) * s;
+  }, [gridStep]);
+  const toGraphX = useCallback((sx: number) => snap(toGraphXRaw(sx)), [toGraphXRaw, snap]);
+  const toGraphY = useCallback((sy: number) => snap(toGraphYRaw(sy)), [toGraphYRaw, snap]);
+
+  // ── tool / drag / line state ────────────────────────────────────────────────
+  const [activeTool, setActiveTool] = useState<string>(allowedTools[0] || 'point');
+  const [lineStart,  setLineStart]  = useState<{ x: number; y: number } | null>(null);
+  const [dragging,   setDragging]   = useState(false);
+  const svgRef    = useRef<SVGSVGElement>(null);
+  const dragState = useRef<{
+    kind: 'pan' | 'point';
+    startClient: { x: number; y: number };
+    startView?: typeof view;
+    pointId?: string;
+  } | null>(null);
+
+  // ── fill-blank popup state ──────────────────────────────────────────────────
+  const [activeBlank, setActiveBlank] = useState<GraphBlank | null>(null);
+  const [draftAnswer, setDraftAnswer] = useState('');
+
+  // close MathLive keyboard when popup closes
+  useEffect(() => {
+    if (!activeBlank) window.mathVirtualKeyboard?.hide();
+  }, [activeBlank]);
+
+  // ── zoom helpers ────────────────────────────────────────────────────────────
+  const zoomAround = useCallback((cx: number, cy: number, f: number) => {
+    setView(v => ({
+      xMin: cx + (v.xMin - cx) * f, xMax: cx + (v.xMax - cx) * f,
+      yMin: cy + (v.yMin - cy) * f, yMax: cy + (v.yMax - cy) * f,
+    }));
+  }, []);
+  const mid = useCallback(() => ({ cx: (xMin + xMax) / 2, cy: (yMin + yMax) / 2 }), [xMin, xMax, yMin, yMax]);
+  const zoomIn  = useCallback(() => { const {cx,cy}=mid(); zoomAround(cx,cy, 1/ZOOM_FACTOR); }, [mid, zoomAround]);
+  const zoomOut = useCallback(() => { const {cx,cy}=mid(); zoomAround(cx,cy, ZOOM_FACTOR); },   [mid, zoomAround]);
+  const resetView = useCallback(() => setView({
+    xMin: canvasConfig.xMin, xMax: canvasConfig.xMax,
+    yMin: canvasConfig.yMin, yMax: canvasConfig.yMax,
+  }), [canvasConfig]);
+
+  // ── scroll-wheel zoom ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      zoomAround(
+        toGraphXRaw(e.clientX - rect.left),
+        toGraphYRaw(e.clientY - rect.top),
+        e.deltaY > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR
+      );
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [toGraphXRaw, toGraphYRaw, zoomAround]);
+
+  // ── helpers ─────────────────────────────────────────────────────────────────
+  const getSvgPos = (e: React.MouseEvent | MouseEvent) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return { sx: 0, sy: 0 };
+    return { sx: e.clientX - rect.left, sy: e.clientY - rect.top };
   };
 
+  const findNearestPoint = useCallback((gx: number, gy: number, thr: number) => {
+    let best: GraphPoint | null = null, bestD = Infinity;
+    for (const p of value.points) {
+      const d = Math.hypot(p.x - gx, p.y - gy);
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return bestD <= thr ? best : null;
+  }, [value.points]);
+
+  const findNearestBlank = useCallback((sx: number, sy: number) => {
+    // match in SVG pixel space so hit area is consistent at all zoom levels
+    for (const b of blanks) {
+      const bx = toSvgX(b.x), by = toSvgY(b.y);
+      if (Math.abs(sx - bx) <= BLANK_W / 2 + 4 && Math.abs(sy - by) <= BLANK_H / 2 + 4) return b;
+    }
+    return null;
+  }, [blanks, toSvgX, toSvgY]);
+
+  // ── mouse-down (Move tool: pan or drag point) ───────────────────────────────
+  const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (readonly || disabled || activeTool !== 'move') return;
+    e.preventDefault();
+    const { sx, sy } = getSvgPos(e);
+    const nearest = findNearestPoint(toGraphXRaw(sx), toGraphYRaw(sy), xRange * 0.04);
+    dragState.current = nearest
+      ? { kind: 'point', startClient: { x: e.clientX, y: e.clientY }, pointId: nearest.id }
+      : { kind: 'pan',   startClient: { x: e.clientX, y: e.clientY }, startView: { ...view } };
+    setDragging(true);
+  }, [readonly, disabled, activeTool, findNearestPoint, toGraphXRaw, toGraphYRaw, xRange, view]);
+
+  // ── global mouse-move / up while dragging ───────────────────────────────────
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => {
+      const ds = dragState.current; if (!ds) return;
+      if (ds.kind === 'pan' && ds.startView) {
+        const dx = e.clientX - ds.startClient.x;
+        const dy = e.clientY - ds.startClient.y;
+        const dxR = ds.startView.xMax - ds.startView.xMin;
+        const dyR = ds.startView.yMax - ds.startView.yMin;
+        setView({
+          xMin: ds.startView.xMin - (dx / width)  * dxR,
+          xMax: ds.startView.xMax - (dx / width)  * dxR,
+          yMin: ds.startView.yMin + (dy / height) * dyR,
+          yMax: ds.startView.yMax + (dy / height) * dyR,
+        });
+      } else if (ds.kind === 'point' && ds.pointId) {
+        const rect = svgRef.current?.getBoundingClientRect(); if (!rect) return;
+        const nx = snap(toGraphXRaw(e.clientX - rect.left));
+        const ny = snap(toGraphYRaw(e.clientY - rect.top));
+        onChange({ ...value, points: value.points.map(p => p.id === ds.pointId ? { ...p, x: nx, y: ny } : p) });
+      }
+    };
+    const onUp = () => { dragState.current = null; setDragging(false); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [dragging, width, height, snap, toGraphXRaw, toGraphYRaw, value, onChange]);
+
+  // ── click ───────────────────────────────────────────────────────────────────
   const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (readonly || disabled) return;
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
+    if (readonly || disabled || dragging) return;
+    const { sx, sy } = getSvgPos(e);
     const gx = toGraphX(sx);
     const gy = toGraphY(sy);
 
     if (activeTool === 'point') {
-      const newPt: GraphPoint = { id: `pt-${Date.now()}`, x: gx, y: gy };
-      onChange({ ...value, points: [...value.points, newPt] });
+      onChange({ ...value, points: [...value.points, { id: `pt-${Date.now()}`, x: gx, y: gy }] });
+
     } else if (activeTool === 'line') {
-      if (!lineStart) {
-        setLineStart({ x: gx, y: gy });
-      } else {
-        const newLine: GraphLine = { id: `ln-${Date.now()}`, from: lineStart, to: { x: gx, y: gy } };
-        onChange({ ...value, lines: [...value.lines, newLine] });
+      if (!lineStart) { setLineStart({ x: gx, y: gy }); }
+      else {
+        onChange({ ...value, lines: [...value.lines, { id: `ln-${Date.now()}`, from: lineStart, to: { x: gx, y: gy } }] });
         setLineStart(null);
       }
-    } else if (activeTool === 'erase') {
-      // Remove nearest point or line endpoint
-      const tolerance = (xRange / width) * 15;
-      const remaining = value.points.filter(p => Math.abs(p.x - gx) > tolerance || Math.abs(p.y - gy) > tolerance);
-      if (remaining.length < value.points.length) {
-        onChange({ ...value, points: remaining });
+
+    } else if (activeTool === 'fill_blank') {
+      const hit = findNearestBlank(sx, sy);
+      if (hit) {
+        // edit existing blank
+        setActiveBlank(hit);
+        setDraftAnswer(hit.answer);
       } else {
-        const remainingLines = value.lines.filter(l => {
-          const d1 = Math.abs(l.from.x - gx) + Math.abs(l.from.y - gy);
-          const d2 = Math.abs(l.to.x - gx) + Math.abs(l.to.y - gy);
-          return d1 > tolerance * 2 && d2 > tolerance * 2;
-        });
-        if (remainingLines.length < value.lines.length) {
-          onChange({ ...value, lines: remainingLines });
-        }
+        // create new blank and immediately open popup
+        const nb: GraphBlank = { id: `bl-${Date.now()}`, x: gx, y: gy, answer: '' };
+        onChange({ ...value, blanks: [...blanks, nb] });
+        setActiveBlank(nb);
+        setDraftAnswer('');
       }
+
+    } else if (activeTool === 'erase') {
+      const tol = xRange * 0.04;
+      // erase blank first
+      const hitBlank = findNearestBlank(sx, sy);
+      if (hitBlank) {
+        onChange({ ...value, blanks: blanks.filter(b => b.id !== hitBlank.id) });
+        return;
+      }
+      const pts = value.points.filter(p => Math.hypot(p.x - gx, p.y - gy) > tol);
+      if (pts.length < value.points.length) { onChange({ ...value, points: pts }); return; }
+      const lns = value.lines.filter(l =>
+        Math.hypot(l.from.x - gx, l.from.y - gy) > tol * 2 &&
+        Math.hypot(l.to.x   - gx, l.to.y   - gy) > tol * 2
+      );
+      if (lns.length < value.lines.length) onChange({ ...value, lines: lns });
     }
-  }, [activeTool, lineStart, value, readonly, disabled, xMin, xMax, yMin, yMax, width, height, gridStep]);
+  }, [activeTool, lineStart, value, blanks, readonly, disabled, dragging,
+      toGraphX, toGraphY, xRange, onChange, findNearestBlank]);
 
-  const handleClear = () => {
-    onChange({ points: [], lines: [] });
-    setLineStart(null);
-  };
+  // ── confirm blank answer ────────────────────────────────────────────────────
+  const confirmBlank = useCallback(() => {
+    if (!activeBlank) return;
+    onChange({
+      ...value,
+      blanks: blanks.map(b => b.id === activeBlank.id ? { ...b, answer: draftAnswer } : b),
+    });
+    setActiveBlank(null);
+  }, [activeBlank, draftAnswer, value, blanks, onChange]);
 
-  // Build grid
+  const handleClear = () => { onChange({ points: [], lines: [], blanks: [] }); setLineStart(null); };
+
+  // ── cursor ──────────────────────────────────────────────────────────────────
+  const cursor =
+    readonly || disabled       ? 'default'
+    : activeTool === 'move'    ? (dragging ? 'grabbing' : 'grab')
+    : activeTool === 'fill_blank' ? 'cell'
+    : 'crosshair';
+
+  // ── grid ────────────────────────────────────────────────────────────────────
   const step = gridStep || 1;
-  const gridElements: React.ReactNode[] = [];
-  for (let gx = Math.ceil(xMin / step) * step; gx <= xMax; gx += step) {
-    const sx = toSvgX(gx);
-    gridElements.push(<line key={`v-${gx}`} x1={sx} y1={0} x2={sx} y2={height} className="stroke-border" strokeWidth={0.5} />);
+  const gridLines: React.ReactNode[] = [];
+  for (let gx = Math.ceil(xMin / step) * step; gx <= xMax + step * 0.01; gx += step) {
+    const sx = toSvgX(gx), isAxis = Math.abs(gx) < step * 0.01;
+    gridLines.push(<line key={`v-${gx}`} x1={sx} y1={0} x2={sx} y2={height}
+      stroke={isAxis ? 'hsl(var(--foreground))' : 'hsl(var(--border))'}
+      strokeWidth={isAxis ? 1.5 : 0.5} />);
   }
-  for (let gy = Math.ceil(yMin / step) * step; gy <= yMax; gy += step) {
-    const sy = toSvgY(gy);
-    gridElements.push(<line key={`h-${gy}`} x1={0} y1={sy} x2={width} y2={sy} className="stroke-border" strokeWidth={0.5} />);
+  for (let gy = Math.ceil(yMin / step) * step; gy <= yMax + step * 0.01; gy += step) {
+    const sy = toSvgY(gy), isAxis = Math.abs(gy) < step * 0.01;
+    gridLines.push(<line key={`h-${gy}`} x1={0} y1={sy} x2={width} y2={sy}
+      stroke={isAxis ? 'hsl(var(--foreground))' : 'hsl(var(--border))'}
+      strokeWidth={isAxis ? 1.5 : 0.5} />);
   }
 
-  // Points and lines to render
-  const showStudent = viewMode === 'student' || viewMode === 'compare';
+  const tickLabels: React.ReactNode[] = [];
+  if (showNumbers) {
+    const axisY = toSvgY(0), axisX = toSvgX(0);
+    for (let gx = Math.ceil(xMin / step) * step; gx <= xMax; gx += step) {
+      if (Math.abs(gx) < step * 0.01) continue;
+      tickLabels.push(<text key={`nx-${gx}`} x={toSvgX(gx)}
+        y={Math.min(Math.max(axisY + 14, 14), height - 4)}
+        textAnchor="middle" fontSize={10} fill="hsl(var(--muted-foreground))">
+        {Number(gx.toFixed(4))}</text>);
+    }
+    for (let gy = Math.ceil(yMin / step) * step; gy <= yMax; gy += step) {
+      if (Math.abs(gy) < step * 0.01) continue;
+      tickLabels.push(<text key={`ny-${gy}`}
+        x={Math.min(Math.max(axisX - 6, 4), width - 4)} y={toSvgY(gy) + 4}
+        textAnchor="end" fontSize={10} fill="hsl(var(--muted-foreground))">
+        {Number(gy.toFixed(4))}</text>);
+    }
+  }
+
+  const showStudent  = viewMode === 'student' || viewMode === 'compare';
   const showExpected = (viewMode === 'correct' || viewMode === 'compare') && expectedAnswer;
-  const studentPts = showStudent ? value.points : [];
-  const studentLns = showStudent ? value.lines : [];
-  const expectedPts = showExpected ? expectedAnswer!.points : [];
-  const expectedLns = showExpected ? expectedAnswer!.lines : [];
-
-  const visibleTools = TOOL_DEFS.filter(t => allowedTools.includes(t.id));
+  const studentPts   = showStudent ? value.points : [];
+  const studentLns   = showStudent ? value.lines  : [];
+  // fill_blank is always shown — it's a permanent feature regardless of saved config
+  const visibleTools = TOOL_DEFS.filter(t => allowedTools.includes(t.id) || t.id === 'fill_blank');
 
   return (
     <div className="space-y-3">
@@ -157,23 +334,34 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex bg-muted rounded-lg p-1 gap-0.5">
             {visibleTools.map(tool => (
-              <Button
-                key={tool.id}
+              <Button key={tool.id}
                 variant={activeTool === tool.id ? 'default' : 'ghost'}
-                size="sm"
-                className="h-8 px-2 text-xs"
-                onClick={() => { setActiveTool(tool.id); setLineStart(null); }}
-              >
+                size="sm" className="h-8 px-2 text-xs"
+                onClick={() => { setActiveTool(tool.id); setLineStart(null); }}>
                 {tool.icon}
                 <span className="ml-1 hidden sm:inline">{tool.label}</span>
               </Button>
             ))}
           </div>
+
+          <div className="flex bg-muted rounded-lg p-1 gap-0.5">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={zoomIn}  title="Zoom in">
+              <ZoomIn  className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={zoomOut} title="Zoom out">
+              <ZoomOut className="w-4 h-4" />
+            </Button>
+          </div>
+
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleClear}>
             <RotateCcw className="w-3.5 h-3.5 mr-1" />Reset
           </Button>
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={resetView}>
+            ⊡ View
+          </Button>
+
           <Badge variant="secondary" className="text-xs ml-auto">
-            {value.points.length} pts, {value.lines.length} lines
+            {value.points.length} pts · {value.lines.length} lines · {blanks.length} blanks
           </Badge>
         </div>
       )}
@@ -181,78 +369,106 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
       {/* Canvas */}
       <div className="flex justify-center">
         <div className="border-2 border-border rounded-xl overflow-hidden bg-card">
-          <svg
-            ref={svgRef}
-            width={width}
-            height={height}
-            className={cn('block', !readonly && !disabled && 'cursor-crosshair')}
-            onClick={handleClick}
-          >
-            {/* Grid */}
-            {gridElements}
+          <svg ref={svgRef} width={width} height={height}
+            style={{ cursor, display: 'block', userSelect: 'none' }}
+            onClick={handleClick} onMouseDown={handleMouseDown}>
 
-            {/* Axes */}
-            <line x1={toSvgX(0)} y1={0} x2={toSvgX(0)} y2={height} className="stroke-foreground" strokeWidth={1.5} />
-            <line x1={0} y1={toSvgY(0)} x2={width} y2={toSvgY(0)} className="stroke-foreground" strokeWidth={1.5} />
+            {gridLines}
+            {tickLabels}
 
-            {/* Tick numbers */}
-            {showNumbers && Array.from({ length: Math.floor((xMax - xMin) / step) + 1 }).map((_, i) => {
-              const gx = Math.ceil(xMin / step) * step + i * step;
-              if (gx === 0 || gx > xMax) return null;
-              return <text key={`nx-${gx}`} x={toSvgX(gx)} y={toSvgY(0) + 14} textAnchor="middle" className="fill-muted-foreground text-[10px]">{gx}</text>;
-            })}
-            {showNumbers && Array.from({ length: Math.floor((yMax - yMin) / step) + 1 }).map((_, i) => {
-              const gy = Math.ceil(yMin / step) * step + i * step;
-              if (gy === 0 || gy > yMax) return null;
-              return <text key={`ny-${gy}`} x={toSvgX(0) - 6} y={toSvgY(gy) + 4} textAnchor="end" className="fill-muted-foreground text-[10px]">{gy}</text>;
-            })}
-
-            {/* Axis labels */}
             {showAxisLabels && (
               <>
-                <text x={width - 12} y={toSvgY(0) - 6} className="fill-foreground text-xs font-medium">x</text>
-                <text x={toSvgX(0) + 8} y={14} className="fill-foreground text-xs font-medium">y</text>
+                <text x={width - 12} y={Math.min(Math.max(toSvgY(0) - 6, 10), height - 6)}
+                  fontSize={12} fontWeight={500} fill="hsl(var(--foreground))">x</text>
+                <text x={Math.min(Math.max(toSvgX(0) + 8, 4), width - 14)} y={14}
+                  fontSize={12} fontWeight={500} fill="hsl(var(--foreground))">y</text>
               </>
             )}
 
-            {/* Expected answer (dashed, secondary color) */}
-            {expectedLns.map(l => (
+            {/* Expected overlay */}
+            {showExpected && expectedAnswer!.lines.map(l => (
               <line key={`el-${l.id}`}
-                x1={toSvgX(l.from.x)} y1={toSvgY(l.from.y)}
-                x2={toSvgX(l.to.x)} y2={toSvgY(l.to.y)}
-                stroke="hsl(var(--accent-foreground))"
-                strokeWidth={2} strokeDasharray="6 3" opacity={0.5}
-              />
+                x1={toSvgX(l.from.x)} y1={toSvgY(l.from.y)} x2={toSvgX(l.to.x)} y2={toSvgY(l.to.y)}
+                stroke="hsl(var(--accent-foreground))" strokeWidth={2} strokeDasharray="6 3" opacity={0.5} />
             ))}
-            {expectedPts.map(p => (
+            {showExpected && expectedAnswer!.points.map(p => (
               <circle key={`ep-${p.id}`} cx={toSvgX(p.x)} cy={toSvgY(p.y)} r={5}
-                stroke="hsl(var(--accent-foreground))" strokeWidth={2} fill="none" opacity={0.5}
-              />
+                stroke="hsl(var(--accent-foreground))" strokeWidth={2} fill="none" opacity={0.5} />
             ))}
 
             {/* Student lines */}
             {studentLns.map(l => (
               <line key={l.id}
-                x1={toSvgX(l.from.x)} y1={toSvgY(l.from.y)}
-                x2={toSvgX(l.to.x)} y2={toSvgY(l.to.y)}
-                stroke="hsl(var(--primary))" strokeWidth={2}
-              />
+                x1={toSvgX(l.from.x)} y1={toSvgY(l.from.y)} x2={toSvgX(l.to.x)} y2={toSvgY(l.to.y)}
+                stroke="hsl(var(--primary))" strokeWidth={2} />
             ))}
 
-            {/* Line start preview */}
             {lineStart && (
-              <circle cx={toSvgX(lineStart.x)} cy={toSvgY(lineStart.y)} r={5} className="fill-primary" opacity={0.5} />
+              <circle cx={toSvgX(lineStart.x)} cy={toSvgY(lineStart.y)} r={5}
+                fill="hsl(var(--primary))" opacity={0.5} />
             )}
 
             {/* Student points */}
             {studentPts.map(p => (
               <g key={p.id}>
-                <circle cx={toSvgX(p.x)} cy={toSvgY(p.y)} r={5} className="fill-primary" />
-                <text x={toSvgX(p.x)} y={toSvgY(p.y) - 8} textAnchor="middle" className="fill-foreground text-[10px] font-medium">
-                  ({p.x},{p.y})
+                <circle cx={toSvgX(p.x)} cy={toSvgY(p.y)} r={6} fill="hsl(var(--primary))"
+                  style={{ cursor: activeTool === 'move' ? 'grab' : undefined }} />
+                <text x={toSvgX(p.x)} y={toSvgY(p.y) - 9} textAnchor="middle"
+                  fontSize={10} fontWeight={500} fill="hsl(var(--foreground))">
+                  ({Number(p.x.toFixed(2))},{Number(p.y.toFixed(2))})
                 </text>
               </g>
             ))}
+
+            {/* Fill-blank markers */}
+            {blanks.map(b => {
+              const bx = toSvgX(b.x);
+              const by = toSvgY(b.y);
+              const answered = !!b.answer;
+              const isActive = activeBlank?.id === b.id;
+              return (
+                <g key={b.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (activeTool === 'fill_blank' || activeTool === 'move') {
+                      setActiveBlank(b);
+                      setDraftAnswer(b.answer);
+                    }
+                  }}>
+                  {/* Connector dot */}
+                  <circle cx={bx} cy={by} r={3}
+                    fill={answered ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+                    opacity={0.7} />
+                  {/* Box */}
+                  <rect
+                    x={bx - BLANK_W / 2} y={by - BLANK_H / 2 - 18}
+                    width={BLANK_W} height={BLANK_H} rx={5}
+                    fill={isActive ? 'hsl(var(--primary) / 0.15)'
+                         : answered ? 'hsl(var(--primary) / 0.08)'
+                         : 'hsl(var(--background))'}
+                    stroke={isActive ? 'hsl(var(--primary))'
+                           : answered ? 'hsl(var(--primary) / 0.6)'
+                           : 'hsl(var(--muted-foreground) / 0.5)'}
+                    strokeWidth={1.5}
+                    strokeDasharray={answered ? undefined : '4 2'}
+                  />
+                  {/* Connector line from dot to box bottom-centre */}
+                  <line x1={bx} y1={by - 3} x2={bx} y2={by - 18 + BLANK_H / 2}
+                    stroke={answered ? 'hsl(var(--primary) / 0.4)' : 'hsl(var(--muted-foreground) / 0.3)'}
+                    strokeWidth={1} strokeDasharray="2 2" />
+                  {/* Text inside box */}
+                  <text x={bx} y={by - 18 + BLANK_H / 2 + 1}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontSize={10} fontWeight={500}
+                    fill={answered ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}>
+                    {answered
+                      ? (b.answer.length > 9 ? b.answer.slice(0, 8) + '…' : b.answer)
+                      : '✎ fill'}
+                  </text>
+                </g>
+              );
+            })}
           </svg>
         </div>
       </div>
@@ -260,12 +476,82 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
       {/* Instruction */}
       {!readonly && (
         <p className="text-xs text-muted-foreground text-center">
-          {activeTool === 'point' && 'Click to place a point (snaps to grid)'}
-          {activeTool === 'line' && (lineStart ? 'Click to set the end point' : 'Click to set the start point of a line')}
-          {activeTool === 'move' && 'Drag points to reposition them'}
-          {activeTool === 'erase' && 'Click near a point or line to remove it'}
+          {activeTool === 'point'      && 'Click to place a point'}
+          {activeTool === 'line'       && (lineStart ? 'Click to set the end point' : 'Click to set the start point')}
+          {activeTool === 'move'       && 'Drag point to move · drag graph to pan · scroll to zoom'}
+          {activeTool === 'fill_blank' && 'Click anywhere to add a fill-in-blank · click an existing blank to edit it'}
+          {activeTool === 'erase'      && 'Click near a point, line or blank to remove it'}
         </p>
       )}
+
+      {/* ── Fill-blank answer popup ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {activeBlank && (
+          <>
+            <motion.div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setActiveBlank(null)} />
+
+            <motion.div
+              className="fixed z-50 left-1/2 -translate-x-1/2 top-[12vh] w-full max-w-lg bg-background border rounded-2xl shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1,    y: 0 }}
+              exit={{   opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+              onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Fill in the blank
+                    <span className="text-muted-foreground font-normal ml-1.5 text-xs">
+                      at ({Number(activeBlank.x.toFixed(2))}, {Number(activeBlank.y.toFixed(2))})
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Type your answer · toggle <span className="font-medium text-primary">⌨</span> for the equation keyboard
+                  </p>
+                </div>
+                <button onClick={() => setActiveBlank(null)}
+                  className="ml-3 rounded-full p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* MathLive input */}
+              <div className="px-5 py-4">
+                <MathLiveKeyboard
+                  value={draftAnswer}
+                  onChange={setDraftAnswer}
+                  onSubmit={confirmBlank}
+                  placeholder="Type or use the equation keyboard…"
+                  showKeyboard={true}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 px-5 pb-5">
+                <Button variant="outline" size="sm" className="flex-1"
+                  onClick={() => setDraftAnswer('')}>
+                  Clear
+                </Button>
+                <Button variant="destructive" size="sm" className="flex-1"
+                  onClick={() => {
+                    onChange({ ...value, blanks: blanks.filter(b => b.id !== activeBlank.id) });
+                    setActiveBlank(null);
+                  }}>
+                  <Trash2 className="w-4 h-4 mr-1.5" /> Remove blank
+                </Button>
+                <Button size="sm" className="flex-[2]" onClick={confirmBlank}
+                  disabled={!draftAnswer.trim()}>
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirm
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
