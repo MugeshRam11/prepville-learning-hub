@@ -428,10 +428,10 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
               const isActive = activeBlank?.id === b.id;
               return (
                 <g key={b.id}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: readonly || disabled ? 'default' : 'pointer' }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (activeTool === 'fill_blank' || activeTool === 'move') {
+                    if (!readonly && !disabled && (activeTool === 'fill_blank' || activeTool === 'move')) {
                       setActiveBlank(b);
                       setDraftAnswer(b.answer);
                     }

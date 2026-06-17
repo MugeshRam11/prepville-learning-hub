@@ -583,57 +583,136 @@ const GraphPlotReview: React.FC<{
   const [viewMode, setViewMode] = useState<'student' | 'correct' | 'compare'>('compare');
   const parsed = parseAnswer(studentAnswer);
 
-  const studentPts = parsed?.points || [];
-  const studentLns = parsed?.lines || [];
-  const expectedPts = config?.expectedAnswer?.points || [];
-  const expectedLns = config?.expectedAnswer?.lines || [];
-  const canvas = config?.canvas || { xMin: -10, xMax: 10, yMin: -10, yMax: 10, gridStep: 1, showNumbers: true, showAxisLabels: true };
+  const studentPts    = parsed?.points  || [];
+  const studentLns    = parsed?.lines   || [];
+  const studentBlanks = parsed?.blanks  || [];
+  const expectedPts   = config?.expectedAnswer?.points  || [];
+  const expectedLns   = config?.expectedAnswer?.lines   || [];
+  const expectedBlanks: any[] = config?.expectedAnswer?.blanks || [];
+  const canvas  = config?.canvas  || { xMin: -10, xMax: 10, yMin: -10, yMax: 10, gridStep: 1, showNumbers: true, showAxisLabels: true };
   const scoring = config?.scoring || {};
 
-  // Auto-score: count matched points within tolerance
+  // Auto-score points within tolerance
   const tolerance = scoring.pointTolerance || 0.5;
   let matchedPts = 0;
   expectedPts.forEach((ep: any) => {
-    if (studentPts.some((sp: any) => Math.abs(sp.x - ep.x) <= tolerance && Math.abs(sp.y - ep.y) <= tolerance)) {
-      matchedPts++;
-    }
+    if (studentPts.some((sp: any) =>
+      Math.abs(sp.x - ep.x) <= tolerance && Math.abs(sp.y - ep.y) <= tolerance
+    )) matchedPts++;
   });
+
+  // Auto-score blanks: match by proximity + answer text (case-insensitive trim)
+  const blankMatches = expectedBlanks.map((eb: any) => {
+    const nearby = studentBlanks.find((sb: any) =>
+      Math.abs(sb.x - eb.x) <= tolerance * 2 && Math.abs(sb.y - eb.y) <= tolerance * 2
+    );
+    const isCorrect = nearby &&
+      nearby.answer?.trim().toLowerCase() === eb.answer?.trim().toLowerCase();
+    return { expected: eb, student: nearby || null, isCorrect: !!isCorrect };
+  });
+  const matchedBlanks = blankMatches.filter((m: any) => m.isCorrect).length;
+
+  const hasExpected = expectedPts.length > 0 || expectedLns.length > 0 || expectedBlanks.length > 0;
 
   return (
     <div className="space-y-3 border rounded-xl p-4 bg-background">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">📊 Graph Plot</span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {expectedPts.length > 0 && (
             <Badge variant={matchedPts === expectedPts.length ? 'default' : 'secondary'} className="text-xs">
               Points: {matchedPts}/{expectedPts.length}
+            </Badge>
+          )}
+          {expectedBlanks.length > 0 && (
+            <Badge variant={matchedBlanks === expectedBlanks.length ? 'default' : 'secondary'} className="text-xs">
+              Blanks: {matchedBlanks}/{expectedBlanks.length}
             </Badge>
           )}
         </div>
       </div>
 
       {/* View mode switcher */}
-      {mode === 'admin-review' && (expectedPts.length > 0 || expectedLns.length > 0) && (
+      {mode === 'admin-review' && hasExpected && (
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {(['compare', 'student', 'correct'] as const).map(m => (
-            <Button key={m} size="sm" variant={viewMode === m ? 'default' : 'ghost'} className="h-7 text-xs flex-1" onClick={() => setViewMode(m)}>
+            <Button key={m} size="sm" variant={viewMode === m ? 'default' : 'ghost'}
+              className="h-7 text-xs flex-1" onClick={() => setViewMode(m)}>
               {m === 'compare' ? 'Compare' : m === 'student' ? 'Student' : 'Expected'}
             </Button>
           ))}
         </div>
       )}
 
+      {/* Graph canvas — student answer with optional expected overlay */}
       <GraphPlotPlayer
         canvasConfig={canvas}
         allowedTools={[]}
-        value={{ points: studentPts, lines: studentLns }}
+        value={{ points: studentPts, lines: studentLns, blanks: studentBlanks }}
         onChange={() => {}}
         readonly
-        expectedAnswer={{ points: expectedPts, lines: expectedLns }}
+        expectedAnswer={{ points: expectedPts, lines: expectedLns, blanks: expectedBlanks }}
         viewMode={viewMode}
         width={380}
         height={380}
       />
+
+      {/* Blank answers comparison table */}
+      {mode === 'admin-review' && blankMatches.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fill-blank answers</p>
+          <div className="grid gap-1.5">
+            {blankMatches.map((m: any, idx: number) => (
+              <div key={idx} className={cn(
+                'grid grid-cols-[auto_1fr_1fr] items-center gap-3 rounded-lg border p-2.5 text-sm',
+                m.isCorrect
+                  ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+              )}>
+                <div className="flex items-center gap-1.5">
+                  {m.isCorrect
+                    ? <CheckCircle className="w-4 h-4 text-green-600" />
+                    : <XCircle    className="w-4 h-4 text-red-600" />}
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    ({Number(m.expected.x.toFixed(1))}, {Number(m.expected.y.toFixed(1))})
+                  </span>
+                </div>
+                <div className="rounded border bg-background px-2 py-1 text-xs font-mono truncate">
+                  {m.student?.answer || <span className="italic text-muted-foreground">no answer</span>}
+                </div>
+                <div className="rounded border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/20 px-2 py-1 text-xs font-mono text-green-700 dark:text-green-300 truncate">
+                  ✓ {m.expected.answer}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Unanswered student blanks (placed but no expected match) */}
+      {mode === 'admin-review' && studentBlanks.filter((sb: any) =>
+        !expectedBlanks.some((eb: any) =>
+          Math.abs(sb.x - eb.x) <= tolerance * 2 && Math.abs(sb.y - eb.y) <= tolerance * 2
+        )
+      ).length > 0 && (
+        <div className="pt-1 space-y-1">
+          <p className="text-xs text-muted-foreground">Extra blanks added by student (no expected answer set):</p>
+          <div className="flex flex-wrap gap-1.5">
+            {studentBlanks
+              .filter((sb: any) =>
+                !expectedBlanks.some((eb: any) =>
+                  Math.abs(sb.x - eb.x) <= tolerance * 2 && Math.abs(sb.y - eb.y) <= tolerance * 2
+                )
+              )
+              .map((sb: any, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs font-mono">
+                  ({Number(sb.x.toFixed(1))},{Number(sb.y.toFixed(1))}) → {sb.answer || '—'}
+                </Badge>
+              ))}
+          </div>
+        </div>
+      )}
 
       {config?.evaluationNotes && mode === 'admin-review' && (
         <div className="pt-2 border-t">
