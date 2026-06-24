@@ -342,14 +342,16 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         }));
         
         return (
-          <PuzzleDragDrop
-            items={dragItems}
-            slots={puzzleSlots}
-            onMatchesChange={(matches) => onChange(matches)}
-            showFeedback={showValidation}
-            puzzleTitle={questionText || "Match the items"}
-            initialMatches={value && typeof value === 'object' ? value : undefined}
-          />
+          <div className={disabled ? "pointer-events-none opacity-60" : undefined}>
+            <PuzzleDragDrop
+              items={dragItems}
+              slots={puzzleSlots}
+              onMatchesChange={(matches) => onChange(matches)}
+              showFeedback={showValidation}
+              puzzleTitle={questionText || "Match the items"}
+              initialMatches={value && typeof value === 'object' ? value : undefined}
+            />
+          </div>
         );
       }
 
@@ -408,14 +410,16 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         }
         
         return (
-          <ImageDropZone
-            imageUrl={imageUrl}
-            dropZones={dropZones.map(z => ({ ...z, correctLabel: z.label || '' }))}
-            draggableLabels={draggableLabels}
-            onPlacementsChange={(placements) => onChange(placements)}
-            showFeedback={false}
-            initialPlacements={value && typeof value === 'object' ? value : undefined}
-          />
+          <div className={disabled ? "pointer-events-none opacity-60" : undefined}>
+            <ImageDropZone
+              imageUrl={imageUrl}
+              dropZones={dropZones.map(z => ({ ...z, correctLabel: z.label || '' }))}
+              draggableLabels={draggableLabels}
+              onPlacementsChange={(placements) => onChange(placements)}
+              showFeedback={false}
+              initialPlacements={value && typeof value === 'object' ? value : undefined}
+            />
+          </div>
         );
       }
 
@@ -441,12 +445,14 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
         });
         
         return (
-          <StepBuilder
-            steps={steps}
-            onOrderChange={(orderedIds) => onChange(orderedIds)}
-            showFeedback={false}
-            initialOrder={Array.isArray(value) ? value : undefined}
-          />
+          <div className={disabled ? "pointer-events-none opacity-60" : undefined}>
+            <StepBuilder
+              steps={steps}
+              onOrderChange={(orderedIds) => onChange(orderedIds)}
+              showFeedback={false}
+              initialOrder={Array.isArray(value) ? value : undefined}
+            />
+          </div>
         );
       }
 
@@ -710,6 +716,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
               value={textValue}
               onChange={handleTextChange}
               placeholder={placeholder}
+              disabled={disabled}
             />
           </div>
         );

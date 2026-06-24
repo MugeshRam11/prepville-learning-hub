@@ -8,6 +8,7 @@ import QuestionNavigator from '@/components/unified-exam/QuestionNavigator';
 import ExamSourcePanel from '@/components/unified-exam/ExamSourcePanel';
 import ExamQuestionCardsPanel from '@/components/unified-exam/ExamQuestionCardsPanel';
 import ExamSyncOverlay from '@/components/unified-exam/ExamSyncOverlay';
+import ExamLockdown from '@/components/unified-exam/ExamLockdown';
 import { ExamModeProvider, useExamMode } from '@/contexts/ExamModeContext';
 import { ExamSyncProvider, useExamSync } from '@/contexts/ExamSyncContext';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -362,80 +363,96 @@ const UnifiedMockExamContent = () => {
   // Get active question object
   const activeQuestion = examData?.questions.find(q => q.id === activeQuestionId) || null;
 
-  if (isLoading || !examData) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center p-8 bg-white rounded-2xl shadow-xl border"
-        >
-          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Loading Exam...
-          </h2>
-          <p className="text-muted-foreground">Preparing your questions</p>
-        </motion.div>
-      </div>
-    );
-  }
+  const handleLockdownViolation = useCallback((type: string, count: number) => {
+    toast.warning(`Security violation: ${type} (${count})`);
+  }, []);
+
+  const handleMaxViolations = useCallback(() => {
+    toast.error('Maximum violations reached — auto-submitting exam');
+    handleSubmit();
+  }, [handleSubmit]);
+
+  const loadingScreen = (
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center p-8 bg-white rounded-2xl shadow-xl border"
+      >
+        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Loading Exam...
+        </h2>
+        <p className="text-muted-foreground">Preparing your questions</p>
+      </motion.div>
+    </div>
+  );
 
   return (
-    <div className={cn(
-      "h-screen flex flex-col bg-background overflow-hidden transition-all",
-      focusMode.isActive && "focus-mode-container"
-    )}>
-      <ExamSyncOverlay onForceNavigate={() => navigate('/mock-exams/select')} />
-      
-      <UnifiedExamHeader
-        title={examData.title}
-        subject={examData.subject}
-        duration={examData.duration}
-        totalMarks={examData.totalMarks}
-        answeredCount={getAnsweredCount()}
-        totalQuestions={examData.questions.length}
-        totalParts={getTotalQuestionSlots()}
-        answeredParts={getAnsweredCount()}
-        onSubmit={handleSubmit}
-        hasStartedExam={hasStartedExam}
-        isConnected={syncContext?.isConnected}
-      />
+    <ExamLockdown
+      enabled={true}
+      onViolation={handleLockdownViolation}
+      maxViolations={3}
+      onMaxViolations={handleMaxViolations}
+    >
+      {isLoading || !examData ? loadingScreen : (
+        <div className={cn(
+          "h-screen flex flex-col bg-background overflow-hidden transition-all",
+          focusMode.isActive && "focus-mode-container"
+        )}>
+          <ExamSyncOverlay onForceNavigate={() => navigate('/mock-exams/select')} />
 
-      {/* Split layout: Navigator | Source Panel | Question Cards */}
-      <div className="flex-1 min-h-0 grid grid-cols-[auto_1fr] lg:grid-cols-[auto_minmax(300px,2fr)_minmax(300px,2.4fr)] overflow-hidden">
-        {/* Left: Question Navigator */}
-        {!focusMode.isActive && (
-          <QuestionNavigator
-            examData={examData}
-            answers={answers}
-            activeQuestionId={activeQuestionId}
-            activeSubQuestionId={activeSubQuestionId}
-            onNavigate={handleNavigate}
-            flaggedQuestions={flaggedQuestions}
-            onToggleFlag={handleToggleFlag}
-            scrollContainerRef={rightPanelRef}
+          <UnifiedExamHeader
+            title={examData.title}
+            subject={examData.subject}
+            duration={examData.duration}
+            totalMarks={examData.totalMarks}
+            answeredCount={getAnsweredCount()}
+            totalQuestions={examData.questions.length}
+            totalParts={getTotalQuestionSlots()}
+            answeredParts={getAnsweredCount()}
+            onSubmit={handleSubmit}
+            hasStartedExam={hasStartedExam}
+            isConnected={syncContext?.isConnected}
           />
-        )}
 
-        {/* Center: Source / Extract Panel — visible on lg+ */}
-        <ExamSourcePanel
-          question={activeQuestion}
-          className="hidden lg:flex border-r border-border min-h-0"
-        />
+          {/* Split layout: Navigator | Source Panel | Question Cards */}
+          <div className="flex-1 min-h-0 grid grid-cols-[auto_1fr] lg:grid-cols-[auto_minmax(300px,2fr)_minmax(300px,2.4fr)] overflow-hidden">
+            {/* Left: Question Navigator */}
+            {!focusMode.isActive && (
+              <QuestionNavigator
+                examData={examData}
+                answers={answers}
+                activeQuestionId={activeQuestionId}
+                activeSubQuestionId={activeSubQuestionId}
+                onNavigate={handleNavigate}
+                flaggedQuestions={flaggedQuestions}
+                onToggleFlag={handleToggleFlag}
+                scrollContainerRef={rightPanelRef}
+              />
+            )}
 
-        {/* Right: Sub-question Cards */}
-        <ExamQuestionCardsPanel
-          question={activeQuestion}
-          answers={answers}
-          onAnswerChange={handleAnswerChange}
-          activeSubQuestionId={activeSubQuestionId}
-          scrollRef={rightPanelRef}
-          className="min-w-0 min-h-0"
-        />
-      </div>
-    </div>
+            {/* Center: Source / Extract Panel — visible on lg+ */}
+            <ExamSourcePanel
+              question={activeQuestion}
+              className="hidden lg:flex border-r border-border min-h-0"
+            />
+
+            {/* Right: Sub-question Cards */}
+            <ExamQuestionCardsPanel
+              question={activeQuestion}
+              answers={answers}
+              onAnswerChange={handleAnswerChange}
+              activeSubQuestionId={activeSubQuestionId}
+              scrollRef={rightPanelRef}
+              className="min-w-0 min-h-0"
+            />
+          </div>
+        </div>
+      )}
+    </ExamLockdown>
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import DOMPurify from "dompurify";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -93,9 +94,10 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, className }: RichTextEditorProps) {
+export default function RichTextEditor({ value, onChange, placeholder, className, disabled = false }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const mathfieldRef = useRef<any>(null);
   const [showMathEditor, setShowMathEditor] = useState(false);
@@ -335,7 +337,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     <div className={className}>
       <div className="space-y-3">
         {/* Formatting Toolbar */}
-        <Card className="border">
+        {disabled ? null : <Card className="border">
           <CardContent className="p-3">
             <div className="flex flex-wrap items-center gap-2">
               {/* Font Family */}
@@ -415,21 +417,26 @@ export default function RichTextEditor({ value, onChange, placeholder, className
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* Paste hint */}
-        <p className="text-xs text-muted-foreground px-1">
-          💡 Paste LaTeX (e.g. <code className="text-xs bg-muted px-1 rounded">\frac&#123;a&#125;&#123;b&#125;</code>) or use <code className="text-xs bg-muted px-1 rounded">$...$</code> delimiters — equations render automatically. Double-click any equation to edit.
-        </p>
+        {!disabled && (
+          <p className="text-xs text-muted-foreground px-1">
+            💡 Paste LaTeX (e.g. <code className="text-xs bg-muted px-1 rounded">\frac&#123;a&#125;&#123;b&#125;</code>) or use <code className="text-xs bg-muted px-1 rounded">$...$</code> delimiters — equations render automatically. Double-click any equation to edit.
+          </p>
+        )}
 
         {/* Editor Area */}
         <div
           ref={editorRef}
-          contentEditable
-          onInput={handleInput}
-          onPaste={handlePaste}
-          onDoubleClick={handleDoubleClick}
-          className="min-h-[150px] p-4 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+          contentEditable={!disabled}
+          onInput={disabled ? undefined : handleInput}
+          onPaste={disabled ? undefined : handlePaste}
+          onDoubleClick={disabled ? undefined : handleDoubleClick}
+          className={cn(
+            "min-h-[150px] p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring",
+            disabled ? "bg-muted/50 opacity-60 cursor-not-allowed" : "bg-background"
+          )}
           style={{
             fontSize: currentSize,
             fontFamily: currentFont,

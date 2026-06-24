@@ -221,7 +221,10 @@ function latexToReadable(input: string): string {
   const commandNames = Object.keys(LATEX_TO_UNICODE).sort((a, b) => b.length - a.length);
   for (const name of commandNames) {
     const sym = LATEX_TO_UNICODE[name];
-    const re = new RegExp(`\\\\${name}(?![A-Za-z])(?:\\{\\})?`, 'g');
+    const isAlpha = /^[A-Za-z]+$/.test(name);
+    const re = isAlpha
+      ? new RegExp(`\\\\${name}(?![A-Za-z])(?:\\{\\})?`, 'g')
+      : new RegExp(`\\\\${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\{\\})?`, 'g');
     out = out.replace(re, sym);
   }
 

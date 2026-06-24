@@ -8,11 +8,12 @@ import {
   ZoomIn, ZoomOut, Type, X, CheckCircle2
 } from 'lucide-react';
 import MathLiveKeyboard from '@/components/mock-exam/MathLiveKeyboard';
+import { normalizeMath } from '@/lib/mathFormat';
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface GraphPoint { id: string; x: number; y: number }
 interface GraphLine  { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
-export interface GraphBlank { id: string; x: number; y: number; answer: string }
+export interface GraphBlank { id: string; x: number; y: number; answer: string; w?: number; h?: number }
 
 export interface GraphValue {
   points: GraphPoint[];
@@ -43,8 +44,13 @@ interface GraphPlotPlayerProps {
 
 // ── constants ─────────────────────────────────────────────────────────────────
 const ZOOM_FACTOR = 1.25;
-const BLANK_W = 68;
-const BLANK_H = 26;
+const DEFAULT_BLANK_W = 80;
+const DEFAULT_BLANK_H = 28;
+const MIN_BLANK_W = 40;
+const MIN_BLANK_H = 20;
+const MAX_BLANK_W = 200;
+const MAX_BLANK_H = 60;
+const HANDLE_SIZE = 6;
 
 const TOOL_DEFS = [
   { id: 'point',      label: 'Point',  icon: <Circle       className="w-4 h-4" /> },
@@ -103,15 +109,21 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
   const [dragging,   setDragging]   = useState(false);
   const svgRef    = useRef<SVGSVGElement>(null);
   const dragState = useRef<{
-    kind: 'pan' | 'point';
+    kind: 'pan' | 'point' | 'blank-resize';
     startClient: { x: number; y: number };
     startView?: typeof view;
     pointId?: string;
+    blankId?: string;
+    startW?: number;
+    startH?: number;
+    handleDir?: string;
   } | null>(null);
 
   // ── fill-blank popup state ──────────────────────────────────────────────────
   const [activeBlank, setActiveBlank] = useState<GraphBlank | null>(null);
   const [draftAnswer, setDraftAnswer] = useState('');
+  const [selectedBlankId, setSelectedBlankId] = useState<string | null>(null);
+  const justDraggedRef = useRef(false);
 
   // close MathLive keyboard when popup closes
   useEffect(() => {
@@ -167,13 +179,31 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
   }, [value.points]);
 
   const findNearestBlank = useCallback((sx: number, sy: number) => {
-    // match in SVG pixel space so hit area is consistent at all zoom levels
     for (const b of blanks) {
-      const bx = toSvgX(b.x), by = toSvgY(b.y);
-      if (Math.abs(sx - bx) <= BLANK_W / 2 + 4 && Math.abs(sy - by) <= BLANK_H / 2 + 4) return b;
+      const bw = b.w ?? DEFAULT_BLANK_W;
+      const bh = b.h ?? DEFAULT_BLANK_H;
+      const bx = toSvgX(b.x), by = toSvgY(b.y) - 18;
+      if (Math.abs(sx - bx) <= bw / 2 + 4 && Math.abs(sy - by) <= bh / 2 + 4) return b;
     }
     return null;
   }, [blanks, toSvgX, toSvgY]);
+
+  // ── blank resize start ───────────────────────────────────────────────────────
+  const handleBlankResizeStart = useCallback((e: React.MouseEvent, blankId: string, dir: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const b = blanks.find(bl => bl.id === blankId);
+    if (!b) return;
+    dragState.current = {
+      kind: 'blank-resize',
+      startClient: { x: e.clientX, y: e.clientY },
+      blankId,
+      startW: b.w ?? DEFAULT_BLANK_W,
+      startH: b.h ?? DEFAULT_BLANK_H,
+      handleDir: dir,
+    };
+    setDragging(true);
+  }, [blanks]);
 
   // ── mouse-down (Move tool: pan or drag point) ───────────────────────────────
   const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -208,20 +238,40 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
         const nx = snap(toGraphXRaw(e.clientX - rect.left));
         const ny = snap(toGraphYRaw(e.clientY - rect.top));
         onChange({ ...value, points: value.points.map(p => p.id === ds.pointId ? { ...p, x: nx, y: ny } : p) });
+      } else if (ds.kind === 'blank-resize' && ds.blankId) {
+        const dx = e.clientX - ds.startClient.x;
+        const dy = e.clientY - ds.startClient.y;
+        const dir = ds.handleDir || '';
+        let nw = ds.startW!;
+        let nh = ds.startH!;
+        if (dir.includes('e')) nw = Math.max(MIN_BLANK_W, Math.min(MAX_BLANK_W, ds.startW! + dx));
+        if (dir.includes('w')) nw = Math.max(MIN_BLANK_W, Math.min(MAX_BLANK_W, ds.startW! - dx));
+        if (dir.includes('s')) nh = Math.max(MIN_BLANK_H, Math.min(MAX_BLANK_H, ds.startH! + dy));
+        if (dir.includes('n')) nh = Math.max(MIN_BLANK_H, Math.min(MAX_BLANK_H, ds.startH! - dy));
+        onChange({ ...value, blanks: blanks.map(b => b.id === ds.blankId ? { ...b, w: nw, h: nh } : b) });
       }
     };
-    const onUp = () => { dragState.current = null; setDragging(false); };
+    const onUp = () => {
+      justDraggedRef.current = true;
+      requestAnimationFrame(() => { justDraggedRef.current = false; });
+      dragState.current = null;
+      setDragging(false);
+    };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup',   onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [dragging, width, height, snap, toGraphXRaw, toGraphYRaw, value, onChange]);
+  }, [dragging, width, height, snap, toGraphXRaw, toGraphYRaw, value, blanks, onChange]);
 
   // ── click ───────────────────────────────────────────────────────────────────
   const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (readonly || disabled || dragging) return;
+    if (readonly || disabled || dragging || justDraggedRef.current) return;
     const { sx, sy } = getSvgPos(e);
     const gx = toGraphX(sx);
     const gy = toGraphY(sy);
+
+    if (!findNearestBlank(sx, sy)) {
+      setSelectedBlankId(null);
+    }
 
     if (activeTool === 'point') {
       onChange({ ...value, points: [...value.points, { id: `pt-${Date.now()}`, x: gx, y: gy }] });
@@ -236,15 +286,12 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
     } else if (activeTool === 'fill_blank') {
       const hit = findNearestBlank(sx, sy);
       if (hit) {
-        // edit existing blank
         setActiveBlank(hit);
         setDraftAnswer(hit.answer);
       } else {
-        // create new blank and immediately open popup
-        const nb: GraphBlank = { id: `bl-${Date.now()}`, x: gx, y: gy, answer: '' };
+        const nb: GraphBlank = { id: `bl-${Date.now()}`, x: gx, y: gy, answer: '', w: DEFAULT_BLANK_W, h: DEFAULT_BLANK_H };
         onChange({ ...value, blanks: [...blanks, nb] });
-        setActiveBlank(nb);
-        setDraftAnswer('');
+        setSelectedBlankId(nb.id);
       }
 
     } else if (activeTool === 'erase') {
@@ -337,7 +384,7 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
               <Button key={tool.id}
                 variant={activeTool === tool.id ? 'default' : 'ghost'}
                 size="sm" className="h-8 px-2 text-xs"
-                onClick={() => { setActiveTool(tool.id); setLineStart(null); }}>
+                onClick={() => { setActiveTool(tool.id); setLineStart(null); setSelectedBlankId(null); }}>
                 {tool.icon}
                 <span className="ml-1 hidden sm:inline">{tool.label}</span>
               </Button>
@@ -422,50 +469,104 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
 
             {/* Fill-blank markers */}
             {blanks.map(b => {
+              const bw = b.w ?? DEFAULT_BLANK_W;
+              const bh = b.h ?? DEFAULT_BLANK_H;
               const bx = toSvgX(b.x);
               const by = toSvgY(b.y);
+              const boxCY = by - 18 - bh / 2;
               const answered = !!b.answer;
               const isActive = activeBlank?.id === b.id;
+              const isSelected = selectedBlankId === b.id;
+              const maxChars = Math.max(3, Math.floor(bw / 7));
+              const displayText = answered
+                ? (() => { const t = normalizeMath(b.answer); return t.length > maxChars ? t.slice(0, maxChars - 1) + '…' : t; })()
+                : '✎ fill';
               return (
                 <g key={b.id}
                   style={{ cursor: readonly || disabled ? 'default' : 'pointer' }}
                   onClick={(e) => {
+                    if (readonly || disabled) return;
+                    if (activeTool !== 'fill_blank') return;
                     e.stopPropagation();
-                    if (!readonly && !disabled && (activeTool === 'fill_blank' || activeTool === 'move')) {
-                      setActiveBlank(b);
-                      setDraftAnswer(b.answer);
-                    }
+                    setActiveBlank(b);
+                    setDraftAnswer(b.answer);
+                  }}
+                  onDoubleClick={(e) => {
+                    if (readonly || disabled) return;
+                    if (activeTool !== 'fill_blank') return;
+                    e.stopPropagation();
+                    setSelectedBlankId(prev => prev === b.id ? null : b.id);
                   }}>
                   {/* Connector dot */}
                   <circle cx={bx} cy={by} r={3}
                     fill={answered ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
                     opacity={0.7} />
+                  {/* Connector line from dot to box bottom-centre */}
+                  <line x1={bx} y1={by - 3} x2={bx} y2={by - 18}
+                    stroke={answered ? 'hsl(var(--primary) / 0.4)' : 'hsl(var(--muted-foreground) / 0.3)'}
+                    strokeWidth={1} strokeDasharray="2 2" />
                   {/* Box */}
                   <rect
-                    x={bx - BLANK_W / 2} y={by - BLANK_H / 2 - 18}
-                    width={BLANK_W} height={BLANK_H} rx={5}
+                    x={bx - bw / 2} y={boxCY}
+                    width={bw} height={bh} rx={5}
                     fill={isActive ? 'hsl(var(--primary) / 0.15)'
                          : answered ? 'hsl(var(--primary) / 0.08)'
                          : 'hsl(var(--background))'}
-                    stroke={isActive ? 'hsl(var(--primary))'
+                    stroke={isSelected ? 'hsl(var(--primary))'
+                           : isActive ? 'hsl(var(--primary))'
                            : answered ? 'hsl(var(--primary) / 0.6)'
                            : 'hsl(var(--muted-foreground) / 0.5)'}
-                    strokeWidth={1.5}
+                    strokeWidth={isSelected ? 2 : 1.5}
                     strokeDasharray={answered ? undefined : '4 2'}
                   />
-                  {/* Connector line from dot to box bottom-centre */}
-                  <line x1={bx} y1={by - 3} x2={bx} y2={by - 18 + BLANK_H / 2}
-                    stroke={answered ? 'hsl(var(--primary) / 0.4)' : 'hsl(var(--muted-foreground) / 0.3)'}
-                    strokeWidth={1} strokeDasharray="2 2" />
-                  {/* Text inside box */}
-                  <text x={bx} y={by - 18 + BLANK_H / 2 + 1}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fontSize={10} fontWeight={500}
+                  {/* Text inside box — centered */}
+                  <text x={bx} y={boxCY + bh / 2}
+                    textAnchor="middle" dominantBaseline="central"
+                    fontSize={Math.min(12, bh * 0.45)} fontWeight={500}
                     fill={answered ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}>
-                    {answered
-                      ? (b.answer.length > 9 ? b.answer.slice(0, 8) + '…' : b.answer)
-                      : '✎ fill'}
+                    {displayText}
                   </text>
+                  {/* Resize handles when selected */}
+                  {isSelected && !readonly && !disabled && (
+                    <>
+                      {/* East handle */}
+                      <rect x={bx + bw / 2 - HANDLE_SIZE / 2} y={boxCY + bh / 2 - HANDLE_SIZE / 2}
+                        width={HANDLE_SIZE} height={HANDLE_SIZE} rx={1}
+                        fill="hsl(var(--primary))" stroke="hsl(var(--background))" strokeWidth={1}
+                        style={{ cursor: 'ew-resize' }}
+                        onMouseDown={(e) => handleBlankResizeStart(e, b.id, 'e')} />
+                      {/* West handle */}
+                      <rect x={bx - bw / 2 - HANDLE_SIZE / 2} y={boxCY + bh / 2 - HANDLE_SIZE / 2}
+                        width={HANDLE_SIZE} height={HANDLE_SIZE} rx={1}
+                        fill="hsl(var(--primary))" stroke="hsl(var(--background))" strokeWidth={1}
+                        style={{ cursor: 'ew-resize' }}
+                        onMouseDown={(e) => handleBlankResizeStart(e, b.id, 'w')} />
+                      {/* North handle */}
+                      <rect x={bx - HANDLE_SIZE / 2} y={boxCY - HANDLE_SIZE / 2}
+                        width={HANDLE_SIZE} height={HANDLE_SIZE} rx={1}
+                        fill="hsl(var(--primary))" stroke="hsl(var(--background))" strokeWidth={1}
+                        style={{ cursor: 'ns-resize' }}
+                        onMouseDown={(e) => handleBlankResizeStart(e, b.id, 'n')} />
+                      {/* South handle */}
+                      <rect x={bx - HANDLE_SIZE / 2} y={boxCY + bh - HANDLE_SIZE / 2}
+                        width={HANDLE_SIZE} height={HANDLE_SIZE} rx={1}
+                        fill="hsl(var(--primary))" stroke="hsl(var(--background))" strokeWidth={1}
+                        style={{ cursor: 'ns-resize' }}
+                        onMouseDown={(e) => handleBlankResizeStart(e, b.id, 's')} />
+                      {/* SE corner handle */}
+                      <rect x={bx + bw / 2 - HANDLE_SIZE / 2} y={boxCY + bh - HANDLE_SIZE / 2}
+                        width={HANDLE_SIZE} height={HANDLE_SIZE} rx={1}
+                        fill="hsl(var(--primary))" stroke="hsl(var(--background))" strokeWidth={1}
+                        style={{ cursor: 'nwse-resize' }}
+                        onMouseDown={(e) => handleBlankResizeStart(e, b.id, 'se')} />
+                      {/* NW corner handle */}
+                      <rect x={bx - bw / 2 - HANDLE_SIZE / 2} y={boxCY - HANDLE_SIZE / 2}
+                        width={HANDLE_SIZE} height={HANDLE_SIZE} rx={1}
+                        fill="hsl(var(--primary))" stroke="hsl(var(--background))" strokeWidth={1}
+                        style={{ cursor: 'nwse-resize' }}
+                        onMouseDown={(e) => handleBlankResizeStart(e, b.id, 'nw')} />
+                    </>
+                  )}
                 </g>
               );
             })}
@@ -479,7 +580,7 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
           {activeTool === 'point'      && 'Click to place a point'}
           {activeTool === 'line'       && (lineStart ? 'Click to set the end point' : 'Click to set the start point')}
           {activeTool === 'move'       && 'Drag point to move · drag graph to pan · scroll to zoom'}
-          {activeTool === 'fill_blank' && 'Click anywhere to add a fill-in-blank · click an existing blank to edit it'}
+          {activeTool === 'fill_blank' && 'Click to add or edit a blank · double-click to resize'}
           {activeTool === 'erase'      && 'Click near a point, line or blank to remove it'}
         </p>
       )}

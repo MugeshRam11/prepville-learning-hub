@@ -196,15 +196,19 @@ const PracticeQuestionView = () => {
 
               <Badge variant="outline" className="capitalize">{data.difficulty}</Badge>
 
-              <AIFeedbackButton
-                questionId={selectedSub?.id || ''}
-                hasAnswer={!!selectedSub && !!answers[selectedSub.id]}
-                isLoading={aiFeedbackLoading}
-                onClick={handleAIFeedback}
-              />
-              <Button variant="outline" size="sm" onClick={() => setShowTutor(true)} className="gap-1">
-                <MessageSquare className="w-4 h-4" /> Tutor
-              </Button>
+              {mode === 'study' && (
+                <>
+                  <AIFeedbackButton
+                    questionId={selectedSub?.id || ''}
+                    hasAnswer={!!selectedSub && !!answers[selectedSub.id]}
+                    isLoading={aiFeedbackLoading}
+                    onClick={handleAIFeedback}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => setShowTutor(true)} className="gap-1">
+                    <MessageSquare className="w-4 h-4" /> Tutor
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -351,7 +355,7 @@ const PracticeQuestionView = () => {
                       config={selectedSub.answer_block_config || {}}
                       value={answers[selectedSub.id] || ''}
                       onChange={(val) => handleAnswerChange(selectedSub.id, val)}
-                      disabled={false}
+                      disabled={mode === 'study'}
                       allowTypeChange={false}
                       questionText={selectedSub.sub_question_text}
                     />
