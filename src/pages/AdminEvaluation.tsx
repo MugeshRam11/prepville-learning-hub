@@ -100,6 +100,8 @@ const AdminEvaluation = () => {
   const [perQuestionScores, setPerQuestionScores] = useState<PerQuestionScore[]>([]);
   const [savingEval, setSavingEval] = useState(false);
   const [runningAISuggestions, setRunningAISuggestions] = useState(false);
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false);
+  const aiCreditsAvailable = false;
 
   useEffect(() => { fetchEvaluations(); }, []);
 
@@ -330,6 +332,7 @@ const AdminEvaluation = () => {
 
   // Run AI evaluation for a single attempt
   const runAIEvaluation = async (evaluation: EvaluationRecord) => {
+    if (!aiCreditsAvailable) { setShowCreditsDialog(true); return; }
     setEvaluating(true);
     try {
       const { data, error } = await supabase.functions.invoke('evaluate-interactive-answers', {
@@ -359,6 +362,7 @@ const AdminEvaluation = () => {
 
   // Bulk AI evaluation
   const runBulkAIEvaluation = async () => {
+    if (!aiCreditsAvailable) { setShowCreditsDialog(true); return; }
     const selected = evaluations.filter(e => selectedForBulk.has(e.id));
     if (selected.length === 0) { toast.error('Select attempts first'); return; }
 
@@ -378,6 +382,7 @@ const AdminEvaluation = () => {
 
   // Run AI suggestions for the current open evaluation (hybrid mode)
   const runAISuggestions = async () => {
+    if (!aiCreditsAvailable) { setShowCreditsDialog(true); return; }
     if (!selectedEvaluation) return;
     setRunningAISuggestions(true);
     try {
@@ -594,6 +599,33 @@ const AdminEvaluation = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
+      {/* AI Credits Dialog */}
+      <Dialog open={showCreditsDialog} onOpenChange={setShowCreditsDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <Bot className="w-5 h-5" />
+              Insufficient AI Credits
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto">
+              <Sparkles className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <p className="text-sm text-center text-muted-foreground">
+              This feature doesn't meet the required balance. Please top-up your AI credits to use AI evaluation.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreditsDialog(false)}>Close</Button>
+            <Button className="bg-amber-600 hover:bg-amber-700 text-white gap-2">
+              <Sparkles className="w-4 h-4" />
+              Top-up Credits
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex-1 ml-64 p-6">
         <div className="max-w-7xl mx-auto">

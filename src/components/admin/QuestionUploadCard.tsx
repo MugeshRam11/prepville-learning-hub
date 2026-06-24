@@ -803,6 +803,28 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
     maxFiles: 1,
     disabled: uploading
   });
+  const aiCreditsAvailable = false;
+
+  if (!aiCreditsAvailable) {
+    return <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+      <CardContent className="py-8">
+        <div className="text-center space-y-3">
+          <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto">
+            <Brain className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-300">Insufficient AI Credits</h3>
+          <p className="text-sm text-amber-700 dark:text-amber-400 max-w-md mx-auto">
+            This feature doesn't meet the required balance. Please top-up your AI credits to use the AI Document Parser.
+          </p>
+          <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30 gap-2 mt-2">
+            <Upload className="w-4 h-4" />
+            Top-up AI Credits
+          </Button>
+        </div>
+      </CardContent>
+    </Card>;
+  }
+
   return <Card>
       <CardContent className="space-y-6">
         {/* Upload Progress */}
@@ -826,7 +848,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
               </TabsTrigger>
               <TabsTrigger value="summarize" className="flex items-center gap-2" disabled={uploading}>
                 <FileText className="w-4 h-4" />
-                
+
               </TabsTrigger>
               <TabsTrigger value="quiz" className="flex items-center gap-2" disabled={uploading}>
                 <Brain className="w-4 h-4" />
