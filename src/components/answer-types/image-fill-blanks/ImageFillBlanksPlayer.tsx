@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import MathLiveKeyboard from '@/components/mock-exam/MathLiveKeyboard';
+import { normalizeMath } from '@/lib/mathFormat';
 import type { ImageFillBlanksConfig, FillZone } from './ImageFillBlanksEditor';
 
 interface ImageFillBlanksPlayerProps {
@@ -126,7 +127,7 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
             >
               {filled ? (
                 <>
-                  <span className="truncate max-w-full">{filled}</span>
+                  <span className="truncate max-w-full">{normalizeMath(filled)}</span>
                   {!disabled && (
                     <CheckCircle2 className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-green-500 bg-background rounded-full shrink-0" />
                   )}
@@ -206,6 +207,7 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
                   onSubmit={handleConfirm}
                   placeholder={activeZone.placeholder || 'Type or use the keyboard…'}
                   showKeyboard={true}
+                  hideSubmit
                 />
               </div>
 

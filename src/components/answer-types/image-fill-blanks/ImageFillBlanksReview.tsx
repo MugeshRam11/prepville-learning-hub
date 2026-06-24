@@ -2,6 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CheckCircle, XCircle, FileText } from 'lucide-react';
+import { normalizeMath } from '@/lib/mathFormat';
 import type { ImageFillBlanksConfig } from './ImageFillBlanksEditor';
 
 interface ImageFillBlanksReviewProps {
@@ -77,7 +78,7 @@ const ImageFillBlanksReview: React.FC<ImageFillBlanksReviewProps> = ({ config, s
                   )}
                   style={{ left: `${zone.x}%`, top: `${zone.y}%`, width: `${zone.width}%`, height: `${zone.height}%` }}
                 >
-                  <span className="truncate px-1">{result.studentVal || '—'}</span>
+                  <span className="truncate px-1">{result.studentVal ? normalizeMath(result.studentVal) : '—'}</span>
                 </div>
               );
             })}
@@ -99,7 +100,7 @@ const ImageFillBlanksReview: React.FC<ImageFillBlanksReviewProps> = ({ config, s
                 className="absolute border border-green-500 bg-green-500/15 rounded flex items-center justify-center text-xs font-medium text-green-700 dark:text-green-400"
                 style={{ left: `${zone.x}%`, top: `${zone.y}%`, width: `${zone.width}%`, height: `${zone.height}%` }}
               >
-                <span className="truncate px-1">{zone.expectedAnswers[0]?.value || '?'}</span>
+                <span className="truncate px-1">{zone.expectedAnswers[0]?.value ? normalizeMath(zone.expectedAnswers[0].value) : '?'}</span>
               </div>
             ))}
           </div>
@@ -126,11 +127,11 @@ const ImageFillBlanksReview: React.FC<ImageFillBlanksReviewProps> = ({ config, s
               </div>
               <div className="text-xs">
                 <span className="text-muted-foreground">Student: </span>
-                <span className="font-medium">{studentVal || '(empty)'}</span>
+                <span className="font-medium">{studentVal ? normalizeMath(studentVal) : '(empty)'}</span>
               </div>
               <div className="text-xs">
                 <span className="text-muted-foreground">Expected: </span>
-                <span className="font-medium">{zone.expectedAnswers.map(a => a.value).join(' / ')}</span>
+                <span className="font-medium">{zone.expectedAnswers.map(a => normalizeMath(a.value)).join(' / ')}</span>
               </div>
               <Badge variant="outline" className="text-[10px] justify-center">
                 {isCorrect ? zone.marks : 0}/{zone.marks}

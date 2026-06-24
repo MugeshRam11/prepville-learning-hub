@@ -527,6 +527,7 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
                   onSubmit={confirmBlank}
                   placeholder="Type or use the equation keyboard…"
                   showKeyboard={true}
+                  hideSubmit
                 />
               </div>
 

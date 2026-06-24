@@ -14,6 +14,7 @@ interface MathLiveKeyboardProps {
   placeholder?: string;
   className?: string;
   showKeyboard?: boolean;
+  hideSubmit?: boolean;
 }
 
 const MathLiveKeyboard: React.FC<MathLiveKeyboardProps> = ({
@@ -22,7 +23,8 @@ const MathLiveKeyboard: React.FC<MathLiveKeyboardProps> = ({
   onSubmit,
   placeholder = "Type your math expression...",
   className,
-  showKeyboard = true
+  showKeyboard = true,
+  hideSubmit = false,
 }) => {
   const mathFieldRef = useRef<MathfieldElement | null>(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -162,24 +164,26 @@ const MathLiveKeyboard: React.FC<MathLiveKeyboardProps> = ({
         </div>
       </div>
 
-      {/* Submit Button (if callback provided) */}
-      <AnimatePresence>
-        {onSubmit && value && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-          >
-            <Button
-              onClick={onSubmit}
-              className="w-full"
-              type="button"
+      {/* Submit Button (if callback provided and not hidden by parent) */}
+      {!hideSubmit && (
+        <AnimatePresence>
+          {onSubmit && value && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
             >
-              Submit Answer
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <Button
+                onClick={onSubmit}
+                className="w-full"
+                type="button"
+              >
+                Submit Answer
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 };
