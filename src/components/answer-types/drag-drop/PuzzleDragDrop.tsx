@@ -3,8 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, Sparkles, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 
 interface PuzzleItem {
   id: string;
@@ -61,14 +60,9 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
     color: item.color || (['red', 'blue', 'green', 'orange', 'purple'] as const)[idx % 5]
   }));
 
-  const renderLatex = (content: string, isLatex?: boolean) => {
-    if (!isLatex) return <span className="font-bold text-base">{content}</span>;
-    try {
-      const html = katex.renderToString(content, { displayMode: false, throwOnError: false });
-      return <span dangerouslySetInnerHTML={{ __html: html }} className="text-base" />;
-    } catch {
-      return <span className="font-bold text-base">{content}</span>;
-    }
+  const renderLatex = (content: string, _isLatex?: boolean) => {
+    const readable = normalizeMath(stripLatexFormatting(cleanMathContent(content)));
+    return <span className="font-bold text-base">{readable}</span>;
   };
 
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, itemId: string) => {
@@ -276,7 +270,7 @@ const PuzzleDragDrop: React.FC<PuzzleDragDropProps> = ({
             >
               {/* Slot label */}
               {slot.label && (
-                <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
+                <span className="text-xs font-medium text-muted-foreground">{normalizeMath(stripLatexFormatting(cleanMathContent(slot.label)))}</span>
               )}
 
               {/* Slot image */}

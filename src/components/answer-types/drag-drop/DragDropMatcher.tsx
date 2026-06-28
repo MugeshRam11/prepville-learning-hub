@@ -4,8 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 
 interface DragItem {
   id: string;
@@ -37,17 +36,8 @@ const DragDropMatcher: React.FC<DragDropMatcherProps> = ({
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [hoveredTarget, setHoveredTarget] = useState<string | null>(null);
 
-  const renderLatex = (content: string, isLatex?: boolean) => {
-    if (!isLatex) return content;
-    try {
-      const html = katex.renderToString(content, {
-        displayMode: false,
-        throwOnError: false
-      });
-      return <span dangerouslySetInnerHTML={{ __html: html }} />;
-    } catch {
-      return content;
-    }
+  const renderLatex = (content: string, _isLatex?: boolean) => {
+    return normalizeMath(stripLatexFormatting(cleanMathContent(content)));
   };
 
   const handleDragStart = (itemId: string) => {

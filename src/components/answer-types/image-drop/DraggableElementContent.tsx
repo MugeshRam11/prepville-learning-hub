@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 
 export type DraggableElementLike = {
   id?: string;
@@ -22,7 +23,7 @@ const normalizeText = (el: DraggableElementLike | null | undefined): string => {
   const raw = (el.content ?? el.label ?? el.text) as unknown;
   if (raw === null || raw === undefined) return '';
   const str = typeof raw === 'string' ? raw : String(raw);
-  return str.trim();
+  return normalizeMath(stripLatexFormatting(cleanMathContent(str.trim())));
 };
 
 const normalizeImageUrl = (el: DraggableElementLike | null | undefined): string => {

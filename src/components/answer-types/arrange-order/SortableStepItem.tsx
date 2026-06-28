@@ -4,8 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 
 interface Step {
   id: string;
@@ -22,25 +21,7 @@ interface SortableStepItemProps {
 }
 
 const renderContent = (content: string) => {
-  if (content.includes('$') || content.includes('\\')) {
-    const parts = content.split(/(\$[^$]+\$)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
-        const equation = part.slice(1, -1);
-        try {
-          const html = katex.renderToString(equation, {
-            displayMode: false,
-            throwOnError: false,
-          });
-          return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
-        } catch {
-          return <span key={index}>{equation}</span>;
-        }
-      }
-      return <span key={index}>{part}</span>;
-    });
-  }
-  return content;
+  return normalizeMath(stripLatexFormatting(cleanMathContent(content)));
 };
 
 const SortableStepItem: React.FC<SortableStepItemProps> = ({
