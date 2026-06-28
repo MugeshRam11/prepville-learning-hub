@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, GripVertical, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 import { DraggableElementContent } from '@/components/answer-types/image-drop/DraggableElementContent';
 
 interface DropZone {
@@ -235,7 +236,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                       </div>
                     ) : (
                       <span className="text-xs text-primary/70 font-medium">
-                        {zone.label || 'Drop'}
+                        {zone.label ? normalizeMath(stripLatexFormatting(cleanMathContent(zone.label))) : 'Drop'}
                       </span>
                     )}
                   </motion.div>
@@ -276,7 +277,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
                     </div>
                   ) : (
                     <span className="text-xs text-primary font-medium">
-                      {zone.label || 'Drop'}
+                      {zone.label ? normalizeMath(stripLatexFormatting(cleanMathContent(zone.label))) : 'Drop'}
                     </span>
                   )}
                 </motion.div>

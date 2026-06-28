@@ -13,6 +13,7 @@
  */
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 
 export type VennRegionId = 'A_only' | 'B_only' | 'intersection' | 'outside';
 
@@ -217,27 +218,31 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
           const r = resolved(id);
           if (!r.badge) return null;
           const c = REGION_CENTROIDS[id];
+          const badgeText = normalizeMath(stripLatexFormatting(cleanMathContent(r.badge)));
+          const badgeW = Math.max(40, badgeText.length * 6.5 + 16);
+          const badgeH = 20;
           return (
             <g key={`badge-${id}`}>
               <rect
-                x={c.x - 28}
-                y={c.y - 9}
-                width={56}
-                height={18}
-                rx={9}
+                x={c.x - badgeW / 2}
+                y={c.y - badgeH / 2}
+                width={badgeW}
+                height={badgeH}
+                rx={badgeH / 2}
                 fill="hsl(var(--background))"
                 stroke="hsl(var(--primary))"
                 strokeWidth={1}
               />
               <text
                 x={c.x}
-                y={c.y + 4}
+                y={c.y}
                 textAnchor="middle"
-                fontSize="11"
+                dominantBaseline="central"
+                fontSize={Math.min(11, 130 / badgeText.length + 4)}
                 fontWeight="600"
                 className="fill-primary"
               >
-                {r.badge}
+                {badgeText}
               </text>
             </g>
           );

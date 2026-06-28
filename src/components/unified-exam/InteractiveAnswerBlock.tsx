@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -525,7 +526,7 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
                     {option.label || String.fromCharCode(65 + idx)}
                   </span>
                   <span className={cn('font-medium', isSelected && 'text-primary')}>
-                    {option.content || `Option ${String.fromCharCode(65 + idx)}`}
+                    {normalizeMath(stripLatexFormatting(cleanMathContent(option.content || `Option ${String.fromCharCode(65 + idx)}`)))}
                   </span>
                 </button>
               );
