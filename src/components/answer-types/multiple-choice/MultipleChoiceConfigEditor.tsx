@@ -6,6 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Check, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
+import MathInput from '@/components/ui/MathInput';
 
 export interface MCQOption {
   id: string;
@@ -164,9 +166,9 @@ const MultipleChoiceConfigEditor: React.FC<MultipleChoiceConfigEditorProps> = ({
               </button>
 
               {/* Content */}
-              <Input
+              <MathInput
                 value={option.content}
-                onChange={(e) => updateOption(option.id, e.target.value)}
+                onChange={(val) => updateOption(option.id, val)}
                 placeholder={`Option ${option.label}`}
                 className="flex-1 border-none bg-transparent focus:ring-0"
               />

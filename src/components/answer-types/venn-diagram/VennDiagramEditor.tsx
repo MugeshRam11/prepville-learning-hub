@@ -18,6 +18,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
+import MathInput from '@/components/ui/MathInput';
 import { renderFinalText } from '@/lib/renderFinalText';
 import VennDiagram, { VENN_REGIONS, type VennRegionId } from './VennDiagram';
 
@@ -163,9 +165,9 @@ const VennDiagramEditor: React.FC<VennDiagramEditorProps> = ({ config, onChange 
           {config.draggables.map((d) => (
             <div key={d.id} className="space-y-1.5 border rounded-md p-2 bg-card">
               <div className="flex items-center gap-2">
-                <Input
+                <MathInput
                   value={d.label}
-                  onChange={(e) => updateDraggable(d.id, e.target.value)}
+                  onChange={(val) => updateDraggable(d.id, val)}
                   placeholder="e.g. A ∩ B"
                   className="h-8 text-sm"
                 />

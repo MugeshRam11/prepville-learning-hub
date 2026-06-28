@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
+import MathInput from '@/components/ui/MathInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -167,9 +169,9 @@ const ArrangeOrderEditor: React.FC<ArrangeOrderEditorProps> = ({ config, onChang
           {config.items.map((item, idx) => (
             <div key={item.id} className="flex items-center gap-2">
               <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">{idx + 1}.</span>
-              <Input
+              <MathInput
                 value={item.content}
-                onChange={(e) => updateItem(item.id, { content: e.target.value })}
+                onChange={(val) => updateItem(item.id, { content: val })}
                 placeholder={`Item ${idx + 1}...`}
                 className="h-8 text-sm flex-1"
               />
@@ -266,21 +268,23 @@ const ArrangeOrderEditor: React.FC<ArrangeOrderEditorProps> = ({ config, onChang
 
           <div>
             <Label className="text-xs text-muted-foreground">Explanation (shown after evaluation)</Label>
-            <Textarea
+            <MathInput
               value={config.explanation}
-              onChange={(e) => update({ explanation: e.target.value })}
+              onChange={(val) => update({ explanation: val })}
               placeholder="Explain the correct order..."
               className="min-h-[60px] text-sm"
+              multiline
             />
           </div>
 
           <div>
             <Label className="text-xs text-muted-foreground">Evaluation Notes (for admin only)</Label>
-            <Textarea
+            <MathInput
               value={config.evaluationNotes}
-              onChange={(e) => update({ evaluationNotes: e.target.value })}
+              onChange={(val) => update({ evaluationNotes: val })}
               placeholder="Notes for evaluator..."
               className="min-h-[60px] text-sm"
+              multiline
             />
           </div>
         </CardContent>

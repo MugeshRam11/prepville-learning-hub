@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Upload, Target, RotateCcw, Image as ImageIcon, Type, Hash, Calculator } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import MathInput from '@/components/ui/MathInput';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -326,11 +327,11 @@ const ImageFillBlanksEditor: React.FC<ImageFillBlanksEditorProps> = ({ config, o
                       <SelectItem value="latex">LaTeX</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input
+                  <MathInput
                     className="h-7 text-xs flex-1"
                     placeholder={ans.type === 'latex' ? '\\frac{1}{2}' : 'Answer text'}
                     value={ans.value}
-                    onChange={(e) => updateExpectedAnswer(selectedZone!, idx, { value: e.target.value })}
+                    onChange={(val) => updateExpectedAnswer(selectedZone!, idx, { value: val })}
                   />
                   {selectedZoneData.expectedAnswers.length > 1 && (
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExpectedAnswer(selectedZone!, idx)}>

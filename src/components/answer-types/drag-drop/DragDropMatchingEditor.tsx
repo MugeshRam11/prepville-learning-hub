@@ -9,6 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X, GripVertical, ArrowRight, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
+import MathInput from '@/components/ui/MathInput';
 
 export interface DragDropSourceItem {
   id: string;
@@ -133,9 +135,9 @@ const DragDropMatchingEditor: React.FC<DragDropMatchingEditorProps> = ({ config,
           {config.sourceItems.map((item, idx) => (
             <div key={item.id} className="flex items-center gap-2">
               <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">{idx + 1}.</span>
-              <Input
+              <MathInput
                 value={item.content}
-                onChange={(e) => updateSource(item.id, { content: e.target.value })}
+                onChange={(val) => updateSource(item.id, { content: val })}
                 placeholder={`Source item ${idx + 1}...`}
                 className="h-8 text-sm flex-1"
               />
@@ -169,9 +171,9 @@ const DragDropMatchingEditor: React.FC<DragDropMatchingEditorProps> = ({ config,
           {config.targetItems.map((item, idx) => (
             <div key={item.id} className="flex items-center gap-2">
               <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">{String.fromCharCode(65 + idx)}.</span>
-              <Input
+              <MathInput
                 value={item.content}
-                onChange={(e) => updateTarget(item.id, { content: e.target.value })}
+                onChange={(val) => updateTarget(item.id, { content: val })}
                 placeholder={`Target ${String.fromCharCode(65 + idx)}...`}
                 className="h-8 text-sm flex-1"
               />

@@ -74,9 +74,19 @@ function splitMathSegments(text: string): Array<{ type: 'text' | 'math'; value: 
   return segments;
 }
 
+function stripDelimiters(raw: string): { latex: string; display: boolean } {
+  let s = raw.trim();
+  if (s.startsWith('$$') && s.endsWith('$$')) return { latex: s.slice(2, -2).trim(), display: true };
+  if (s.startsWith('$') && s.endsWith('$')) return { latex: s.slice(1, -1).trim(), display: false };
+  if (s.startsWith('\\[') && s.endsWith('\\]')) return { latex: s.slice(2, -2).trim(), display: true };
+  if (s.startsWith('\\(') && s.endsWith('\\)')) return { latex: s.slice(2, -2).trim(), display: false };
+  return { latex: s, display: false };
+}
+
 function renderLatexToHtml(latex: string, displayMode = false): string {
   try {
-    const html = katex.renderToString(latex, { throwOnError: false, displayMode });
+    const { latex: cleaned, display } = stripDelimiters(latex);
+    const html = katex.renderToString(cleaned, { throwOnError: false, displayMode: displayMode || display });
     return html;
   } catch {
     return latex;
@@ -84,9 +94,11 @@ function renderLatexToHtml(latex: string, displayMode = false): string {
 }
 
 function createMathSpan(latex: string, displayMode = false): string {
-  const rendered = renderLatexToHtml(latex, displayMode);
-  const tag = displayMode ? 'div' : 'span';
-  return `<${tag} class="math-expression" data-latex="${latex.replace(/"/g, '&quot;')}" contenteditable="false" style="display:${displayMode ? 'block' : 'inline-block'};background:hsl(var(--muted));padding:2px 6px;margin:0 2px;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Double-click to edit">${rendered}</${tag}>`;
+  const { latex: cleaned, display } = stripDelimiters(latex);
+  const isDisplay = displayMode || display;
+  const rendered = renderLatexToHtml(cleaned, isDisplay);
+  const tag = isDisplay ? 'div' : 'span';
+  return `<${tag} class="math-expression" data-latex="${cleaned.replace(/"/g, '&quot;')}" contenteditable="false" style="display:${isDisplay ? 'block' : 'inline-block'};background:hsl(var(--muted));padding:2px 6px;margin:0 2px;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Double-click to edit">${rendered}</${tag}>`;
 }
 
 interface RichTextEditorProps {
@@ -259,7 +271,8 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     if (!text) return;
 
     const hasDollarDelimiters = /\$[^$]+\$/.test(text) || /\$\$[\s\S]+?\$\$/.test(text);
-    const isRawLatex = looksLikeLaTeX(text);
+    const hasParenDelimiters = /\\\([\s\S]+?\\\)/.test(text) || /\\\[[\s\S]+?\\\]/.test(text);
+    const isRawLatex = looksLikeLaTeX(text) || hasParenDelimiters;
 
     if (!hasDollarDelimiters && !isRawLatex) return;
 
@@ -305,7 +318,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     }, 0);
   }, []);
 
-  // Double-click on math node to edit
+  // Click or double-click on math node to edit
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     const mathNode = target.closest('.math-expression[data-latex]') as HTMLElement;
@@ -316,14 +329,31 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     }
   }, []);
 
-  // Set initial value on mathfield when modal opens
+  const handleEditorClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const mathNode = target.closest('.math-expression[data-latex]') as HTMLElement;
+    if (mathNode) {
+      e.preventDefault();
+      const latex = mathNode.getAttribute('data-latex') || '';
+      openMathEditor(latex, mathNode);
+    }
+  }, []);
+
+  // Set initial value on mathfield when modal opens and show keyboard
   useEffect(() => {
-    if (showMathEditor && mathfieldRef.current && editingLatex) {
+    if (showMathEditor && mathfieldRef.current) {
       setTimeout(() => {
         if (mathfieldRef.current) {
-          mathfieldRef.current.setValue(editingLatex);
+          if (editingLatex) {
+            mathfieldRef.current.setValue(editingLatex);
+          }
+          mathfieldRef.current.focus();
+          window.mathVirtualKeyboard?.show();
         }
-      }, 100);
+      }, 150);
+    }
+    if (!showMathEditor) {
+      window.mathVirtualKeyboard?.hide();
     }
   }, [showMathEditor, editingLatex]);
 
@@ -432,6 +462,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
           contentEditable={!disabled}
           onInput={disabled ? undefined : handleInput}
           onPaste={disabled ? undefined : handlePaste}
+          onClick={disabled ? undefined : handleEditorClick}
           onDoubleClick={disabled ? undefined : handleDoubleClick}
           className={cn(
             "min-h-[150px] p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring",
@@ -456,6 +487,11 @@ export default function RichTextEditor({ value, onChange, placeholder, className
               </div>
               <math-field
                 ref={mathfieldRef}
+                virtual-keyboard-mode="manual"
+                smart-mode="true"
+                smart-superscript="true"
+                remove-extraneous-parentheses="true"
+                onFocus={() => window.mathVirtualKeyboard?.show()}
                 style={{
                   width: "100%",
                   minHeight: "60px",
@@ -464,7 +500,9 @@ export default function RichTextEditor({ value, onChange, placeholder, className
                   borderRadius: "8px",
                   padding: "12px",
                   backgroundColor: "hsl(var(--background))",
-                }}
+                  '--caret-color': 'hsl(var(--primary))',
+                  '--selection-background-color': 'hsl(var(--primary) / 0.2)',
+                } as React.CSSProperties}
               />
               <div className="flex gap-2">
                 <Button

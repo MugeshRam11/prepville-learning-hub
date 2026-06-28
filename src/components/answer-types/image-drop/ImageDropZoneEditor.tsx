@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Upload, Target, GripVertical, Link2, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
+import MathInput from '@/components/ui/MathInput';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -344,9 +346,9 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
             <div key={elem.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
               <Badge variant="secondary" className="text-xs shrink-0">E{idx + 1}</Badge>
               {elem.type === 'text' ? (
-                <Input
+                <MathInput
                   value={elem.content}
-                  onChange={(e) => updateElement(elem.id, { content: e.target.value })}
+                  onChange={(val) => updateElement(elem.id, { content: val })}
                   placeholder="Label text (e.g. 45°, Angle A)"
                   className="h-7 text-sm flex-1"
                 />
@@ -370,9 +372,9 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
                   ) : (
                     <span className="text-xs text-muted-foreground">No image</span>
                   )}
-                  <Input
+                  <MathInput
                     value={elem.content}
-                    onChange={(e) => updateElement(elem.id, { content: e.target.value })}
+                    onChange={(val) => updateElement(elem.id, { content: val })}
                     placeholder="Alt label (optional)"
                     className="h-7 text-xs flex-1"
                   />
