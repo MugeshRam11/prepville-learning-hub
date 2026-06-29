@@ -19,31 +19,52 @@ export function cleanMathContent(text: string | null | undefined): string {
 
   let out = text;
 
-  // 1. Unwrap math chips that carry the LaTeX in a data-* attribute.
-  //    e.g. <span data-latex="x^2"><span class="katex">...</span></span>  →  $x^2$
-  //    Wrap in $ delimiters so downstream renderers can detect math segments.
-  out = out.replace(
-    /<(span|div)[^>]*data-(?:math-)?latex=(?:"([^"]*)"|'([^']*)')[^>]*>[\s\S]*?<\/\1>/gi,
-    (_match, _tag, dq, sq) => {
-      const latex = (dq ?? sq ?? '').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-      if (!latex) return '';
-      return ` $${latex}$ `;
-    }
-  );
+  // 1. Unwrap math chips: extract data-latex, strip ALL inner content.
+  //    The stored HTML looks like:
+  //      <span class="math-expression" data-latex="x^2" ...>
+  //        <span class="katex"><span class="katex-mathml">...</span><span class="katex-html">...</span></span>
+  //      </span>
+  //    The lazy [\s\S]*? fails on nested spans, so we use a function to
+  //    find the correct closing tag by counting open/close span tags.
+  const mathChipRegex = /<(span|div)[^>]*data-(?:math-)?latex=(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
+  let chipMatch: RegExpExecArray | null;
+  const replacements: { start: number; end: number; latex: string }[] = [];
 
-  // 1b. Strip KaTeX-rendered blocks: <span class="katex">...</span>
-  //     These contain duplicate content (mathml + html rendering). Extract
-  //     the annotation (original LaTeX) if present, otherwise discard.
-  out = out.replace(
-    /<span[^>]*class="katex"[^>]*>[\s\S]*?<\/span>\s*<\/span>\s*<\/span>/gi,
-    ''
-  );
-  out = out.replace(
-    /<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/gi,
-    '$1'
-  );
-  // Remove any remaining katex-mathml or katex-html containers
-  out = out.replace(/<span[^>]*class="katex-mathml"[^>]*>[\s\S]*?<\/span>/gi, '');
+  while ((chipMatch = mathChipRegex.exec(out)) !== null) {
+    const tag = chipMatch[1].toLowerCase();
+    const latex = (chipMatch[2] ?? chipMatch[3] ?? '').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+    const startIdx = chipMatch.index;
+    const afterOpen = mathChipRegex.lastIndex;
+
+    // Find the matching closing tag by tracking nesting depth
+    let depth = 1;
+    const closeRegex = new RegExp(`<${tag}[^>]*>|</${tag}>`, 'gi');
+    closeRegex.lastIndex = afterOpen;
+    let closeMatch: RegExpExecArray | null;
+    let endIdx = out.length;
+
+    while ((closeMatch = closeRegex.exec(out)) !== null) {
+      if (closeMatch[0].startsWith('</')) {
+        depth--;
+        if (depth === 0) { endIdx = closeRegex.lastIndex; break; }
+      } else {
+        depth++;
+      }
+    }
+
+    replacements.push({ start: startIdx, end: endIdx, latex });
+  }
+
+  // Apply replacements in reverse order to preserve indices
+  for (let i = replacements.length - 1; i >= 0; i--) {
+    const { start, end, latex } = replacements[i];
+    const replacement = latex ? ` $${latex}$ ` : '';
+    out = out.slice(0, start) + replacement + out.slice(end);
+  }
+
+  // 1b. Strip any remaining KaTeX blocks not caught by data-latex extraction
+  out = out.replace(/<span[^>]*class="[^"]*katex[^"]*"[^>]*>[\s\S]*?<\/span>/gi, '');
+  out = out.replace(/<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/gi, '');
   out = out.replace(/<math[^>]*>[\s\S]*?<\/math>/gi, '');
 
   // 2. Drop inline style/class attributes that often carry leaked colours.
