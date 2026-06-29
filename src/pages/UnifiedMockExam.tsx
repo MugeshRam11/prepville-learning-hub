@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import UnifiedExamHeader from '@/components/unified-exam/UnifiedExamHeader';
@@ -373,19 +375,19 @@ const UnifiedMockExamContent = () => {
   }, [handleSubmit]);
 
   const loadingScreen = (
-    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-violet-50 to-sky-100 dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-sky-950/30">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center p-8 bg-white rounded-2xl shadow-xl border"
+        className="text-center p-10 bg-background/90 backdrop-blur rounded-2xl shadow-2xl border"
       >
-        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
+        <div className="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-violet-500 via-indigo-500 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/30">
+          <div className="animate-spin rounded-full h-10 w-10 border-[3px] border-white/30 border-t-white" />
         </div>
-        <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-violet-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">
           Loading Exam...
         </h2>
-        <p className="text-muted-foreground">Preparing your questions</p>
+        <p className="text-muted-foreground text-sm">Preparing your questions</p>
       </motion.div>
     </div>
   );
@@ -488,20 +490,26 @@ const UnifiedMockExam = () => {
   
   if (!resolvedTestId && !hasPassedQuestions) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4 max-w-md p-8">
-          <div className="text-5xl">⚠️</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 dark:from-amber-950/20 dark:via-orange-950/10 dark:to-rose-950/20">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-5 max-w-md p-8 bg-background/90 backdrop-blur rounded-2xl shadow-xl border"
+        >
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+            <AlertTriangle className="w-8 h-8 text-white" />
+          </div>
           <h2 className="text-xl font-bold text-foreground">Test ID Missing</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Please start the exam from the Mock Exams list.
           </p>
-          <button
+          <Button
             onClick={() => navigate('/mock-exams/select')}
-            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+            className="px-6 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white rounded-xl shadow-md shadow-violet-500/20"
           >
             Go to Mock Exams
-          </button>
-        </div>
+          </Button>
+        </motion.div>
       </div>
     );
   }

@@ -20,14 +20,31 @@ export function cleanMathContent(text: string | null | undefined): string {
   let out = text;
 
   // 1. Unwrap math chips that carry the LaTeX in a data-* attribute.
-  //    e.g. <span data-latex="x^2"></span>  →  x^2
+  //    e.g. <span data-latex="x^2"><span class="katex">...</span></span>  →  $x^2$
+  //    Wrap in $ delimiters so downstream renderers can detect math segments.
   out = out.replace(
     /<(span|div)[^>]*data-(?:math-)?latex=(?:"([^"]*)"|'([^']*)')[^>]*>[\s\S]*?<\/\1>/gi,
     (_match, _tag, dq, sq) => {
       const latex = (dq ?? sq ?? '').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-      return latex;
+      if (!latex) return '';
+      return ` $${latex}$ `;
     }
   );
+
+  // 1b. Strip KaTeX-rendered blocks: <span class="katex">...</span>
+  //     These contain duplicate content (mathml + html rendering). Extract
+  //     the annotation (original LaTeX) if present, otherwise discard.
+  out = out.replace(
+    /<span[^>]*class="katex"[^>]*>[\s\S]*?<\/span>\s*<\/span>\s*<\/span>/gi,
+    ''
+  );
+  out = out.replace(
+    /<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/gi,
+    '$1'
+  );
+  // Remove any remaining katex-mathml or katex-html containers
+  out = out.replace(/<span[^>]*class="katex-mathml"[^>]*>[\s\S]*?<\/span>/gi, '');
+  out = out.replace(/<math[^>]*>[\s\S]*?<\/math>/gi, '');
 
   // 2. Drop inline style/class attributes that often carry leaked colours.
   out = out.replace(/\sstyle\s*=\s*"[^"]*"/gi, '');
