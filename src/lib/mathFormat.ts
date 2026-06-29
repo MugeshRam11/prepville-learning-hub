@@ -266,6 +266,10 @@ function latexToReadable(input: string): string {
     out = out.replace(re, sym);
   }
 
+  // Strip \left and \right sizing hints (keep the bracket that follows).
+  out = out.replace(/\\left\b\s*/g, '');
+  out = out.replace(/\\right\b\s*/g, '');
+
   // Drop any remaining unknown \command tokens but keep their arguments.
   out = out.replace(/\\([A-Za-z]+)(?:\{\})?/g, '$1');
 
