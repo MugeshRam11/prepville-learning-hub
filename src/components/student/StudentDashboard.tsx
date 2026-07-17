@@ -21,7 +21,6 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import AvatarCustomizer from './AvatarCustomizer';
 import StreakTracker from './StreakTracker';
 import TopicProgressCard from './TopicProgressCard';
@@ -319,7 +318,6 @@ const StudentDashboard = () => {
             <p className="text-gray-600 font-medium">Loading your dashboard...</p>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -519,8 +517,6 @@ const StudentDashboard = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
 
       {/* Avatar Customizer Modal */}
       {showAvatarCustomizer && (

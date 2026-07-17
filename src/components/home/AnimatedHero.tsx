@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Check, Clock, Zap, ArrowRight, Sparkles, Play } from 'lucide-react';
+import { Check, Clock, Zap, ArrowRight, Sparkles, Play, LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 const AnimatedHero = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentWord, setCurrentWord] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -161,19 +163,23 @@ const AnimatedHero = () => {
               <Button
                 size="lg"
                 className="group bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground text-lg px-8 h-14 shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30"
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate(user ? '/dashboard' : '/auth')}
               >
-                <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                Start Practicing
+                {user ? (
+                  <LayoutDashboard className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                ) : (
+                  <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                )}
+                {user ? 'Go to Dashboard' : 'Start Practicing'}
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 className="text-lg px-8 h-14 border-2 hover:bg-primary/5 transition-all duration-300"
-                onClick={() => navigate('/pricing')}
+                onClick={() => navigate(user ? '/mock-exams/select' : '/pricing')}
               >
-                View Plans
+                {user ? 'Mock Exams' : 'View Plans'}
               </Button>
             </motion.div>
 

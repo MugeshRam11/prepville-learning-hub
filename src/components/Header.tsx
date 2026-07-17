@@ -22,7 +22,8 @@ import {
   LogOut,
   Library,
   Bell,
-  Trophy
+  Trophy,
+  LayoutDashboard
 } from 'lucide-react';
 
 const Header = () => {
@@ -51,7 +52,12 @@ const Header = () => {
     { href: '/pricing', label: 'Pricing', icon: DollarSign },
   ];
 
-  const navItems = user ? loggedInNavItems : publicNavItems;
+  // Marketing/public pages keep the top bar even when logged in; only the
+  // in-app pages use the left sidebar.
+  const marketingRoutes = ['/', '/pricing'];
+  const isMarketingPage = marketingRoutes.includes(location.pathname);
+  const useSidebar = !!user && !isMarketingPage;
+
   const isActive = (path: string) => location.pathname === path;
 
   const handleSignOut = async () => {
@@ -75,10 +81,10 @@ const Header = () => {
   // The `body.app-has-sidebar` rule in index.css only applies at lg+, so on
   // mobile the class is inert and the top bar is used instead.
   React.useEffect(() => {
-    if (!user) return;
+    if (!useSidebar) return;
     document.body.classList.add('app-has-sidebar');
     return () => document.body.classList.remove('app-has-sidebar');
-  }, [user]);
+  }, [useSidebar]);
 
   // Live unread notification count for the sidebar badge.
   React.useEffect(() => {
@@ -131,9 +137,9 @@ const Header = () => {
   );
 
   // ============================================================
-  // Logged-in: fixed left sidebar (desktop) + top bar (mobile)
+  // In-app pages: fixed left sidebar (desktop) + top bar (mobile)
   // ============================================================
-  if (user) {
+  if (useSidebar) {
     return (
       <>
         {/* Desktop sidebar */}
@@ -272,20 +278,44 @@ const Header = () => {
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/auth')}
-              >
-                Sign In
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => navigate('/auth')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-              >
-                Sign Up
-              </Button>
+              {user ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/dashboard')}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                  >
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Go to Dashboard
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/auth')}
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/auth')}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -325,27 +355,55 @@ const Header = () => {
               ))}
 
               <div className="pt-4 border-t">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    navigate('/auth');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Sign In
-                </Button>
-                <Button
-                  className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                  onClick={() => {
-                    navigate('/auth');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Sign Up
-                </Button>
+                {user ? (
+                  <>
+                    <Button
+                      className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      onClick={() => {
+                        navigate('/dashboard');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Go to Dashboard
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-red-600"
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/auth');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Sign In
+                    </Button>
+                    <Button
+                      className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      onClick={() => {
+                        navigate('/auth');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Sign Up
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>
