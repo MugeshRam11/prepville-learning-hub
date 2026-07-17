@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Clock, Zap, Trophy, Play, Pause, RotateCcw } from 'lucide-react';
 import { useProgressTracking } from '@/hooks/useProgressTracking';
 import { useXPSystem } from '@/hooks/useXPSystem';
@@ -216,7 +215,6 @@ const TimedChallenge = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

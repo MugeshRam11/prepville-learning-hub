@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useNavigate } from 'react-router-dom';
@@ -75,7 +74,6 @@ const Subscription = () => {
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">Loading subscription details...</div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -252,7 +250,6 @@ const Subscription = () => {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

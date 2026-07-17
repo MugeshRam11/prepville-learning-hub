@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Calculator, BookOpen, Search, Star } from 'lucide-react';
 
 const FormulaHelper = () => {
@@ -160,7 +159,6 @@ const FormulaHelper = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import SubjectFilter from '@/components/SubjectFilter';
 import { AITutorChat } from '@/components/AITutorChat';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,7 +132,6 @@ const Subjects = () => {
             <p className="text-muted-foreground">Loading subjects...</p>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -176,7 +174,6 @@ const Subjects = () => {
           </div>
         </section>
       </main>
-      <Footer />
 
       {/* AI Tutor Chat Window */}
       <AITutorChat

@@ -4,7 +4,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Trophy, Crown, Medal, TrendingUp, Flame, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -222,7 +221,6 @@ const Leaderboard = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

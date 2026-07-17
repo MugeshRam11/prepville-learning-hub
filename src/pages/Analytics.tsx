@@ -22,7 +22,6 @@ import {
   Clock
 } from 'lucide-react';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { format } from 'date-fns';
 
 const Analytics = () => {
@@ -445,7 +444,6 @@ const Analytics = () => {
         )}
       </main>
       
-      <Footer />
     </div>
   );
 };

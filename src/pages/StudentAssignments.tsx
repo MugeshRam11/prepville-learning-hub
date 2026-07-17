@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import GlobalChatbot from '@/components/GlobalChatbot';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -225,7 +224,6 @@ const StudentAssignments = () => {
             <p className="text-muted-foreground">Loading your assignments...</p>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -365,7 +363,6 @@ const StudentAssignments = () => {
           </div>
         )}
       </main>
-      <Footer />
       <GlobalChatbot subject="Assignments" />
     </div>
   );

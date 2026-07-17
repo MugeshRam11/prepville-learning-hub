@@ -7,7 +7,6 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useXPSystem } from '@/hooks/useXPSystem';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 const LevelDetails = () => {
   const navigate = useNavigate();
@@ -92,7 +91,6 @@ const LevelDetails = () => {
         <main className="flex-1 container mx-auto px-4 py-8">
           <div className="text-center">Loading...</div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -303,7 +301,6 @@ const LevelDetails = () => {
         </Card>
       </main>
 
-      <Footer />
     </div>
   );
 };

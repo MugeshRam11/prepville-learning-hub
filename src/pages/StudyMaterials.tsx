@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import GlobalChatbot from '@/components/GlobalChatbot';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -280,7 +279,6 @@ const StudyMaterials = () => {
           )}
         </div>
       </main>
-      <Footer />
       <GlobalChatbot subject="General" />
     </div>
   );

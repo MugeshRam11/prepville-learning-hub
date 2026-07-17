@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { TrendingUp, LineChart, BarChart3, PieChart } from 'lucide-react';
 
 const GraphingTool = () => {
@@ -147,7 +146,6 @@ const GraphingTool = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

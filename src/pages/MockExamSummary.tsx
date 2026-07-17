@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -499,7 +498,6 @@ const MockExamSummary = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>;
 };
 export default MockExamSummary;

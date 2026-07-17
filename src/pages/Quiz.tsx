@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import QuizProgress from '@/components/quiz/QuizProgress';
 import QuizQuestion from '@/components/quiz/QuizQuestion';
@@ -585,7 +584,6 @@ const Quiz = () => {
             <h1 className="text-2xl font-bold mb-4">Loading Quiz...</h1>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -603,7 +601,6 @@ const Quiz = () => {
             </Button>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -623,7 +620,6 @@ const Quiz = () => {
             </Button>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -638,7 +634,6 @@ const Quiz = () => {
             <h1 className="text-2xl font-bold mb-4">Preparing Quiz...</h1>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -744,7 +739,6 @@ const Quiz = () => {
           onTakeAnother={() => navigate('/quick-practice')}
           onBackToPractice={() => navigate('/practice')}
         />
-        <Footer />
       </>
     );
   }
@@ -766,7 +760,6 @@ const Quiz = () => {
             </Button>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -820,7 +813,6 @@ const Quiz = () => {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   );
 };
