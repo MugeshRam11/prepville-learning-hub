@@ -114,6 +114,14 @@ math-field::part(virtual-keyboard-toggle) {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Offset page content for the fixed student sidebar on desktop.
+     Toggled by Header via the `app-has-sidebar` body class (logged-in only). */
+  @media (min-width: 1024px) {
+    body.app-has-sidebar {
+      padding-left: 16rem;
+    }
+  }
 }
 
 /* ============================================================

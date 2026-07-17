@@ -62,6 +62,8 @@ import UnifiedMockExam from "./pages/UnifiedMockExam";
 import AdminExamBuilder from "./pages/AdminExamBuilder";
 import ExamSubmitted from "./pages/ExamSubmitted";
 import StudentExamResults from "./pages/StudentExamResults";
+import ExamResults from "./pages/ExamResults";
+import Notifications from "./pages/Notifications";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CopyPasteProtection from "./components/CopyPasteProtection";
 
@@ -178,6 +180,16 @@ const App = () => (
           <Route path="/mock-exams/results/:attemptId" element={
             <ProtectedRoute requiresSubscription>
               <StudentExamResults />
+            </ProtectedRoute>
+          } />
+          <Route path="/results" element={
+            <ProtectedRoute>
+              <ExamResults />
+            </ProtectedRoute>
+          } />
+          <Route path="/notifications" element={
+            <ProtectedRoute>
+              <Notifications />
             </ProtectedRoute>
           } />
           <Route path="/assignments" element={
