@@ -30,12 +30,12 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
   const hasSourceContent = hasImage || hasDiagram || hasExtract;
 
   return (
-    <div className={cn("flex flex-col bg-card overflow-hidden", className)}>
+    <div className={cn("flex flex-col overflow-hidden", className)}>
       {/* Source panel header */}
-      <div className="p-4 border-b bg-muted/30">
+      <div className="p-4 border-b border-violet-500/10 bg-gradient-to-r from-violet-500/10 to-sky-500/5">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <span className="text-sm font-bold text-primary">{question.questionNumber}</span>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md shadow-violet-500/20">
+            <span className="text-sm font-bold text-white">{question.questionNumber}</span>
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold truncate">Question {question.questionNumber}</h3>
@@ -64,7 +64,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
                 {hasExtract ? 'Extract / Passage' : 'Question'}
               </span>
             </div>
-            <div className="prose prose-sm max-w-none text-foreground leading-relaxed bg-muted/20 rounded-lg p-4 border">
+            <div className="prose prose-sm max-w-none text-foreground leading-relaxed exam-glass rounded-lg p-4 border">
               {renderLatexContent(question.questionText)}
             </div>
           </div>

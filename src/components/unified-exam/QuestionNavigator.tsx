@@ -211,12 +211,12 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-72 border-r bg-card hidden lg:flex flex-col min-h-0 overflow-hidden"
+      className="w-72 border-r border-violet-500/10 exam-glass hidden lg:flex flex-col min-h-0 overflow-hidden"
     >
       {/* Header with progress */}
-      <div className="p-4 border-b space-y-3">
+      <div className="p-4 border-b border-violet-500/10 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm">Question Navigator</h3>
+          <h3 className="font-semibold text-sm bg-gradient-to-r from-violet-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">Question Navigator</h3>
           <Badge variant="secondary" className="text-xs font-mono">
             Q {answeredMainQuestions}/{mainQuestionCount}
           </Badge>
@@ -325,8 +325,8 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
                             className={cn(
                               "w-full flex items-center gap-2 p-2.5 rounded-lg text-left transition-all",
                               isActiveGroup
-                                ? "bg-primary/10 border-l-3 border-l-primary"
-                                : "hover:bg-muted border-l-3 border-l-transparent"
+                                ? "bg-gradient-to-r from-violet-500/15 to-indigo-500/10 border-l-3 border-l-violet-500 shadow-sm shadow-violet-500/10"
+                                : "hover:bg-violet-500/5 border-l-3 border-l-transparent"
                             )}
                           >
                             {/* Status icon for group */}
@@ -346,9 +346,9 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
 
                             {/* Question number */}
                             <div className={cn(
-                              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold",
+                              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-all",
                               isActiveGroup
-                                ? "bg-primary text-primary-foreground"
+                                ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-500/30"
                                 : "bg-secondary text-secondary-foreground"
                             )}>
                               {question.questionNumber}
@@ -396,8 +396,8 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
                                     className={cn(
                                       "w-full flex items-center gap-2 p-2 rounded-md text-left transition-all",
                                       isActive(question.id, subQ.id)
-                                        ? "bg-primary/10 border border-primary"
-                                        : "hover:bg-muted border border-transparent"
+                                        ? "bg-gradient-to-r from-violet-500/15 to-indigo-500/10 border border-violet-500/40"
+                                        : "hover:bg-violet-500/5 border border-transparent"
                                     )}
                                   >
                                     {/* Status */}
@@ -409,9 +409,9 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
 
                                     {/* Sub-question label: (a), (b), etc. */}
                                     <span className={cn(
-                                      "w-6 h-6 rounded flex items-center justify-center text-xs font-medium",
+                                      "w-6 h-6 rounded flex items-center justify-center text-xs font-medium transition-all",
                                       isActive(question.id, subQ.id)
-                                        ? "bg-primary text-primary-foreground"
+                                        ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm shadow-violet-500/30"
                                         : "bg-muted"
                                     )}>
                                       ({subQ.label})
@@ -443,7 +443,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
       </ScrollArea>
 
       {/* Legend */}
-      <div className="p-3 border-t bg-muted/30 space-y-2">
+      <div className="p-3 border-t border-violet-500/10 bg-violet-500/[0.03] space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Legend</p>
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1.5">

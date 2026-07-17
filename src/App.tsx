@@ -43,6 +43,7 @@ import AdminMockTestView from "./pages/AdminMockTestView";
 import AdminQuickTestCreate from "./pages/AdminQuickTestCreate";
 import AdminStudyMaterials from "./pages/AdminStudyMaterials";
 import AdminSettings from "./pages/AdminSettings";
+import AdminBilling from "./pages/AdminBilling";
 import AdminPracticeCreate from "./pages/AdminPracticeCreate";
 
 import StudyGroups from "./pages/StudyGroups";
@@ -297,6 +298,11 @@ const App = () => (
           <Route path="/admin/settings" element={
             <ProtectedRoute>
               <AdminSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/billing" element={
+            <ProtectedRoute>
+              <AdminBilling />
             </ProtectedRoute>
           } />
           <Route path="/admin/exam-builder" element={

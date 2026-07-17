@@ -11,6 +11,7 @@ import ExamSourcePanel from '@/components/unified-exam/ExamSourcePanel';
 import ExamQuestionCardsPanel from '@/components/unified-exam/ExamQuestionCardsPanel';
 import ExamSyncOverlay from '@/components/unified-exam/ExamSyncOverlay';
 import ExamLockdown from '@/components/unified-exam/ExamLockdown';
+import ExamCursor from '@/components/unified-exam/ExamCursor';
 import { ExamModeProvider, useExamMode } from '@/contexts/ExamModeContext';
 import { ExamSyncProvider, useExamSync } from '@/contexts/ExamSyncContext';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -401,9 +402,10 @@ const UnifiedMockExamContent = () => {
     >
       {isLoading || !examData ? loadingScreen : (
         <div className={cn(
-          "h-screen flex flex-col bg-background overflow-hidden transition-all",
+          "h-screen flex flex-col exam-grid-bg exam-cursor-none overflow-hidden transition-all",
           focusMode.isActive && "focus-mode-container"
         )}>
+          <ExamCursor />
           <ExamSyncOverlay onForceNavigate={() => navigate('/mock-exams/select')} />
 
           <UnifiedExamHeader
@@ -416,7 +418,6 @@ const UnifiedMockExamContent = () => {
             totalParts={getTotalQuestionSlots()}
             answeredParts={getAnsweredCount()}
             onSubmit={handleSubmit}
-            hasStartedExam={hasStartedExam}
             isConnected={syncContext?.isConnected}
           />
 
@@ -439,7 +440,7 @@ const UnifiedMockExamContent = () => {
             {/* Center: Source / Extract Panel — visible on lg+ */}
             <ExamSourcePanel
               question={activeQuestion}
-              className="hidden lg:flex border-r border-border min-h-0"
+              className="hidden lg:flex border-r border-violet-500/10 min-h-0"
             />
 
             {/* Right: Sub-question Cards */}

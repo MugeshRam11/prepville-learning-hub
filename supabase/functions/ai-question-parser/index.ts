@@ -1,6 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logAiUsage, extractUsage } from '../_shared/aiUsage.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -748,8 +747,18 @@ async function analyzePageWithOpenAI(
     }
 
     const data = await response.json();
+
+    // Real-cost tracking for the admin Billing section — never blocks parsing.
+    const { promptTokens, completionTokens } = extractUsage(data);
+    await logAiUsage({
+      functionName: 'ai-question-parser',
+      model,
+      promptTokens,
+      completionTokens,
+    });
+
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    
+
     if (!toolCall || toolCall.function.name !== 'extract_questions') {
       console.error('No valid tool call in response');
       // Fallback: try parsing content as JSON
@@ -818,6 +827,16 @@ async function parseTextWithOpenAI(apiKey: string, content: string): Promise<any
     if (!response.ok) throw new Error(`OpenAI API: ${response.status}`);
 
     const data = await response.json();
+
+    // Real-cost tracking for the admin Billing section — never blocks parsing.
+    const { promptTokens, completionTokens } = extractUsage(data);
+    await logAiUsage({
+      functionName: 'ai-question-parser',
+      model: PRIMARY_MODEL,
+      promptTokens,
+      completionTokens,
+    });
+
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) return [];
     
@@ -872,7 +891,7 @@ async function saveParsingPatterns(patterns: any, questions: any[]) {
 
 // ============ MAIN HANDLER ============
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

@@ -50,3 +50,9 @@ verify_jwt = true
 
 [functions.publish-evaluation]
 verify_jwt = true
+
+[functions.get-platform-usage]
+verify_jwt = true
+
+[functions.purchase-ai-credits]
+verify_jwt = true

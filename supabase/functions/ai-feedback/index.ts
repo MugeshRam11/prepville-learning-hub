@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAiUsage, extractUsage } from '../_shared/aiUsage.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -138,6 +139,16 @@ RESPOND ONLY WITH VALID JSON, no markdown code blocks.`;
 
     const aiData = await aiResponse.json();
     const aiContent = aiData.choices?.[0]?.message?.content || '';
+
+    // Real-cost tracking for the admin Billing section — never blocks feedback.
+    const { promptTokens, completionTokens } = extractUsage(aiData);
+    await logAiUsage({
+      functionName: 'ai-feedback',
+      model: 'google/gemini-2.0-flash-001',
+      promptTokens,
+      completionTokens,
+      userId: user.id,
+    });
 
     // Parse AI response
     let feedbackData: FeedbackResponse;

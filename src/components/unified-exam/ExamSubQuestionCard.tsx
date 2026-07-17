@@ -59,8 +59,8 @@ const ExamSubQuestionCard: React.FC<ExamSubQuestionCardProps> = ({
       <Card className={cn(
         "border transition-all duration-200",
         isActive
-          ? "border-primary/40 shadow-md ring-1 ring-primary/20"
-          : "border-border/60 shadow-sm hover:shadow-md",
+          ? "border-violet-500/40 shadow-md shadow-violet-500/10 ring-1 ring-violet-500/25 bg-gradient-to-br from-violet-500/[0.06] to-indigo-500/[0.03]"
+          : "border-border/60 shadow-sm hover:shadow-md hover:border-violet-500/20",
         isAnswered && !isActive && "border-green-200/60"
       )}>
         <CardContent className="p-4 space-y-3">
@@ -68,9 +68,9 @@ const ExamSubQuestionCard: React.FC<ExamSubQuestionCardProps> = ({
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0",
+                "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 transition-all",
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-500/30"
                   : isAnswered
                     ? "bg-green-100 text-green-700"
                     : "bg-secondary text-secondary-foreground"

@@ -54,9 +54,9 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
   return (
     <div className={cn("flex min-h-0 flex-col overflow-hidden", className)}>
       {/* Panel header */}
-      <div className="p-4 border-b bg-muted/20">
+      <div className="p-4 border-b border-violet-500/10 bg-gradient-to-r from-indigo-500/10 to-violet-500/5">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">
+          <h3 className="text-sm font-semibold bg-gradient-to-r from-violet-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">
             {hasSubQuestions
               ? `Question ${question.questionNumber} — Sub-parts`
               : `Question ${question.questionNumber} — Answer`
@@ -84,7 +84,7 @@ const ExamQuestionCardsPanel: React.FC<ExamQuestionCardsPanelProps> = ({
                   data-question-id={question.id}
                   className="scroll-mt-24"
                 >
-                  <div className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                  <div className="rounded-xl border border-violet-500/15 exam-glass p-4 shadow-sm shadow-violet-500/5 space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-sm font-semibold">Main Question Answer</h4>
                       <Badge variant="outline" className="text-[10px] font-mono">

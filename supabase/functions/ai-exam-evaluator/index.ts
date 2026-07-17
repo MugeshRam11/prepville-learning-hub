@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { logAiUsage, extractUsage } from '../_shared/aiUsage.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -166,6 +167,16 @@ Respond ONLY with a JSON object:
 
       const data = await response.json();
       const aiResponse = data.choices?.[0]?.message?.content;
+
+      // Real-cost tracking for the admin Billing section — never blocks evaluation.
+      const { promptTokens, completionTokens } = extractUsage(data);
+      await logAiUsage({
+        functionName: 'ai-exam-evaluator',
+        model: 'google/gemini-2.5-flash',
+        promptTokens,
+        completionTokens,
+        userId: user.id,
+      });
 
       if (!aiResponse) {
         throw new Error('No evaluation generated');

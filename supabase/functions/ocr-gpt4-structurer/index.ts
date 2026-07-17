@@ -1,5 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logAiUsage, extractUsage } from '../_shared/aiUsage.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -104,7 +103,7 @@ Take RAW OCR text and ORGANIZE it into a clean, structured JSON format.
 - Add warnings for any quality issues detected`;
 
 // ============= MAIN HANDLER =============
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -184,6 +183,15 @@ serve(async (req) => {
 
     const aiResult = await response.json();
     const content = aiResult.choices?.[0]?.message?.content;
+
+    // Real-cost tracking for the admin Billing section — never blocks structuring.
+    const { promptTokens, completionTokens } = extractUsage(aiResult);
+    await logAiUsage({
+      functionName: 'ocr-gpt4-structurer',
+      model: 'gpt-4o',
+      promptTokens,
+      completionTokens,
+    });
 
     if (!content) {
       throw new Error('No content in GPT-4o response');

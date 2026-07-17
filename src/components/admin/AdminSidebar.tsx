@@ -1,16 +1,17 @@
 
 import React from 'react';
-import { 
-  Home, 
-  Users, 
-  FileText, 
-  BarChart3, 
-  Settings, 
+import {
+  Home,
+  Users,
+  FileText,
+  BarChart3,
+  Settings,
   HelpCircle,
   BookOpen,
   LogOut,
   ClipboardList,
-  Upload
+  Upload,
+  Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -53,6 +54,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     
     
     { id: 'reports', label: 'Progress Reports', icon: BarChart3, path: '/admin/reports' },
+    { id: 'billing', label: 'Billing', icon: Wallet, path: '/admin/billing' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
     { id: 'help', label: 'Help & Support', icon: HelpCircle, path: '/admin/help' },
   ];

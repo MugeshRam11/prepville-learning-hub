@@ -1,6 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { logAiUsage, extractUsage } from '../_shared/aiUsage.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -363,7 +362,7 @@ const FALLBACK_RESPONSES: Record<string, string> = {
 // ============================================
 // MAIN HANDLER
 // ============================================
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -515,11 +514,12 @@ async function handleMockExam({ message, corsHeaders }: any) {
 // AI API CALL HELPER
 // ============================================
 async function callAI(
-  systemPrompt: string, 
-  userPrompt: string, 
-  apiKey: string, 
+  systemPrompt: string,
+  userPrompt: string,
+  apiKey: string,
   useOpenAI: boolean,
-  conversationHistory: any[] = []
+  conversationHistory: any[] = [],
+  logCtx: { userId?: string | null } = {}
 ): Promise<string> {
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -566,6 +566,17 @@ async function callAI(
   }
 
   const data = await response.json();
+
+  // Real-cost tracking for the admin Billing section — never blocks the response.
+  const { promptTokens, completionTokens } = extractUsage(data);
+  await logAiUsage({
+    functionName: 'chatbot',
+    model,
+    promptTokens,
+    completionTokens,
+    userId: logCtx.userId ?? null,
+  });
+
   return data.choices?.[0]?.message?.content || '';
 }
 
@@ -625,8 +636,8 @@ Respond following the rules for ${mode} mode.${detectedCommand ? ` Use the "${de
 Remember: ALL mathematical expressions MUST use LaTeX formatting ($...$).`;
 
   try {
-    let aiResponse = await callAI(systemPrompt, userPrompt, apiKey, useOpenAI, conversationHistory);
-    
+    let aiResponse = await callAI(systemPrompt, userPrompt, apiKey, useOpenAI, conversationHistory, { userId });
+
     // Validate response doesn't violate mode rules
     const validation = validateResponse(aiResponse, mode as ChatMode);
     if (!validation.valid) {

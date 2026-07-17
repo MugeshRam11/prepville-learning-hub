@@ -115,3 +115,60 @@ math-field::part(virtual-keyboard-toggle) {
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================
+   Mock exam workspace — modern vibrant design foundations
+   ============================================================ */
+@layer components {
+  /* Grid background with a soft violet/sky glow. Used on the exam shell. */
+  .exam-grid-bg {
+    background-color: hsl(240 60% 99%);
+    background-image:
+      radial-gradient(60rem 40rem at 15% -10%, hsl(258 90% 66% / 0.12), transparent 60%),
+      radial-gradient(50rem 40rem at 100% 0%, hsl(199 90% 60% / 0.12), transparent 55%),
+      linear-gradient(hsl(250 70% 55% / 0.13) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(250 70% 55% / 0.13) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 38px 38px, 38px 38px;
+  }
+
+  .dark .exam-grid-bg {
+    background-color: hsl(222.2 84% 4.9%);
+    background-image:
+      radial-gradient(60rem 40rem at 15% -10%, hsl(258 90% 66% / 0.2), transparent 60%),
+      radial-gradient(50rem 40rem at 100% 0%, hsl(199 90% 60% / 0.16), transparent 55%),
+      linear-gradient(hsl(255 100% 85% / 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(255 100% 85% / 0.1) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 38px 38px, 38px 38px;
+  }
+
+  /* Frosted glass panel surface — translucent so the grid background shows
+     through, with a heavier blur for a glossy look and a violet-tinted border. */
+  .exam-glass {
+    background-color: hsl(0 0% 100% / 0.3);
+    backdrop-filter: blur(3px) saturate(1.3);
+    -webkit-backdrop-filter: blur(3px) saturate(1.3);
+    border-color: hsl(250 70% 55% / 0.14);
+  }
+
+  .dark .exam-glass {
+    background-color: hsl(222.2 84% 6% / 0.32);
+    backdrop-filter: blur(3px) saturate(1.3);
+    -webkit-backdrop-filter: blur(3px) saturate(1.3);
+    border-color: hsl(255 100% 85% / 0.1);
+  }
+}
+
+@layer utilities {
+  /* Custom cursor: hide the native cursor on the exam shell, but keep the
+     native caret over anything the user types into. Only applies on
+     fine-pointer, non-reduced-motion devices. */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .exam-cursor-none {
+      cursor: none;
+    }
+
+    .exam-cursor-none :is(input, textarea, [contenteditable="true"], math-field, select) {
+      cursor: auto;
+    }
+  }
+}

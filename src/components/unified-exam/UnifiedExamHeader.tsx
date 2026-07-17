@@ -10,10 +10,8 @@ import {
   BookOpen,
   Timer,
   Wifi,
-  WifiOff,
-  ArrowLeft
+  WifiOff
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +35,6 @@ interface UnifiedExamHeaderProps {
   totalParts?: number;
   answeredParts?: number;
   onSubmit: () => void;
-  hasStartedExam?: boolean;
   isConnected?: boolean;
 }
 
@@ -51,10 +48,8 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
   totalParts,
   answeredParts,
   onSubmit,
-  hasStartedExam = false,
   isConnected
 }) => {
-  const navigate = useNavigate();
   const [timeRemaining, setTimeRemaining] = useState(duration * 60);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
 
@@ -113,20 +108,12 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm"
+      className="sticky top-0 z-50 exam-glass border-b border-violet-500/10 shadow-sm shadow-violet-500/5"
     >
       <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-4">
-          {/* Left: Back + Icon + Title */}
+          {/* Left: Icon + Title */}
           <div className="flex items-center gap-3 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/mock-exams/select')}
-              className="shrink-0"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-violet-500/20">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
@@ -171,17 +158,6 @@ const UnifiedExamHeader: React.FC<UnifiedExamHeaderProps> = ({
                 )}
               </div>
             )}
-
-            {/* Timer with gradient */}
-            <div className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl transition-all",
-              timerStyle.bg, timerStyle.text, timerStyle.shadow
-            )}>
-              <Timer className="w-5 h-5" />
-              <span className="font-mono font-bold text-lg">
-                {formatTime(timeRemaining)}
-              </span>
-            </div>
 
             {/* Submit */}
             <AlertDialog>
