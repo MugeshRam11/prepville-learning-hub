@@ -149,7 +149,7 @@ const Header = () => {
               <img
                 src={logo}
                 alt="The Prep Ville"
-                className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+                className="h-16 w-auto object-contain group-hover:scale-105 transition-transform"
               />
               <Badge variant="secondary" className="text-xs">MYP</Badge>
             </Link>
@@ -188,7 +188,7 @@ const Header = () => {
               <img
                 src={logo}
                 alt="The Prep Ville"
-                className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+                className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
               />
               <Badge variant="secondary" className="text-xs">MYP</Badge>
             </Link>
