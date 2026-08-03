@@ -110,9 +110,9 @@ const StudentDashboard = () => {
         avatar_emoji: '🎓',
         role: 'student'
       } as any);
-      setTotalQuestions(105);
-      setCorrectAnswers(87);
-      setWeeklyCompleted(4);
+      setTotalQuestions(0);
+      setCorrectAnswers(0);
+      setWeeklyCompleted(0);
       setLoading(false);
       return;
     }

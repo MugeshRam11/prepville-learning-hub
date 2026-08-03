@@ -10,15 +10,6 @@ interface SolvedQuestionStats {
   loading: boolean;
 }
 
-// Mock solved questions for demo users
-const DEMO_SOLVED_STATS: SolvedQuestionStats = {
-  mockTestSolved: 45,
-  subjectTestSolved: 32,
-  quickTestSolved: 28,
-  totalSolved: 105,
-  loading: false
-};
-
 export const useSolvedQuestions = (): SolvedQuestionStats => {
   const { user, isDemo } = useAuth();
   const [stats, setStats] = useState<SolvedQuestionStats>({
@@ -30,9 +21,15 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
   });
 
   const fetchSolvedQuestions = async () => {
-    // Demo users get mock data
+    // Demo users get zero stats (no Supabase access)
     if (isDemo) {
-      setStats(DEMO_SOLVED_STATS);
+      setStats({
+        mockTestSolved: 0,
+        subjectTestSolved: 0,
+        quickTestSolved: 0,
+        totalSolved: 0,
+        loading: false,
+      });
       return;
     }
 
@@ -65,7 +62,7 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
         return;
       }
 
-      // Calculate solved questions by category
+      // Calculate solved questions by category from real Supabase data
       let mockTestSolved = 0;
       let subjectTestSolved = 0;
       let quickTestSolved = 0;
@@ -105,7 +102,6 @@ export const useSolvedQuestions = (): SolvedQuestionStats => {
 
   // Set up real-time subscription for test_attempts changes
   useEffect(() => {
-    // Skip for demo users
     if (isDemo || !user?.id) return;
 
     const channel = supabase
