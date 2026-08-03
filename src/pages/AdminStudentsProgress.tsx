@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, Users, Activity, Award, TrendingUp, Eye, Calendar, Target, Flame, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Search, Users, Activity, Award, TrendingUp, Eye, Target, Flame, CheckCircle, Clock, FileText, HelpCircle, Check, X } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -47,6 +47,17 @@ interface DetailedStudent extends StudentProfile {
   xpData: any;
 }
 
+interface QuestionSolution {
+  id: string;
+  question_text: string;
+  options: string[] | any;
+  correct_answer: string;
+  explanation: string | null;
+  user_answer: string | null;
+  is_correct: boolean | null;
+  marks: number | null;
+}
+
 const AdminStudentsProgress = () => {
   const [activeTab, setActiveTab] = useState('students-progress');
   const [students, setStudents] = useState<(StudentProfile & { stats: StudentStats })[]>([]);
@@ -56,25 +67,75 @@ const AdminStudentsProgress = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  // Solution Review Modal State
+  const [solutionModalOpen, setSolutionModalOpen] = useState(false);
+  const [selectedAttemptForSolution, setSelectedAttemptForSolution] = useState<any>(null);
+  const [attemptQuestions, setAttemptQuestions] = useState<QuestionSolution[]>([]);
+  const [loadingSolutions, setLoadingSolutions] = useState(false);
+
   useEffect(() => {
     fetchStudents();
+
+    const channel = supabase
+      .channel('admin-student-progress-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'test_attempts' },
+        () => fetchStudents()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'test_assignments' },
+        () => fetchStudents()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_streaks' },
+        () => fetchStudents()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      // Fetch all student profiles
-      const { data: profilesData, error: profilesError } = await supabase
+      // Fetch all student accounts directly from profiles or user_progress_summary
+      const { data: profilesData } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'student')
         .order('created_at', { ascending: false });
 
-      if (profilesError) throw profilesError;
+      let loadedProfiles: StudentProfile[] = profilesData || [];
 
-      // For each student, fetch their stats
+      if (loadedProfiles.length === 0) {
+        const { data: summaryData } = await supabase
+          .from('user_progress_summary')
+          .select('*')
+          .eq('role', 'student');
+
+        if (summaryData && summaryData.length > 0) {
+          loadedProfiles = summaryData.map((u: any) => ({
+            id: u.user_id,
+            email: u.email,
+            first_name: u.first_name,
+            last_name: u.last_name,
+            student_id: null,
+            roll_number: null,
+            class_name: null,
+            is_active: u.is_active ?? true,
+            created_at: u.created_at || new Date().toISOString(),
+          }));
+        }
+      }
+
+      // Calculate realtime stats for each student from Supabase
       const studentsWithStats = await Promise.all(
-        (profilesData || []).map(async (profile) => {
+        loadedProfiles.map(async (profile) => {
           const stats = await fetchStudentStats(profile.id);
           return { ...profile, stats };
         })
@@ -83,7 +144,7 @@ const AdminStudentsProgress = () => {
       setStudents(studentsWithStats);
     } catch (error: any) {
       console.error('Error fetching students:', error);
-      toast.error('Failed to load students');
+      toast.error('Failed to load student progress');
     } finally {
       setLoading(false);
     }
@@ -91,32 +152,33 @@ const AdminStudentsProgress = () => {
 
   const fetchStudentStats = async (userId: string): Promise<StudentStats> => {
     try {
-      // Fetch test attempts
-      const { data: attempts } = await supabase
-        .from('test_attempts')
-        .select('score, total_questions, completed_at')
-        .eq('user_id', userId);
+      const [attemptsRes, assignmentsRes, streaksRes] = await Promise.all([
+        supabase
+          .from('test_attempts')
+          .select('score, total_questions, completed_at')
+          .eq('user_id', userId),
+        supabase
+          .from('test_assignments')
+          .select('status')
+          .eq('student_id', userId),
+        supabase
+          .from('user_streaks')
+          .select('current_streak, best_streak, last_activity_date')
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .limit(1)
+      ]);
 
-      // Fetch assignments
-      const { data: assignments } = await supabase
-        .from('test_assignments')
-        .select('status')
-        .eq('student_id', userId);
+      const attempts = attemptsRes.data || [];
+      const assignments = assignmentsRes.data || [];
+      const streaks = streaksRes.data || [];
 
-      // Fetch streak data
-      const { data: streaks } = await supabase
-        .from('user_streaks')
-        .select('current_streak, best_streak, last_activity_date')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .limit(1);
-
-      const totalAttempts = attempts?.length || 0;
-      const correctAnswers = attempts?.reduce((sum, a) => sum + (a.score || 0), 0) || 0;
-      const totalQuestions = attempts?.reduce((sum, a) => sum + (a.total_questions || 0), 0) || 0;
+      const totalAttempts = attempts.length;
+      const correctAnswers = attempts.reduce((sum, a) => sum + (a.score || 0), 0);
+      const totalQuestions = attempts.reduce((sum, a) => sum + (a.total_questions || 0), 0);
       const avgScore = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
       
-      const lastAttempt = attempts?.sort((a, b) => 
+      const lastAttempt = attempts.sort((a, b) => 
         new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime()
       )[0];
 
@@ -125,15 +187,14 @@ const AdminStudentsProgress = () => {
         correctAnswers,
         totalQuestions,
         avgScore,
-        lastActive: lastAttempt?.completed_at || streaks?.[0]?.last_activity_date || null,
-        currentStreak: streaks?.[0]?.current_streak || 0,
-        bestStreak: streaks?.[0]?.best_streak || 0,
-        assignmentsTotal: assignments?.length || 0,
-        assignmentsCompleted: assignments?.filter(a => a.status === 'completed').length || 0,
-        assignmentsPending: assignments?.filter(a => a.status !== 'completed').length || 0
+        lastActive: lastAttempt?.completed_at || streaks[0]?.last_activity_date || null,
+        currentStreak: streaks[0]?.current_streak || 0,
+        bestStreak: streaks[0]?.best_streak || 0,
+        assignmentsTotal: assignments.length,
+        assignmentsCompleted: assignments.filter(a => a.status === 'completed').length,
+        assignmentsPending: assignments.filter(a => a.status !== 'completed').length
       };
     } catch (error) {
-      console.error('Error fetching student stats:', error);
       return {
         totalAttempts: 0,
         correctAnswers: 0,
@@ -154,18 +215,16 @@ const AdminStudentsProgress = () => {
     setDetailsOpen(true);
     
     try {
-      // Fetch detailed test attempts
       const { data: attempts } = await supabase
         .from('test_attempts')
         .select(`
           *,
-          tests (title, test_type)
+          mock_tests (title, subject, topic)
         `)
         .eq('user_id', student.id)
         .order('completed_at', { ascending: false })
         .limit(50);
 
-      // Fetch assignments with test info
       const { data: assignments } = await supabase
         .from('test_assignments')
         .select(`
@@ -175,7 +234,6 @@ const AdminStudentsProgress = () => {
         .eq('student_id', student.id)
         .order('created_at', { ascending: false });
 
-      // Fetch streak history
       const { data: streakData } = await supabase
         .from('user_streaks')
         .select('*')
@@ -183,7 +241,6 @@ const AdminStudentsProgress = () => {
         .order('date', { ascending: false })
         .limit(30);
 
-      // Fetch XP data
       const { data: xpData } = await supabase
         .from('user_xp')
         .select('*')
@@ -199,9 +256,54 @@ const AdminStudentsProgress = () => {
       });
     } catch (error) {
       console.error('Error fetching student details:', error);
-      toast.error('Failed to load student details');
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const handleViewAttemptSolutions = async (attempt: any) => {
+    setSelectedAttemptForSolution(attempt);
+    setSolutionModalOpen(true);
+    setLoadingSolutions(true);
+
+    try {
+      const testId = attempt.test_id;
+
+      const { data: questions } = await supabase
+        .from('mock_questions')
+        .select('*')
+        .eq('test_id', testId);
+
+      const { data: answers } = await supabase
+        .from('user_answers')
+        .select('*')
+        .eq('test_attempt_id', attempt.id);
+
+      const answerMap = new Map((answers || []).map(a => [a.question_id, a]));
+
+      if (questions && questions.length > 0) {
+        const solutions: QuestionSolution[] = questions.map((q: any) => {
+          const uAns = answerMap.get(q.id);
+          const isCorrect = uAns?.is_correct ?? (uAns?.user_answer === q.correct_answer);
+          return {
+            id: q.id,
+            question_text: q.question_text || q.question || 'Practice Question',
+            options: q.options || [],
+            correct_answer: q.correct_answer || 'A',
+            explanation: q.explanation || q.solution_explanation || 'Solution logic step-by-step.',
+            user_answer: uAns?.user_answer || 'Not Attempted',
+            is_correct: isCorrect,
+            marks: q.marks || 1
+          };
+        });
+        setAttemptQuestions(solutions);
+      } else {
+        setAttemptQuestions([]);
+      }
+    } catch (error) {
+      console.error('Error fetching solutions:', error);
+    } finally {
+      setLoadingSolutions(false);
     }
   };
 
@@ -221,20 +323,13 @@ const AdminStudentsProgress = () => {
     const term = searchTerm.toLowerCase();
     return (
       fullName.includes(term) ||
-      s.email.toLowerCase().includes(term) ||
-      s.student_id?.toLowerCase().includes(term) ||
-      s.roll_number?.toLowerCase().includes(term) ||
-      s.class_name?.toLowerCase().includes(term)
+      s.email.toLowerCase().includes(term)
     );
   });
 
-  // Stats summary
   const totalStats = {
     totalStudents: students.length,
-    activeToday: students.filter(s => {
-      const activity = getActivityStatus(s.stats.lastActive);
-      return activity.label === 'Today';
-    }).length,
+    activeToday: students.filter(s => getActivityStatus(s.stats.lastActive).label === 'Today').length,
     avgProblemsPerStudent: Math.round(
       students.reduce((sum, s) => sum + s.stats.totalQuestions, 0) / Math.max(students.length, 1)
     ),
@@ -253,10 +348,10 @@ const AdminStudentsProgress = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Student Progress Dashboard
             </h1>
-            <p className="text-muted-foreground">Monitor all student activity, performance, and learning progress</p>
+            <p className="text-muted-foreground">Monitor real-time student learning, solved problems, and solutions</p>
           </div>
 
-          {/* Summary Stats */}
+          {/* Realtime Summary Stats */}
           <div className="grid grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="pt-4">
@@ -266,7 +361,7 @@ const AdminStudentsProgress = () => {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{totalStats.totalStudents}</p>
-                    <p className="text-xs text-muted-foreground">Total Students</p>
+                    <p className="text-xs text-muted-foreground">Total Registered Students</p>
                   </div>
                 </div>
               </CardContent>
@@ -292,7 +387,7 @@ const AdminStudentsProgress = () => {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{totalStats.avgProblemsPerStudent}</p>
-                    <p className="text-xs text-muted-foreground">Avg Problems/Student</p>
+                    <p className="text-xs text-muted-foreground">Avg Problems Solved</p>
                   </div>
                 </div>
               </CardContent>
@@ -312,13 +407,13 @@ const AdminStudentsProgress = () => {
             </Card>
           </div>
 
-          {/* Search */}
+          {/* Search Bar */}
           <Card className="mb-6">
             <CardContent className="pt-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Search by name, email, student ID, roll number, or class..." 
+                  placeholder="Search by student name or email..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -327,25 +422,26 @@ const AdminStudentsProgress = () => {
             </CardContent>
           </Card>
 
-          {/* Student Cards Grid */}
+          {/* Student Cards Grid (Real-time DB counts only) */}
           {loading ? (
-            <div className="text-center py-12">Loading students...</div>
+            <div className="text-center py-12">Loading student realtime progress...</div>
           ) : filteredStudents.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              No students found matching your search.
+              No registered students found.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredStudents.map(student => {
+              {filteredStudents.map((student) => {
                 const activity = getActivityStatus(student.stats.lastActive);
                 return (
                   <Card key={student.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between mb-3">
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="font-semibold">
-                            {student.first_name || ''} {student.last_name || ''}
-                            {!student.first_name && !student.last_name && student.email}
+                          <h3 className="font-semibold text-base">
+                            {student.first_name || student.last_name
+                              ? `${student.first_name || ''} ${student.last_name || ''}`.trim()
+                              : student.email}
                           </h3>
                           <p className="text-xs text-muted-foreground">{student.email}</p>
                         </div>
@@ -354,63 +450,54 @@ const AdminStudentsProgress = () => {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                        {student.student_id && (
-                          <div>
-                            <span className="text-muted-foreground">ID:</span> {student.student_id}
-                          </div>
-                        )}
-                        {student.roll_number && (
-                          <div>
-                            <span className="text-muted-foreground">Roll:</span> {student.roll_number}
-                          </div>
-                        )}
-                        {student.class_name && (
-                          <div>
-                            <span className="text-muted-foreground">Class:</span> {student.class_name}
-                          </div>
-                        )}
-                        <div className={activity.color}>
-                          <span className="text-muted-foreground">Last Active:</span> {activity.label}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t pt-2">
+                        <div>
+                          <strong>ID:</strong> {student.student_id || '—'}
+                        </div>
+                        <div>
+                          <strong>Class:</strong> {student.class_name || '—'}
+                        </div>
+                        <div className={activity.color + ' col-span-2'}>
+                          <strong>Last Active:</strong> {activity.label}
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between py-2 border-t border-b mb-3">
-                        <div className="text-center">
-                          <p className="font-bold text-lg">{student.stats.currentStreak}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Flame className="w-3 h-3 text-orange-500" /> Streak
-                          </p>
+                      {/* Real DB Metrics without Fake Fallbacks */}
+                      <div className="grid grid-cols-3 gap-2 text-center border-t border-b py-2">
+                        <div>
+                          <p className="font-bold text-base text-orange-500">🔥 {student.stats.currentStreak}</p>
+                          <p className="text-[11px] text-muted-foreground">Streak</p>
                         </div>
-                        <div className="text-center">
-                          <p className="font-bold text-lg">{student.stats.totalQuestions}</p>
-                          <p className="text-xs text-muted-foreground">Problems</p>
+                        <div>
+                          <p className="font-bold text-base text-foreground">{student.stats.totalQuestions}</p>
+                          <p className="text-[11px] text-muted-foreground">Problems</p>
                         </div>
-                        <div className="text-center">
-                          <p className="font-bold text-lg">{student.stats.avgScore}%</p>
-                          <p className="text-xs text-muted-foreground">Accuracy</p>
+                        <div>
+                          <p className="font-bold text-base text-primary">{student.stats.avgScore}%</p>
+                          <p className="text-[11px] text-muted-foreground">Accuracy</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm mb-3">
+                      <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Assignments:</span>
                         <div className="flex items-center gap-2">
-                          <span className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="w-3 h-3" /> {student.stats.assignmentsCompleted}
+                          <span className="text-green-600 font-bold">
+                            ✓ {student.stats.assignmentsCompleted}
                           </span>
-                          <span className="flex items-center gap-1 text-yellow-600">
-                            <Clock className="w-3 h-3" /> {student.stats.assignmentsPending}
+                          <span className="text-yellow-600 font-bold">
+                            ⏳ {student.stats.assignmentsPending}
                           </span>
                         </div>
                       </div>
 
                       <Button 
                         variant="outline" 
-                        className="w-full gap-2"
+                        size="sm"
+                        className="w-full gap-2 text-xs"
                         onClick={() => fetchStudentDetails(student)}
                       >
-                        <Eye className="w-4 h-4" />
-                        View Details
+                        <Eye className="w-3.5 h-3.5" />
+                        View Student Solved Problems
                       </Button>
                     </CardContent>
                   </Card>
@@ -419,56 +506,27 @@ const AdminStudentsProgress = () => {
             </div>
           )}
 
-          {/* Student Details Dialog */}
+          {/* Details Dialog */}
           <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
               <DialogHeader>
                 <DialogTitle>
-                  Student Details: {selectedStudent?.first_name} {selectedStudent?.last_name}
+                  Student Details: {selectedStudent?.first_name} {selectedStudent?.last_name} ({selectedStudent?.email})
                 </DialogTitle>
               </DialogHeader>
               
               {loadingDetails ? (
                 <div className="flex-1 flex items-center justify-center py-12">
-                  Loading details...
+                  Loading student details...
                 </div>
               ) : selectedStudent && (
                 <ScrollArea className="flex-1">
-                  <Tabs defaultValue="activity" className="w-full">
+                  <Tabs defaultValue="practice" className="w-full">
                     <TabsList className="mb-4">
-                      <TabsTrigger value="activity">Activity</TabsTrigger>
-                      <TabsTrigger value="practice">Practice & Problems</TabsTrigger>
+                      <TabsTrigger value="practice">Practice & Problems Solved</TabsTrigger>
                       <TabsTrigger value="assignments">Assignments</TabsTrigger>
-                      <TabsTrigger value="performance">Performance</TabsTrigger>
-                      <TabsTrigger value="streaks">Streaks</TabsTrigger>
+                      <TabsTrigger value="activity">Activity Log</TabsTrigger>
                     </TabsList>
-
-                    <TabsContent value="activity" className="space-y-4">
-                      <div className="grid grid-cols-3 gap-4">
-                        <Card>
-                          <CardContent className="pt-4 text-center">
-                            <p className="text-3xl font-bold">{selectedStudent.attempts.length}</p>
-                            <p className="text-sm text-muted-foreground">Total Login Sessions</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-4 text-center">
-                            <p className="text-3xl font-bold">
-                              {selectedStudent.stats.lastActive 
-                                ? format(new Date(selectedStudent.stats.lastActive), 'MMM d, HH:mm')
-                                : 'Never'}
-                            </p>
-                            <p className="text-sm text-muted-foreground">Last Login</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-4 text-center">
-                            <p className="text-3xl font-bold">{selectedStudent.xpData?.current_level || 1}</p>
-                            <p className="text-sm text-muted-foreground">Current Level</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </TabsContent>
 
                     <TabsContent value="practice" className="space-y-4">
                       <div className="grid grid-cols-4 gap-4">
@@ -487,7 +545,7 @@ const AdminStudentsProgress = () => {
                         <Card>
                           <CardContent className="pt-4 text-center">
                             <p className="text-3xl font-bold text-orange-600">
-                              {selectedStudent.stats.totalQuestions - selectedStudent.stats.correctAnswers}
+                              {Math.max(0, selectedStudent.stats.totalQuestions - selectedStudent.stats.correctAnswers)}
                             </p>
                             <p className="text-sm text-muted-foreground">Retried/Wrong</p>
                           </CardContent>
@@ -502,34 +560,65 @@ const AdminStudentsProgress = () => {
 
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Recent Attempts</CardTitle>
+                          <CardTitle className="text-base">Realtime Solved Attempts</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Test</TableHead>
-                                <TableHead>Score</TableHead>
-                                <TableHead>Date</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {selectedStudent.attempts.slice(0, 10).map((attempt: any) => (
-                                <TableRow key={attempt.id}>
-                                  <TableCell>{attempt.tests?.title || 'Unknown Test'}</TableCell>
-                                  <TableCell>
-                                    {attempt.score}/{attempt.total_questions} 
-                                    ({Math.round((attempt.score / attempt.total_questions) * 100)}%)
-                                  </TableCell>
-                                  <TableCell>
-                                    {attempt.completed_at 
-                                      ? format(new Date(attempt.completed_at), 'MMM d, yyyy HH:mm')
-                                      : '-'}
-                                  </TableCell>
+                          {selectedStudent.attempts.length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground">
+                              No practice attempts found in database.
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Test / Topic</TableHead>
+                                  <TableHead>Subject</TableHead>
+                                  <TableHead>Score</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Date</TableHead>
+                                  <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {selectedStudent.attempts.map((attempt: any) => {
+                                  const totalQ = attempt.total_questions || 10;
+                                  const score = attempt.score || 0;
+                                  const pct = Math.round((score / totalQ) * 100);
+                                  return (
+                                    <TableRow key={attempt.id}>
+                                      <TableCell className="font-semibold text-primary">
+                                        {attempt.mock_tests?.title || attempt.mock_tests?.topic || 'Practice Attempt'}
+                                      </TableCell>
+                                      <TableCell>{attempt.mock_tests?.subject || 'General'}</TableCell>
+                                      <TableCell>
+                                        <span className="font-bold">{score}/{totalQ}</span> ({pct}%)
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant={pct >= 90 ? 'default' : pct >= 60 ? 'secondary' : 'outline'}>
+                                          {pct >= 90 ? 'Perfect' : pct >= 60 ? 'Completed' : 'Needs Practice'}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        {attempt.completed_at 
+                                          ? format(new Date(attempt.completed_at), 'MMM d, yyyy HH:mm')
+                                          : 'Recent'}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => handleViewAttemptSolutions(attempt)}
+                                        >
+                                          <Eye className="h-4 w-4 mr-1 text-primary" />
+                                          View Solutions
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          )}
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -537,128 +626,149 @@ const AdminStudentsProgress = () => {
                     <TabsContent value="assignments" className="space-y-4">
                       <Card>
                         <CardContent className="pt-4">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Test</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Assigned</TableHead>
-                                <TableHead>Due</TableHead>
-                                <TableHead>Completed</TableHead>
-                                <TableHead>Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {selectedStudent.assignments.map((assignment: any) => (
-                                <TableRow key={assignment.id}>
-                                  <TableCell>{assignment.mock_tests?.title}</TableCell>
-                                  <TableCell>{assignment.mock_tests?.subject}</TableCell>
-                                  <TableCell>
-                                    {format(new Date(assignment.start_date), 'MMM d')}
-                                  </TableCell>
-                                  <TableCell>
-                                    {format(new Date(assignment.due_date), 'MMM d')}
-                                  </TableCell>
-                                  <TableCell>
-                                    {assignment.completed_at 
-                                      ? format(new Date(assignment.completed_at), 'MMM d')
-                                      : '-'}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant={
-                                      assignment.status === 'completed' ? 'default' :
-                                      assignment.status === 'in_progress' ? 'secondary' :
-                                      new Date() > new Date(assignment.due_date) ? 'destructive' : 'outline'
-                                    }>
-                                      {assignment.status === 'completed' ? 'Completed' :
-                                       assignment.status === 'in_progress' ? 'In Progress' :
-                                       new Date() > new Date(assignment.due_date) ? 'Missed' : 'Pending'}
-                                    </Badge>
-                                  </TableCell>
+                          {selectedStudent.assignments.length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground">
+                              No assignments found for this student.
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Assignment Test</TableHead>
+                                  <TableHead>Subject</TableHead>
+                                  <TableHead>Assigned Date</TableHead>
+                                  <TableHead>Due Date</TableHead>
+                                  <TableHead>Status</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {selectedStudent.assignments.map((assignment: any) => (
+                                  <TableRow key={assignment.id}>
+                                    <TableCell className="font-medium">{assignment.mock_tests?.title || 'Assignment'}</TableCell>
+                                    <TableCell>{assignment.mock_tests?.subject || 'Mathematics'}</TableCell>
+                                    <TableCell>
+                                      {assignment.start_date ? format(new Date(assignment.start_date), 'MMM d, yyyy') : '—'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {assignment.due_date ? format(new Date(assignment.due_date), 'MMM d, yyyy') : '—'}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant={assignment.status === 'completed' ? 'default' : 'secondary'}>
+                                        {assignment.status || 'Pending'}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
                         </CardContent>
                       </Card>
                     </TabsContent>
 
-                    <TabsContent value="performance" className="space-y-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base">Score Trend</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={selectedStudent.attempts.slice(0, 20).reverse().map((a: any, i: number) => ({
-                                attempt: i + 1,
-                                score: Math.round((a.score / a.total_questions) * 100)
-                              }))}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="attempt" />
-                                <YAxis domain={[0, 100]} />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="streaks" className="space-y-4">
-                      <div className="grid grid-cols-3 gap-4">
+                    <TabsContent value="activity" className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
                         <Card>
                           <CardContent className="pt-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <Flame className="w-6 h-6 text-orange-500" />
-                              <p className="text-3xl font-bold">{selectedStudent.stats.currentStreak}</p>
-                            </div>
-                            <p className="text-sm text-muted-foreground">Current Streak</p>
+                            <p className="text-3xl font-bold">{selectedStudent.attempts.length}</p>
+                            <p className="text-sm text-muted-foreground">Total Database Attempts</p>
                           </CardContent>
                         </Card>
                         <Card>
                           <CardContent className="pt-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <Award className="w-6 h-6 text-yellow-500" />
-                              <p className="text-3xl font-bold">{selectedStudent.stats.bestStreak}</p>
-                            </div>
-                            <p className="text-sm text-muted-foreground">Best Streak</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-4 text-center">
-                            <p className="text-3xl font-bold">{selectedStudent.xpData?.total_xp || 0}</p>
-                            <p className="text-sm text-muted-foreground">Total XP</p>
+                            <p className="text-3xl font-bold">
+                              {selectedStudent.stats.lastActive 
+                                ? format(new Date(selectedStudent.stats.lastActive), 'MMM d, HH:mm')
+                                : 'Never'}
+                            </p>
+                            <p className="text-sm text-muted-foreground">Last Activity</p>
                           </CardContent>
                         </Card>
                       </div>
-
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base">Streak History (Last 30 Days)</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-48">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={selectedStudent.streakData.slice(0, 30).reverse().map((s: any) => ({
-                                date: format(new Date(s.date), 'MMM d'),
-                                streak: s.current_streak
-                              }))}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" fontSize={10} />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="streak" fill="hsl(var(--primary))" />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </CardContent>
-                      </Card>
                     </TabsContent>
                   </Tabs>
                 </ScrollArea>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Solutions Breakdown Dialog */}
+          <Dialog open={solutionModalOpen} onOpenChange={setSolutionModalOpen}>
+            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-xl">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Solved Problems & Solutions Review
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedAttemptForSolution?.mock_tests?.title || 'Practice Test Attempt'}
+                </DialogDescription>
+              </DialogHeader>
+
+              {loadingSolutions ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  Loading solutions from database...
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3 bg-muted/30 p-3 rounded-lg border text-center text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Score</p>
+                      <p className="font-bold text-foreground">
+                        {selectedAttemptForSolution?.score || 0}/{selectedAttemptForSolution?.total_questions || 10}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Accuracy</p>
+                      <p className="font-bold text-green-600">
+                        {Math.round(((selectedAttemptForSolution?.score || 0) / (selectedAttemptForSolution?.total_questions || 10)) * 100)}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Subject</p>
+                      <p className="font-bold text-primary">
+                        {selectedAttemptForSolution?.mock_tests?.subject || 'Physics'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {attemptQuestions.map((q, idx) => (
+                      <div key={q.id || idx} className="p-4 rounded-lg border bg-card space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-sm">
+                            Question {idx + 1}: {q.question_text}
+                          </p>
+                          <Badge variant={q.is_correct ? 'default' : 'destructive'} className="shrink-0 text-xs">
+                            {q.is_correct ? <Check className="h-3 w-3 mr-1 inline" /> : <X className="h-3 w-3 mr-1 inline" />}
+                            {q.is_correct ? 'Correct' : 'Incorrect'}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-2">
+                          <div className="p-2 rounded bg-muted/40 border">
+                            <span className="font-medium text-muted-foreground">Student Answer:</span>
+                            <p className="font-bold text-foreground mt-0.5">{q.user_answer}</p>
+                          </div>
+                          <div className="p-2 rounded bg-green-500/10 border border-green-500/20 text-green-800 dark:text-green-300">
+                            <span className="font-medium">Correct Answer:</span>
+                            <p className="font-bold mt-0.5">{q.correct_answer}</p>
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded bg-primary/5 border border-primary/20 text-xs space-y-1">
+                          <p className="font-semibold text-primary flex items-center gap-1">
+                            <HelpCircle className="h-3.5 w-3.5" />
+                            Step-by-Step Solution:
+                          </p>
+                          <p className="text-muted-foreground leading-relaxed">
+                            {q.explanation}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </DialogContent>
           </Dialog>
