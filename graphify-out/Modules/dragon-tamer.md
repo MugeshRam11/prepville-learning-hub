@@ -1,0 +1,17 @@
+---
+source_file: "src/assets/avatars/dragon-tamer.png"
+type: "code"
+community: "App Features"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/App_Features
+---
+
+# dragon-tamer
+
+## Connections
+- [[AvatarCustomizer]] - `references` [EXTRACTED]
+- [[StudentDashboard]] - `references` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/App_Features

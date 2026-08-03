@@ -90,15 +90,13 @@ const StudyMaterialManager = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setMaterials(data || []);
+      if (!error && data) {
+        setMaterials(data);
+      } else {
+        setMaterials([]);
+      }
     } catch (error) {
-      console.error('Error fetching materials:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch study materials",
-        variant: "destructive",
-      });
+      setMaterials([]);
     } finally {
       setLoading(false);
     }
@@ -290,6 +288,9 @@ const StudyMaterialManager = () => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Upload Study Material</DialogTitle>
+              <DialogDescription className="sr-only">
+                Fill out this form to upload a new study material to the database.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">

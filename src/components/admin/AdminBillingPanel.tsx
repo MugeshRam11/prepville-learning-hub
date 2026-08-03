@@ -82,14 +82,14 @@ const AdminBillingPanel = () => {
     if (isManualRefresh) setRefreshing(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('get-platform-usage');
-      if (error) throw error;
-      setData(result as PlatformUsageResponse);
-      if (result?.plan) {
-        setPaymentLabel(result.plan.paymentMethodLabel);
-        setPaymentType(result.plan.paymentMethodType);
+      if (!error && result) {
+        setData(result as PlatformUsageResponse);
+        if (result?.plan) {
+          setPaymentLabel(result.plan.paymentMethodLabel);
+          setPaymentType(result.plan.paymentMethodType);
+        }
       }
     } catch (err: any) {
-      console.error('[AdminBilling] Failed to load usage:', err);
       if (isManualRefresh) toast.error('Failed to refresh billing data');
     } finally {
       setLoading(false);
@@ -100,9 +100,6 @@ const AdminBillingPanel = () => {
   useEffect(() => {
     fetchUsage();
 
-    // Poll as a safety net every 20s
-    const interval = setInterval(() => fetchUsage(), 20000);
-
     // Live push updates the moment an AI call logs cost or the wallet changes
     const channel = supabase
       .channel('admin-billing-live')
@@ -111,7 +108,6 @@ const AdminBillingPanel = () => {
       .subscribe();
 
     return () => {
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [fetchUsage]);

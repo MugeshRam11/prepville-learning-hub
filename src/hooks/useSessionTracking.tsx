@@ -6,25 +6,29 @@ export const useSessionTracking = () => {
   const { user } = useAuth();
   const sessionIdRef = useRef<string | null>(null);
   const loginTimeRef = useRef<Date | null>(null);
+  const isTableAvailableRef = useRef<boolean>(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isTableAvailableRef.current) return;
 
     const recordLogin = async () => {
       try {
-        // Record login session
         const { data, error } = await supabase
           .from('user_sessions')
           .insert({
             user_id: user.id,
             login_at: new Date().toISOString(),
-            user_agent: navigator.userAgent
+            user_agent: navigator.userAgent,
           })
           .select('id')
           .single();
 
         if (error) {
-          console.error('Error recording login:', error);
+          // If table does not exist (404/PGRST204), mark as unavailable to prevent further queries
+          if (error.code === 'PGRST204' || error.message?.includes('404') || error.code === '42P01') {
+            isTableAvailableRef.current = false;
+            return;
+          }
           return;
         }
 
@@ -33,12 +37,12 @@ export const useSessionTracking = () => {
           loginTimeRef.current = new Date();
         }
       } catch (error) {
-        console.error('Failed to record login:', error);
+        isTableAvailableRef.current = false;
       }
     };
 
     const recordLogout = async () => {
-      if (!sessionIdRef.current || !loginTimeRef.current) return;
+      if (!sessionIdRef.current || !loginTimeRef.current || !isTableAvailableRef.current) return;
 
       try {
         const logoutTime = new Date();
@@ -50,25 +54,22 @@ export const useSessionTracking = () => {
           .from('user_sessions')
           .update({
             logout_at: logoutTime.toISOString(),
-            session_duration_minutes: durationMinutes
+            session_duration_minutes: durationMinutes,
           })
           .eq('id', sessionIdRef.current);
       } catch (error) {
-        console.error('Failed to record logout:', error);
+        // Silent catch
       }
     };
 
-    // Record login when user is authenticated
     recordLogin();
 
-    // Record logout on page unload
     const handleBeforeUnload = () => {
       recordLogout();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Cleanup
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       recordLogout();
@@ -77,3 +78,5 @@ export const useSessionTracking = () => {
 
   return null;
 };
+
+export default useSessionTracking;

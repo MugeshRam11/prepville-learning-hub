@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { redirectToDomain } from '@/lib/domain';
 import {
   GraduationCap,
   Play,
@@ -303,13 +304,13 @@ const Header = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => redirectToDomain('student', '/login')}
                   >
                     Sign In
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => redirectToDomain('student', '/register')}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                   >
                     Sign Up
@@ -385,7 +386,7 @@ const Header = () => {
                       variant="ghost"
                       className="w-full justify-start"
                       onClick={() => {
-                        navigate('/auth');
+                        redirectToDomain('student', '/login');
                         setIsMenuOpen(false);
                       }}
                     >
@@ -395,7 +396,7 @@ const Header = () => {
                     <Button
                       className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                       onClick={() => {
-                        navigate('/auth');
+                        redirectToDomain('student', '/register');
                         setIsMenuOpen(false);
                       }}
                     >

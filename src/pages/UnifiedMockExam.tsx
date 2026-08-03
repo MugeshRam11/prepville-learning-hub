@@ -54,12 +54,7 @@ const UnifiedMockExamContent = () => {
   
   const { mode, config, focusMode } = useExamMode();
   
-  let syncContext: ReturnType<typeof useExamSync> | null = null;
-  try {
-    syncContext = useExamSync();
-  } catch {
-    // Not wrapped in ExamSyncProvider
-  }
+  const syncContext = useExamSync();
   
   const rightPanelRef = useRef<HTMLDivElement>(null);
 

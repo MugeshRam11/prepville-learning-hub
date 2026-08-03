@@ -1,77 +1,18 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import CommandTerms from "./pages/CommandTerms";
-import Quiz from "./pages/Quiz";
-import QuickPractice from "./pages/QuickPractice";
-import Practice from "./pages/Practice";
-// PracticeExam removed - practice is now a direct question bank
-import PracticeQuestionView from "./pages/PracticeQuestionView";
-import MockExamSelect from "./pages/MockExamSelect";
-import MockExamSubjectView from "./pages/MockExamSubjectView";
-import MockExamStart from "./pages/MockExamStart";
-import MockExamSummary from "./pages/MockExamSummary";
-import StudentDashboard from "./pages/StudentDashboard";
-import StudentAssignments from "./pages/StudentAssignments";
-import Subjects from "./pages/Subjects";
-import Videos from "./pages/Videos";
-import StudyMaterials from "./pages/StudyMaterials";
-import StudyMaterialReader from "./pages/StudyMaterialReader";
-import Pricing from "./pages/Pricing";
-import Subscription from "./pages/Subscription";
-import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
-import Analytics from "./pages/Analytics";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminUsers from "./pages/AdminUsers";
-import AdminAssignments from "./pages/AdminAssignments";
-import AdminStudentsProgress from "./pages/AdminStudentsProgress";
-import AdminEvaluation from "./pages/AdminEvaluation";
-import AdminTests from "./pages/AdminTests";
-import AdminQuestions from "./pages/AdminQuestions";
-
-
-import AdminReports from "./pages/AdminReports";
-import AdminMockTests from "./pages/AdminMockTests";
-import AdminMockTestCreate from "./pages/AdminMockTestCreate";
-import AdminMockTestEdit from "./pages/AdminMockTestEdit";
-import AdminMockTestView from "./pages/AdminMockTestView";
-import AdminQuickTestCreate from "./pages/AdminQuickTestCreate";
-import AdminStudyMaterials from "./pages/AdminStudyMaterials";
-import AdminSettings from "./pages/AdminSettings";
-import AdminBilling from "./pages/AdminBilling";
-import AdminPracticeCreate from "./pages/AdminPracticeCreate";
-
-import StudyGroups from "./pages/StudyGroups";
-import GraphingTool from "./pages/GraphingTool";
-import FormulaHelper from "./pages/FormulaHelper";
-import TimedChallenge from "./pages/TimedChallenge";
-import Leaderboard from "./pages/Leaderboard";
-import NotFound from "./pages/NotFound";
-import LevelDetails from "./pages/LevelDetails";
-import SubjectLearning from "./pages/SubjectLearning";
-
-import UploadDemo1 from "./pages/UploadDemo1";
-import InteractiveMockDemo from "./pages/InteractiveMockDemo";
-
-import UnifiedMockExam from "./pages/UnifiedMockExam";
-import AdminExamBuilder from "./pages/AdminExamBuilder";
-import ExamSubmitted from "./pages/ExamSubmitted";
-import StudentExamResults from "./pages/StudentExamResults";
-import ExamResults from "./pages/ExamResults";
-import Notifications from "./pages/Notifications";
-import ProtectedRoute from "./components/ProtectedRoute";
-import CopyPasteProtection from "./components/CopyPasteProtection";
+import { BrowserRouter } from "react-router-dom";
 
 import { AuthProvider } from '@/hooks/useAuth';
+import { StudentAuthProvider } from '@/hooks/useStudentAuth';
+import { AdminAuthProvider } from '@/hooks/useAdminAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
 import { ChatbotProvider } from '@/contexts/ChatbotContext';
 import StreakAutoRecorder from "./components/StreakAutoRecorder";
 import { useSessionTracking } from '@/hooks/useSessionTracking';
+import CopyPasteProtection from "./components/CopyPasteProtection";
+import { DomainRouter } from "./routes/DomainRouter";
 
 const SessionTracker = () => {
   useSessionTracking();
@@ -83,289 +24,27 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <SubscriptionProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <StreakAutoRecorder />
-          <SessionTracker />
-          <BrowserRouter>
-            <ChatbotProvider>
-              <CopyPasteProtection>
-                <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/command-terms" element={<CommandTerms />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          
-          {/* Protected routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <StudentDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/subscription" element={
-            <ProtectedRoute>
-              <Subscription />
-            </ProtectedRoute>
-          } />
-          <Route path="/quiz/:quizId" element={
-            <ProtectedRoute requiresSubscription>
-              <Quiz />
-            </ProtectedRoute>
-          } />
-          <Route path="/quick-practice" element={
-            <ProtectedRoute requiresSubscription>
-              <QuickPractice />
-            </ProtectedRoute>
-          } />
-          <Route path="/practice" element={
-            <ProtectedRoute requiresSubscription>
-              <Practice />
-            </ProtectedRoute>
-          } />
-          {/* /practice/exam removed - practice is now a direct question bank */}
-          <Route path="/practice/set/:setId" element={
-            <ProtectedRoute requiresSubscription>
-              <PracticeQuestionView />
-            </ProtectedRoute>
-          } />
-          <Route path="/practice/question/:questionId" element={
-            <ProtectedRoute requiresSubscription>
-              <PracticeQuestionView />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/select" element={
-            <ProtectedRoute>
-              <MockExamSelect />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/subject/:subject" element={
-            <ProtectedRoute requiresSubscription>
-              <MockExamSubjectView />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/start" element={
-            <ProtectedRoute requiresSubscription>
-              <MockExamStart />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/summary" element={
-            <ProtectedRoute requiresSubscription>
-              <MockExamSummary />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/interactive-demo" element={
-            <ProtectedRoute requiresSubscription>
-              <InteractiveMockDemo />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/unified" element={
-            <ProtectedRoute requiresSubscription>
-              <UnifiedMockExam />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/unified/:testId" element={
-            <ProtectedRoute requiresSubscription>
-              <UnifiedMockExam />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/submitted" element={
-            <ProtectedRoute requiresSubscription>
-              <ExamSubmitted />
-            </ProtectedRoute>
-          } />
-          <Route path="/mock-exams/results/:attemptId" element={
-            <ProtectedRoute requiresSubscription>
-              <StudentExamResults />
-            </ProtectedRoute>
-          } />
-          <Route path="/results" element={
-            <ProtectedRoute>
-              <ExamResults />
-            </ProtectedRoute>
-          } />
-          <Route path="/notifications" element={
-            <ProtectedRoute>
-              <Notifications />
-            </ProtectedRoute>
-          } />
-          <Route path="/assignments" element={
-            <ProtectedRoute requiresSubscription>
-              <StudentAssignments />
-            </ProtectedRoute>
-          } />
-          <Route path="/subjects" element={
-            <ProtectedRoute requiresSubscription>
-              <Subjects />
-            </ProtectedRoute>
-          } />
-          <Route path="/subject-learning" element={
-            <ProtectedRoute requiresSubscription>
-              <SubjectLearning />
-            </ProtectedRoute>
-          } />
-          <Route path="/videos" element={
-            <ProtectedRoute requiresSubscription>
-              <Videos />
-            </ProtectedRoute>
-          } />
-          <Route path="/study-materials" element={
-            <ProtectedRoute requiresSubscription>
-              <StudyMaterials />
-            </ProtectedRoute>
-          } />
-          <Route path="/study-materials/read/:id" element={
-            <ProtectedRoute requiresSubscription>
-              <StudyMaterialReader />
-            </ProtectedRoute>
-          } />
-          <Route path="/analytics" element={
-            <ProtectedRoute requiresSubscription>
-              <Analytics />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/users" element={
-            <ProtectedRoute>
-              <AdminUsers />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/assignments" element={
-            <ProtectedRoute>
-              <AdminAssignments />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/students-progress" element={
-            <ProtectedRoute>
-              <AdminStudentsProgress />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/evaluation" element={
-            <ProtectedRoute>
-              <AdminEvaluation />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/tests" element={
-            <ProtectedRoute>
-              <AdminTests />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/quick-tests/create" element={
-            <ProtectedRoute>
-              <AdminQuickTestCreate />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/questions" element={
-            <ProtectedRoute>
-              <AdminQuestions />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/practice/create" element={
-            <ProtectedRoute>
-              <AdminPracticeCreate />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/practice/edit/:id" element={
-            <ProtectedRoute>
-              <AdminPracticeCreate />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/reports" element={
-            <ProtectedRoute>
-              <AdminReports />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/mock-tests" element={
-            <ProtectedRoute>
-              <AdminMockTests />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/mock-tests/create" element={
-            <ProtectedRoute>
-              <AdminMockTestCreate />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/mock-tests/edit/:id" element={
-            <ProtectedRoute>
-              <AdminMockTestEdit />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/mock-tests/view/:id" element={
-            <ProtectedRoute>
-              <AdminMockTestView />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/study-materials" element={
-            <ProtectedRoute>
-              <AdminStudyMaterials />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/settings" element={
-            <ProtectedRoute>
-              <AdminSettings />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/billing" element={
-            <ProtectedRoute>
-              <AdminBilling />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/exam-builder" element={
-            <ProtectedRoute>
-              <AdminExamBuilder />
-            </ProtectedRoute>
-          } />
-          <Route path="/study-groups" element={
-            <ProtectedRoute>
-              <StudyGroups />
-            </ProtectedRoute>
-          } />
-          <Route path="/graphing-tool" element={
-            <ProtectedRoute requiresSubscription>
-              <GraphingTool />
-            </ProtectedRoute>
-          } />
-          <Route path="/formula-helper" element={
-            <ProtectedRoute requiresSubscription>
-              <FormulaHelper />
-            </ProtectedRoute>
-          } />
-          <Route path="/timed-challenge" element={
-            <ProtectedRoute requiresSubscription>
-              <TimedChallenge />
-            </ProtectedRoute>
-          } />
-          <Route path="/leaderboard" element={
-            <ProtectedRoute>
-              <Leaderboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/level-details" element={
-            <ProtectedRoute>
-              <LevelDetails />
-            </ProtectedRoute>
-          } />
-          <Route path="/upload-demo1" element={
-            <ProtectedRoute>
-              <UploadDemo1 />
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<NotFound />} />
-                </Routes>
-              </CopyPasteProtection>
-            </ChatbotProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  );
+      <StudentAuthProvider>
+        <AdminAuthProvider>
+          <SubscriptionProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <StreakAutoRecorder />
+              <SessionTracker />
+              <BrowserRouter>
+                <ChatbotProvider>
+                  <CopyPasteProtection>
+                    <DomainRouter />
+                  </CopyPasteProtection>
+                </ChatbotProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </SubscriptionProvider>
+        </AdminAuthProvider>
+      </StudentAuthProvider>
+    </AuthProvider>
+  </QueryClientProvider>
+);
 
 export default App;

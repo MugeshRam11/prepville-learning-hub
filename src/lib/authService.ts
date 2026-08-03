@@ -243,4 +243,53 @@ export const getDemoSession = () => {
 export const clearDemoSession = () => {
   localStorage.removeItem('demo_session');
   localStorage.removeItem('demo_user_active');
+  localStorage.removeItem('demo_is_admin');
+};
+
+/**
+ * Demo Admin credentials and mock session
+ */
+export const DEMO_ADMIN = {
+  email: 'admin@prepville.com',
+  id: 'demo-admin-offline-id-99999',
+  name: 'PrepVille Administrator',
+  role: 'admin',
+};
+
+/**
+ * Create a mock demo admin session for offline/admin demo use
+ */
+export const createDemoAdminSession = () => {
+  const mockSession = {
+    access_token: 'demo-admin-access-token-offline',
+    refresh_token: 'demo-admin-refresh-token-offline',
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: 'bearer',
+    user: {
+      id: DEMO_ADMIN.id,
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: DEMO_ADMIN.email,
+      email_confirmed_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user_metadata: {
+        full_name: DEMO_ADMIN.name,
+        role: 'admin',
+        is_demo: true,
+      },
+      app_metadata: {
+        provider: 'demo',
+        role: 'admin',
+        is_demo: true,
+      },
+    },
+  };
+  
+  localStorage.setItem('demo_session', JSON.stringify(mockSession));
+  localStorage.setItem('demo_user_active', 'true');
+  localStorage.setItem('demo_is_admin', 'true');
+  
+  return mockSession;
 };

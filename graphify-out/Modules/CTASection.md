@@ -1,0 +1,17 @@
+---
+source_file: "src/components/CTASection.tsx"
+type: "code"
+community: "Equationeditor Features"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/Equationeditor_Features
+---
+
+# CTASection
+
+## Connections
+- [[button]] - `references` [EXTRACTED]
+- [[card]] - `references` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/Equationeditor_Features

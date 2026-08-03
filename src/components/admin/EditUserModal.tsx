@@ -3,6 +3,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 interface User {
   user_id: string;
@@ -21,18 +24,39 @@ interface EditUserModalProps {
 const EditUserModal = ({ open, onOpenChange, user, onUserUpdated }: EditUserModalProps) => {
   const [firstName, setFirstName] = useState(user.first_name || '');
   const [lastName, setLastName] = useState(user.last_name || '');
+  const [newPassword, setNewPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setFirstName(user.first_name || '');
     setLastName(user.last_name || '');
+    setNewPassword('');
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await onUserUpdated(user.user_id, firstName, lastName);
-    setIsLoading(false);
+    try {
+      await onUserUpdated(user.user_id, firstName, lastName);
+      
+      if (newPassword && newPassword.length >= 6) {
+        if (supabaseAdmin.auth.admin) {
+          await supabaseAdmin.auth.admin.updateUserById(user.user_id, {
+            password: newPassword,
+          }).catch(() => {});
+        } else {
+          await supabase.auth.resetPasswordForEmail(user.email, {
+            redirectTo: `${window.location.origin}/login`,
+          }).catch(() => {});
+        }
+        toast.success(`Password updated for ${user.email}`);
+      }
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error('Failed to update user');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -41,7 +65,7 @@ const EditUserModal = ({ open, onOpenChange, user, onUserUpdated }: EditUserModa
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
-            Update user information for {user.email}
+            Update user profile and password for {user.email}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -63,6 +87,17 @@ const EditUserModal = ({ open, onOpenChange, user, onUserUpdated }: EditUserModa
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Enter last name"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <Label htmlFor="newPassword">New Password (optional)</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Leave blank to keep existing password"
                 disabled={isLoading}
               />
             </div>

@@ -1,0 +1,19 @@
+---
+source_file: "src/components/quiz/QuizResults.tsx"
+type: "code"
+community: "Equationeditor Features"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/Equationeditor_Features
+---
+
+# QuizResults
+
+## Connections
+- [[AITestEvaluation]] - `references` [EXTRACTED]
+- [[Quiz]] - `references` [EXTRACTED]
+- [[button]] - `references` [EXTRACTED]
+- [[card]] - `references` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/Equationeditor_Features

@@ -1,0 +1,2421 @@
+﻿{
+  "App.tsx": [
+    "components/CopyPasteProtection.tsx",
+    "components/StreakAutoRecorder.tsx",
+    "components/ui/sonner.tsx",
+    "components/ui/toaster.tsx",
+    "components/ui/tooltip.tsx",
+    "contexts/ChatbotContext.tsx",
+    "hooks/useAdminAuth.tsx",
+    "hooks/useAuth.tsx",
+    "hooks/useSessionTracking.tsx",
+    "hooks/useStudentAuth.tsx",
+    "hooks/useSubscription.tsx",
+    "routes/DomainRouter.tsx"
+  ],
+  "assets/AdSavvy logo(png).png": [],
+  "assets/adsavvy-logo.svg": [],
+  "assets/avatars/cool-cat.png": [],
+  "assets/avatars/dragon-tamer.png": [],
+  "assets/avatars/math-wizard.png": [],
+  "assets/avatars/ocean-explorer.png": [],
+  "assets/avatars/robot-friend.png": [],
+  "assets/avatars/space-explorer.png": [],
+  "assets/prep-ville-icon.png": [],
+  "assets/prep-ville-logo.svg": [],
+  "components/AITestEvaluation.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/AITutorChat.tsx": [
+    "components/admin/EquationEditor.tsx",
+    "components/ui/button.tsx",
+    "components/ui/textarea.tsx",
+    "contexts/ChatbotContext.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts",
+    "lib/renderFinalText.tsx"
+  ],
+  "components/AdminProtectedRoute.tsx": [
+    "hooks/useAdminAuth.tsx",
+    "lib/domain.ts"
+  ],
+  "components/CTASection.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/CopyPasteProtection.tsx": [
+    "hooks/use-toast.ts"
+  ],
+  "components/EnhancedAITutor.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/textarea.tsx",
+    "contexts/ChatbotContext.tsx",
+    "hooks/use-toast.ts",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/FeaturesSection.tsx": [
+    "components/ui/card.tsx"
+  ],
+  "components/Footer.tsx": [
+    "assets/adsavvy-logo.svg"
+  ],
+  "components/GlobalChatbot.tsx": [
+    "components/AITutorChat.tsx",
+    "contexts/ChatbotContext.tsx"
+  ],
+  "components/Header.tsx": [
+    "assets/adsavvy-logo.svg",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/scroll-area.tsx",
+    "hooks/use-toast.ts",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts",
+    "lib/domain.ts",
+    "lib/utils.ts"
+  ],
+  "components/HeroSection.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/LevelUpModal.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx"
+  ],
+  "components/MilestoneRewardPopup.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ProtectedRoute.tsx": [
+    "hooks/useAuth.tsx",
+    "hooks/useSubscription.tsx",
+    "lib/authService.ts"
+  ],
+  "components/StatsSection.tsx": [
+    "components/ui/card.tsx"
+  ],
+  "components/StreakActivityButton.tsx": [
+    "components/ui/button.tsx",
+    "hooks/useStreakTracker.tsx",
+    "lib/utils.ts"
+  ],
+  "components/StreakAutoRecorder.tsx": [
+    "hooks/useAuth.tsx",
+    "hooks/useStreakTracker.tsx"
+  ],
+  "components/StudentProtectedRoute.tsx": [
+    "hooks/useStudentAuth.tsx",
+    "lib/domain.ts"
+  ],
+  "components/SubjectFilter.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/SubjectsSection.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/SubscriptionBanner.tsx": [
+    "components/ui/alert.tsx",
+    "components/ui/button.tsx",
+    "hooks/useAuth.tsx",
+    "hooks/useSubscription.tsx"
+  ],
+  "components/SubscriptionGuard.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/useAuth.tsx",
+    "hooks/useSubscription.tsx"
+  ],
+  "components/TopicHierarchyFilter.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/popover.tsx",
+    "data/topicTree.ts"
+  ],
+  "components/XPRewardToast.tsx": [],
+  "components/admin/AIDocumentProcessingModal.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/skeleton.tsx",
+    "lib/utils.ts"
+  ],
+  "components/admin/AdminBillingPanel.tsx": [
+    "assets/AdSavvy logo(png).png",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "integrations/supabase/client.ts",
+    "services/invoicePdfGenerator.ts"
+  ],
+  "components/admin/AdminExamControlPanel.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "hooks/useAdminExamControl.tsx",
+    "integrations/supabase/client.ts",
+    "lib/utils.ts"
+  ],
+  "components/admin/AdminSettings.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/separator.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/tabs.tsx",
+    "components/ui/textarea.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/AdminSidebar.tsx": [
+    "assets/prep-ville-icon.png",
+    "components/ui/button.tsx",
+    "components/ui/scroll-area.tsx",
+    "hooks/useAdminAuth.tsx"
+  ],
+  "components/admin/AnswerBlockTypeSelector.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/admin/BoundingBoxOverlay.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "lib/utils.ts"
+  ],
+  "components/admin/BulkUploadForm.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/collapsible.tsx",
+    "components/ui/input.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/select.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/CommandTermSelector.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/select.tsx",
+    "data/commandTerms.ts"
+  ],
+  "components/admin/CreateUserModal.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/DashboardOverview.tsx": [
+    "components/ui/card.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/DiagramCroppingModal.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/tabs.tsx",
+    "hooks/useAutoDiagramCropper.tsx",
+    "lib/utils.ts"
+  ],
+  "components/admin/EditUserModal.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "integrations/supabase/client.ts",
+    "lib/supabaseAdmin.ts"
+  ],
+  "components/admin/EquationEditor.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/use-toast.ts",
+    "lib/unicodeMath.ts"
+  ],
+  "components/admin/EvaluationAnswerRenderer.tsx": [
+    "components/answer-types/graph-plot/GraphPlotPlayer.tsx",
+    "components/answer-types/image-drop/DraggableElementContent.tsx",
+    "components/answer-types/image-fill-blanks/ImageFillBlanksReview.tsx",
+    "components/answer-types/venn-diagram/VennDiagramReview.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts"
+  ],
+  "components/admin/ImageUpload.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/progress.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/ManualQuestionForm.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/textarea.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/MathGraphTestLoader.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "data/mathGraphMockTest.ts"
+  ],
+  "components/admin/MathRichEditor.tsx": [
+    "components/ui/button.tsx"
+  ],
+  "components/admin/MockTestBulkUploadForm.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/collapsible.tsx",
+    "components/ui/input.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/select.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/MockTestWordUpload.tsx": [
+    "components/ui/alert.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx"
+  ],
+  "components/admin/PageRegionsOverlay.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/utils.ts"
+  ],
+  "components/admin/PipelineProcessor.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/ProgressReports.tsx": [
+    "components/admin/reports/ReportCharts.tsx",
+    "components/admin/reports/ReportFilters.tsx",
+    "components/admin/reports/ReportOverviewCards.tsx",
+    "integrations/supabase/client.ts",
+    "services/reportsPdfGenerator.ts",
+    "services/reportsService.ts",
+    "services/studentPerformanceService.ts"
+  ],
+  "components/admin/QuestionBankSelector.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/QuestionBuilder.tsx": [
+    "components/admin/AnswerBlockTypeSelector.tsx",
+    "components/admin/CommandTermSelector.tsx",
+    "components/admin/ImageUpload.tsx",
+    "components/admin/RichTextEditor.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/textarea.tsx"
+  ],
+  "components/admin/QuestionPreviewEditor.tsx": [
+    "components/admin/BoundingBoxOverlay.tsx",
+    "components/admin/PageRegionsOverlay.tsx",
+    "components/admin/TableBuilder.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/select.tsx",
+    "components/ui/tabs.tsx",
+    "components/ui/textarea.tsx",
+    "components/ui/tooltip.tsx",
+    "hooks/useAutoDiagramCropper.tsx",
+    "hooks/useDiagramCropping.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/QuestionTypeConfirmation.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/select.tsx",
+    "lib/utils.ts"
+  ],
+  "components/admin/QuestionUploadCard.tsx": [
+    "components/admin/AIDocumentProcessingModal.tsx",
+    "components/admin/QuestionPreviewEditor.tsx",
+    "components/admin/UploadProgressTracker.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/tabs.tsx",
+    "hooks/useAutoDiagramCropper.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/RichTextEditor.tsx": [
+    "components/admin/SymbolPicker.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/select.tsx",
+    "lib/utils.ts",
+    "types/mathlive.d.ts"
+  ],
+  "components/admin/SampleTestLoader.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "data/sampleMathGraphTest.ts"
+  ],
+  "components/admin/StudyMaterialManager.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/tabs.tsx",
+    "components/ui/textarea.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/SubjectBulkUploadForm.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/collapsible.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/scroll-area.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/SubjectQuestionManager.tsx": [
+    "components/admin/QuestionUploadCard.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/tabs.tsx",
+    "components/ui/textarea.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/SymbolPicker.tsx": [
+    "components/ui/button.tsx"
+  ],
+  "components/admin/TableBuilder.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/admin/TestEditor.tsx": [
+    "components/admin/MathRichEditor.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "components/ui/textarea.tsx",
+    "integrations/supabase/client.ts",
+    "integrations/supabase/types.ts"
+  ],
+  "components/admin/TestManagement.tsx": [
+    "components/admin/TestEditor.tsx",
+    "components/admin/WordUploadModal.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/TopicSelector.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/popover.tsx",
+    "data/topicTree.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/UploadProgressTracker.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "lib/utils.ts"
+  ],
+  "components/admin/UserDetailDrawer.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/sheet.tsx",
+    "components/ui/skeleton.tsx",
+    "components/ui/tabs.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/UserManagement.tsx": [
+    "components/admin/CreateUserModal.tsx",
+    "components/admin/EditUserModal.tsx",
+    "components/admin/UserDetailDrawer.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "components/ui/table.tsx",
+    "integrations/supabase/client.ts",
+    "integrations/supabase/types.ts"
+  ],
+  "components/admin/WordUploadModal.tsx": [
+    "components/ui/alert.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/textarea.tsx",
+    "components/ui/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/admin/mock-test-creator/CSVImportModal.tsx": [
+    "components/admin/AnswerBlockTypeSelector.tsx",
+    "components/admin/mock-test-creator/types.ts",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx"
+  ],
+  "components/admin/mock-test-creator/QuestionGroupCard.tsx": [
+    "components/admin/AnswerBlockTypeSelector.tsx",
+    "components/admin/CommandTermSelector.tsx",
+    "components/admin/ImageUpload.tsx",
+    "components/admin/RichTextEditor.tsx",
+    "components/admin/mock-test-creator/SubQuestionCard.tsx",
+    "components/admin/mock-test-creator/types.ts",
+    "components/answer-types/arrange-order/ArrangeOrderEditor.tsx",
+    "components/answer-types/drag-drop/DragDropMatchingEditor.tsx",
+    "components/answer-types/graph-plot/GraphPlotConfigEditor.tsx",
+    "components/answer-types/image-drop/ImageDropZoneEditor.tsx",
+    "components/answer-types/image-fill-blanks/ImageFillBlanksEditor.tsx",
+    "components/answer-types/multiple-choice/MultipleChoiceConfigEditor.tsx",
+    "components/answer-types/smart-math/SmartMathEditor.tsx",
+    "components/answer-types/venn-diagram/VennDiagramEditor.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/admin/mock-test-creator/SectionCard.tsx": [
+    "components/admin/mock-test-creator/QuestionGroupCard.tsx",
+    "components/admin/mock-test-creator/types.ts",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx"
+  ],
+  "components/admin/mock-test-creator/SubQuestionCard.tsx": [
+    "components/admin/AnswerBlockTypeSelector.tsx",
+    "components/admin/CommandTermSelector.tsx",
+    "components/admin/ImageUpload.tsx",
+    "components/admin/RichTextEditor.tsx",
+    "components/admin/mock-test-creator/types.ts",
+    "components/answer-types/arrange-order/ArrangeOrderEditor.tsx",
+    "components/answer-types/drag-drop/DragDropMatchingEditor.tsx",
+    "components/answer-types/graph-plot/GraphPlotConfigEditor.tsx",
+    "components/answer-types/image-drop/ImageDropZoneEditor.tsx",
+    "components/answer-types/image-fill-blanks/ImageFillBlanksEditor.tsx",
+    "components/answer-types/multiple-choice/MultipleChoiceConfigEditor.tsx",
+    "components/answer-types/smart-math/SmartMathEditor.tsx",
+    "components/answer-types/venn-diagram/VennDiagramEditor.tsx",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx"
+  ],
+  "components/admin/mock-test-creator/types.ts": [
+    "components/admin/AnswerBlockTypeSelector.tsx",
+    "components/equation-editor/EquationObject.tsx"
+  ],
+  "components/admin/reports/ReportCharts.tsx": [
+    "components/ui/card.tsx",
+    "components/ui/skeleton.tsx",
+    "services/reportsService.ts"
+  ],
+  "components/admin/reports/ReportFilters.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/admin/reports/ReportOverviewCards.tsx": [
+    "components/ui/card.tsx",
+    "components/ui/skeleton.tsx",
+    "services/reportsService.ts"
+  ],
+  "components/answer-types/arrange-order/ArrangeOrderEditor.tsx": [
+    "components/ui/MathInput.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/textarea.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/arrange-order/SortableStepItem.tsx": [
+    "components/ui/badge.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/arrange-order/StepBuilder.tsx": [
+    "components/answer-types/arrange-order/SortableStepItem.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/drag-drop/DragDropMatcher.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/card.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/drag-drop/DragDropMatchingEditor.tsx": [
+    "components/ui/MathInput.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/textarea.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/drag-drop/PuzzleDragDrop.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/graph-plot/GraphEditor.tsx": [
+    "components/exam-builder/types.ts",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/popover.tsx",
+    "components/ui/switch.tsx"
+  ],
+  "components/answer-types/graph-plot/GraphPlotConfigEditor.tsx": [
+    "components/answer-types/graph-plot/GraphPlotPlayer.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/textarea.tsx"
+  ],
+  "components/answer-types/graph-plot/GraphPlotPlayer.tsx": [
+    "components/mock-exam/MathLiveKeyboard.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/graph-plot/InteractiveGraphCanvas.tsx": [
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/image-drop/DraggableElementContent.tsx": [
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/image-drop/ImageDropZone.tsx": [
+    "components/answer-types/image-drop/DraggableElementContent.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/image-drop/ImageDropZoneEditor.tsx": [
+    "components/ui/MathInput.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/image-fill-blanks/ImageFillBlanksEditor.tsx": [
+    "components/ui/MathInput.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "integrations/supabase/client.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/image-fill-blanks/ImageFillBlanksPlayer.tsx": [
+    "components/answer-types/image-fill-blanks/ImageFillBlanksEditor.tsx",
+    "components/mock-exam/MathLiveKeyboard.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/image-fill-blanks/ImageFillBlanksReview.tsx": [
+    "components/answer-types/image-fill-blanks/ImageFillBlanksEditor.tsx",
+    "components/ui/badge.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/multiple-choice/MultipleChoiceConfigEditor.tsx": [
+    "components/ui/MathInput.tsx",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/textarea.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/multiple-choice/MultipleChoiceEditor.tsx": [
+    "components/exam-builder/types.ts",
+    "components/ui/button.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/input.tsx",
+    "components/ui/textarea.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/smart-math/SmartMathEditor.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/textarea.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/smart-math/SmartMathInput.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/smart-math/SmartMathPlayer.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/table-input/TableAnswerValidator.tsx": [
+    "components/ui/badge.tsx"
+  ],
+  "components/answer-types/table-input/TableEditor.tsx": [
+    "components/exam-builder/types.ts",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/venn-diagram/VennDiagram.tsx": [
+    "lib/mathFormat.ts",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/venn-diagram/VennDiagramEditor.tsx": [
+    "components/answer-types/venn-diagram/VennDiagram.tsx",
+    "components/ui/MathInput.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "lib/mathFormat.ts",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/venn-diagram/VennDiagramPlayer.tsx": [
+    "components/answer-types/venn-diagram/VennDiagram.tsx",
+    "components/answer-types/venn-diagram/VennDiagramEditor.tsx",
+    "components/ui/badge.tsx",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts"
+  ],
+  "components/answer-types/venn-diagram/VennDiagramReview.tsx": [
+    "components/answer-types/venn-diagram/VennDiagram.tsx",
+    "components/answer-types/venn-diagram/VennDiagramEditor.tsx",
+    "components/answer-types/venn-diagram/VennDiagramPlayer.tsx",
+    "components/ui/badge.tsx",
+    "lib/renderFinalText.tsx"
+  ],
+  "components/auth/AuthHeader.tsx": [
+    "assets/prep-ville-logo.svg"
+  ],
+  "components/auth/AuthModal.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/tabs.tsx",
+    "hooks/useAuth.tsx"
+  ],
+  "components/auth/DemoUserButton.tsx": [
+    "components/ui/button.tsx",
+    "lib/authService.ts"
+  ],
+  "components/auth/SignInForm.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input-otp.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/tabs.tsx",
+    "integrations/supabase/client.ts",
+    "lib/authService.ts"
+  ],
+  "components/auth/SignUpForm.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input-otp.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts",
+    "lib/authService.ts"
+  ],
+  "components/command-terms/CommandTermCard.tsx": [
+    "components/ui/card.tsx",
+    "data/commandTerms.ts",
+    "lib/utils.ts"
+  ],
+  "components/command-terms/CommandTermCategory.tsx": [
+    "components/command-terms/CommandTermCard.tsx",
+    "data/commandTerms.ts"
+  ],
+  "components/command-terms/CommandTermsFilter.tsx": [
+    "components/ui/button.tsx",
+    "data/commandTerms.ts",
+    "lib/utils.ts"
+  ],
+  "components/command-terms/CommandTermsHero.tsx": [],
+  "components/command-terms/CommandTermsNav.tsx": [
+    "data/commandTerms.ts",
+    "lib/utils.ts"
+  ],
+  "components/command-terms/CommandTermsSearch.tsx": [
+    "components/ui/input.tsx"
+  ],
+  "components/equation-editor/EquationEditorModal.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/tabs.tsx",
+    "lib/utils.ts"
+  ],
+  "components/equation-editor/EquationObject.tsx": [
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/equation-editor/EquationTextEditor.tsx": [
+    "components/equation-editor/EquationEditorModal.tsx",
+    "components/equation-editor/EquationObject.tsx",
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/equation-editor/index.ts": [
+    "components/equation-editor/EquationEditorModal.tsx",
+    "components/equation-editor/EquationObject.tsx",
+    "components/equation-editor/EquationTextEditor.tsx"
+  ],
+  "components/exam-builder/BuilderCanvas.tsx": [
+    "components/exam-builder/components/index.ts",
+    "components/exam-builder/types.ts",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dropdown-menu.tsx",
+    "components/ui/input.tsx",
+    "components/ui/textarea.tsx",
+    "lib/utils.ts"
+  ],
+  "components/exam-builder/BuilderSidebar.tsx": [
+    "components/exam-builder/types.ts",
+    "components/ui/button.tsx",
+    "components/ui/tooltip.tsx",
+    "lib/utils.ts"
+  ],
+  "components/exam-builder/ExamBuilder.tsx": [
+    "components/exam-builder/BuilderCanvas.tsx",
+    "components/exam-builder/BuilderSidebar.tsx",
+    "components/exam-builder/ExamBuilderHeader.tsx",
+    "components/exam-builder/QuestionTabs.tsx",
+    "components/exam-builder/types.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "components/exam-builder/ExamBuilderHeader.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/dropdown-menu.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/exam-builder/QuestionTabs.tsx": [
+    "components/exam-builder/types.ts",
+    "lib/utils.ts"
+  ],
+  "components/exam-builder/components/MediaUploader.tsx": [
+    "components/exam-builder/types.ts",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/tabs.tsx",
+    "lib/utils.ts"
+  ],
+  "components/exam-builder/components/index.ts": [
+    "components/answer-types/graph-plot/GraphEditor.tsx",
+    "components/answer-types/multiple-choice/MultipleChoiceEditor.tsx",
+    "components/answer-types/table-input/TableEditor.tsx",
+    "components/exam-builder/components/MediaUploader.tsx"
+  ],
+  "components/exam-builder/index.ts": [
+    "components/exam-builder/BuilderCanvas.tsx",
+    "components/exam-builder/BuilderSidebar.tsx",
+    "components/exam-builder/ExamBuilder.tsx",
+    "components/exam-builder/ExamBuilderHeader.tsx",
+    "components/exam-builder/QuestionTabs.tsx",
+    "components/exam-builder/types.ts"
+  ],
+  "components/exam-builder/types.ts": [],
+  "components/exam-select/ExamModeCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/utils.ts"
+  ],
+  "components/exam-select/InteractiveDemoCard.tsx": [
+    "components/exam-select/ExamModeCard.tsx",
+    "data/interactiveDemoSampleTest.ts"
+  ],
+  "components/exam-select/PuzzleChallengeCard.tsx": [
+    "components/exam-select/ExamModeCard.tsx",
+    "data/puzzleDragDropSampleTest.ts"
+  ],
+  "components/exam-select/UnifiedExamCard.tsx": [
+    "components/exam-select/ExamModeCard.tsx"
+  ],
+  "components/home/AnimatedHero.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/useAuth.tsx"
+  ],
+  "components/home/FinalCTA.tsx": [
+    "components/ui/button.tsx"
+  ],
+  "components/home/HowItWorks.tsx": [
+    "components/ui/card.tsx"
+  ],
+  "components/home/PlansPreview.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/home/QuestionBankPower.tsx": [
+    "components/ui/card.tsx"
+  ],
+  "components/home/SmartFeatures.tsx": [
+    "components/ui/card.tsx"
+  ],
+  "components/home/TrustSection.tsx": [
+    "components/ui/card.tsx"
+  ],
+  "components/learning/MathEditor.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/textarea.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/mock-exam/InteractiveExamHeader.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/button.tsx",
+    "components/ui/progress.tsx",
+    "lib/utils.ts"
+  ],
+  "components/mock-exam/InteractiveExamQuestion.tsx": [
+    "components/admin/EquationEditor.tsx",
+    "components/answer-types/arrange-order/StepBuilder.tsx",
+    "components/answer-types/drag-drop/DragDropMatcher.tsx",
+    "components/answer-types/graph-plot/InteractiveGraphCanvas.tsx",
+    "components/answer-types/image-drop/ImageDropZone.tsx",
+    "components/answer-types/smart-math/SmartMathInput.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "data/mocktest2.ts",
+    "lib/utils.ts"
+  ],
+  "components/mock-exam/InteractiveExamSidebar.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/scroll-area.tsx",
+    "data/mocktest2.ts",
+    "lib/utils.ts"
+  ],
+  "components/mock-exam/MathEditor.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx"
+  ],
+  "components/mock-exam/MathKeyboard.tsx": [
+    "components/mock-exam/MatrixBuilder.tsx",
+    "components/ui/button.tsx",
+    "components/ui/tabs.tsx",
+    "lib/utils.ts"
+  ],
+  "components/mock-exam/MathLiveKeyboard.tsx": [
+    "components/ui/button.tsx",
+    "lib/utils.ts",
+    "types/mathlive.d.ts"
+  ],
+  "components/mock-exam/MatrixBuilder.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/mock-exam/MockExamHeader.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/mock-exam/MockExamQuestion.tsx": [
+    "components/admin/EquationEditor.tsx",
+    "components/answer-types/graph-plot/InteractiveGraphCanvas.tsx",
+    "components/mock-exam/MathKeyboard.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "lib/utils.ts",
+    "pages/MockExamStart.tsx"
+  ],
+  "components/mock-exam/MockExamSidebar.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/scroll-area.tsx",
+    "lib/utils.ts"
+  ],
+  "components/mock-exam/MockTestCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/mock-exam/MockTestListCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/mock-exam/SubjectTestCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/practice-exam/PracticeExamHeader.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/progress.tsx",
+    "lib/utils.ts"
+  ],
+  "components/practice-exam/PracticeResultsModal.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/separator.tsx",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "components/practice/PracticeFilters.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/practice/PracticeQuestionRow.tsx": [
+    "components/practice/PracticeStatusBadge.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/table.tsx",
+    "lib/utils.ts"
+  ],
+  "components/practice/PracticeStatusBadge.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/practice/PracticeTestCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/quiz/InteractiveQuizQuestion.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "lib/utils.ts"
+  ],
+  "components/quiz/QuizCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/quiz/QuizFilters.tsx": [
+    "components/ui/input.tsx",
+    "components/ui/select.tsx"
+  ],
+  "components/quiz/QuizGrid.tsx": [
+    "components/quiz/QuizCard.tsx"
+  ],
+  "components/quiz/QuizHeader.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx"
+  ],
+  "components/quiz/QuizProgress.tsx": [],
+  "components/quiz/QuizQuestion.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/quiz/QuizResults.tsx": [
+    "components/AITestEvaluation.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "components/student/AvatarCustomizer.tsx": [
+    "assets/avatars/cool-cat.png",
+    "assets/avatars/dragon-tamer.png",
+    "assets/avatars/math-wizard.png",
+    "assets/avatars/ocean-explorer.png",
+    "assets/avatars/robot-friend.png",
+    "assets/avatars/space-explorer.png",
+    "components/ui/avatar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx"
+  ],
+  "components/student/DailyMotivationPopup.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/skeleton.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/student/DynamicDailyChallenge.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "hooks/useProgressTracking.tsx"
+  ],
+  "components/student/DynamicTopicProgress.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "hooks/useProgressTracking.tsx"
+  ],
+  "components/student/MockTestStatus.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/student/NotificationsPanel.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts",
+    "lib/utils.ts"
+  ],
+  "components/student/PerformanceCriteria.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/tooltip.tsx",
+    "hooks/useAnimatedCounter.tsx",
+    "hooks/useProgressTracking.tsx"
+  ],
+  "components/student/PersonalizedSuggestions.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/skeleton.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/student/QuickActions.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/useProgressTracking.tsx",
+    "hooks/useXPSystem.tsx"
+  ],
+  "components/student/StatsCards.tsx": [
+    "components/ui/card.tsx",
+    "hooks/useAnimatedCounter.tsx",
+    "hooks/useAuth.tsx",
+    "lib/utils.ts"
+  ],
+  "components/student/StreakTracker.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/use-toast.ts",
+    "hooks/useStreakTracker.tsx",
+    "integrations/supabase/client.ts",
+    "lib/utils.ts"
+  ],
+  "components/student/StudentDashboard.tsx": [
+    "assets/avatars/cool-cat.png",
+    "assets/avatars/dragon-tamer.png",
+    "assets/avatars/math-wizard.png",
+    "assets/avatars/ocean-explorer.png",
+    "assets/avatars/robot-friend.png",
+    "assets/avatars/space-explorer.png",
+    "components/Header.tsx",
+    "components/student/AvatarCustomizer.tsx",
+    "components/student/DynamicDailyChallenge.tsx",
+    "components/student/DynamicTopicProgress.tsx",
+    "components/student/MockTestStatus.tsx",
+    "components/student/NotificationsPanel.tsx",
+    "components/student/PerformanceCriteria.tsx",
+    "components/student/PersonalizedSuggestions.tsx",
+    "components/student/QuickActions.tsx",
+    "components/student/StatsCards.tsx",
+    "components/student/StreakTracker.tsx",
+    "components/student/TopicProgressCard.tsx",
+    "components/ui/avatar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "hooks/useAuth.tsx",
+    "hooks/useProgressTracking.tsx",
+    "hooks/useRealtimeTopicProgress.tsx",
+    "hooks/useSolvedQuestions.tsx",
+    "hooks/useStreakTracker.tsx",
+    "hooks/useTestProgressSync.tsx",
+    "hooks/useXPSystem.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/student/TopicProgressCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/skeleton.tsx",
+    "hooks/useRealtimeTopicProgress.tsx"
+  ],
+  "components/study-groups/CreateGroupModal.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/switch.tsx",
+    "components/ui/textarea.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/study-groups/StudyGroupsChat.tsx": [
+    "components/ui/avatar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/scroll-area.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/study-groups/StudyGroupsMembers.tsx": [
+    "components/ui/avatar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/tabs.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/study-groups/StudyGroupsSidebar.tsx": [
+    "components/study-groups/CreateGroupModal.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/scroll-area.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "components/ui/MathInput.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/textarea.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts",
+    "types/mathlive.d.ts"
+  ],
+  "components/ui/accordion.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/alert-dialog.tsx": [
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/alert.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/aspect-ratio.tsx": [],
+  "components/ui/avatar.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/badge.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/breadcrumb.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/button.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/calendar.tsx": [
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/card.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/carousel.tsx": [
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/chart.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/checkbox.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/collapsible.tsx": [],
+  "components/ui/command.tsx": [
+    "components/ui/dialog.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/context-menu.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/dialog.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/drawer.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/dropdown-menu.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/form.tsx": [
+    "components/ui/label.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/hover-card.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/input-otp.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/input.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/label.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/menubar.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/navigation-menu.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/pagination.tsx": [
+    "components/ui/button.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/popover.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/progress.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/radio-group.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/resizable.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/scroll-area.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/select.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/separator.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/sheet.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/sidebar.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/separator.tsx",
+    "components/ui/sheet.tsx",
+    "components/ui/skeleton.tsx",
+    "components/ui/tooltip.tsx",
+    "hooks/use-mobile.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/skeleton.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/slider.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/sonner.tsx": [],
+  "components/ui/switch.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/table.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/tabs.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/textarea.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/toast.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/toaster.tsx": [
+    "components/ui/toast.tsx",
+    "hooks/use-toast.ts"
+  ],
+  "components/ui/toggle-group.tsx": [
+    "components/ui/toggle.tsx",
+    "lib/utils.ts"
+  ],
+  "components/ui/toggle.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/tooltip.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/ui/use-toast.ts": [
+    "hooks/use-toast.ts"
+  ],
+  "components/unified-exam/AIFeedbackButton.tsx": [
+    "components/ui/button.tsx",
+    "contexts/ExamModeContext.tsx",
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/AIFeedbackPanel.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/separator.tsx",
+    "lib/renderFinalText.tsx",
+    "types/examMode.ts"
+  ],
+  "components/unified-exam/AnswerBlock.tsx": [
+    "components/admin/RichTextEditor.tsx",
+    "components/answer-types/arrange-order/StepBuilder.tsx",
+    "components/answer-types/drag-drop/DragDropMatcher.tsx",
+    "components/answer-types/graph-plot/GraphPlotPlayer.tsx",
+    "components/answer-types/graph-plot/InteractiveGraphCanvas.tsx",
+    "components/answer-types/image-drop/ImageDropZone.tsx",
+    "components/answer-types/image-fill-blanks/ImageFillBlanksPlayer.tsx",
+    "components/answer-types/smart-math/SmartMathInput.tsx",
+    "components/answer-types/smart-math/SmartMathPlayer.tsx",
+    "components/answer-types/venn-diagram/VennDiagramEditor.tsx",
+    "components/answer-types/venn-diagram/VennDiagramPlayer.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/card.tsx",
+    "components/ui/textarea.tsx",
+    "types/answerBlock.ts"
+  ],
+  "components/unified-exam/ExamCursor.tsx": [],
+  "components/unified-exam/ExamLockdown.tsx": [
+    "components/ui/button.tsx"
+  ],
+  "components/unified-exam/ExamModeToggle.tsx": [
+    "components/ui/alert-dialog.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/label.tsx",
+    "components/ui/switch.tsx",
+    "contexts/ExamModeContext.tsx",
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/ExamQuestionCardsPanel.tsx": [
+    "components/ui/badge.tsx",
+    "components/unified-exam/ExamSubQuestionCard.tsx",
+    "components/unified-exam/InteractiveAnswerBlock.tsx",
+    "lib/answerBlockTypeMap.ts",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "components/unified-exam/ExamSourcePanel.tsx": [
+    "components/ui/badge.tsx",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "components/unified-exam/ExamSubQuestionCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/card.tsx",
+    "components/unified-exam/InteractiveAnswerBlock.tsx",
+    "lib/answerBlockTypeMap.ts",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "components/unified-exam/ExamSyncOverlay.tsx": [
+    "contexts/ExamSyncContext.tsx",
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/ExtractViewer.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/scroll-area.tsx",
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/FocusModeToggle.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/tooltip.tsx",
+    "contexts/ExamModeContext.tsx",
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/InteractiveAnswerBlock.tsx": [
+    "components/admin/RichTextEditor.tsx",
+    "components/answer-types/arrange-order/StepBuilder.tsx",
+    "components/answer-types/drag-drop/PuzzleDragDrop.tsx",
+    "components/answer-types/graph-plot/GraphPlotPlayer.tsx",
+    "components/answer-types/graph-plot/InteractiveGraphCanvas.tsx",
+    "components/answer-types/image-drop/ImageDropZone.tsx",
+    "components/answer-types/image-fill-blanks/ImageFillBlanksPlayer.tsx",
+    "components/answer-types/smart-math/SmartMathInput.tsx",
+    "components/answer-types/smart-math/SmartMathPlayer.tsx",
+    "components/answer-types/table-input/TableAnswerValidator.tsx",
+    "components/answer-types/venn-diagram/VennDiagramEditor.tsx",
+    "components/answer-types/venn-diagram/VennDiagramPlayer.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dropdown-menu.tsx",
+    "lib/mathFormat.ts",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "components/unified-exam/MarkSchemeButton.tsx": [
+    "components/ui/button.tsx",
+    "contexts/ExamModeContext.tsx",
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/MarkSchemeModal.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/separator.tsx",
+    "lib/renderFinalText.tsx",
+    "types/examMode.ts"
+  ],
+  "components/unified-exam/QuestionNavigator.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/collapsible.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/scroll-area.tsx",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "components/unified-exam/SubQuestionLabel.tsx": [
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/UnifiedExamHeader.tsx": [
+    "components/ui/alert-dialog.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/progress.tsx",
+    "lib/utils.ts"
+  ],
+  "components/unified-exam/UnifiedExamSidebar.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/scroll-area.tsx",
+    "types/answerBlock.ts"
+  ],
+  "components/unified-exam/UnifiedQuestionCard.tsx": [
+    "components/ui/badge.tsx",
+    "components/ui/card.tsx",
+    "components/ui/separator.tsx",
+    "components/unified-exam/AnswerBlock.tsx",
+    "components/unified-exam/InteractiveAnswerBlock.tsx",
+    "lib/answerBlockTypeMap.ts",
+    "lib/renderFinalText.tsx",
+    "types/answerBlock.ts"
+  ],
+  "contexts/ChatbotContext.tsx": [],
+  "contexts/ExamModeContext.tsx": [
+    "types/examMode.ts"
+  ],
+  "contexts/ExamSyncContext.tsx": [
+    "integrations/supabase/client.ts",
+    "types/unifiedExam.ts"
+  ],
+  "data/commandTerms.ts": [],
+  "data/interactiveDemoSampleTest.ts": [],
+  "data/mathGraphMockTest.ts": [],
+  "data/mockQuestions.ts": [
+    "pages/MockExamStart.tsx"
+  ],
+  "data/mocktest2.ts": [],
+  "data/puzzleDragDropSampleTest.ts": [],
+  "data/sampleMathGraphTest.ts": [],
+  "data/topicTree.ts": [],
+  "hooks/use-mobile.tsx": [],
+  "hooks/use-toast.ts": [
+    "components/ui/toast.tsx"
+  ],
+  "hooks/useAdminAuth.tsx": [
+    "lib/authService.ts",
+    "lib/supabaseAdmin.ts"
+  ],
+  "hooks/useAdminExamControl.tsx": [
+    "integrations/supabase/client.ts",
+    "types/unifiedExam.ts"
+  ],
+  "hooks/useAnimatedCounter.tsx": [],
+  "hooks/useAuth.tsx": [
+    "integrations/supabase/client.ts",
+    "lib/authService.ts"
+  ],
+  "hooks/useAutoDiagramCropper.tsx": [
+    "integrations/supabase/client.ts",
+    "lib/boundingBoxUtils.ts"
+  ],
+  "hooks/useAutoSave.tsx": [
+    "contexts/ExamModeContext.tsx",
+    "integrations/supabase/client.ts",
+    "types/answerBlock.ts"
+  ],
+  "hooks/useDiagramCropping.tsx": [
+    "integrations/supabase/client.ts",
+    "lib/boundingBoxUtils.ts"
+  ],
+  "hooks/usePracticeQuestionStatus.tsx": [
+    "components/practice/PracticeStatusBadge.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "hooks/useProgressTracking.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "hooks/useRealtimeTopicProgress.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "hooks/useSessionTracking.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "hooks/useSolvedQuestions.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "hooks/useStreakTracker.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "hooks/useStudentAuth.tsx": [
+    "lib/authService.ts",
+    "lib/supabaseStudent.ts"
+  ],
+  "hooks/useSubscription.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts",
+    "lib/authService.ts"
+  ],
+  "hooks/useTestProgressSync.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "hooks/useXPSystem.tsx": [
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "index.css": [],
+  "integrations/supabase/client.ts": [
+    "integrations/supabase/types.ts"
+  ],
+  "integrations/supabase/types.ts": [],
+  "lib/answerBlockTypeMap.ts": [
+    "types/answerBlock.ts"
+  ],
+  "lib/authService.ts": [],
+  "lib/boundingBoxUtils.ts": [],
+  "lib/domain.ts": [],
+  "lib/interactiveQuestionMapper.ts": [
+    "data/mocktest2.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "lib/logger.ts": [],
+  "lib/mathFormat.ts": [],
+  "lib/questionTypeDetector.ts": [
+    "components/unified-exam/InteractiveAnswerBlock.tsx"
+  ],
+  "lib/renderFinalText.tsx": [
+    "lib/mathFormat.ts"
+  ],
+  "lib/renderLatex.tsx": [
+    "lib/mathFormat.ts"
+  ],
+  "lib/supabaseAdmin.ts": [
+    "integrations/supabase/client.ts"
+  ],
+  "lib/supabaseStudent.ts": [
+    "integrations/supabase/client.ts"
+  ],
+  "lib/unicodeMath.ts": [],
+  "lib/utils.ts": [],
+  "main.tsx": [
+    "App.tsx",
+    "index.css"
+  ],
+  "pages/AdminAIKnowledgeBase.tsx": [
+    "components/Header.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/textarea.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/AdminAssignments.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/calendar.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/dropdown-menu.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/popover.tsx",
+    "components/ui/select.tsx",
+    "components/ui/table.tsx",
+    "integrations/supabase/client.ts",
+    "lib/utils.ts"
+  ],
+  "pages/AdminBilling.tsx": [
+    "components/admin/AdminBillingPanel.tsx",
+    "components/admin/AdminSidebar.tsx"
+  ],
+  "pages/AdminDashboard.tsx": [
+    "components/admin/AdminSettings.tsx",
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/DashboardOverview.tsx",
+    "components/admin/ProgressReports.tsx",
+    "components/admin/StudyMaterialManager.tsx",
+    "components/admin/SubjectQuestionManager.tsx",
+    "components/admin/TestManagement.tsx",
+    "components/admin/UserManagement.tsx"
+  ],
+  "pages/AdminEvaluation.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/EvaluationAnswerRenderer.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/select.tsx",
+    "components/ui/table.tsx",
+    "components/ui/tabs.tsx",
+    "components/ui/textarea.tsx",
+    "integrations/supabase/client.ts",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts"
+  ],
+  "pages/AdminExamBuilder.tsx": [
+    "components/exam-builder/index.ts"
+  ],
+  "pages/AdminForgotPassword.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx"
+  ],
+  "pages/AdminLogin.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/button.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "hooks/useAdminAuth.tsx",
+    "lib/authService.ts",
+    "lib/domain.ts",
+    "lib/supabaseAdmin.ts"
+  ],
+  "pages/AdminMockTestCreate.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/QuestionBankSelector.tsx",
+    "components/admin/QuestionUploadCard.tsx",
+    "components/admin/mock-test-creator/CSVImportModal.tsx",
+    "components/admin/mock-test-creator/SectionCard.tsx",
+    "components/admin/mock-test-creator/types.ts",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/popover.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/select.tsx",
+    "data/topicTree.ts",
+    "integrations/supabase/client.ts",
+    "integrations/supabase/types.ts"
+  ],
+  "pages/AdminMockTestEdit.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/AnswerBlockTypeSelector.tsx",
+    "components/admin/QuestionBankSelector.tsx",
+    "components/admin/QuestionUploadCard.tsx",
+    "components/admin/mock-test-creator/CSVImportModal.tsx",
+    "components/admin/mock-test-creator/SectionCard.tsx",
+    "components/admin/mock-test-creator/types.ts",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dialog.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts",
+    "integrations/supabase/types.ts"
+  ],
+  "pages/AdminMockTestView.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "integrations/supabase/client.ts",
+    "lib/renderFinalText.tsx"
+  ],
+  "pages/AdminMockTests.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/QuestionUploadCard.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/dropdown-menu.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/AdminPracticeCreate.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/TopicSelector.tsx",
+    "components/admin/mock-test-creator/SectionCard.tsx",
+    "components/admin/mock-test-creator/types.ts",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/AdminQuestions.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/QuestionUploadCard.tsx",
+    "components/admin/SubjectQuestionManager.tsx",
+    "components/ui/button.tsx"
+  ],
+  "pages/AdminQuickTestCreate.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/QuestionBuilder.tsx",
+    "components/admin/QuestionUploadCard.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/dropdown-menu.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts",
+    "integrations/supabase/types.ts"
+  ],
+  "pages/AdminReports.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/ProgressReports.tsx"
+  ],
+  "pages/AdminSettings.tsx": [
+    "components/admin/AdminSettings.tsx",
+    "components/admin/AdminSidebar.tsx"
+  ],
+  "pages/AdminStudentsProgress.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/UserDetailDrawer.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/AdminStudyMaterials.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/StudyMaterialManager.tsx"
+  ],
+  "pages/AdminTests.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/AdminUsers.tsx": [
+    "components/admin/AdminSidebar.tsx",
+    "components/admin/UserManagement.tsx"
+  ],
+  "pages/Analytics.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "hooks/useAuth.tsx",
+    "hooks/useProgressTracking.tsx",
+    "hooks/useXPSystem.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/CommandTerms.tsx": [
+    "components/Footer.tsx",
+    "components/Header.tsx",
+    "components/command-terms/CommandTermCard.tsx",
+    "components/command-terms/CommandTermCategory.tsx",
+    "components/command-terms/CommandTermsFilter.tsx",
+    "components/command-terms/CommandTermsHero.tsx",
+    "components/command-terms/CommandTermsNav.tsx",
+    "components/command-terms/CommandTermsSearch.tsx",
+    "data/commandTerms.ts"
+  ],
+  "pages/ExamResults.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/card.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts",
+    "lib/utils.ts"
+  ],
+  "pages/ExamSubmitted.tsx": [
+    "components/Header.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "pages/FormulaHelper.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/tabs.tsx"
+  ],
+  "pages/GraphingTool.tsx": [
+    "components/Header.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/tabs.tsx"
+  ],
+  "pages/Index.tsx": [
+    "components/Footer.tsx",
+    "components/Header.tsx",
+    "components/SubscriptionBanner.tsx",
+    "components/home/AnimatedHero.tsx",
+    "components/home/FinalCTA.tsx",
+    "components/home/HowItWorks.tsx",
+    "components/home/PlansPreview.tsx",
+    "components/home/QuestionBankPower.tsx",
+    "components/home/SmartFeatures.tsx",
+    "components/home/TrustSection.tsx"
+  ],
+  "pages/InteractiveMockDemo.tsx": [
+    "components/answer-types/arrange-order/StepBuilder.tsx",
+    "components/answer-types/drag-drop/DragDropMatcher.tsx",
+    "components/answer-types/graph-plot/InteractiveGraphCanvas.tsx",
+    "components/answer-types/image-drop/ImageDropZone.tsx",
+    "components/answer-types/smart-math/SmartMathInput.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "data/mocktest2.ts",
+    "lib/utils.ts"
+  ],
+  "pages/Leaderboard.tsx": [
+    "components/Header.tsx",
+    "components/ui/avatar.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/card.tsx",
+    "components/ui/tabs.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/LevelDetails.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "hooks/useXPSystem.tsx"
+  ],
+  "pages/MockExamSelect.tsx": [
+    "components/Header.tsx",
+    "components/TopicHierarchyFilter.tsx",
+    "components/mock-exam/MockTestListCard.tsx",
+    "components/ui/input.tsx",
+    "data/topicTree.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/MockExamStart.tsx": [
+    "components/mock-exam/MockExamHeader.tsx",
+    "components/mock-exam/MockExamQuestion.tsx",
+    "components/mock-exam/MockExamSidebar.tsx",
+    "components/ui/button.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/MockExamSubjectView.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/MockExamSummary.tsx": [
+    "components/AITestEvaluation.tsx",
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/tabs.tsx",
+    "integrations/supabase/client.ts",
+    "pages/MockExamStart.tsx"
+  ],
+  "pages/NotFound.tsx": [],
+  "pages/Notifications.tsx": [
+    "components/Header.tsx",
+    "components/student/NotificationsPanel.tsx"
+  ],
+  "pages/Onboarding.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input-otp.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "components/ui/select.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/Practice.tsx": [
+    "components/GlobalChatbot.tsx",
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "integrations/supabase/client.ts",
+    "lib/utils.ts"
+  ],
+  "pages/PracticeExam.tsx": [
+    "components/practice-exam/PracticeExamHeader.tsx",
+    "components/practice-exam/PracticeResultsModal.tsx",
+    "components/unified-exam/QuestionNavigator.tsx",
+    "components/unified-exam/UnifiedQuestionCard.tsx",
+    "data/mocktest2.ts",
+    "integrations/supabase/client.ts",
+    "lib/interactiveQuestionMapper.ts",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "pages/PracticeQuestionView.tsx": [
+    "components/EnhancedAITutor.tsx",
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/label.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/switch.tsx",
+    "components/unified-exam/AIFeedbackButton.tsx",
+    "components/unified-exam/AIFeedbackPanel.tsx",
+    "components/unified-exam/InteractiveAnswerBlock.tsx",
+    "contexts/ExamModeContext.tsx",
+    "integrations/supabase/client.ts",
+    "lib/mathFormat.ts",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts",
+    "types/examMode.ts"
+  ],
+  "pages/Pricing.tsx": [
+    "components/Footer.tsx",
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/tabs.tsx",
+    "hooks/useAuth.tsx",
+    "hooks/useSubscription.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/QuickPractice.tsx": [],
+  "pages/Quiz.tsx": [
+    "components/Header.tsx",
+    "components/quiz/InteractiveQuizQuestion.tsx",
+    "components/quiz/QuizHeader.tsx",
+    "components/quiz/QuizProgress.tsx",
+    "components/quiz/QuizQuestion.tsx",
+    "components/quiz/QuizResults.tsx",
+    "components/ui/button.tsx",
+    "hooks/useProgressTracking.tsx",
+    "hooks/useXPSystem.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/StudentAssignments.tsx": [
+    "components/GlobalChatbot.tsx",
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/select.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/StudentDashboard.tsx": [
+    "components/student/DailyMotivationPopup.tsx",
+    "components/student/StudentDashboard.tsx",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/StudentExamResults.tsx": [
+    "components/Header.tsx",
+    "components/admin/EvaluationAnswerRenderer.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/scroll-area.tsx",
+    "components/ui/tabs.tsx",
+    "integrations/supabase/client.ts",
+    "lib/renderFinalText.tsx",
+    "lib/utils.ts"
+  ],
+  "pages/StudentForgotPassword.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "hooks/useStudentAuth.tsx",
+    "lib/domain.ts"
+  ],
+  "pages/StudentLogin.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/button.tsx",
+    "components/ui/checkbox.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "hooks/useStudentAuth.tsx",
+    "lib/domain.ts",
+    "lib/supabaseStudent.ts"
+  ],
+  "pages/StudentRegister.tsx": [
+    "assets/prep-ville-logo.svg",
+    "components/ui/button.tsx",
+    "components/ui/input.tsx",
+    "components/ui/label.tsx",
+    "hooks/useStudentAuth.tsx",
+    "lib/domain.ts",
+    "lib/supabaseStudent.ts"
+  ],
+  "pages/StudyGroups.tsx": [
+    "components/auth/AuthModal.tsx",
+    "components/study-groups/StudyGroupsChat.tsx",
+    "components/study-groups/StudyGroupsMembers.tsx",
+    "components/study-groups/StudyGroupsSidebar.tsx",
+    "components/ui/button.tsx",
+    "hooks/useAuth.tsx"
+  ],
+  "pages/StudyMaterialReader.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/sheet.tsx",
+    "components/ui/skeleton.tsx",
+    "components/ui/slider.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/StudyMaterials.tsx": [
+    "components/GlobalChatbot.tsx",
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/input.tsx",
+    "components/ui/select.tsx",
+    "components/ui/skeleton.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/SubjectLearning.tsx": [
+    "components/EnhancedAITutor.tsx",
+    "components/admin/EquationEditor.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/collapsible.tsx",
+    "components/ui/input.tsx",
+    "components/ui/progress.tsx",
+    "components/ui/select.tsx",
+    "components/ui/tabs.tsx",
+    "hooks/use-toast.ts",
+    "hooks/useAuth.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/Subjects.tsx": [
+    "components/AITutorChat.tsx",
+    "components/Header.tsx",
+    "components/SubjectFilter.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/Subscription.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/separator.tsx",
+    "hooks/use-toast.ts",
+    "hooks/useAuth.tsx",
+    "hooks/useSubscription.tsx",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/TimedChallenge.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "components/ui/progress.tsx",
+    "hooks/useProgressTracking.tsx",
+    "hooks/useXPSystem.tsx"
+  ],
+  "pages/UnifiedMockExam.tsx": [
+    "components/ui/button.tsx",
+    "components/unified-exam/ExamCursor.tsx",
+    "components/unified-exam/ExamLockdown.tsx",
+    "components/unified-exam/ExamQuestionCardsPanel.tsx",
+    "components/unified-exam/ExamSourcePanel.tsx",
+    "components/unified-exam/ExamSyncOverlay.tsx",
+    "components/unified-exam/QuestionNavigator.tsx",
+    "components/unified-exam/UnifiedExamHeader.tsx",
+    "contexts/ExamModeContext.tsx",
+    "contexts/ExamSyncContext.tsx",
+    "data/mocktest2.ts",
+    "hooks/useAutoSave.tsx",
+    "integrations/supabase/client.ts",
+    "lib/interactiveQuestionMapper.ts",
+    "lib/utils.ts",
+    "types/answerBlock.ts"
+  ],
+  "pages/UploadDemo1.tsx": [
+    "components/ui/button.tsx",
+    "components/ui/card.tsx",
+    "hooks/use-toast.ts",
+    "integrations/supabase/client.ts"
+  ],
+  "pages/Videos.tsx": [
+    "components/Header.tsx",
+    "components/ui/badge.tsx",
+    "components/ui/button.tsx",
+    "components/ui/card.tsx"
+  ],
+  "routes/DomainRedirect.tsx": [
+    "lib/domain.ts"
+  ],
+  "routes/DomainRouter.tsx": [
+    "routes/index.tsx"
+  ],
+  "routes/admin.routes.tsx": [
+    "components/AdminProtectedRoute.tsx",
+    "hooks/useAdminAuth.tsx",
+    "lib/domain.ts",
+    "pages/AdminAssignments.tsx",
+    "pages/AdminBilling.tsx",
+    "pages/AdminDashboard.tsx",
+    "pages/AdminEvaluation.tsx",
+    "pages/AdminExamBuilder.tsx",
+    "pages/AdminForgotPassword.tsx",
+    "pages/AdminLogin.tsx",
+    "pages/AdminMockTestCreate.tsx",
+    "pages/AdminMockTestEdit.tsx",
+    "pages/AdminMockTestView.tsx",
+    "pages/AdminMockTests.tsx",
+    "pages/AdminPracticeCreate.tsx",
+    "pages/AdminQuestions.tsx",
+    "pages/AdminQuickTestCreate.tsx",
+    "pages/AdminReports.tsx",
+    "pages/AdminSettings.tsx",
+    "pages/AdminStudentsProgress.tsx",
+    "pages/AdminStudyMaterials.tsx",
+    "pages/AdminTests.tsx",
+    "pages/AdminUsers.tsx",
+    "pages/NotFound.tsx",
+    "routes/DomainRedirect.tsx",
+    "routes/routeConstants.ts"
+  ],
+  "routes/index.tsx": [
+    "lib/domain.ts",
+    "routes/DomainRedirect.tsx",
+    "routes/admin.routes.tsx",
+    "routes/public.routes.tsx",
+    "routes/routeConstants.ts",
+    "routes/student.routes.tsx"
+  ],
+  "routes/public.routes.tsx": [
+    "pages/CommandTerms.tsx",
+    "pages/Index.tsx",
+    "pages/NotFound.tsx",
+    "pages/Pricing.tsx",
+    "routes/DomainRedirect.tsx",
+    "routes/routeConstants.ts"
+  ],
+  "routes/routeConstants.ts": [],
+  "routes/student.routes.tsx": [
+    "components/StudentProtectedRoute.tsx",
+    "hooks/useStudentAuth.tsx",
+    "pages/Analytics.tsx",
+    "pages/ExamResults.tsx",
+    "pages/ExamSubmitted.tsx",
+    "pages/FormulaHelper.tsx",
+    "pages/GraphingTool.tsx",
+    "pages/InteractiveMockDemo.tsx",
+    "pages/Leaderboard.tsx",
+    "pages/LevelDetails.tsx",
+    "pages/MockExamSelect.tsx",
+    "pages/MockExamStart.tsx",
+    "pages/MockExamSubjectView.tsx",
+    "pages/MockExamSummary.tsx",
+    "pages/NotFound.tsx",
+    "pages/Notifications.tsx",
+    "pages/Onboarding.tsx",
+    "pages/Practice.tsx",
+    "pages/PracticeQuestionView.tsx",
+    "pages/QuickPractice.tsx",
+    "pages/Quiz.tsx",
+    "pages/StudentAssignments.tsx",
+    "pages/StudentDashboard.tsx",
+    "pages/StudentExamResults.tsx",
+    "pages/StudentForgotPassword.tsx",
+    "pages/StudentLogin.tsx",
+    "pages/StudentRegister.tsx",
+    "pages/StudyGroups.tsx",
+    "pages/StudyMaterialReader.tsx",
+    "pages/StudyMaterials.tsx",
+    "pages/SubjectLearning.tsx",
+    "pages/Subjects.tsx",
+    "pages/Subscription.tsx",
+    "pages/TimedChallenge.tsx",
+    "pages/UnifiedMockExam.tsx",
+    "pages/Videos.tsx",
+    "routes/DomainRedirect.tsx",
+    "routes/routeConstants.ts"
+  ],
+  "services/invoicePdfGenerator.ts": [],
+  "services/mockExamService.ts": [
+    "integrations/supabase/client.ts"
+  ],
+  "services/reportsPdfGenerator.ts": [
+    "services/reportsService.ts"
+  ],
+  "services/reportsService.ts": [
+    "integrations/supabase/client.ts",
+    "integrations/supabase/types.ts"
+  ],
+  "services/studentPerformanceService.ts": [
+    "integrations/supabase/client.ts",
+    "services/reportsPdfGenerator.ts"
+  ],
+  "types/answerBlock.ts": [],
+  "types/examMode.ts": [],
+  "types/mathlive.d.ts": [],
+  "types/unifiedExam.ts": [],
+  "vite-env.d.ts": []
+}

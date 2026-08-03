@@ -43,7 +43,7 @@ function getDateRange(period: string): DateRange {
 export async function fetchOverviewStats(period: string, subjectFilter?: string): Promise<OverviewStats> {
   const { startDate } = getDateRange(period);
 
-  let query = supabase
+  const query = supabase
     .from('test_attempts')
     .select('id, user_id, score, time_taken_seconds, test_id, submission_status')
     .gte('completed_at', startDate)
@@ -176,7 +176,7 @@ export async function fetchSubjectDistribution(period: string): Promise<SubjectD
 export async function fetchScoreDistribution(period: string, subjectFilter?: string): Promise<ScoreDistribution[]> {
   const { startDate } = getDateRange(period);
 
-  let query = supabase
+  const query = supabase
     .from('test_attempts')
     .select('score, test_id')
     .gte('completed_at', startDate)

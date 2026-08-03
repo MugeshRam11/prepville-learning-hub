@@ -328,7 +328,7 @@ function extractDraggableItems(question: DBQuestion): { items: any[]; targets: a
   
   // Look for patterns like "3x + 3 + 1 + x", "2x + 1 + x + 3", etc.
   const expressionMatches = text.match(/[0-9x+\-×÷()√\s]+=[^\n]+/g) || [];
-  const algebraicMatches = text.match(/\(?[0-9]*x[²³]?\s*[+\-]\s*[0-9x]+\)?/g) || [];
+  const algebraicMatches = text.match(/\(?[0-9]*x[²³]?\s*[+-]\s*[0-9x]+\)?/g) || [];
   
   // If we have algebraic expressions, use those
   if (algebraicMatches.length > 0) {

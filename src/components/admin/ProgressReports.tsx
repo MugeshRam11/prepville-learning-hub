@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReportOverviewCards from './reports/ReportOverviewCards';
 import ReportCharts from './reports/ReportCharts';
@@ -53,6 +54,25 @@ const ProgressReports = () => {
 
   useEffect(() => {
     loadData();
+
+    // Real-time subscription to automatically refresh progress reports
+    const channel = supabase
+      .channel('progress-reports-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'test_attempts' },
+        () => loadData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'exam_evaluations' },
+        () => loadData()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [loadData]);
 
   const exportPDF = () => {
