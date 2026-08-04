@@ -32,6 +32,9 @@ interface StudentData {
   // from test_assignments
   assignmentsCompleted: number;
   assignmentsPending: number;
+  stats: StudentStats;
+  student_id: string | null;
+  class_name: string | null;
 }
 
 interface StudentProfile {
@@ -79,7 +82,7 @@ interface QuestionSolution {
 }
 const AdminStudentsProgress = () => {
   const [activeTab, setActiveTab] = useState('students-progress');
-  const [students, setStudents] = useState<(StudentProfile & { stats: StudentStats })[]>([]);
+  const [students, setStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -164,14 +167,16 @@ const AdminStudentsProgress = () => {
         else assignmentMap[sid].pending++;
       });
 
-      const studentList: StudentData[] = profiles.map((u: any) => {
-        const uid = u.user_id || u.id;
+      const studentList: StudentData[] = studentsWithStats.map((u: any) => {
+        const uid = u.id;
         const asgn = assignmentMap[uid] || { completed: 0, pending: 0 };
         return {
           id: uid,
           email: u.email || '',
           first_name: u.first_name || null,
           last_name: u.last_name || null,
+          student_id: u.student_id || null,
+          class_name: u.class_name || null,
           is_active: u.is_active ?? true,
           created_at: u.created_at || new Date().toISOString(),
           total_xp: u.total_xp ?? 0,
@@ -182,6 +187,7 @@ const AdminStudentsProgress = () => {
           avg_score_percentage: u.avg_score_percentage ?? 0,
           assignmentsCompleted: asgn.completed,
           assignmentsPending: asgn.pending,
+          stats: u.stats,
         };
       });
 
@@ -329,14 +335,14 @@ const AdminStudentsProgress = () => {
       if (questions && questions.length > 0) {
         const solutions: QuestionSolution[] = questions.map((q: any) => {
           const uAns = answerMap.get(q.id);
-          const isCorrect = uAns?.is_correct ?? (uAns?.user_answer === q.correct_answer);
+          const isCorrect = uAns?.is_correct ?? (uAns?.selected_answer === q.correct_answer);
           return {
             id: q.id,
             question_text: q.question_text || q.question || 'Practice Question',
             options: q.options || [],
             correct_answer: q.correct_answer || 'A',
             explanation: q.explanation || q.solution_explanation || 'Solution logic step-by-step.',
-            user_answer: uAns?.user_answer || 'Not Attempted',
+            user_answer: uAns?.selected_answer || 'Not Attempted',
             is_correct: isCorrect,
             marks: q.marks || 1
           };
