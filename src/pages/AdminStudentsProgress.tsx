@@ -9,12 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Flame, RefreshCw, Eye } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { Search, Users, Activity, Award, TrendingUp, Eye, Target, Flame, CheckCircle, Clock, FileText, HelpCircle, Check, X } from 'lucide-react';
+import { Search, Flame, RefreshCw, Eye, Users, Activity, Award, TrendingUp, Target, CheckCircle, Clock, FileText, HelpCircle, Check, X } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
+import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import UserDetailDrawer from '@/components/admin/UserDetailDrawer';
 
@@ -33,6 +30,31 @@ interface StudentData {
   total_tests_taken: number;
   avg_score_percentage: number;
   // from test_assignments
+  assignmentsCompleted: number;
+  assignmentsPending: number;
+}
+
+interface StudentProfile {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  student_id: string | null;
+  roll_number: string | null;
+  class_name: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface StudentStats {
+  totalQuestions: number;
+  correctAnswers: number;
+  avgScore: number;
+  lastActive: string | null;
+  totalAttempts: number;
+  currentStreak: number;
+  bestStreak: number;
+  assignmentsTotal: number;
   assignmentsCompleted: number;
   assignmentsPending: number;
 }
@@ -57,7 +79,7 @@ interface QuestionSolution {
 }
 const AdminStudentsProgress = () => {
   const [activeTab, setActiveTab] = useState('students-progress');
-  const [students, setStudents] = useState<StudentData[]>([]);
+  const [students, setStudents] = useState<(StudentProfile & { stats: StudentStats })[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -65,7 +87,7 @@ const AdminStudentsProgress = () => {
   const [selectedStudentData, setSelectedStudentData] = useState<any>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const openStudentDrawer = (student: StudentData) => {
+  const openStudentDrawer = (student: StudentProfile & { stats: StudentStats }) => {
     setSelectedStudentId(student.id);
     setSelectedStudentData({
       email: student.email,
@@ -81,6 +103,11 @@ const AdminStudentsProgress = () => {
   const [selectedAttemptForSolution, setSelectedAttemptForSolution] = useState<any>(null);
   const [attemptQuestions, setAttemptQuestions] = useState<QuestionSolution[]>([]);
   const [loadingSolutions, setLoadingSolutions] = useState(false);
+
+  // Student Details Modal State
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -121,14 +148,7 @@ const AdminStudentsProgress = () => {
         })
       );
 
-      // Fallback: if summary is empty or all admin, get from profiles directly
-      if (profiles.length === 0) {
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
-        profiles = (profilesData || []).filter((p: any) => p.role !== 'admin');
-      }
+
 
       // 2. Get all assignments in one batch query
       const { data: allAssignments } = await supabase

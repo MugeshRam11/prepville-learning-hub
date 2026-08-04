@@ -65,7 +65,7 @@
     "katex": "^0.16.22",
     "lucide-react": "^0.462.0",
     "mammoth": "^1.10.0",
-    "mathlive": "^0.107.0",
+    "mathlive": "^0.110.0",
     "next-themes": "^0.3.0",
     "papaparse": "^5.5.3",
     "pdfjs-dist": "^5.4.296",
