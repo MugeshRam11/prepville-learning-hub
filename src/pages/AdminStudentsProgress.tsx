@@ -89,8 +89,6 @@ const AdminStudentsProgress = () => {
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
-        .select('*')
-        .order('created_at', { ascending: false });
 
       let loadedProfiles: StudentProfile[] = profilesData || [];
 
@@ -121,7 +119,6 @@ const AdminStudentsProgress = () => {
           const stats = await fetchStudentStats(profile.id);
           return { ...profile, stats };
         })
-      );
       );
 
       // Fallback: if summary is empty or all admin, get from profiles directly
@@ -371,13 +368,6 @@ const AdminStudentsProgress = () => {
       supabase.removeChannel(channel);
     };
   }, [fetchStudents]);
-    if (!lastActive) return { label: 'Never', color: 'text-muted-foreground' };
-    const days = differenceInDays(new Date(), new Date(lastActive));
-    if (days === 0) return { label: 'Today', color: 'text-green-600' };
-    if (days === 1) return { label: 'Yesterday', color: 'text-green-600' };
-    if (days <= 7) return { label: `${days}d ago`, color: 'text-yellow-600' };
-    return { label: `${days}d ago`, color: 'text-red-600' };
-  };
 
   const filteredStudents = students.filter(s => {
     const fullName = `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase();
@@ -482,7 +472,6 @@ const AdminStudentsProgress = () => {
               </CardContent>
             </Card>
           </div>
-          </div>
 
           {/* Search Bar */}
           <Card className="mb-6">
@@ -514,8 +503,6 @@ const AdminStudentsProgress = () => {
               No registered students found.
             </div>
           ) : (
-            </div>
-          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredStudents.map((student) => {
                 const activity = getActivityStatus(student.stats.lastActive);
@@ -534,10 +521,6 @@ const AdminStudentsProgress = () => {
                         <Badge variant={student.is_active ? 'default' : 'secondary'} className="ml-2 shrink-0">
                           {student.is_active ? 'Active' : 'Inactive'}
                         </Badge>
-                        </div>
-                        <Badge variant={student.is_active ? 'default' : 'secondary'} className="ml-2 shrink-0">
-                          {student.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t pt-2">
@@ -548,9 +531,6 @@ const AdminStudentsProgress = () => {
                           <strong>Class:</strong> {student.class_name || '—'}
                         </div>
                         <div className={activity.color + ' col-span-2'}>
-                          <strong>Last Active:</strong> {activity.label}
-                        </div>
-                      </div>
                           <strong>Last Active:</strong> {activity.label}
                         </div>
                       </div>
@@ -567,9 +547,6 @@ const AdminStudentsProgress = () => {
                         </div>
                         <div>
                           <p className="font-bold text-base text-primary">{student.stats.avgScore}%</p>
-                          <p className="text-[11px] text-muted-foreground">Accuracy</p>
-                        </div>
-                      </div>
                           <p className="text-[11px] text-muted-foreground">Accuracy</p>
                         </div>
                       </div>
