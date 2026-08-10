@@ -11,6 +11,7 @@ RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
   SELECT $1 = $2::text;
 $$;
 
+
 DO $$
 BEGIN
   IF NOT EXISTS (
