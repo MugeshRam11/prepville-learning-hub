@@ -5,8 +5,8 @@
 
 export const PREPVILLE_LOGO_URL = 'https://student.theprepville.com/logo.png';
 export const PREPVILLE_SITE_URL = 'https://student.theprepville.com';
-export const SENDER_EMAIL = 'The Prep Ville <no-reply@theprepville.com>';
-export const RESEND_DEFAULT_SENDER = 'The Prep Ville <onboarding@resend.dev>';
+export const SENDER_EMAIL = 'The Prep Ville <no-reply@respond.theprepville.com>';
+export const RESEND_DEFAULT_SENDER = 'The Prep Ville <no-reply@respond.theprepville.com>';
 
 /**
  * Base HTML wrapper with responsive styles and branded header/footer

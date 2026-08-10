@@ -1,6 +1,6 @@
 /**
  * Resend Email Integration Service with Branded Templates & Logging
- * Sender: The Prep Ville <onboarding@resend.dev> or no-reply@theprepville.com
+ * Sender: The Prep Ville <no-reply@respond.theprepville.com>
  * Key: re_CAF5fjsw_BUHR9wnp9MrgayMKZMw8Tc7Z
  */
 
