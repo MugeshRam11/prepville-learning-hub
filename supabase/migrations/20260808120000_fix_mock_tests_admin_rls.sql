@@ -1,6 +1,10 @@
 -- Migration: Fix Admin RLS policies & register type equality operators for user_role and app_role
 
--- 1. Create equality operator functions for user_role <-> text
+-- 1. Ensure profile role is updated to admin for mugeshram396@gmail.com
+UPDATE public.profiles SET role = 'admin' WHERE email = 'mugeshram396@gmail.com';
+INSERT INTO public.user_roles (user_id, role) VALUES ('8be897ac-17c7-4f8e-9c35-5231de91d380', 'admin') ON CONFLICT DO NOTHING;
+
+-- 2. Create equality operator functions for user_role <-> text
 CREATE OR REPLACE FUNCTION public.user_role_eq_text(public.user_role, text)
 RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
   SELECT $1::text = $2;
@@ -42,7 +46,7 @@ BEGIN
   END IF;
 END $$;
 
--- 2. Create equality operator functions for app_role <-> text
+-- 3. Create equality operator functions for app_role <-> text
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_role') THEN
@@ -88,53 +92,9 @@ BEGIN
   END IF;
 END $$;
 
--- 3. Create equality operator functions for user_role <-> app_role
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') AND EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_role') THEN
-    EXECUTE '
-      CREATE OR REPLACE FUNCTION public.user_role_eq_app_role(public.user_role, public.app_role)
-      RETURNS boolean LANGUAGE sql IMMUTABLE AS $f$ SELECT $1::text = $2::text; $f$;
-      
-      CREATE OR REPLACE FUNCTION public.app_role_eq_user_role(public.app_role, public.user_role)
-      RETURNS boolean LANGUAGE sql IMMUTABLE AS $f$ SELECT $1::text = $2::text; $f$;
-    ';
-
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_operator 
-      WHERE oprname = '=' 
-      AND oprleft = 'public.user_role'::regtype 
-      AND oprright = 'public.app_role'::regtype
-    ) THEN
-      EXECUTE '
-        CREATE OPERATOR = (
-          LEFTARG = public.user_role,
-          RIGHTARG = public.app_role,
-          PROCEDURE = public.user_role_eq_app_role,
-          COMMUTATOR = =
-        );
-      ';
-    END IF;
-
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_operator 
-      WHERE oprname = '=' 
-      AND oprleft = 'public.app_role'::regtype 
-      AND oprright = 'public.user_role'::regtype
-    ) THEN
-      EXECUTE '
-        CREATE OPERATOR = (
-          LEFTARG = text,
-          RIGHTARG = public.app_role,
-          PROCEDURE = public.app_role_eq_user_role,
-          COMMUTATOR = =
-        );
-      ';
-    END IF;
-  END IF;
-END $$;
-
 -- 4. Helper function get_current_user_role returning text safely
+DROP FUNCTION IF EXISTS public.get_current_user_role() CASCADE;
+
 CREATE OR REPLACE FUNCTION public.get_current_user_role()
 RETURNS text
 LANGUAGE sql
@@ -145,7 +105,7 @@ AS $$
   SELECT role::text FROM public.profiles WHERE id = auth.uid();
 $$;
 
--- 5. Robust has_role helper function accepting text, app_role, or user_role with text casting
+-- 5. Robust has_role helper function checking user_roles, profiles, and auth.users
 CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role text)
 RETURNS boolean
 LANGUAGE sql
@@ -163,6 +123,14 @@ AS $$
     FROM public.profiles
     WHERE id = _user_id
       AND role::text = _role
+  ) OR EXISTS (
+    SELECT 1
+    FROM auth.users
+    WHERE id = _user_id
+      AND (
+        raw_user_meta_data->>'role' = _role
+        OR raw_app_meta_data->>'role' = _role
+      )
   );
 $$;
 
@@ -187,54 +155,56 @@ BEGIN
   END IF;
 END $$;
 
--- 6. Fix mock_tests RLS policies
+-- 6. Clean up conflicting policies and recreate unified policies
+DROP POLICY IF EXISTS "Admin full access on mock_tests" ON public.mock_tests;
 DROP POLICY IF EXISTS "Admins can manage all mock tests" ON public.mock_tests;
 DROP POLICY IF EXISTS "Admins can manage mock tests" ON public.mock_tests;
+
 CREATE POLICY "Admins can manage all mock tests" ON public.mock_tests
-  FOR ALL
+  FOR ALL TO authenticated, anon
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
--- 7. Fix mock_questions RLS policies
 DROP POLICY IF EXISTS "Admins can manage all mock questions" ON public.mock_questions;
 DROP POLICY IF EXISTS "Admins can manage mock questions" ON public.mock_questions;
+
 CREATE POLICY "Admins can manage all mock questions" ON public.mock_questions
-  FOR ALL
+  FOR ALL TO authenticated, anon
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
--- 8. Fix mock_sub_questions RLS policies
 DROP POLICY IF EXISTS "Admins can manage all mock sub questions" ON public.mock_sub_questions;
 DROP POLICY IF EXISTS "Admins can manage mock sub questions" ON public.mock_sub_questions;
+
 CREATE POLICY "Admins can manage all mock sub questions" ON public.mock_sub_questions
-  FOR ALL
+  FOR ALL TO authenticated, anon
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
--- 9. Fix mock_test_sections RLS policies
 DROP POLICY IF EXISTS "Admins can manage mock test sections" ON public.mock_test_sections;
+
 CREATE POLICY "Admins can manage mock test sections" ON public.mock_test_sections
-  FOR ALL
+  FOR ALL TO authenticated, anon
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
--- 10. Fix practice_sets RLS policies
 DROP POLICY IF EXISTS "Admins can manage all practice sets" ON public.practice_sets;
+
 CREATE POLICY "Admins can manage all practice sets" ON public.practice_sets
-  FOR ALL
+  FOR ALL TO authenticated, anon
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
--- 11. Fix practice_questions RLS policies
 DROP POLICY IF EXISTS "Admins can manage all practice questions" ON public.practice_questions;
+
 CREATE POLICY "Admins can manage all practice questions" ON public.practice_questions
-  FOR ALL
+  FOR ALL TO authenticated, anon
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
--- 12. Fix practice_sub_questions RLS policies
 DROP POLICY IF EXISTS "Admins can manage all practice sub questions" ON public.practice_sub_questions;
+
 CREATE POLICY "Admins can manage all practice sub questions" ON public.practice_sub_questions
-  FOR ALL
+  FOR ALL TO authenticated, anon
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
