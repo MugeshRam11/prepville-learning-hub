@@ -80,42 +80,50 @@ serve(async (req) => {
       });
     }
 
-    // Send email via Supabase Auth admin (using inbuilt email)
-    // For now, we use a simple approach - in production, integrate with a proper email service
     const emailSubject = otp_type === 'parent_email' 
       ? 'The Prep Ville - Parent Verification Code'
       : 'The Prep Ville - Email Verification Code';
     
     const emailBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #007BFF;">The Prep Ville</h2>
-        <p>Your verification code is:</p>
-        <div style="background: #f0f7ff; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #007BFF;">${otp}</span>
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+        <div style="text-align: center; padding-bottom: 16px; border-b: 1px solid #e2e8f0;">
+          <h2 style="color: #2563eb; margin: 0; font-size: 24px; font-weight: 800;">The Prep Ville</h2>
+          <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Learning & Evaluation Platform</p>
         </div>
-        <p style="color: #666;">This code expires in 10 minutes.</p>
-        <p style="color: #666; font-size: 12px;">If you didn't request this code, please ignore this email.</p>
+        <div style="padding: 24px 0; text-align: center;">
+          <p style="color: #334155; font-size: 15px; font-weight: 600; margin-bottom: 16px;">Your verification code is:</p>
+          <div style="background: #eff6ff; padding: 18px 24px; text-align: center; border-radius: 12px; border: 1px border-blue-200; display: inline-block; margin: 0 auto;">
+            <span style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #2563eb; font-family: monospace;">${otp}</span>
+          </div>
+          <p style="color: #64748b; font-size: 13px; margin-top: 20px;">This verification code will expire in <strong>10 minutes</strong>.</p>
+        </div>
+        <div style="padding-top: 16px; border-t: 1px solid #e2e8f0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 11px; margin: 0;">If you didn't request this code, please ignore this email.</p>
+        </div>
       </div>
     `;
 
-    // Use Supabase's built-in email sending via auth admin
+    // Send email via Resend API
+    const resendApiKey = Deno.env.get('RESEND_API_KEY') || 're_CAF5fjsw_BUHR9wnp9MrgayMKZMw8Tc7Z';
     try {
-      const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/generate_link`, {
+      const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Authorization': `Bearer ${resendApiKey}`,
           'Content-Type': 'application/json',
-          'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
         },
         body: JSON.stringify({
-          type: 'magiclink',
-          email: email,
+          from: 'The Prep Ville <onboarding@resend.dev>',
+          to: [email],
+          subject: emailSubject,
+          html: emailBody,
         }),
       });
-      // We don't actually use the magic link - we just need the email to be "known"
-      // The OTP is stored in our own table
+
+      const resendData = await resendRes.json();
+      console.log('Resend email response:', resendData);
     } catch (e) {
-      console.log('Generate link call (non-critical):', e);
+      console.error('Error sending Resend email:', e);
     }
 
     console.log(`OTP ${otp} sent to ${email} for ${otp_type} (user: ${user.id})`);
@@ -123,7 +131,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: `Verification code sent to ${email}`,
-      // In development, include OTP for testing. Remove in production!
       ...(Deno.env.get('ENVIRONMENT') !== 'production' ? { debug_otp: otp } : {})
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
