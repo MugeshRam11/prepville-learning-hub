@@ -28,7 +28,7 @@ import logo from '@/assets/prep-ville-logo.svg';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { user } = useAdminAuth();
+  const { user, role, signIn } = useAdminAuth();
   
   const [email, setEmail] = useState('admin@prepville.com');
   const [password, setPassword] = useState('');
@@ -45,10 +45,8 @@ const AdminLogin = () => {
         return;
       }
 
-      const { data: { session } } = await supabaseAdmin.auth.getSession();
-      if (session?.user) {
-        const userRole = session.user.app_metadata?.role || session.user.user_metadata?.role;
-        if (userRole === 'student') {
+      if (user && role) {
+        if (role === 'student') {
           toast.error('Student account detected. Redirecting to Student Portal...');
           redirectToDomain('student', '/dashboard');
         } else {
@@ -57,7 +55,7 @@ const AdminLogin = () => {
       }
     };
     checkAdmin();
-  }, [navigate, user]);
+  }, [navigate, user, role]);
 
   const handleAdminSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,10 +67,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabaseAdmin.auth.signInWithPassword({
-        email,
-        password: password || 'adminset',
-      });
+      const { error, role: userRole } = await signIn(email, password);
 
       if (error) {
         toast.info('Authenticating via Admin Demo Session...');
@@ -82,17 +77,14 @@ const AdminLogin = () => {
         return;
       }
 
-      if (data?.session) {
-        const userRole = data.session.user.app_metadata?.role || data.session.user.user_metadata?.role;
-        if (userRole === 'student') {
-          toast.error('Access Denied: Student accounts cannot access the Admin Portal.');
-          await supabaseAdmin.auth.signOut();
-          redirectToDomain('student', '/dashboard');
-          return;
-        }
-        toast.success('Signed in successfully as Administrator');
-        navigate('/admin', { replace: true });
+      if (userRole === 'student') {
+        toast.error('Access Denied: Student accounts cannot access the Admin Portal.');
+        await supabaseAdmin.auth.signOut();
+        redirectToDomain('student', '/dashboard');
+        return;
       }
+      toast.success('Signed in successfully as Administrator');
+      navigate('/admin', { replace: true });
     } catch (err: any) {
       createDemoAdminSession();
       toast.success('Signed in as Administrator (Demo Mode)');

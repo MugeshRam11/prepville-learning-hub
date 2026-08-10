@@ -28,7 +28,7 @@ import logo from '@/assets/prep-ville-logo.svg';
 
 const StudentLogin = () => {
   const navigate = useNavigate();
-  const { signIn, signInDemoStudent, user } = useStudentAuth();
+  const { signIn, signInDemoStudent, user, role } = useStudentAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,16 +38,15 @@ const StudentLogin = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const userRole = user.app_metadata?.role || user.user_metadata?.role;
-      if (userRole === 'admin') {
+    if (user && role) {
+      if (role === 'admin') {
         toast.info('Admin account detected. Redirecting to Admin Portal...');
         redirectToDomain('admin', '/dashboard');
       } else {
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [user, navigate]);
+  }, [user, role, navigate]);
 
   const handleStudentSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +57,17 @@ const StudentLogin = () => {
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
+      const { error, role: userRole } = await signIn(email, password);
       if (error) {
         toast.error(error.message || 'Failed to sign in. Please check your credentials.');
       } else {
-        toast.success('Signed in to Student Portal');
+        if (userRole === 'admin') {
+          toast.info('Admin account detected. Redirecting to Admin Portal...');
+          redirectToDomain('admin', '/dashboard');
+        } else {
+          toast.success('Signed in to Student Portal');
+          navigate('/dashboard', { replace: true });
+        }
       }
     } catch (err: any) {
       toast.error('An unexpected authentication error occurred');

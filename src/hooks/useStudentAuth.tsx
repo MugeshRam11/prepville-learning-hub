@@ -2,14 +2,16 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabaseStudent } from '@/lib/supabaseStudent';
 import { isDemoSession, getDemoSession, clearDemoSession, createDemoSession, DEMO_USER } from '@/lib/authService';
+import { fetchUserRole, UserAppRole } from '@/lib/roleService';
 
 interface StudentAuthContextType {
   user: User | null;
   session: Session | null;
+  role: UserAppRole | null;
   loading: boolean;
   isDemo: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any, role?: UserAppRole }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   signInDemoStudent: () => void;
   signOut: () => Promise<void>;
@@ -44,16 +46,19 @@ const createMockStudentUser = (): User => {
 export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<UserAppRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabaseStudent.auth.onAuthStateChange(
       async (event, session) => {
-        if (session) {
+        if (session?.user) {
           setSession(session);
           setUser(session.user);
           setIsDemo(false);
+          const dbRole = await fetchUserRole(session.user.id);
+          setRole(dbRole);
           setLoading(false);
         } else {
           if (isDemoSession() && localStorage.getItem('demo_is_admin') !== 'true') {
@@ -61,15 +66,18 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             if (demoSession) {
               setUser(createMockStudentUser());
               setSession(demoSession as Session);
+              setRole('student');
               setIsDemo(true);
             } else {
               setUser(null);
               setSession(null);
+              setRole(null);
               setIsDemo(false);
             }
           } else {
             setUser(null);
             setSession(null);
+            setRole(null);
             setIsDemo(false);
           }
           setLoading(false);
@@ -77,16 +85,19 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     );
 
-    supabaseStudent.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    supabaseStudent.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
         setSession(session);
         setUser(session.user);
         setIsDemo(false);
+        const dbRole = await fetchUserRole(session.user.id);
+        setRole(dbRole);
       } else if (isDemoSession() && localStorage.getItem('demo_is_admin') !== 'true') {
         const demoSession = getDemoSession();
         if (demoSession) {
           setUser(createMockStudentUser());
           setSession(demoSession as Session);
+          setRole('student');
           setIsDemo(true);
         }
       }
@@ -112,11 +123,18 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabaseStudent.auth.signInWithPassword({
+    const { data, error } = await supabaseStudent.auth.signInWithPassword({
       email,
       password
     });
-    return { error };
+
+    let userRole: UserAppRole = 'student';
+    if (data?.user) {
+      userRole = await fetchUserRole(data.user.id);
+      setRole(userRole);
+    }
+
+    return { error, role: userRole };
   };
 
   const resetPassword = async (email: string) => {
@@ -131,6 +149,7 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const mockSession = createDemoSession();
     setUser(createMockStudentUser());
     setSession(mockSession as unknown as Session);
+    setRole('student');
     setIsDemo(true);
   };
 
@@ -139,9 +158,13 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       clearDemoSession();
       setUser(null);
       setSession(null);
+      setRole(null);
       setIsDemo(false);
     } else {
       await supabaseStudent.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setRole(null);
     }
   };
 
@@ -149,6 +172,7 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     <StudentAuthContext.Provider value={{
       user,
       session,
+      role,
       loading,
       isDemo,
       signUp,
@@ -161,7 +185,6 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     </StudentAuthContext.Provider>
   );
 };
-
 
 export const useStudentAuth = () => {
   const context = useContext(StudentAuthContext);

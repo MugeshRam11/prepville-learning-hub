@@ -45,7 +45,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
  * Root route guard for student domain (/)
  */
 const StudentRootGuard: React.FC = () => {
-  const { user, loading } = useStudentAuth();
+  const { user, role, loading } = useStudentAuth();
 
   if (loading) {
     return (
@@ -56,8 +56,7 @@ const StudentRootGuard: React.FC = () => {
   }
 
   if (user) {
-    const userRole = user.app_metadata?.role || user.user_metadata?.role;
-    if (userRole === 'admin') {
+    if (role === 'admin') {
       return <DomainRedirect domain="admin" path={ROUTES.ADMIN.DASHBOARD} />;
     }
     return <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />;
@@ -70,7 +69,7 @@ const StudentRootGuard: React.FC = () => {
  * Auth page guard: Redirects authenticated users away from /login, /register, /forgot-password
  */
 const StudentAuthGuard: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-  const { user, loading } = useStudentAuth();
+  const { user, role, loading } = useStudentAuth();
 
   if (loading) {
     return (
@@ -81,8 +80,7 @@ const StudentAuthGuard: React.FC<{ children: React.ReactElement }> = ({ children
   }
 
   if (user) {
-    const userRole = user.app_metadata?.role || user.user_metadata?.role;
-    if (userRole === 'admin') {
+    if (role === 'admin') {
       return <DomainRedirect domain="admin" path={ROUTES.ADMIN.DASHBOARD} />;
     }
     return <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />;

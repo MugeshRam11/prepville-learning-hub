@@ -1,27 +1,22 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useStudentAuth } from '@/hooks/useStudentAuth';
-import { getActiveDomain, redirectToDomain } from '@/lib/domain';
+import { redirectToDomain } from '@/lib/domain';
 
 interface StudentProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const StudentProtectedRoute: React.FC<StudentProtectedRouteProps> = ({ children }) => {
-  const { user, loading, isDemo } = useStudentAuth();
+  const { user, role, loading, isDemo } = useStudentAuth();
   const location = useLocation();
 
-  const currentDomain = getActiveDomain();
-
   useEffect(() => {
-    // If an Admin logs into the student portal, redirect them to admin domain
-    if (user && !isDemo) {
-      const userRole = user.app_metadata?.role || user.user_metadata?.role;
-      if (userRole === 'admin') {
-        redirectToDomain('admin', '/dashboard');
-      }
+    // If a confirmed Admin user accesses the student portal, redirect to admin domain
+    if (user && !isDemo && role === 'admin') {
+      redirectToDomain('admin', '/dashboard');
     }
-  }, [user, isDemo]);
+  }, [user, role, isDemo]);
 
   if (loading) {
     return (
@@ -34,8 +29,8 @@ const StudentProtectedRoute: React.FC<StudentProtectedRouteProps> = ({ children 
     );
   }
 
-  // Allow access if student user exists or demo student is active
-  const isAuthenticatedStudent = !!user || isDemo;
+  // Allow access if user is logged in as a student (or demo student)
+  const isAuthenticatedStudent = isDemo || (!!user && role === 'student');
 
   if (!isAuthenticatedStudent) {
     return <Navigate to="/login" replace state={{ from: location }} />;

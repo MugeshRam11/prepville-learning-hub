@@ -1,25 +1,22 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { getActiveDomain, redirectToDomain } from '@/lib/domain';
+import { redirectToDomain } from '@/lib/domain';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) => {
-  const { user, loading, isDemo } = useAdminAuth();
+  const { user, role, loading, isDemo } = useAdminAuth();
   const location = useLocation();
 
   useEffect(() => {
-    // If a non-admin student attempts to access admin portal, redirect to student domain
-    if (user && !isDemo) {
-      const userRole = user.app_metadata?.role || user.user_metadata?.role;
-      if (userRole === 'student') {
-        redirectToDomain('student', '/dashboard');
-      }
+    // If a non-admin student user attempts to access admin portal, redirect to student domain
+    if (user && !isDemo && role === 'student') {
+      redirectToDomain('student', '/dashboard');
     }
-  }, [user, isDemo]);
+  }, [user, role, isDemo]);
 
   if (loading) {
     return (
@@ -33,11 +30,7 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
   }
 
   const isAdminDemo = typeof window !== 'undefined' && (localStorage.getItem('demo_is_admin') === 'true' || isDemo);
-  const isUserAdmin = user && (
-    user.app_metadata?.role === 'admin' ||
-    user.user_metadata?.role === 'admin' ||
-    user.email?.includes('admin')
-  );
+  const isUserAdmin = !!user && role === 'admin';
 
   const isAuthenticatedAdmin = isAdminDemo || isUserAdmin;
 
