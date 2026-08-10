@@ -122,7 +122,7 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     if (!error) {
-      const confirmUrl = `${window.location.origin}/login`;
+      const confirmUrl = `${window.location.origin}/confirm?email=${encodeURIComponent(email)}&user_id=${data.user?.id || ''}`;
       await sendSignupConfirmationEmailResend(email, confirmUrl, username);
     }
     return { error };

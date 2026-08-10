@@ -16,6 +16,7 @@ export const ROUTES = {
     ROOT: '/',
     LOGIN: '/login',
     REGISTER: '/register',
+    CONFIRM: '/confirm',
     FORGOT_PASSWORD: '/forgot-password',
     DASHBOARD: '/dashboard',
     PRACTICE: '/practice',

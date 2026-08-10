@@ -8,6 +8,7 @@ import { useStudentAuth } from '@/hooks/useStudentAuth';
 // Lazy-loaded Student Pages
 const StudentLogin = lazy(() => import('@/pages/StudentLogin'));
 const StudentRegister = lazy(() => import('@/pages/StudentRegister'));
+const ConfirmAccount = lazy(() => import('@/pages/ConfirmAccount'));
 const StudentForgotPassword = lazy(() => import('@/pages/StudentForgotPassword'));
 const StudentDashboard = lazy(() => import('@/pages/StudentDashboard'));
 const Practice = lazy(() => import('@/pages/Practice'));
@@ -111,6 +112,10 @@ export const StudentRoutes: React.FC = () => {
             <StudentRegister />
           </StudentAuthGuard>
         }
+      />
+      <Route
+        path={ROUTES.STUDENT.CONFIRM}
+        element={<ConfirmAccount />}
       />
       <Route
         path={ROUTES.STUDENT.FORGOT_PASSWORD}
