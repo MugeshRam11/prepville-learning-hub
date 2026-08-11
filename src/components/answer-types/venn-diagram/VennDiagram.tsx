@@ -35,8 +35,8 @@ export interface VennRegionState {
 interface VennDiagramProps {
   /** Visual state per region. Missing entries default to 'idle'. */
   regions?: Partial<Record<VennRegionId, VennRegionState>>;
-  /** Names of the two sets. */
-  setLabels?: { A: string; B: string };
+  /** Names of the two sets and universal set. */
+  setLabels?: { A: string; B: string; universal?: string };
   /** Renders an interactive ring around the region under the user's pointer. */
   hoveredRegion?: VennRegionId | null;
   /** Per-region ref so dnd-kit can register droppables over the SVG. */
@@ -54,12 +54,19 @@ const CX_A = 120;        // centre of A
 const CX_B = 200;        // centre of B
 const CY = 110;          // shared vertical centre
 
+// Universal Set Box geometry constants
+const BOX_X = 12;
+const BOX_Y = 12;
+const BOX_W = 296;
+const BOX_H = 196;
+const BOX_RX = 8;
+
 // Approximate centroid points for label / chip placement inside each region.
 const REGION_CENTROIDS: Record<VennRegionId, { x: number; y: number }> = {
   A_only:       { x: 80,  y: CY },
   intersection: { x: 160, y: CY },
   B_only:       { x: 240, y: CY },
-  outside:      { x: 30,  y: 30 },
+  outside:      { x: 45,  y: 180 },
 };
 
 const stateToFill = (s: VennRegionState['state']): string => {
@@ -85,7 +92,7 @@ const stateToStroke = (s: VennRegionState['state']): string => {
 
 const VennDiagram: React.FC<VennDiagramProps> = ({
   regions = {},
-  setLabels = { A: 'A', B: 'B' },
+  setLabels = { A: 'A', B: 'B', universal: 'ξ' },
   hoveredRegion,
   registerRegion,
   className,
@@ -148,16 +155,14 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
           </clipPath>
         </defs>
 
-        {/* Outside region: full background painted under both circles. */}
+        {/* Outside region: background inside Universal set box */}
         <rect
-          x={0}
-          y={0}
-          width={VB_W}
-          height={VB_H}
+          x={BOX_X}
+          y={BOX_Y}
+          width={BOX_W}
+          height={BOX_H}
+          rx={BOX_RX}
           fill={stateToFill(resolved('outside').state)}
-          stroke={stateToStroke(resolved('outside').state)}
-          strokeDasharray="4 3"
-          strokeWidth={resolved('outside').state && resolved('outside').state !== 'idle' ? 2 : 0}
         />
 
         {/* A only: inside A, outside B */}
@@ -200,6 +205,37 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
             opacity={0.6}
           />
         )}
+
+        {/* Universal Set outer box border */}
+        <rect
+          x={BOX_X}
+          y={BOX_Y}
+          width={BOX_W}
+          height={BOX_H}
+          rx={BOX_RX}
+          fill="none"
+          stroke={
+            resolved('outside').state && resolved('outside').state !== 'idle'
+              ? stateToStroke(resolved('outside').state)
+              : 'hsl(var(--foreground))'
+          }
+          strokeWidth={
+            resolved('outside').state && resolved('outside').state !== 'idle' ? 2.5 : 1.5
+          }
+          opacity={resolved('outside').state && resolved('outside').state !== 'idle' ? 1 : 0.8}
+        />
+
+        {/* Universal Set symbol (e.g. ξ or U) */}
+        <text
+          x={BOX_X + 10}
+          y={BOX_Y + 22}
+          className="fill-foreground"
+          fontSize="16"
+          fontWeight="700"
+          fontFamily="serif, var(--font-sans)"
+        >
+          {setLabels?.universal || 'ξ'}
+        </text>
 
         {/* Circle outlines (drawn last so they sit on top of fills) */}
         <circle cx={CX_A} cy={CY} r={R} fill="none" stroke="hsl(var(--foreground))" strokeWidth={1.5} opacity={0.7} />

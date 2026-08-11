@@ -35,7 +35,7 @@ export interface VennDiagramConfig {
   draggables: VennDraggable[];
   /** Map from region ID → list of draggable IDs that belong there. */
   correct_answer: Partial<Record<VennRegionId, string[]>>;
-  setLabels?: { A: string; B: string };
+  setLabels?: { A: string; B: string; universal?: string };
 }
 
 interface VennDiagramEditorProps {
@@ -51,16 +51,20 @@ export const createDefaultVennConfig = (): VennDiagramConfig => ({
     { id: 'venn-1', label: "A' ∩ B" },
   ],
   correct_answer: {},
-  setLabels: { A: 'A', B: 'B' },
+  setLabels: { A: 'A', B: 'B', universal: 'ξ' },
 });
 
 const VennDiagramEditor: React.FC<VennDiagramEditorProps> = ({ config, onChange }) => {
-  const setLabels = config.setLabels || { A: 'A', B: 'B' };
+  const setLabels = {
+    A: config.setLabels?.A || 'A',
+    B: config.setLabels?.B || 'B',
+    universal: config.setLabels?.universal || 'ξ',
+  };
 
-  const updateLabel = (which: 'A' | 'B', value: string) => {
+  const updateLabel = (which: 'A' | 'B' | 'universal', value: string) => {
     onChange({
       ...config,
-      setLabels: { ...setLabels, [which]: value || which },
+      setLabels: { ...setLabels, [which]: value || (which === 'universal' ? 'ξ' : which) },
     });
   };
 
@@ -123,7 +127,7 @@ const VennDiagramEditor: React.FC<VennDiagramEditorProps> = ({ config, onChange 
         </div>
 
         {/* Set labels */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div>
             <Label className="text-xs">Set A label</Label>
             <Input
@@ -138,6 +142,15 @@ const VennDiagramEditor: React.FC<VennDiagramEditorProps> = ({ config, onChange 
             <Input
               value={setLabels.B}
               onChange={(e) => updateLabel('B', e.target.value)}
+              maxLength={6}
+              className="h-8"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Universal (ξ / U)</Label>
+            <Input
+              value={setLabels.universal}
+              onChange={(e) => updateLabel('universal', e.target.value)}
               maxLength={6}
               className="h-8"
             />
