@@ -178,7 +178,7 @@ export const StudentRoutes: React.FC = () => {
         path={ROUTES.STUDENT.PRACTICE_SET}
         element={
           <StudentProtectedRoute>
-            <Practice />
+            <PracticeQuestionView />
           </StudentProtectedRoute>
         }
       />
