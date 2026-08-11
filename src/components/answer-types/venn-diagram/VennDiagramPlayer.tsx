@@ -23,7 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { renderFinalText } from '@/lib/renderFinalText';
-import VennDiagram, { VENN_REGIONS, type VennRegionId } from './VennDiagram';
+import VennDiagram, { VENN_REGIONS, REGION_COLORS, type VennRegionId } from './VennDiagram';
 import type { VennDiagramConfig, VennDraggable } from './VennDiagramEditor';
 
 export type VennPlayerValue = Partial<Record<VennRegionId, string[]>>;
@@ -66,18 +66,21 @@ const RegionCard: React.FC<{
   disabled?: boolean;
 }> = ({ regionId, label, chips, disabled }) => {
   const { isOver, setNodeRef } = useDroppable({ id: regionId });
+  const colorCfg = REGION_COLORS[regionId];
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'border-2 rounded-xl p-3 bg-card transition-all min-h-[72px]',
+        'border-2 rounded-xl p-3 transition-all min-h-[72px]',
+        colorCfg.cardBg,
+        chips.length > 0 ? colorCfg.cardBorder : 'border-border/60',
         isOver
-          ? 'border-primary bg-primary/8 ring-2 ring-primary/30 shadow-md scale-[1.01]'
-          : 'border-border hover:border-muted-foreground/30',
+          ? 'border-primary ring-2 ring-primary/30 shadow-md scale-[1.01]'
+          : 'hover:border-muted-foreground/30',
       )}
     >
-      <p className="text-xs font-semibold text-muted-foreground mb-2">{label}</p>
+      <p className={cn('text-xs font-semibold mb-2', colorCfg.cardHeader)}>{label}</p>
       <div className="flex flex-wrap gap-1.5 min-h-[32px] items-start">
         {chips.length === 0 ? (
           <span className={cn('text-xs italic', isOver ? 'text-primary/70 font-medium' : 'text-muted-foreground/50')}>

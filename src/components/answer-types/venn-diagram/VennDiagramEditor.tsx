@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
 import MathInput from '@/components/ui/MathInput';
 import { renderFinalText } from '@/lib/renderFinalText';
-import VennDiagram, { VENN_REGIONS, type VennRegionId } from './VennDiagram';
+import VennDiagram, { VENN_REGIONS, REGION_COLORS, type VennRegionId } from './VennDiagram';
 
 export interface VennDraggable {
   id: string;
@@ -200,16 +200,17 @@ const VennDiagramEditor: React.FC<VennDiagramEditorProps> = ({ config, onChange 
                 <span className="text-[10px] text-muted-foreground self-center mr-1">Correct region:</span>
                 {VENN_REGIONS.map((r) => {
                   const isCorrect = (config.correct_answer[r.id] || []).includes(d.id);
+                  const colorCfg = REGION_COLORS[r.id];
                   return (
                     <button
                       key={r.id}
                       type="button"
                       onClick={() => toggleCorrect(d.id, r.id)}
                       className={cn(
-                        'text-[11px] px-2 py-1 rounded border transition-colors',
+                        'text-[11px] px-2 py-1 rounded border font-medium transition-all',
                         isCorrect
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background hover:bg-muted border-input'
+                          ? `${colorCfg.cardBg} ${colorCfg.cardHeader} ${colorCfg.cardBorder} shadow-xs`
+                          : 'bg-background hover:bg-muted border-input text-muted-foreground'
                       )}
                     >
                       {isCorrect && <Check className="w-3 h-3 inline mr-1" />}

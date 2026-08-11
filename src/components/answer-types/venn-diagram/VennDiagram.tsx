@@ -69,23 +69,85 @@ const REGION_CENTROIDS: Record<VennRegionId, { x: number; y: number }> = {
   outside:      { x: 45,  y: 180 },
 };
 
-const stateToFill = (s: VennRegionState['state']): string => {
+// Region Color Palette System — distinct colors for each region
+export const REGION_COLORS: Record<
+  VennRegionId,
+  {
+    fill: string;
+    hoverFill: string;
+    stroke: string;
+    badgeBg: string;
+    badgeText: string;
+    badgeBorder: string;
+    cardBorder: string;
+    cardBg: string;
+    cardHeader: string;
+  }
+> = {
+  A_only: {
+    fill: 'rgba(59, 130, 246, 0.22)',       // Sky Blue tint
+    hoverFill: 'rgba(59, 130, 246, 0.12)',
+    stroke: '#2563eb',
+    badgeBg: 'rgba(59, 130, 246, 0.15)',
+    badgeText: '#1d4ed8',
+    badgeBorder: '#3b82f6',
+    cardBorder: 'border-blue-400 dark:border-blue-700',
+    cardBg: 'bg-blue-50/60 dark:bg-blue-950/20',
+    cardHeader: 'text-blue-700 dark:text-blue-400',
+  },
+  intersection: {
+    fill: 'rgba(168, 85, 247, 0.25)',      // Violet / Purple tint
+    hoverFill: 'rgba(168, 85, 247, 0.14)',
+    stroke: '#9333ea',
+    badgeBg: 'rgba(168, 85, 247, 0.15)',
+    badgeText: '#7e22ce',
+    badgeBorder: '#a855f7',
+    cardBorder: 'border-purple-400 dark:border-purple-700',
+    cardBg: 'bg-purple-50/60 dark:bg-purple-950/20',
+    cardHeader: 'text-purple-700 dark:text-purple-400',
+  },
+  B_only: {
+    fill: 'rgba(16, 185, 129, 0.22)',      // Emerald Green tint
+    hoverFill: 'rgba(16, 185, 129, 0.12)',
+    stroke: '#059669',
+    badgeBg: 'rgba(16, 185, 129, 0.15)',
+    badgeText: '#047857',
+    badgeBorder: '#10b981',
+    cardBorder: 'border-emerald-400 dark:border-emerald-700',
+    cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/20',
+    cardHeader: 'text-emerald-700 dark:text-emerald-400',
+  },
+  outside: {
+    fill: 'rgba(245, 158, 11, 0.20)',       // Amber / Gold tint
+    hoverFill: 'rgba(245, 158, 11, 0.10)',
+    stroke: '#d97706',
+    badgeBg: 'rgba(245, 158, 11, 0.15)',
+    badgeText: '#b45309',
+    badgeBorder: '#f59e0b',
+    cardBorder: 'border-amber-400 dark:border-amber-700',
+    cardBg: 'bg-amber-50/60 dark:bg-amber-950/20',
+    cardHeader: 'text-amber-700 dark:text-amber-400',
+  },
+};
+
+const regionToFill = (id: VennRegionId, s: VennRegionState['state']): string => {
   switch (s) {
-    case 'correct': return 'hsl(var(--primary) / 0.18)';
-    case 'wrong':   return 'hsl(var(--destructive) / 0.18)';
-    case 'missed':  return 'hsl(45 95% 55% / 0.22)';
-    case 'filled':  return 'hsl(var(--primary) / 0.12)';
-    case 'hover':   return 'hsl(var(--primary) / 0.08)';
+    case 'correct': return 'hsl(var(--primary) / 0.22)';
+    case 'wrong':   return 'hsl(var(--destructive) / 0.22)';
+    case 'missed':  return 'hsl(45 95% 55% / 0.25)';
+    case 'filled':  return REGION_COLORS[id].fill;
+    case 'hover':   return REGION_COLORS[id].hoverFill;
     default:        return 'transparent';
   }
 };
 
-const stateToStroke = (s: VennRegionState['state']): string => {
+const regionToStroke = (id: VennRegionId, s: VennRegionState['state']): string => {
   switch (s) {
     case 'correct': return 'hsl(var(--primary))';
     case 'wrong':   return 'hsl(var(--destructive))';
     case 'missed':  return 'hsl(45 95% 45%)';
-    case 'hover':   return 'hsl(var(--primary))';
+    case 'filled':
+    case 'hover':   return REGION_COLORS[id].stroke;
     default:        return 'transparent';
   }
 };
@@ -162,16 +224,16 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
           width={BOX_W}
           height={BOX_H}
           rx={BOX_RX}
-          fill={stateToFill(resolved('outside').state)}
+          fill={regionToFill('outside', resolved('outside').state)}
         />
 
         {/* A only: inside A, outside B */}
         <g clipPath="url(#venn-clip-A)">
-          <rect x={0} y={0} width={VB_W} height={VB_H} fill={stateToFill(resolved('A_only').state)} />
+          <rect x={0} y={0} width={VB_W} height={VB_H} fill={regionToFill('A_only', resolved('A_only').state)} />
         </g>
         {/* B only: inside B, outside A */}
         <g clipPath="url(#venn-clip-B)">
-          <rect x={0} y={0} width={VB_W} height={VB_H} fill={stateToFill(resolved('B_only').state)} />
+          <rect x={0} y={0} width={VB_W} height={VB_H} fill={regionToFill('B_only', resolved('B_only').state)} />
         </g>
         {/* Intersection: inside both — paint A clipped by B */}
         <g clipPath="url(#venn-clip-A)">
@@ -181,7 +243,7 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
               y={0}
               width={VB_W}
               height={VB_H}
-              fill={stateToFill(resolved('intersection').state)}
+              fill={regionToFill('intersection', resolved('intersection').state)}
             />
           </g>
         </g>
@@ -191,18 +253,18 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
           <path
             d={`M ${CX_A - R},${CY} A ${R} ${R} 0 1 1 ${CX_A + R},${CY} A ${R} ${R} 0 1 1 ${CX_A - R},${CY} Z`}
             fill="none"
-            stroke={stateToStroke(resolved('A_only').state)}
-            strokeWidth={2}
-            opacity={0.6}
+            stroke={regionToStroke('A_only', resolved('A_only').state)}
+            strokeWidth={2.5}
+            opacity={0.8}
           />
         )}
         {resolved('B_only').state && resolved('B_only').state !== 'idle' && (
           <path
             d={`M ${CX_B - R},${CY} A ${R} ${R} 0 1 1 ${CX_B + R},${CY} A ${R} ${R} 0 1 1 ${CX_B - R},${CY} Z`}
             fill="none"
-            stroke={stateToStroke(resolved('B_only').state)}
-            strokeWidth={2}
-            opacity={0.6}
+            stroke={regionToStroke('B_only', resolved('B_only').state)}
+            strokeWidth={2.5}
+            opacity={0.8}
           />
         )}
 
@@ -216,7 +278,7 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
           fill="none"
           stroke={
             resolved('outside').state && resolved('outside').state !== 'idle'
-              ? stateToStroke(resolved('outside').state)
+              ? regionToStroke('outside', resolved('outside').state)
               : 'hsl(var(--foreground))'
           }
           strokeWidth={
@@ -257,6 +319,7 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
           const badgeText = normalizeMath(stripLatexFormatting(cleanMathContent(r.badge)));
           const badgeW = Math.max(40, badgeText.length * 6.5 + 16);
           const badgeH = 20;
+          const colorCfg = REGION_COLORS[id];
           return (
             <g key={`badge-${id}`}>
               <rect
@@ -265,9 +328,9 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
                 width={badgeW}
                 height={badgeH}
                 rx={badgeH / 2}
-                fill="hsl(var(--background))"
-                stroke="hsl(var(--primary))"
-                strokeWidth={1}
+                fill={colorCfg.badgeBg}
+                stroke={colorCfg.badgeBorder}
+                strokeWidth={1.5}
               />
               <text
                 x={c.x}
@@ -276,7 +339,7 @@ const VennDiagram: React.FC<VennDiagramProps> = ({
                 dominantBaseline="central"
                 fontSize={Math.min(11, 130 / badgeText.length + 4)}
                 fontWeight="600"
-                className="fill-primary"
+                fill={colorCfg.badgeText}
               >
                 {badgeText}
               </text>
