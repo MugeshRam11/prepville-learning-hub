@@ -203,7 +203,15 @@ const Practice = () => {
                           </span>
                         </div>
 
-                        <Button variant="outline" size="sm" className="w-full gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/practice/set/${ps.id}`);
+                          }}
+                        >
                           <Play className="w-4 h-4" /> Start Practice
                         </Button>
                       </CardContent>
