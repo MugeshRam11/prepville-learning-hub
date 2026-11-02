@@ -95,3 +95,4 @@ export const assertCurriculumPermitted = (programme: string, subject: string): v
     );
   }
 };
+

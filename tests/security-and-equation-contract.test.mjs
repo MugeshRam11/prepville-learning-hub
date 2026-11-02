@@ -82,3 +82,4 @@ test('Mathematical Delimiter Contract - Normalization matches canonical format',
     'The quadratic formula is:\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$'
   );
 });
+
