@@ -13,12 +13,15 @@ declare global {
     interface IntrinsicElements {
       'math-field': React.DetailedHTMLProps<
         React.HTMLAttributes<MathfieldElement> & {
+          placeholder?: string;
           'virtual-keyboard-mode'?: string;
           'virtual-keyboard-theme'?: string;
           'smart-mode'?: string;
           'smart-superscript'?: string;
           'remove-extraneous-parentheses'?: string;
           'math-virtual-keyboard-policy'?: string;
+          disabled?: boolean;
+          readonly?: boolean;
         },
         MathfieldElement
       >;

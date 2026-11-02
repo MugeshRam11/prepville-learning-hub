@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "supabase/functions/**", "node_modules/**"] },
+  { ignores: ["dist", "supabase/functions/**", "node_modules/**", "graphify-out/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -26,8 +26,6 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
       "prefer-const": "off",
       "@typescript-eslint/no-require-imports": "off",
-      "react-hooks/rules-of-hooks": "off",
-      "react-hooks/exhaustive-deps": "off",
       "@typescript-eslint/no-unused-expressions": "off",
       "no-useless-escape": "off",
       "no-case-declarations": "off",

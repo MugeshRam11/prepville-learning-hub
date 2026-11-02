@@ -34,6 +34,7 @@ interface StudentData {
   assignmentsPending: number;
   stats: StudentStats;
   student_id: string | null;
+  roll_number?: string | null;
   class_name: string | null;
 }
 
@@ -43,7 +44,7 @@ interface StudentProfile {
   first_name: string | null;
   last_name: string | null;
   student_id: string | null;
-  roll_number: string | null;
+  roll_number?: string | null;
   class_name: string | null;
   is_active: boolean;
   created_at: string;
@@ -261,7 +262,7 @@ const AdminStudentsProgress = () => {
     }
   };
 
-  const fetchStudentDetails = async (student: StudentProfile & { stats: StudentStats }) => {
+  const fetchStudentDetails = async (student: StudentData) => {
     setLoadingDetails(true);
     setDetailsOpen(true);
     
@@ -318,17 +319,17 @@ const AdminStudentsProgress = () => {
     setLoadingSolutions(true);
 
     try {
-      const testId = attempt.test_id;
+      const testId = attempt.test_id || attempt.mock_test_id;
 
       const { data: questions } = await supabase
         .from('mock_questions')
         .select('*')
-        .eq('test_id', testId);
+        .eq('mock_test_id', testId);
 
       const { data: answers } = await supabase
         .from('user_answers')
         .select('*')
-        .eq('test_attempt_id', attempt.id);
+        .eq('attempt_id', attempt.id);
 
       const answerMap = new Map((answers || []).map(a => [a.question_id, a]));
 

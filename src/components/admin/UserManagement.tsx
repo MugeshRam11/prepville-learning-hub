@@ -246,12 +246,7 @@ const UserManagement = () => {
         .from('user_roles')
         .upsert({ user_id: userId, role: newRole }, { onConflict: 'user_id' });
 
-      if (newRole === 'admin') {
-        const targetUser = users.find((u) => u.user_id === userId);
-        if (targetUser?.email) {
-          await supabase.rpc('make_user_admin', { admin_email: targetUser.email }).catch(() => {});
-        }
-      }
+      await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
 
       setUsers((prev) =>
         prev.map((u) =>

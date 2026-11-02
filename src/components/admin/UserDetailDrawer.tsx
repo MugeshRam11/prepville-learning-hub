@@ -34,7 +34,20 @@ interface UserSummary {
   is_active: boolean;
   created_at: string;
 }
-
+const formatSubject = (raw: string): string => {
+  const map: Record<string, string> = {
+    mathematics: 'Mathematics',
+    science: 'Science',
+    chemistry: 'Chemistry',
+    biology: 'Biology',
+    language_literature: 'Language & Literature',
+    social_studies: 'Social Studies',
+    quick_test: 'Quick Test',
+    topic_practice: 'Topic Practice',
+    mock_test: 'Mock Test',
+  };
+  return map[raw] || raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({ userId, initialUser, isOpen, onClose }) => {
   const [summary, setSummary] = useState<UserSummary | null>(null);
   const [attempts, setAttempts] = useState<any[]>([]);
@@ -51,21 +64,6 @@ const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({ userId, initialUser
       setPerformance([]);
       return;
     }
-
-    const formatSubject = (raw: string): string => {
-      const map: Record<string, string> = {
-        mathematics: 'Mathematics',
-        science: 'Science',
-        chemistry: 'Chemistry',
-        biology: 'Biology',
-        language_literature: 'Language & Literature',
-        social_studies: 'Social Studies',
-        quick_test: 'Quick Test',
-        topic_practice: 'Topic Practice',
-        mock_test: 'Mock Test',
-      };
-      return map[raw] || raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    };
 
     const fetchAll = async () => {
       setLoading(true);

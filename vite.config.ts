@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
   ].filter(Boolean),
   resolve: {
+    preserveSymlinks: true,
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },

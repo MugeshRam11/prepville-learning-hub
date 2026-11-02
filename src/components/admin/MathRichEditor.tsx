@@ -9,7 +9,7 @@ import {
   Divide, 
   Superscript, 
   Pi,
-  Infinity,
+  Infinity as InfinityIcon,
   Type
 } from 'lucide-react';
 import 'katex/dist/katex.min.css';
@@ -361,7 +361,7 @@ const MathRichEditor = ({ value, onChange, placeholder, className = '' }: MathRi
     { icon: Sigma, latex: '\\sum_{i=1}^{n} x_i', label: 'Summation' },
     { icon: Calculator, latex: '\\binom{n}{k}', label: 'Binomial' },
     { icon: Pi, latex: '\\pi', label: 'Pi' },
-    { icon: Infinity, latex: '\\infty', label: 'Infinity' },
+    { icon: InfinityIcon, latex: '\\infty', label: 'Infinity' },
     { icon: Type, latex: '\\int_{a}^{b} f(x) \\, dx', label: 'Integral' },
     { icon: Calculator, latex: '(x+a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^k a^{n-k}', label: 'Binomial Theorem' }
   ];
