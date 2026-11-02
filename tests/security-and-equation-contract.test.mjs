@@ -83,3 +83,38 @@ test('Mathematical Delimiter Contract - Normalization matches canonical format',
   );
 });
 
+test('Day 2 Database Security - P0 Admin RLS Remediation Migration exists and restores has_role', () => {
+  const remediationPath = 'supabase/migrations/20261103000000_remediate_p0_admin_rls.sql';
+  assert.strictEqual(fs.existsSync(remediationPath), true, 'Remediation migration must exist');
+  const sql = fs.readFileSync(remediationPath, 'utf8');
+
+  // Verify that SELECT true stub was NOT used
+  assert.strictEqual(sql.includes('SELECT EXISTS'), true, 'has_role must check actual role membership');
+  assert.strictEqual(sql.includes('FOR ALL TO authenticated, anon\n  USING (true)'), false, 'Must not grant blanket ALL permissions to anon');
+  assert.strictEqual(sql.includes('ENABLE ROW LEVEL SECURITY'), true, 'Must re-enable RLS on affected tables');
+});
+
+test('Day 2 Architecture - Canonical Question Bank Migration exists with isolated answer keys', () => {
+  const qbMigration = 'supabase/migrations/20261103010000_create_question_bank.sql';
+  assert.strictEqual(fs.existsSync(qbMigration), true, 'Question bank migration must exist');
+  const sql = fs.readFileSync(qbMigration, 'utf8');
+
+  assert.strictEqual(sql.includes('CREATE TABLE IF NOT EXISTS public.question_bank'), true, 'question_bank table must be defined');
+  assert.strictEqual(sql.includes('CREATE TABLE IF NOT EXISTS public.question_subquestions'), true, 'question_subquestions table must be defined');
+  assert.strictEqual(sql.includes('CREATE TABLE IF NOT EXISTS public.question_answer_keys'), true, 'question_answer_keys table must be defined');
+  assert.strictEqual(sql.includes('CREATE TABLE IF NOT EXISTS public.practice_sessions'), true, 'practice_sessions table must be defined');
+  assert.strictEqual(sql.includes('get_practice_question_solution'), true, 'Secure RPC for solution revelation must be defined');
+});
+
+test('Day 2 Public Marketing & Compliance - Non-affiliation disclaimer and truthful messaging', () => {
+  const footerContent = fs.readFileSync('src/components/Footer.tsx', 'utf8');
+  assert.strictEqual(footerContent.includes('support@theprepville.com'), true, 'Footer must use support@theprepville.com');
+  assert.strictEqual(footerContent.includes('contact@studyhub.com'), false, 'Footer must not contain legacy studyhub email');
+  assert.strictEqual(footerContent.includes('International Baccalaureate Organization'), true, 'Footer must contain IBO non-affiliation disclaimer');
+  assert.strictEqual(footerContent.includes('/privacy'), true, 'Footer must link to /privacy');
+  assert.strictEqual(footerContent.includes('/terms'), true, 'Footer must link to /terms');
+
+  const statsContent = fs.readFileSync('src/components/StatsSection.tsx', 'utf8');
+  assert.strictEqual(statsContent.includes('10,000+'), false, 'StatsSection must not contain unsubstantiated 10,000+ claim');
+  assert.strictEqual(statsContent.includes('2,500+'), false, 'StatsSection must not contain unsubstantiated 2,500+ claim');
+});

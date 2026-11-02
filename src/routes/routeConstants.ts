@@ -8,6 +8,8 @@ export const ROUTES = {
     HOME: '/',
     PRICING: '/pricing',
     COMMAND_TERMS: '/command-terms',
+    PRIVACY: '/privacy',
+    TERMS: '/terms',
     STUDENT_LOGIN: '/student/login',
     STUDENT_REGISTER: '/student/register',
     ADMIN_LOGIN: '/admin/login',

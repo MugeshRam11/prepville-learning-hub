@@ -7,6 +7,8 @@ import DomainRedirect from './DomainRedirect';
 const Index = lazy(() => import('@/pages/Index'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const CommandTerms = lazy(() => import('@/pages/CommandTerms'));
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 export const PublicRoutes: React.FC = () => {
@@ -16,6 +18,8 @@ export const PublicRoutes: React.FC = () => {
       <Route path={ROUTES.PUBLIC.HOME} element={<Index />} />
       <Route path={ROUTES.PUBLIC.PRICING} element={<Pricing />} />
       <Route path={ROUTES.PUBLIC.COMMAND_TERMS} element={<CommandTerms />} />
+      <Route path={ROUTES.PUBLIC.PRIVACY} element={<PrivacyPolicy />} />
+      <Route path={ROUTES.PUBLIC.TERMS} element={<TermsOfService />} />
 
       {/* Public Shortcuts */}
       <Route

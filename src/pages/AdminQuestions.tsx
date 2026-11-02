@@ -1,33 +1,20 @@
 import React, { useState } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import SubjectQuestionManager from '@/components/admin/SubjectQuestionManager';
-import QuestionUploadCard from '@/components/admin/QuestionUploadCard';
-import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import QuestionBankManager from '@/components/admin/QuestionBankManager';
+
 const AdminQuestions = () => {
   const [activeTab, setActiveTab] = useState('questions');
-  const [showAIUpload, setShowAIUpload] = useState(false);
-  const handleAIUploadSuccess = () => {
-    toast.success('Questions uploaded successfully!');
-    setShowAIUpload(false);
-    window.location.reload();
-  };
-  return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex-1 ml-64 p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-6 flex justify-end">
-            
-          </div>
-          
-          {showAIUpload && <div className="mb-6">
-              <QuestionUploadCard mode="quick" onSuccess={handleAIUploadSuccess} />
-            </div>}
-          
-          <SubjectQuestionManager />
+          <QuestionBankManager />
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default AdminQuestions;

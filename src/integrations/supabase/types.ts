@@ -14,6 +14,305 @@ export type Database = {
   }
   public: {
     Tables: {
+      question_bank: {
+        Row: {
+          id: string
+          programme: string
+          subject: string
+          myp_year: string
+          strand: string
+          topic: string
+          subtopic: string | null
+          difficulty: string
+          question_type: string
+          command_term: string | null
+          question_text: string
+          question_latex: string | null
+          image_url: string | null
+          marks: number
+          answer_type: string
+          answer_config: Json
+          is_published: boolean
+          review_status: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          programme?: string
+          subject?: string
+          myp_year?: string
+          strand?: string
+          topic: string
+          subtopic?: string | null
+          difficulty?: string
+          question_type?: string
+          command_term?: string | null
+          question_text: string
+          question_latex?: string | null
+          image_url?: string | null
+          marks?: number
+          answer_type?: string
+          answer_config?: Json
+          is_published?: boolean
+          review_status?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          programme?: string
+          subject?: string
+          myp_year?: string
+          strand?: string
+          topic?: string
+          subtopic?: string | null
+          difficulty?: string
+          question_type?: string
+          command_term?: string | null
+          question_text?: string
+          question_latex?: string | null
+          image_url?: string | null
+          marks?: number
+          answer_type?: string
+          answer_config?: Json
+          is_published?: boolean
+          review_status?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      question_subquestions: {
+        Row: {
+          id: string
+          question_id: string
+          label: string
+          marks: number
+          answer_type: string
+          answer_config: Json
+          command_term: string | null
+          sub_question_text: string
+          sub_question_latex: string | null
+          sub_question_image_url: string | null
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          label?: string
+          marks?: number
+          answer_type?: string
+          answer_config?: Json
+          command_term?: string | null
+          sub_question_text?: string
+          sub_question_latex?: string | null
+          sub_question_image_url?: string | null
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          question_id?: string
+          label?: string
+          marks?: number
+          answer_type?: string
+          answer_config?: Json
+          command_term?: string | null
+          sub_question_text?: string
+          sub_question_latex?: string | null
+          sub_question_image_url?: string | null
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_subquestions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      question_answer_keys: {
+        Row: {
+          id: string
+          question_id: string | null
+          subquestion_id: string | null
+          answer_key: string
+          solution: string | null
+          marking_rubric: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          question_id?: string | null
+          subquestion_id?: string | null
+          answer_key: string
+          solution?: string | null
+          marking_rubric?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          question_id?: string | null
+          subquestion_id?: string | null
+          answer_key?: string
+          solution?: string | null
+          marking_rubric?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_answer_keys_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_answer_keys_subquestion_id_fkey"
+            columns: ["subquestion_id"]
+            isOneToOne: false
+            referencedRelation: "question_subquestions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      practice_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          programme: string
+          subject: string
+          filters: Json
+          total_questions: number
+          completed_questions: number
+          is_completed: boolean
+          score: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string
+          programme?: string
+          subject?: string
+          filters?: Json
+          total_questions: number
+          completed_questions?: number
+          is_completed?: boolean
+          score?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          programme?: string
+          subject?: string
+          filters?: Json
+          total_questions?: number
+          completed_questions?: number
+          is_completed?: boolean
+          score?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      practice_session_questions: {
+        Row: {
+          id: string
+          session_id: string
+          question_id: string
+          order_index: number
+          student_answer: string | null
+          is_correct: boolean | null
+          evaluated_at: string | null
+          attempt_status: string
+          time_spent_seconds: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          question_id: string
+          order_index?: number
+          student_answer?: string | null
+          is_correct?: boolean | null
+          evaluated_at?: string | null
+          attempt_status?: string
+          time_spent_seconds?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          question_id?: string
+          order_index?: number
+          student_answer?: string | null
+          is_correct?: boolean | null
+          evaluated_at?: string | null
+          attempt_status?: string
+          time_spent_seconds?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_session_questions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "practice_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practice_session_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      legacy_question_id_map: {
+        Row: {
+          legacy_id: string
+          new_id: string
+          legacy_table: string
+          migrated_at: string
+        }
+        Insert: {
+          legacy_id: string
+          new_id: string
+          legacy_table: string
+          migrated_at?: string
+        }
+        Update: {
+          legacy_id?: string
+          new_id?: string
+          legacy_table?: string
+          migrated_at?: string
+        }
+        Relationships: []
+      }
       admin_exam_actions: {
         Row: {
           action_data: Json | null

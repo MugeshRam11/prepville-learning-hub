@@ -43,8 +43,8 @@ const AnimatedHero = () => {
   };
 
   const mockQuestion = {
-    text: "What is the derivative of x²?",
-    options: ["x", "2x", "2x²", "x/2"],
+    text: "Solve for x: 3x + 7 = 22",
+    options: ["x = 3", "x = 5", "x = 7", "x = 15"],
     correct: 1
   };
 
@@ -112,7 +112,7 @@ const AnimatedHero = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20"
             >
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">AI-Powered Learning Platform</span>
+              <span className="text-sm font-medium text-primary">IB Middle Years Programme • Mathematics</span>
             </motion.div>
 
             {/* Main Headline */}
@@ -121,25 +121,14 @@ const AnimatedHero = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
-                className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight"
+                className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight"
               >
-                Practice{' '}
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={currentWord}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                    className="inline-block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
-                  >
-                    {words[currentWord]}.
-                  </motion.span>
-                </AnimatePresence>
+                Master IB MYP{' '}
+                <span className="bg-gradient-to-r from-indigo-600 via-primary to-blue-600 bg-clip-text text-transparent">
+                  Mathematics
+                </span>
                 <br />
-                <span className="text-foreground">Score Higher.</span>
-                <br />
-                <span className="text-muted-foreground">Succeed Faster.</span>
+                <span className="text-foreground">with Precision.</span>
               </motion.h1>
 
               <motion.p
@@ -148,8 +137,7 @@ const AnimatedHero = () => {
                 transition={{ delay: 0.5, duration: 0.8 }}
                 className="text-lg md:text-xl text-muted-foreground max-w-lg leading-relaxed"
               >
-                Thousands of exam-oriented questions, intelligent practice, 
-                instant feedback, and performance tracking — all in one platform.
+                Rigorous curriculum-aligned practice, real-time formula rendering with MathLive & KaTeX, step-by-step solutions, and structured mock examinations.
               </motion.p>
             </div>
 
@@ -191,9 +179,9 @@ const AnimatedHero = () => {
               className="flex flex-wrap gap-8 pt-4"
             >
               {[
-                { value: '10K+', label: 'Questions' },
-                { value: '500+', label: 'Video Hours' },
-                { value: '2.5K+', label: 'Students' },
+                { value: '100%', label: 'MYP Aligned' },
+                { value: 'Years 1–5', label: 'Curriculum Covered' },
+                { value: 'Step-by-Step', label: 'Detailed Rubrics' },
               ].map((stat, i) => (
                 <motion.div
                   key={stat.label}

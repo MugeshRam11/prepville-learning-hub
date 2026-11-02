@@ -48,6 +48,7 @@ const Practice = () => {
         .select('id, title, subject, topic, difficulty')
         .eq('is_published', true)
         .eq('is_archived', false)
+        .eq('subject', 'mathematics')
         .order('created_at', { ascending: false });
       if (error) throw error;
 

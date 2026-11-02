@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, FileText, Award, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { isCurriculumEnabled } from '@/config/curriculumScope';
 
 const MockExamSubjectView = () => {
   const {
@@ -23,6 +24,11 @@ const MockExamSubjectView = () => {
   }, [subject]);
 
   const fetchQuestionsAndRedirect = async () => {
+    if (subject && !isCurriculumEnabled('MYP', subject)) {
+      toast.info((subject ? subject.charAt(0).toUpperCase() + subject.slice(1) : 'This subject') + ' is coming soon. The PrepVille currently supports IB MYP Mathematics only.');
+      navigate('/mock-exams/select', { replace: true });
+      return;
+    }
     try {
       // Fetch all questions from mock_questions for this subject
       const {
