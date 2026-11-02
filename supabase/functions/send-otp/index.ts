@@ -145,7 +145,14 @@ serve(async (req) => {
     `;
 
     // Send email via Resend API
-    const resendApiKey = Deno.env.get('RESEND_API_KEY') || 're_CAF5fjsw_BUHR9wnp9MrgayMKZMw8Tc7Z';
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY environment variable is missing.');
+      return new Response(JSON.stringify({ error: 'Email service configuration missing' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     try {
       const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -172,14 +179,14 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: `Verification code sent to ${email}`,
-      ...(Deno.env.get('ENVIRONMENT') !== 'production' ? { debug_otp: otp } : {})
+      ...(Deno.env.get('ENVIRONMENT') === 'development' ? { debug_otp: otp } : {})
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('Send OTP error:', err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err.message || 'Internal server error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

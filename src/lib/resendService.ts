@@ -1,7 +1,8 @@
 /**
  * Resend Email Integration Service with Branded Templates & Logging
  * Sender: The Prep Ville <no-reply@respond.theprepville.com>
- * Key: re_CAF5fjsw_BUHR9wnp9MrgayMKZMw8Tc7Z
+ * Note: Direct browser dispatch requires VITE_RESEND_API_KEY.
+ * For production security, email dispatch should be executed via Supabase Edge Functions.
  */
 
 import {
@@ -11,7 +12,7 @@ import {
   RESEND_DEFAULT_SENDER,
 } from './emailTemplates';
 
-export const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY || 're_CAF5fjsw_BUHR9wnp9MrgayMKZMw8Tc7Z';
+export const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY || '';
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -25,6 +26,11 @@ export interface SendEmailOptions {
  */
 export const sendResendEmail = async (options: SendEmailOptions) => {
   const { to, subject, html, from = RESEND_DEFAULT_SENDER } = options;
+
+  if (!RESEND_API_KEY) {
+    console.warn('[Resend Email Warning] VITE_RESEND_API_KEY is not configured on the client. Email dispatch suppressed.');
+    return { success: false, error: 'Email service client configuration missing' };
+  }
 
   console.log(`[Resend Email Dispatch] Sending "${subject}" to:`, to);
 
