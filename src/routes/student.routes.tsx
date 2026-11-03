@@ -13,6 +13,7 @@ const StudentForgotPassword = lazy(() => import('@/pages/StudentForgotPassword')
 const StudentDashboard = lazy(() => import('@/pages/StudentDashboard'));
 const Practice = lazy(() => import('@/pages/Practice'));
 const PracticeQuestionView = lazy(() => import('@/pages/PracticeQuestionView'));
+const PracticeSessionWorkspace = lazy(() => import('@/pages/PracticeSessionWorkspace'));
 const QuickPractice = lazy(() => import('@/pages/QuickPractice'));
 const Quiz = lazy(() => import('@/pages/Quiz'));
 const MockExamSelect = lazy(() => import('@/pages/MockExamSelect'));
@@ -171,6 +172,14 @@ export const StudentRoutes: React.FC = () => {
         element={
           <StudentProtectedRoute>
             <PracticeQuestionView />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.STUDENT.PRACTICE_SESSION}
+        element={
+          <StudentProtectedRoute>
+            <PracticeSessionWorkspace />
           </StudentProtectedRoute>
         }
       />

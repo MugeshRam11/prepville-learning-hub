@@ -23,6 +23,7 @@ export const ROUTES = {
     DASHBOARD: '/dashboard',
     PRACTICE: '/practice',
     PRACTICE_QUESTION: '/practice/question/:questionId',
+    PRACTICE_SESSION: '/practice/session/:sessionId',
     PRACTICE_SET: '/practice/set/:setId',
     QUICK_PRACTICE: '/quick-practice',
     QUIZ: '/quiz/:quizId',

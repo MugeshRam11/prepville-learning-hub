@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,9 +9,21 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import {
-  ArrowLeft, CheckCircle2, BookOpen, GraduationCap,
-  MessageSquare, Lightbulb, Loader2, Circle,
-  ChevronRight, ChevronLeft
+  ArrowLeft,
+  CheckCircle2,
+  BookOpen,
+  GraduationCap,
+  MessageSquare,
+  Lightbulb,
+  Loader2,
+  Circle,
+  ChevronRight,
+  ChevronLeft,
+  Save,
+  Send,
+  Lock,
+  Clock,
+  Award
 } from 'lucide-react';
 import Header from '@/components/Header';
 import { ExamModeProvider } from '@/contexts/ExamModeContext';
@@ -31,127 +42,379 @@ interface SubQuestion {
   marks: number;
   answer_type: string;
   answer_block_config: any;
-  answer_key: string | null;
-  solution: string | null;
-  command_term: string | null;
   sub_question_text: string;
   sub_question_image_url: string | null;
   order_index: number;
 }
 
-interface PracticeSetData {
+interface QuestionDetails {
   id: string;
   title: string;
-  subject: string;
   topic: string;
+  strand: string;
+  myp_year: string;
   difficulty: string;
+  question_type: string;
   question_text: string;
-  question_image_url: string | null;
+  image_url: string | null;
+  marks: number;
   sub_questions: SubQuestion[];
 }
 
-const PracticeQuestionView = () => {
-  const { setId } = useParams<{ setId: string }>();
+interface RevealedSolution {
+  part_label: string | null;
+  answer_key: string | null;
+  solution: string | null;
+  marking_rubric: any;
+}
+
+const difficultyBadgeColors: Record<string, string> = {
+  easy: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800',
+  medium: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
+  hard: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800'
+};
+
+const PracticeQuestionView: React.FC = () => {
+  const { questionId, setId } = useParams<{ questionId?: string; setId?: string }>();
   const navigate = useNavigate();
 
-  const [data, setData] = useState<PracticeSetData | null>(null);
+  const [resolvedQuestionId, setResolvedQuestionId] = useState<string | null>(questionId || null);
+  const [data, setData] = useState<QuestionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [mode, setMode] = useState<'exam' | 'study'>('exam');
+
+  // Practice Engine Session State (PV-18)
+  const [, setSessionId] = useState<string | null>(null);
+  const [sessionQuestionId, setSessionQuestionId] = useState<string | null>(null);
+  const [attemptStatus, setAttemptStatus] = useState<string>('unattempted'); // 'unattempted' | 'draft' | 'submitted' | 'evaluated'
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [timeSpentSeconds, setTimeSpentSeconds] = useState<number>(0);
+
+  // Autosave and Submission
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Revealed Solutions (P0-01 post-submission only)
+  const [revealedSolutions, setRevealedSolutions] = useState<RevealedSolution[]>([]);
+  const [loadingSolutions, setLoadingSolutions] = useState(false);
+
+  // Selected Sub-question (if multi-part)
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
+
+  // Mode and Tutor
+  const [mode, setMode] = useState<'exam' | 'study'>('study');
   const [showTutor, setShowTutor] = useState(false);
   const [showAIFeedback, setShowAIFeedback] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<AIFeedbackResponse | null>(null);
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
+  // Fetch solution via secure RPC (P0-01)
+  const fetchSolution = useCallback(async (sqId: string) => {
+    setLoadingSolutions(true);
+    try {
+      const { data: solRows, error } = await supabase.rpc('get_practice_question_solution', {
+        p_session_question_id: sqId
+      });
+
+      if (error) {
+        console.warn('Could not load solution:', error.message);
+        return;
+      }
+
+      setRevealedSolutions((solRows as RevealedSolution[]) || []);
+    } catch (err) {
+      console.error('Error fetching solution:', err);
+    } finally {
+      setLoadingSolutions(false);
+    }
+  }, []);
+
+  // 1. Resolve Question ID from legacy setId if needed
   useEffect(() => {
-    if (!setId) return;
-    const load = async () => {
+    const resolveId = async () => {
+      if (questionId) {
+        setResolvedQuestionId(questionId);
+        return;
+      }
+      if (setId) {
+        try {
+          const { data: mapRows } = await supabase
+            .from('legacy_question_id_map')
+            .select('new_id')
+            .eq('legacy_id', setId)
+            .limit(1);
+
+          if (mapRows && mapRows.length > 0 && mapRows[0].new_id) {
+            setResolvedQuestionId(mapRows[0].new_id);
+            return;
+          }
+
+          toast.error('Legacy practice set could not be mapped to question bank.');
+          navigate('/practice');
+        } catch (e) {
+          console.error('Error resolving legacy set ID:', e);
+          navigate('/practice');
+        }
+      }
+    };
+    resolveId();
+  }, [questionId, setId, navigate]);
+
+  // 2. Fetch Question and Subquestions from Question Bank
+  useEffect(() => {
+    if (!resolvedQuestionId) return;
+
+    const loadQuestionData = async () => {
       setIsLoading(true);
       try {
-        const { data: ps, error: psErr } = await supabase
-          .from('practice_sets')
-          .select('id, title, subject, topic, difficulty')
-          .eq('id', setId)
+        const { data: qb, error: qbErr } = await supabase
+          .from('question_bank')
+          .select('*')
+          .eq('id', resolvedQuestionId)
           .single();
-        if (psErr) throw psErr;
 
-        const { data: qs } = await supabase
-          .from('practice_questions')
-          .select('*')
-          .eq('practice_set_id', setId)
-          .order('order_index')
-          .limit(1);
+        if (qbErr || !qb) {
+          throw new Error('Question not found or access unauthorized.');
+        }
 
-        const mainQ = qs?.[0];
-        if (!mainQ) { toast.error('No questions found'); navigate('/practice'); return; }
+        // Fetch subquestions if multi-part
+        let subqs: SubQuestion[] = [];
+        if (qb.question_type === 'multi_part') {
+          const { data: subData, error: subErr } = await supabase
+            .from('question_subquestions')
+            .select('id, label, sub_question_text, sub_question_image_url, answer_type, answer_config, marks, order_index')
+            .eq('question_id', resolvedQuestionId)
+            .order('order_index');
 
-        const { data: sqs } = await supabase
-          .from('practice_sub_questions')
-          .select('*')
-          .eq('question_id', mainQ.id)
-          .order('order_index');
+          if (!subErr && subData) {
+            subqs = subData.map((sq: any) => ({
+              id: sq.id,
+              label: sq.label || 'a',
+              marks: sq.marks || 1,
+              answer_type: sq.answer_type || 'text_equation',
+              answer_block_config: { type: (sq.answer_type as any) || 'text_equation', ...(sq.answer_config as any || {}) },
+              sub_question_text: sq.sub_question_text || '',
+              sub_question_image_url: sq.sub_question_image_url,
+              order_index: sq.order_index || 0
+            }));
+          }
+        }
 
-        const sorted = (sqs || []).sort((a: any, b: any) => {
-          const la = a.label?.toLowerCase() || '';
-          const lb = b.label?.toLowerCase() || '';
-          return la.localeCompare(lb, undefined, { numeric: true });
-        });
+        // If not multi-part or no subquestions found, create a pseudo sub-question for unified workspace
+        if (subqs.length === 0) {
+          subqs = [
+            {
+              id: qb.id,
+              label: '1',
+              marks: qb.marks || 1,
+              answer_type: qb.question_type || 'text_equation',
+              answer_block_config: { type: (qb.question_type as any) || 'text_equation' },
+              sub_question_text: qb.question_text || '',
+              sub_question_image_url: qb.image_url,
+              order_index: 0
+            }
+          ];
+        }
 
         setData({
-          ...ps,
-          question_text: mainQ.question_text,
-          question_image_url: mainQ.question_image_url,
-          sub_questions: sorted as SubQuestion[],
+          id: qb.id,
+          title: qb.subtopic || qb.topic || 'Practice Question',
+          topic: qb.topic || 'Mathematics',
+          strand: qb.strand || 'Mathematics',
+          myp_year: qb.myp_year || 'Year 5',
+          difficulty: qb.difficulty || 'medium',
+          question_type: qb.question_type || 'numeric',
+          question_text: qb.question_text || '',
+          image_url: qb.image_url,
+          marks: qb.marks || 1,
+          sub_questions: subqs
         });
 
-        if (sorted.length > 0) setSelectedSubId(sorted[0].id);
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to load practice set');
+        setSelectedSubId(subqs[0].id);
+
+        // 3. Initialize/Resume Single Question Practice Attempt (PV-18)
+        const { data: attemptRows, error: attemptErr } = await supabase.rpc(
+          'start_single_question_attempt',
+          { p_question_id: resolvedQuestionId }
+        );
+
+        if (attemptErr) {
+          console.warn('Could not initialize practice session attempt via RPC:', attemptErr.message);
+        } else if (attemptRows && attemptRows.length > 0) {
+          const att = attemptRows[0];
+          setSessionId(att.session_id);
+          setSessionQuestionId(att.session_question_id);
+          setAttemptStatus(att.attempt_status || 'unattempted');
+          setTimeSpentSeconds(att.time_spent_seconds || 0);
+
+          if (att.saved_answer) {
+            try {
+              const parsed = JSON.parse(att.saved_answer);
+              setAnswers(typeof parsed === 'object' ? parsed : { [subqs[0].id]: att.saved_answer });
+            } catch {
+              setAnswers({ [subqs[0].id]: att.saved_answer });
+            }
+          }
+
+          // If already submitted, fetch solution immediately
+          if (att.attempt_status === 'submitted' || att.attempt_status === 'evaluated') {
+            fetchSolution(att.session_question_id);
+          }
+        }
+      } catch (err: any) {
+        console.error('Failed to load practice question:', err);
+        toast.error(err.message || 'Failed to load question');
         navigate('/practice');
       } finally {
         setIsLoading(false);
       }
     };
-    load();
-  }, [setId]);
+
+    loadQuestionData();
+  }, [resolvedQuestionId, navigate, fetchSolution]);
+
+  // Timer for time spent tracking
+  useEffect(() => {
+    if (attemptStatus === 'submitted' || attemptStatus === 'evaluated') return;
+    const interval = setInterval(() => {
+      setTimeSpentSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [attemptStatus]);
+
+  // Autosave Draft Answer
+  const saveDraft = useCallback(
+    async (currentAnswers: Record<string, any>) => {
+      if (!sessionQuestionId || attemptStatus === 'submitted' || attemptStatus === 'evaluated') {
+        return;
+      }
+      setIsSaving(true);
+      try {
+        const payload = JSON.stringify(currentAnswers);
+        await supabase.rpc('save_practice_draft_answer', {
+          p_session_question_id: sessionQuestionId,
+          p_answer: payload,
+          p_time_spent_seconds: timeSpentSeconds
+        });
+      } catch (err) {
+        console.warn('Autosave failed:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [sessionQuestionId, attemptStatus, timeSpentSeconds]
+  );
+
+  const handleAnswerChange = useCallback(
+    (subId: string, value: any) => {
+      setAnswers((prev) => {
+        const updated = { ...prev, [subId]: value };
+        if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = setTimeout(() => {
+          saveDraft(updated);
+        }, 1500);
+        return updated;
+      });
+    },
+    [saveDraft]
+  );
+
+  // Submit Answer (P0-01)
+  const handleSubmit = async () => {
+    if (!sessionQuestionId) {
+      toast.error('Session not initialized');
+      return;
+    }
+
+    const currentSubId = selectedSubId || data?.sub_questions[0]?.id || '';
+    const currentVal = answers[currentSubId];
+
+    if (!currentVal && Object.keys(answers).length === 0) {
+      toast.info('Please write or construct your answer before submitting.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const answerPayload =
+        typeof currentVal === 'string' && data?.sub_questions.length === 1
+          ? currentVal
+          : JSON.stringify(answers);
+
+      const { data: submitResult, error } = await supabase.rpc('submit_practice_question_answer', {
+        p_session_question_id: sessionQuestionId,
+        p_answer: answerPayload,
+        p_time_spent_seconds: timeSpentSeconds
+      });
+
+      if (error) throw error;
+
+      const res = submitResult?.[0];
+      setAttemptStatus('submitted');
+      setIsCorrect(res?.is_correct ?? null);
+
+      toast.success(
+        res?.is_correct === true
+          ? 'Correct! Solution and marking breakdown unlocked.'
+          : res?.is_correct === false
+          ? 'Answer submitted. Review the official solution below.'
+          : 'Answer submitted successfully!'
+      );
+
+      // Now fetch solutions via secure RPC
+      await fetchSolution(sessionQuestionId);
+    } catch (err: any) {
+      console.error('Submission failed:', err);
+      toast.error(err.message || 'Failed to submit answer');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const selectedSub = useMemo(
-    () => data?.sub_questions.find(sq => sq.id === selectedSubId) || null,
+    () => data?.sub_questions.find((sq) => sq.id === selectedSubId) || data?.sub_questions[0] || null,
     [data, selectedSubId]
   );
 
-  const answeredCount = useMemo(() => Object.keys(answers).filter(k => {
-    const v = answers[k];
-    if (!v) return false;
-    if (typeof v === 'string') return v.trim().length > 0;
-    if (typeof v === 'object') return Object.keys(v).length > 0;
-    return true;
-  }).length, [answers]);
+  const answeredCount = useMemo(
+    () =>
+      Object.keys(answers).filter((k) => {
+        const v = answers[k];
+        if (!v) return false;
+        if (typeof v === 'string') return v.trim().length > 0;
+        if (typeof v === 'object') return Object.keys(v).length > 0;
+        return true;
+      }).length,
+    [answers]
+  );
 
-  const totalCount = data?.sub_questions.length || 0;
-  const progressPercentage = totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
+  const totalCount = data?.sub_questions.length || 1;
+  const progressPercentage = (answeredCount / totalCount) * 100;
 
-  const handleAnswerChange = useCallback((subId: string, value: any) => {
-    setAnswers(prev => ({ ...prev, [subId]: value }));
-  }, []);
-
+  // AI Feedback Handler
   const handleAIFeedback = useCallback(async () => {
     if (!selectedSub) return;
     const userAnswer = answers[selectedSub.id];
-    if (!userAnswer) { toast.info('Write an answer first'); return; }
+    if (!userAnswer) {
+      toast.info('Write an answer first');
+      return;
+    }
 
     setAiFeedbackLoading(true);
     setShowAIFeedback(true);
     try {
+      const solutionMatch = revealedSolutions.find(
+        (s) => s.part_label === selectedSub.label || !s.part_label
+      );
+
       const { data: fbData, error } = await supabase.functions.invoke('ai-feedback', {
         body: {
-          questionText: selectedSub.sub_question_text,
+          questionText: selectedSub.sub_question_text || data?.question_text,
           studentAnswer: typeof userAnswer === 'object' && userAnswer?.text ? userAnswer.text : String(userAnswer),
-          answerKey: selectedSub.answer_key || '',
-          commandTerm: selectedSub.command_term || '',
-          marks: selectedSub.marks,
+          answerKey: solutionMatch?.answer_key || '',
+          commandTerm: 'calculate',
+          marks: selectedSub.marks
         }
       });
       if (error) throw error;
@@ -162,27 +425,18 @@ const PracticeQuestionView = () => {
     } finally {
       setAiFeedbackLoading(false);
     }
-  }, [selectedSub, answers]);
+  }, [selectedSub, answers, revealedSolutions, data]);
 
-  // ── Loading state ──────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center bg-gradient-to-br from-violet-100 via-sky-50 to-rose-100 dark:from-violet-950/30 dark:via-sky-950/20 dark:to-rose-950/30">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center p-8 bg-background/90 backdrop-blur rounded-2xl shadow-xl border"
-          >
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-violet-500 via-blue-500 to-cyan-400 rounded-full flex items-center justify-center shadow-lg shadow-violet-500/30">
-              <Loader2 className="w-8 h-8 animate-spin text-white" />
-            </div>
-            <h2 className="text-xl font-bold mb-2 bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent">
-              Loading Practice Set...
-            </h2>
-            <p className="text-muted-foreground text-sm">Preparing your questions</p>
-          </motion.div>
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8 bg-card rounded-2xl shadow-lg border max-w-sm w-full">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
+            <h2 className="text-base font-bold text-foreground">Loading Mathematics Question...</h2>
+            <p className="text-xs text-muted-foreground mt-1">Connecting to Question Bank</p>
+          </div>
         </main>
       </div>
     );
@@ -190,386 +444,371 @@ const PracticeQuestionView = () => {
 
   if (!data) return null;
 
-  const currentIdx = data.sub_questions.findIndex(sq => sq.id === selectedSubId);
+  const currentIdx = data.sub_questions.findIndex((sq) => sq.id === selectedSubId);
   const hasPrev = currentIdx > 0;
   const hasNext = currentIdx < data.sub_questions.length - 1;
+  const isSubmitted = attemptStatus === 'submitted' || attemptStatus === 'evaluated';
 
   return (
     <ExamModeProvider initialMode={mode === 'study' ? 'study' : 'examination'}>
       <div className="min-h-screen flex flex-col bg-background">
-
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <motion.header
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm"
-        >
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between max-w-[1600px] mx-auto gap-4">
-              {/* Left: Back + Title */}
-              <div className="flex items-center gap-3 min-w-0">
-                <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/practice')}>
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-violet-500/20">
-                  <BookOpen className="w-5 h-5 text-white" />
+        {/* Top Navbar */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
+          <div className="px-4 py-2.5 max-w-7xl mx-auto flex items-center justify-between gap-4">
+            {/* Left: Back + Question Meta */}
+            <div className="flex items-center gap-3 min-w-0">
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/practice')}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm truncate">{data.title}</span>
+                  <Badge variant="outline" className="text-[11px] font-mono px-1.5 py-0">
+                    {data.myp_year}
+                  </Badge>
+                  <Badge className={cn('text-[11px] capitalize border px-1.5 py-0', difficultyBadgeColors[data.difficulty])}>
+                    {data.difficulty}
+                  </Badge>
                 </div>
-                <div className="min-w-0 hidden sm:block">
-                  <h1 className="text-sm font-bold truncate">{data.title}</h1>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <span>Practice</span>
-                    <ChevronRight className="w-3 h-3" />
-                    <span>{data.subject}</span>
-                    <ChevronRight className="w-3 h-3" />
-                    <span className="text-foreground font-medium">{data.topic}</span>
-                  </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-medium">{data.strand}</span>
+                  <ChevronRight className="w-3 h-3" />
+                  <span>{data.topic}</span>
                 </div>
               </div>
+            </div>
 
-              {/* Center: Progress */}
-              <div className="hidden md:flex items-center gap-4 flex-1 max-w-xs">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">{answeredCount}/{totalCount} parts</span>
-                    <span className="text-xs text-muted-foreground">{Math.round(progressPercentage)}%</span>
-                  </div>
-                  <Progress value={progressPercentage} className="h-2" />
-                </div>
+            {/* Center: Save / Time status */}
+            <div className="hidden md:flex items-center gap-4">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  {Math.floor(timeSpentSeconds / 60)}:{(timeSpentSeconds % 60).toString().padStart(2, '0')}
+                </span>
               </div>
 
-              {/* Right: Controls */}
-              <div className="flex items-center gap-2.5">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-muted/40 shadow-sm">
-                  {mode === 'study'
-                    ? <BookOpen className="w-4 h-4 text-blue-500" />
-                    : <GraduationCap className="w-4 h-4 text-primary" />
-                  }
-                  <Label htmlFor="mode-toggle" className="text-sm font-medium cursor-pointer">
-                    {mode === 'study' ? 'Study' : 'Exam'}
-                  </Label>
-                  <Switch
-                    id="mode-toggle"
-                    checked={mode === 'study'}
-                    onCheckedChange={(checked) => setMode(checked ? 'study' : 'exam')}
-                  />
+              {isSaving && (
+                <div className="flex items-center gap-1 text-xs text-amber-600 font-medium animate-pulse">
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Autosaving...</span>
                 </div>
+              )}
+            </div>
 
-                <Badge variant="outline" className={cn(
-                  "capitalize text-xs",
-                  data.difficulty === 'hard' && "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400",
-                  data.difficulty === 'medium' && "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400",
-                  data.difficulty === 'easy' && "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400"
-                )}>
-                  {data.difficulty}
-                </Badge>
-
-                {mode === 'study' && (
-                  <>
-                    <AIFeedbackButton
-                      questionId={selectedSub?.id || ''}
-                      hasAnswer={!!selectedSub && !!answers[selectedSub.id]}
-                      isLoading={aiFeedbackLoading}
-                      onClick={handleAIFeedback}
-                    />
-                    <Button variant="outline" size="sm" onClick={() => setShowTutor(true)} className="gap-1 rounded-lg">
-                      <MessageSquare className="w-4 h-4" /> Tutor
-                    </Button>
-                  </>
+            {/* Right: Controls & Study / Exam Mode */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-muted/40">
+                {mode === 'study' ? (
+                  <BookOpen className="w-4 h-4 text-indigo-500" />
+                ) : (
+                  <GraduationCap className="w-4 h-4 text-primary" />
                 )}
+                <Label htmlFor="mode-toggle" className="text-xs font-medium cursor-pointer">
+                  {mode === 'study' ? 'Study' : 'Exam'}
+                </Label>
+                <Switch
+                  id="mode-toggle"
+                  checked={mode === 'study'}
+                  onCheckedChange={(checked) => setMode(checked ? 'study' : 'exam')}
+                />
               </div>
+
+              {mode === 'study' && (
+                <>
+                  <AIFeedbackButton
+                    questionId={selectedSub?.id || data.id}
+                    hasAnswer={!!selectedSub && !!answers[selectedSub.id]}
+                    isLoading={aiFeedbackLoading}
+                    onClick={handleAIFeedback}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => setShowTutor(true)} className="gap-1 h-8 text-xs">
+                    <MessageSquare className="w-3.5 h-3.5" /> Tutor
+                  </Button>
+                </>
+              )}
             </div>
           </div>
-        </motion.header>
+        </header>
 
-        {/* ── Workspace ───────────────────────────────────────────────── */}
-        <div className="flex-1 flex overflow-hidden min-h-0" style={{ height: 'calc(100vh - 57px)' }}>
-
-          {/* LEFT: Navigator Sidebar */}
-          <motion.aside
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="hidden lg:flex lg:flex-col w-72 border-r bg-card flex-shrink-0 min-h-0 overflow-hidden"
-          >
-            {/* Sidebar header */}
-            <div className="p-4 border-b space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm">Sub-Questions</h3>
-                <Badge variant="secondary" className="text-xs font-mono">{answeredCount}/{totalCount}</Badge>
-              </div>
-              <Progress value={progressPercentage} className="h-2" />
-              <p className="text-xs text-muted-foreground">{Math.round(progressPercentage)}% complete</p>
-            </div>
-
-            {/* Sidebar items */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-1">
-              {data.sub_questions.map((sq) => (
-                <button
-                  key={sq.id}
-                  onClick={() => setSelectedSubId(sq.id)}
-                  className={cn(
-                    "w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all flex items-center gap-2.5 group",
-                    selectedSubId === sq.id
-                      ? "bg-primary/10 border-l-[3px] border-l-primary"
-                      : "hover:bg-muted border-l-[3px] border-l-transparent"
-                  )}
-                >
-                  {answers[sq.id] ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-xs">({sq.label})</span>
-                      <span className="line-clamp-1 text-xs text-muted-foreground">
-                        {getPreviewText(sq.sub_question_text, 30)}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground font-mono shrink-0">{sq.marks}m</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Sidebar legend */}
-            <div className="p-3 border-t bg-muted/30 space-y-2">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Legend</p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3 h-3 text-green-500" />
-                  <span className="text-muted-foreground">Answered</span>
+        {/* Workspace Layout */}
+        <div className="flex-1 flex overflow-hidden min-h-0" style={{ height: 'calc(100vh - 53px)' }}>
+          {/* Subquestions Navigator Sidebar (if multi-part) */}
+          {data.sub_questions.length > 1 && (
+            <aside className="hidden lg:flex lg:flex-col w-64 border-r bg-card flex-shrink-0 min-h-0 overflow-hidden">
+              <div className="p-3 border-b space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+                    Sub-Parts
+                  </span>
+                  <Badge variant="secondary" className="text-xs font-mono">
+                    {answeredCount}/{totalCount}
+                  </Badge>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Circle className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Not attempted</span>
-                </div>
+                <Progress value={progressPercentage} className="h-1.5" />
               </div>
-            </div>
-          </motion.aside>
 
-          {/* Main content grid */}
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {data.sub_questions.map((sq) => (
+                  <button
+                    key={sq.id}
+                    onClick={() => setSelectedSubId(sq.id)}
+                    className={cn(
+                      'w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-2 group',
+                      selectedSubId === sq.id
+                        ? 'bg-indigo-500/10 text-indigo-600 font-semibold border-l-[3px] border-l-indigo-600'
+                        : 'hover:bg-muted text-muted-foreground border-l-[3px] border-l-transparent'
+                    )}
+                  >
+                    {answers[sq.id] ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    ) : (
+                      <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    )}
+                    <span className="font-mono font-bold">({sq.label})</span>
+                    <span className="line-clamp-1 flex-1">{getPreviewText(sq.sub_question_text, 25)}</span>
+                    <span className="font-mono text-[11px] shrink-0">{sq.marks}m</span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+          )}
+
+          {/* Main 2-Column Split: Question vs Answer Workspace */}
           <div className="flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
+            {/* LEFT: Question Prompt Panel */}
+            <div className="min-w-0 min-h-0 overflow-y-auto border-b lg:border-b-0 lg:border-r bg-background p-6 space-y-5">
+              {/* Question Header Card */}
+              <Card className="border border-border/80 shadow-sm">
+                <CardHeader className="p-4 pb-3 bg-muted/20 border-b flex flex-row items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+                    Problem Statement
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    {data.marks} Marks Total
+                  </span>
+                </CardHeader>
+                <CardContent className="p-5 space-y-4">
+                  <div className="prose prose-sm max-w-none dark:prose-invert font-serif text-sm leading-relaxed">
+                    {renderLatexContent(data.question_text)}
+                  </div>
 
-            {/* ── QUESTION PANEL ──────────────────────────────────────── */}
-            <div className="min-w-0 min-h-0 overflow-y-auto border-b lg:border-b-0 lg:border-r bg-background">
-              <div className="p-4 lg:p-6 space-y-4 lg:space-y-5">
+                  {data.image_url && (
+                    <div className="rounded-xl border overflow-hidden max-w-lg mx-auto bg-white p-2">
+                      <img
+                        src={data.image_url}
+                        alt="Question diagram"
+                        className="max-h-72 object-contain mx-auto"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                {/* Mobile sub-question navigator */}
-                <div className="lg:hidden">
-                  <Card className="border-border/60 shadow-sm">
-                    <CardContent className="p-3 space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Sub-Questions
-                      </p>
-                      <div className="flex gap-2 overflow-x-auto pb-1">
-                        {data.sub_questions.map((sq) => (
-                          <button
-                            key={sq.id}
-                            onClick={() => setSelectedSubId(sq.id)}
+              {/* Sub-question Detail (if multi-part) */}
+              {selectedSub && data.sub_questions.length > 1 && (
+                <Card className="border border-indigo-200/60 dark:border-indigo-900/60 shadow-sm">
+                  <CardHeader className="p-4 pb-2 bg-indigo-50/30 dark:bg-indigo-950/20 border-b flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-md bg-indigo-600 text-white text-xs font-bold flex items-center justify-center font-mono">
+                        {selectedSub.label}
+                      </span>
+                      <span className="text-xs font-semibold text-foreground">Part ({selectedSub.label})</span>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-mono">
+                      {selectedSub.marks} {selectedSub.marks === 1 ? 'mark' : 'marks'}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="p-5 space-y-3">
+                    <div className="prose prose-sm max-w-none dark:prose-invert font-serif text-sm leading-relaxed">
+                      {renderLatexContent(selectedSub.sub_question_text)}
+                    </div>
+                    {selectedSub.sub_question_image_url && (
+                      <div className="rounded-xl border overflow-hidden max-w-sm mx-auto bg-white p-2">
+                        <img
+                          src={selectedSub.sub_question_image_url}
+                          alt="Subquestion illustration"
+                          className="max-h-60 object-contain mx-auto"
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* RIGHT: Answer Workspace & Solutions */}
+            <div className="min-w-0 min-h-0 overflow-y-auto bg-muted/10 p-6 space-y-5 flex flex-col justify-between">
+              <div className="space-y-5">
+                {/* Answer Input Block */}
+                <Card className="border border-border/80 shadow-sm">
+                  <CardHeader className="p-4 pb-3 border-b flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <span>Your Mathematical Solution</span>
+                        {isSubmitted && (
+                          <Badge
                             className={cn(
-                              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all flex items-center gap-1.5',
-                              selectedSubId === sq.id
-                                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                                : answers[sq.id]
-                                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800'
-                                  : 'bg-background text-foreground hover:bg-muted border-border'
+                              'text-[10px]',
+                              isCorrect === true
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-rose-100 text-rose-700'
                             )}
                           >
-                            {answers[sq.id] && selectedSubId !== sq.id && (
-                              <CheckCircle2 className="w-3 h-3" />
-                            )}
-                            ({sq.label}) {sq.marks}m
-                          </button>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Main question card */}
-                <Card className="border-border/60 shadow-sm overflow-hidden">
-                  <CardHeader className="pb-3 bg-gradient-to-r from-sky-50 via-violet-50 to-pink-50 dark:from-sky-950/30 dark:via-violet-950/20 dark:to-pink-950/30">
-                    <CardTitle className="text-lg flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-violet-500 flex items-center justify-center shadow-sm">
-                        <BookOpen className="w-4 h-4 text-white" />
-                      </div>
-                      Question
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      {renderLatexContent(data.question_text)}
+                            {isCorrect === true ? 'Evaluated Correct' : 'Submitted'}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Use the equation toolbar or type LaTeX syntax directly.
+                      </p>
                     </div>
-                    {data.question_image_url && (
-                      <img
-                        src={data.question_image_url}
-                        alt="Question diagram"
-                        className="mt-4 max-w-full rounded-lg border"
+
+                    <Button
+                      size="sm"
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || isSubmitted}
+                      className={cn(
+                        'h-8 text-xs font-medium gap-1.5 shadow-sm',
+                        isSubmitted ? 'bg-muted text-muted-foreground' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      )}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : isSubmitted ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          Submitted
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          Submit Answer
+                        </>
+                      )}
+                    </Button>
+                  </CardHeader>
+
+                  <CardContent className="p-4">
+                    {selectedSub && (
+                      <InteractiveAnswerBlock
+                        key={`${selectedSub.id}-${selectedSub.answer_type}`}
+                        questionId={selectedSub.id}
+                        subQuestionId={selectedSub.id}
+                        detectedType={selectedSub.answer_type as any}
+                        config={selectedSub.answer_block_config || { type: 'text_equation' }}
+                        value={answers[selectedSub.id] || ''}
+                        onChange={(val) => handleAnswerChange(selectedSub.id, val)}
+                        disabled={isSubmitted}
+                        allowTypeChange={false}
+                        questionText={selectedSub.sub_question_text}
                       />
                     )}
                   </CardContent>
                 </Card>
 
-                {/* Selected sub-question card */}
-                <AnimatePresence mode="wait">
-                  {selectedSub && (
-                    <motion.div
-                      key={selectedSub.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Card className="border-violet-200/60 dark:border-violet-800 shadow-md ring-1 ring-violet-500/20">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-sm">
-                                {selectedSub.label}
-                              </div>
-                              {selectedSub.command_term && (
-                                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
-                                  {selectedSub.command_term}
-                                </Badge>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
-                              [{selectedSub.marks}]
-                            </Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="prose prose-sm max-w-none dark:prose-invert">
-                            {renderLatexContent(selectedSub.sub_question_text)}
-                          </div>
-                          {selectedSub.sub_question_image_url && (
-                            <img
-                              src={selectedSub.sub_question_image_url}
-                              alt={`Sub-question ${selectedSub.label}`}
-                              className="mt-3 max-w-full rounded-lg border"
-                            />
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* ── ANSWER PANEL ────────────────────────────────────────── */}
-            <div className="min-w-0 min-h-0 overflow-y-auto bg-gradient-to-b from-slate-50/80 via-background to-violet-50/30 dark:from-slate-950/30 dark:via-background dark:to-violet-950/10">
-              <div className="p-4 lg:p-6 space-y-4">
-                {selectedSub ? (
-                  <>
-                    {/* Answer header */}
-                    <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/60">
-                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-sm">
-                          <span className="text-xs font-bold text-white">{selectedSub.label}</span>
-                        </div>
-                        Answer
-                      </h3>
-                      <Badge variant="outline" className="text-[10px] font-mono capitalize">
-                        {selectedSub.answer_type.replace('_', ' ')}
+                {/* Solution Reveal Panel (P0-01 Protected) */}
+                <Card className="border border-border/80 shadow-sm overflow-hidden">
+                  <CardHeader className="p-4 pb-3 bg-muted/30 border-b flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-amber-500" />
+                      <span>Official Solution & Marking Guide</span>
+                    </CardTitle>
+                    {!isSubmitted && (
+                      <Badge variant="outline" className="text-[11px] gap-1 text-muted-foreground">
+                        <Lock className="w-3 h-3" /> Locked
                       </Badge>
-                    </div>
-
-                    {/* Interactive answer block */}
-                    <InteractiveAnswerBlock
-                      key={`${selectedSub.id}-${selectedSub.answer_type}`}
-                      questionId={selectedSub.id}
-                      subQuestionId={selectedSub.id}
-                      detectedType={selectedSub.answer_type as any}
-                      config={selectedSub.answer_block_config || {}}
-                      value={answers[selectedSub.id] || ''}
-                      onChange={(val) => handleAnswerChange(selectedSub.id, val)}
-                      disabled={mode === 'study'}
-                      allowTypeChange={false}
-                      questionText={selectedSub.sub_question_text}
-                    />
-
-                    {/* Study mode: answer key + solution */}
-                    {mode === 'study' && (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-                        {selectedSub.answer_key && (
-                          <Card className="border-emerald-200/60 dark:border-emerald-800 shadow-sm overflow-hidden">
-                            <CardHeader className="pb-2 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-cyan-950/30">
-                              <CardTitle className="text-sm flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                                </div>
-                                Answer Key
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-3">
-                              <div className="prose prose-sm max-w-none dark:prose-invert">
-                                {renderLatexContent(selectedSub.answer_key)}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {selectedSub.solution && (
-                          <Card className="border-blue-200/60 dark:border-blue-800 shadow-sm overflow-hidden">
-                            <CardHeader className="pb-2 bg-gradient-to-r from-blue-50 via-indigo-50 to-violet-50 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-violet-950/30">
-                              <CardTitle className="text-sm flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-sm">
-                                  <Lightbulb className="w-3.5 h-3.5 text-white" />
-                                </div>
-                                Step-by-Step Solution
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-3">
-                              <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
-                                {renderLatexContent(selectedSub.solution)}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </motion.div>
                     )}
+                  </CardHeader>
 
-                    {/* Prev / Next navigation */}
-                    <div className="flex gap-3 pt-4">
-                      {hasPrev && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 rounded-xl shadow-sm hover:shadow-md transition-all"
-                          onClick={() => setSelectedSubId(data.sub_questions[currentIdx - 1].id)}
-                        >
-                          <ChevronLeft className="w-4 h-4 mr-1" />
-                          Previous
-                        </Button>
-                      )}
-                      {hasNext && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 rounded-xl shadow-sm hover:shadow-md transition-all"
-                          onClick={() => setSelectedSubId(data.sub_questions[currentIdx + 1].id)}
-                        >
-                          Next
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center py-16"
-                  >
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-100 to-sky-100 dark:from-violet-900/30 dark:to-sky-900/30 flex items-center justify-center">
-                      <BookOpen className="w-8 h-8 text-violet-400" />
-                    </div>
-                    <p className="text-foreground font-medium">Select a sub-question to begin</p>
-                    <p className="text-xs text-muted-foreground mt-1">Choose from the navigator on the left</p>
-                  </motion.div>
-                )}
+                  <CardContent className="p-4">
+                    {!isSubmitted ? (
+                      <div className="text-center py-6 px-4 space-y-2">
+                        <div className="w-10 h-10 mx-auto rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                          <Lock className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-xs font-semibold text-foreground">Solution Protected</h4>
+                        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                          To protect academic integrity and test preparation value, submit your response to unlock the
+                          complete step-by-step solution and official marking criteria.
+                        </p>
+                      </div>
+                    ) : loadingSolutions ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                        <span className="text-xs text-muted-foreground ml-2">Unlocking official solutions...</span>
+                      </div>
+                    ) : revealedSolutions.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-4 text-center">
+                        Solution is currently being verified by the curriculum team.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {revealedSolutions.map((sol, idx) => (
+                          <div key={idx} className="space-y-3 border-b last:border-b-0 pb-3">
+                            {sol.part_label && (
+                              <Badge variant="secondary" className="text-xs font-mono">
+                                Part ({sol.part_label})
+                              </Badge>
+                            )}
+
+                            {sol.answer_key && (
+                              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-3 rounded-lg border border-emerald-200/50 dark:border-emerald-800/50">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-1">
+                                  Final Answer Key
+                                </span>
+                                <div className="text-xs font-mono font-semibold text-emerald-900 dark:text-emerald-200">
+                                  {renderLatexContent(sol.answer_key)}
+                                </div>
+                              </div>
+                            )}
+
+                            {sol.solution && (
+                              <div className="space-y-1">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                                  Step-by-Step Derivation
+                                </span>
+                                <div className="prose prose-xs max-w-none dark:prose-invert font-serif text-xs leading-relaxed whitespace-pre-wrap">
+                                  {renderLatexContent(sol.solution)}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
+
+              {/* Prev / Next Subquestion Buttons */}
+              {data.sub_questions.length > 1 && (
+                <div className="flex items-center justify-between gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!hasPrev}
+                    onClick={() => setSelectedSubId(data.sub_questions[currentIdx - 1].id)}
+                    className="h-8 text-xs gap-1"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Previous Part
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!hasNext}
+                    onClick={() => setSelectedSubId(data.sub_questions[currentIdx + 1].id)}
+                    className="h-8 text-xs gap-1"
+                  >
+                    Next Part
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -581,20 +820,23 @@ const PracticeQuestionView = () => {
           feedback={aiFeedback}
           isLoading={aiFeedbackLoading}
           questionNumber={selectedSub ? data.sub_questions.indexOf(selectedSub) + 1 : 1}
-          onTryAgain={() => { setShowAIFeedback(false); setAiFeedback(null); }}
+          onTryAgain={() => {
+            setShowAIFeedback(false);
+            setAiFeedback(null);
+          }}
         />
 
-        {/* AI Tutor */}
+        {/* Enhanced AI Tutor */}
         <EnhancedAITutor
           question={{
             id: selectedSub?.id || data.id,
             title: data.title,
             content: selectedSub?.sub_question_text || data.question_text,
-            answerKey: selectedSub?.answer_key || '',
+            answerKey: '',
             topic: data.topic,
             difficulty: data.difficulty
           }}
-          subject={data.subject}
+          subject="mathematics"
           isOpen={showTutor}
           onClose={() => setShowTutor(false)}
           mode="practice"
