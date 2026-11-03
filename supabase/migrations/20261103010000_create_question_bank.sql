@@ -260,3 +260,4 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.get_practice_question_solution(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_practice_question_solution(uuid) TO authenticated;
+
