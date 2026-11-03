@@ -2741,6 +2741,82 @@ export type Database = {
       }
     }
     Functions: {
+      generate_practice_session: {
+        Args: {
+          p_title: string
+          p_count: number
+          p_filters?: Json
+        }
+        Returns: {
+          session_id: string
+          total_questions: number
+        }[]
+      }
+      start_single_question_attempt: {
+        Args: {
+          p_question_id: string
+        }
+        Returns: {
+          session_id: string
+          session_question_id: string
+          attempt_status: string
+          saved_answer: string | null
+          time_spent_seconds: number
+        }[]
+      }
+      save_practice_draft_answer: {
+        Args: {
+          p_session_question_id: string
+          p_answer: string
+          p_time_spent_seconds?: number
+        }
+        Returns: boolean
+      }
+      submit_practice_question_answer: {
+        Args: {
+          p_session_question_id: string
+          p_answer: string
+          p_time_spent_seconds?: number
+        }
+        Returns: {
+          is_correct: boolean | null
+          attempt_status: string
+        }[]
+      }
+      complete_practice_session: {
+        Args: {
+          p_session_id: string
+        }
+        Returns: {
+          completed: boolean
+          score: number
+          total_completed: number
+          total_questions: number
+        }[]
+      }
+      get_practice_question_solution: {
+        Args: {
+          p_session_question_id: string
+        }
+        Returns: {
+          part_label: string
+          answer_key: string
+          solution: string
+          marking_rubric: Json
+        }[]
+      }
+      get_question_bank_audit_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_questions: number
+          published_questions: number
+          review_pending_questions: number
+          draft_questions: number
+          myp_math_questions: number
+          multi_part_questions: number
+          single_questions: number
+        }[]
+      }
       add_user_xp: {
         Args: {
           activity_data?: Json

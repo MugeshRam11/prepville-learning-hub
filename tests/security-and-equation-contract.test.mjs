@@ -28,20 +28,22 @@ test('Security Audit - No private keys or service-role keys in client source', (
       false,
       `File ${file} must not reference VITE_SUPABASE_SERVICE_ROLE_KEY`
     );
+    const liveResendPattern = /re_[A-Za-z0-9]{25,}/;
     assert.strictEqual(
-      content.includes('re_CAF5fjsw_BUHR9wnp9MrgayMKZMw8Tc7Z'),
+      liveResendPattern.test(content),
       false,
-      `File ${file} must not contain hardcoded Resend key`
+      `File ${file} must not contain hardcoded live Resend API key`
     );
   }
 });
 
 test('Security Audit - Edge functions do not contain hardcoded secret fallbacks', () => {
   const otpFunction = fs.readFileSync('supabase/functions/send-otp/index.ts', 'utf8');
+  const liveResendPattern = /re_[A-Za-z0-9]{25,}/;
   assert.strictEqual(
-    otpFunction.includes('re_CAF5fjsw_BUHR9wnp9MrgayMKZMw8Tc7Z'),
+    liveResendPattern.test(otpFunction),
     false,
-    'send-otp edge function must not contain hardcoded Resend key'
+    'send-otp edge function must not contain hardcoded live Resend key'
   );
   assert.strictEqual(
     otpFunction.includes("Deno.env.get('RESEND_API_KEY')"),
