@@ -101,7 +101,10 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
 
         const seenQuestions = new Set<string>();
         const validations: RowValidationResult[] = rows.map((row, index) => {
-          const rowErrors: string[] = [];
+          const rowErrors = results.errors.filter(err => err.row === index || err.row === undefined).map(err => err.message);
+          if (row.programme?.trim() !== 'MYP' || row.subject?.trim() !== 'mathematics') rowErrors.push('Expected MYP mathematics');
+          if (!Number.isInteger(Number(row.marks)) || Number(row.marks) < 1) rowErrors.push('Expected positive whole marks');
+          if (!row.answer_key?.trim()) rowErrors.push('Missing answer_key');
           const rowNum = index + 2; // header is row 1
 
           // 1. Mandatory Question Text
@@ -197,60 +200,27 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
     try {
       let importedCount = 0;
 
+      const batch = crypto.randomUUID();
+      const errors: string[] = [];
+      let duplicates = invalidRows.filter(row => row.errors.some(message => message.includes('Duplicate'))).length;
+      let rejected = invalidRows.length - duplicates;
       for (const item of validRows) {
         const row = item.data;
-        const marks = Number(row.marks) > 0 ? Number(row.marks) : 1;
-        const difficulty = (row.difficulty?.trim().toLowerCase() as any) || 'medium';
-
-        // D3-03 SECURITY: Imported questions are NEVER published automatically.
-        // They are placed in 'review_pending' with is_published = false until reviewed by an admin.
-        const { data: qData, error: qErr } = await supabase
-          .from('question_bank')
-          .insert({
-            programme: 'MYP',
-            subject: 'mathematics',
-            myp_year: row.myp_year!.trim() as any,
-            strand: row.strand!.trim() as any,
-            topic: row.topic!.trim(),
-            subtopic: row.subtopic?.trim() || null,
-            difficulty: difficulty,
-            command_term: row.command_term?.trim() || 'Solve',
-            question_text: row.question_text!.trim(),
-            marks: marks,
-            is_published: false, // MANDATORY: Held in draft/review queue
-            review_status: 'review_pending',
-            question_type: 'single',
-            answer_type: 'text_equation'
-          })
-          .select('id')
-          .single();
-
-        if (qErr) {
-          console.warn(`Row ${item.rowNumber} failed insert:`, qErr.message);
-          continue;
-        }
-
-        // Insert isolated answer key
-        if (qData?.id && (row.answer_key || row.solution)) {
-          const { error: akErr } = await supabase.from('question_answer_keys').insert({
-            question_id: qData.id,
-            answer_key: row.answer_key?.trim() || '',
-            solution: row.solution?.trim() || ''
-          });
-
-          if (akErr) {
-            console.warn(`Row ${item.rowNumber} answer key failed:`, akErr.message);
-          }
-        }
-
-        importedCount++;
+        const { error } = await supabase.rpc('save_bank_question', {
+          p_batch: batch, p_question: { ...row, marks: Number(row.marks),
+            difficulty: row.difficulty?.trim().toLowerCase() || 'medium', question_type: 'single',
+            answer_type: 'text_equation', review_status: 'review_pending', is_published: false }
+        });
+        if (error) {
+          if (error.code === '23505') duplicates++;
+          else rejected++;
+          errors.push('Row ' + item.rowNumber + ': ' + error.message);
+        } else importedCount++;
       }
-
-      toast.success(
-        `Imported ${importedCount} questions into Question Bank under "Review Pending" status.`
-      );
+      const summary = 'Batch ' + batch + ' · Imported ' + importedCount + ' · Rejected ' + rejected + ' · Duplicates ' + duplicates;
+      setGlobalError([summary, ...errors].join(' | '));
+      toast.info(summary);
       onSuccess();
-      onClose();
     } catch (err: any) {
       setGlobalError(`Import failed: ${err.message || 'Unknown database error'}`);
       toast.error('Import failed. Please check table constraints.');
