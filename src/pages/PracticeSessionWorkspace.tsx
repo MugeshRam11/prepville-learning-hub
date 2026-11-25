@@ -100,7 +100,36 @@ const PracticeSessionWorkspace: React.FC = () => {
 
   // Time tracking
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const dirty = useRef(new Map<string, { answer: string; seconds: number }>());
+  const saving = useRef<Promise<void> | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const [saveFailed,setSaveFailed] = useState(false);
+  const answerRef = useRef(answers);
+  const flush = useCallback(async () => {
+    clearTimeout(timer.current);
+    if (saving.current) return saving.current;
+    const persist = async () => {
+      while (dirty.current.size) {
+        const [id, draft] = dirty.current.entries().next().value!;
+        const {error,data} = await supabase.rpc('save_practice_draft_answer', {
+          p_session_question_id: id, p_answer: draft.answer, p_time_spent_seconds: draft.seconds
+        });
+        if (error || !data) throw new Error(error?.message || 'Draft could not be saved');
+        if (dirty.current.get(id) === draft) dirty.current.delete(id);
+      }
+    };
+    setIsSaving(true);
+    saving.current = persist().then(() => setSaveFailed(false)).catch(error => {
+      setSaveFailed(true);
+      throw error;
+    }).finally(() => { saving.current = null; setIsSaving(false); });
+    return saving.current;
+  }, []);
+  useEffect(() => {
+    const protect = (event: BeforeUnloadEvent) => { if (dirty.current.size) event.preventDefault(); };
+    window.addEventListener('beforeunload',protect);
+    return () => { window.removeEventListener('beforeunload',protect); if (dirty.current.size) void flush().catch(() => toast.error('Draft save failed')); };
+  },[flush]);
 
   // Solutions map for submitted questions
   const [solutionsMap, setSolutionsMap] = useState<Record<string, RevealedSolution[]>>({});
@@ -136,7 +165,7 @@ const PracticeSessionWorkspace: React.FC = () => {
       const questionIds = (psqData || []).map((q: any) => q.question_id);
       const { data: qbData, error: qbErr } = await supabase
         .from('question_bank')
-        .select('id, question_text, image_url, strand, myp_year, topic, subtopic, difficulty, question_type, marks')
+        .select('id, question_text, image_url, strand, myp_year, topic, subtopic, difficulty, question_type, answer_type, answer_config, marks')
         .in('id', questionIds);
 
       if (qbErr) throw qbErr;
@@ -194,8 +223,8 @@ const PracticeSessionWorkspace: React.FC = () => {
             sub_question_text: qb.question_text || '',
             sub_question_image_url: qb.image_url,
             marks: qb.marks || 1,
-            answer_type: qb.question_type || 'text_equation',
-            answer_block_config: { type: (qb.question_type as any) || 'text_equation' }
+            answer_type: qb.answer_type || 'text_equation',
+            answer_block_config: { ...qb.answer_config, type: qb.answer_type || 'text_equation' }
           }
         ];
 
@@ -223,7 +252,9 @@ const PracticeSessionWorkspace: React.FC = () => {
       });
 
       setQuestions(enrichedQuestions);
+      answerRef.current = initialAnswers;
       setAnswers(initialAnswers);
+      setElapsedSeconds(Math.max(0,...enrichedQuestions.map(q=>q.time_spent_seconds)));
 
       if (sessData.is_completed) {
         setShowSummaryModal(true);
@@ -275,54 +306,23 @@ const PracticeSessionWorkspace: React.FC = () => {
 
   // When viewing a question that is already submitted/evaluated, fetch its solution
   useEffect(() => {
-    if (currentQ && (currentQ.attempt_status === 'submitted' || currentQ.attempt_status === 'evaluated')) {
+    if ((session?.is_completed || session?.session_mode === 'study') && currentQ && (currentQ.attempt_status === 'submitted' || currentQ.attempt_status === 'evaluated')) {
       fetchSolution(currentQ.id);
     }
-  }, [currentQ, fetchSolution]);
+  }, [currentQ, fetchSolution, session?.is_completed, session?.session_mode]);
 
-  // Autosave Draft
-  const saveDraft = useCallback(
-    async (sqId: string, answerVal: any) => {
-      if (!currentQ || currentQ.attempt_status === 'submitted' || currentQ.attempt_status === 'evaluated') {
-        return;
-      }
-      setIsSaving(true);
-      try {
-        const payload = typeof answerVal === 'object' ? JSON.stringify(answerVal) : String(answerVal);
-        await supabase.rpc('save_practice_draft_answer', {
-          p_session_question_id: sqId,
-          p_answer: payload,
-          p_time_spent_seconds: elapsedSeconds
-        });
-
-        // Update local status to draft if was unattempted
-        setQuestions((prev) =>
-          prev.map((q) => (q.id === sqId && q.attempt_status === 'unattempted' ? { ...q, attempt_status: 'draft' } : q))
-        );
-      } catch (err) {
-        console.warn('Draft autosave failed:', err);
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [currentQ, elapsedSeconds]
-  );
-
-  const handleAnswerChange = useCallback(
-    (val: any) => {
-      if (!currentQ) return;
-      const sqId = currentQ.id;
-      setAnswers((prev) => {
-        const next = { ...prev, [sqId]: val };
-        if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = setTimeout(() => {
-          saveDraft(sqId, val);
-        }, 1500);
-        return next;
-      });
-    },
-    [currentQ, saveDraft]
-  );
+  const handleAnswerChange = (partId: string, val: unknown) => {
+    if (!currentQ || session?.is_completed || isCompleting || isSubmitting) return;
+    const id = currentQ.id;
+    const response = currentQ.question.question_type === 'multi_part'
+      ? {...answerRef.current[id], [partId]: val} : val;
+    answerRef.current = {...answerRef.current, [id]: response};
+    setAnswers(answerRef.current);
+    dirty.current.set(id,{answer: JSON.stringify(response), seconds: elapsedSeconds});
+    setIsSaving(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => void flush().catch(() => toast.error('Draft save failed. Retry before leaving.')), 400);
+  };
 
   // Submit Current Question
   const handleSubmitCurrentQuestion = async () => {
@@ -337,7 +337,8 @@ const PracticeSessionWorkspace: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const payload = typeof answerVal === 'object' ? JSON.stringify(answerVal) : String(answerVal);
+      await flush();
+      const payload = JSON.stringify(answerVal);
       const { data: submitResult, error } = await supabase.rpc('submit_practice_question_answer', {
         p_session_question_id: sqId,
         p_answer: payload,
@@ -381,6 +382,7 @@ const PracticeSessionWorkspace: React.FC = () => {
     if (!sessionId) return;
     setIsCompleting(true);
     try {
+      await flush();
       const { data, error } = await supabase.rpc('complete_practice_session', {
         p_session_id: sessionId
       });
@@ -391,11 +393,12 @@ const PracticeSessionWorkspace: React.FC = () => {
       setSession((prev: any) => ({
         ...prev,
         is_completed: true,
-        score: res?.score ?? 0,
+        score: res?.score ?? null,
         completed_questions: res?.total_completed ?? prev.completed_questions
       }));
 
       setShowFinishDialog(false);
+      await loadSession();
       setShowSummaryModal(true);
       toast.success('Practice session completed!');
     } catch (err: any) {
@@ -427,7 +430,7 @@ const PracticeSessionWorkspace: React.FC = () => {
   );
 
   const totalCount = questions.length || 1;
-  const progressPercent = Math.round((submittedCount / totalCount) * 100);
+  const progressPercent = Math.round((answeredCount / totalCount) * 100);
 
   if (isLoading) {
     return (
@@ -446,7 +449,7 @@ const PracticeSessionWorkspace: React.FC = () => {
 
   if (!currentQ) return null;
 
-  const isCurrentSubmitted = currentQ.attempt_status === 'submitted' || currentQ.attempt_status === 'evaluated';
+  const isCurrentSubmitted = session?.is_completed || currentQ.attempt_status === 'submitted' || currentQ.attempt_status === 'evaluated';
   const currentSolutions = solutionsMap[currentQ.id] || [];
 
   return (
@@ -480,7 +483,7 @@ const PracticeSessionWorkspace: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Submitted</span>
                 <span className="font-mono font-medium">
-                  {submittedCount} / {totalCount} ({progressPercent}%)
+                  {answeredCount} / {totalCount} ({progressPercent}%)
                 </span>
               </div>
               <Progress value={progressPercent} className="h-2" />
@@ -493,6 +496,7 @@ const PracticeSessionWorkspace: React.FC = () => {
               </span>
             </div>
 
+            {saveFailed && <Button onClick={() => void flush().catch(() => toast.error('Save failed'))}>Retry save</Button>}
             {isSaving && (
               <div className="flex items-center gap-1 text-xs text-amber-600 font-medium animate-pulse">
                 <Save className="w-3.5 h-3.5" />
@@ -688,7 +692,7 @@ const PracticeSessionWorkspace: React.FC = () => {
                     </p>
                   </div>
 
-                  <Button
+                  {session?.session_mode === 'study' && <Button
                     size="sm"
                     onClick={handleSubmitCurrentQuestion}
                     disabled={isSubmitting || isCurrentSubmitted}
@@ -715,22 +719,19 @@ const PracticeSessionWorkspace: React.FC = () => {
                         Submit Answer
                       </>
                     )}
-                  </Button>
+                  </Button>}
                 </CardHeader>
 
                 <CardContent className="p-4">
-                  <InteractiveAnswerBlock
-                    key={`${currentQ.id}-${currentQ.question.question_type}`}
-                    questionId={currentQ.id}
-                    subQuestionId={currentQ.id}
-                    detectedType={currentQ.question.question_type as any}
-                    config={{ type: (currentQ.question.question_type as any) || 'text_equation' }}
-                    value={answers[currentQ.id] || ''}
-                    onChange={handleAnswerChange}
-                    disabled={isCurrentSubmitted}
-                    allowTypeChange={false}
-                    questionText={currentQ.question.question_text}
-                  />
+                  {currentQ.subquestions.map(part => <div key={part.id} className="mb-4">
+                    {currentQ.question.question_type === 'multi_part' && <p>Part ({part.label})</p>}
+                    <InteractiveAnswerBlock key={part.id} questionId={currentQ.question_id} subQuestionId={part.id}
+                      detectedType={part.answer_type as any} config={part.answer_block_config}
+                      value={currentQ.question.question_type === 'multi_part' ? answers[currentQ.id]?.[part.id] ?? '' : answers[currentQ.id] ?? ''}
+                      onChange={value => handleAnswerChange(part.id,value)}
+                      disabled={isCurrentSubmitted || isCompleting || isSubmitting} allowTypeChange={false}
+                      questionText={part.sub_question_text} />
+                  </div>)}
                 </CardContent>
               </Card>
 
@@ -749,15 +750,14 @@ const PracticeSessionWorkspace: React.FC = () => {
                 </CardHeader>
 
                 <CardContent className="p-4">
-                  {!isCurrentSubmitted ? (
+                  {!(session?.is_completed || (session?.session_mode === 'study' && isCurrentSubmitted)) ? (
                     <div className="text-center py-6 px-4 space-y-2">
                       <div className="w-10 h-10 mx-auto rounded-full bg-muted flex items-center justify-center text-muted-foreground">
                         <Lock className="w-5 h-5" />
                       </div>
-                      <h4 className="text-xs font-semibold text-foreground">Submit Response to Unlock Solution</h4>
+                      <h4 className="text-xs font-semibold text-foreground">Solution locked</h4>
                       <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                        Once you submit your answer, the official step-by-step solution and grading key are immediately
-                        unlocked.
+                        {session?.session_mode === 'paper' ? 'Finish your paper to review solutions.' : 'Submit your response to review the solution.'}
                       </p>
                     </div>
                   ) : loadingSolution ? (
@@ -857,12 +857,7 @@ const PracticeSessionWorkspace: React.FC = () => {
               Complete Practice Session?
             </DialogTitle>
             <DialogDescription className="text-sm">
-              You have submitted <strong>{submittedCount}</strong> of <strong>{totalCount}</strong> questions.
-              {submittedCount < totalCount && (
-                <span className="block mt-1 text-amber-600 font-medium">
-                  {totalCount - submittedCount} unsubmitted question(s) will be marked incomplete.
-                </span>
-              )}
+              Submit this paper with {answeredCount} of {totalCount} questions answered? Your saved responses will be final.
             </DialogDescription>
           </DialogHeader>
 
@@ -908,7 +903,7 @@ const PracticeSessionWorkspace: React.FC = () => {
               <div>
                 <span className="text-xs uppercase font-semibold text-indigo-300">Final Session Score</span>
                 <div className="text-4xl font-extrabold font-mono mt-1">
-                  {session?.score !== null && session?.score !== undefined ? `${Math.round(session.score)}%` : 'Completed'}
+                  {session?.score !== null && session?.score !== undefined ? `${Math.round(session.score)}%` : 'Pending review'}
                 </div>
                 <p className="text-xs text-indigo-200 mt-1">
                   {submittedCount} of {totalCount} questions submitted
