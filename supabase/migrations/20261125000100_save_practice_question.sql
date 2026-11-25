@@ -7,6 +7,7 @@ declare
  qid uuid:=coalesce(p_id,gen_random_uuid());
  parts uuid[]:='{}';
  total integer:=0;
+ revision boolean:=false;
 begin
  if auth.uid() is null or not public.has_role(auth.uid(),'admin'::text) then raise insufficient_privilege; end if;
  q:=jsonb_populate_record(null::public.question_bank,p_question);
@@ -25,7 +26,10 @@ begin
    perform from public.question_bank where id=p_id for update;
    if not found then raise exception 'Unknown question'; end if;
    if exists(select from public.practice_session_questions where question_id=p_id) then
-      raise exception 'This question has attempts. Archive it and create a revised question.';
+      -- Preserve the prompts, keys and part identities used for historical grading.
+      revision:=true;
+      qid:=gen_random_uuid();
+      update public.question_bank set review_status='archived',is_published=false where id=p_id;
    end if;
  end if;
  insert into public.question_bank(id,programme,subject,myp_year,strand,topic,subtopic,difficulty,question_type,
@@ -38,11 +42,11 @@ begin
  if q.question_type='multi_part' then
    for item in select value from jsonb_array_elements(p_question->'subquestions') loop
      part:=jsonb_populate_record(null::public.question_subquestions,item);
-     if part.id is not null and not exists(select from public.question_subquestions where id=part.id and question_id=qid)
+     if part.id is not null and not exists(select from public.question_subquestions where id=part.id and question_id=coalesce(p_id,qid))
        then raise exception 'Part does not belong to this question'; end if;
      if nullif(trim(part.sub_question_text),'') is null or nullif(trim(part.label),'') is null or part.id=any(parts)
        then raise exception 'Invalid part'; end if;
-     part.id:=coalesce(part.id,gen_random_uuid());
+     part.id:=case when revision then gen_random_uuid() else coalesce(part.id,gen_random_uuid()) end;
      insert into public.question_subquestions(id,question_id,label,marks,answer_type,answer_config,command_term,sub_question_text,sub_question_image_url,order_index)
      values(part.id,qid,part.label,part.marks,part.answer_type,coalesce(part.answer_config,'{}'),part.command_term,part.sub_question_text,part.sub_question_image_url,cardinality(parts))
      on conflict(id) do update set label=part.label,marks=part.marks,answer_type=part.answer_type,

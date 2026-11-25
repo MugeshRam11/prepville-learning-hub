@@ -51,16 +51,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let generation = 0;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        const current = ++generation;
         if (session?.user) {
           setSession(session);
           setUser(session.user);
           setIsDemo(false);
-          const dbRole = await fetchUserRole(session.user.id);
-          setRole(dbRole);
-          setLoading(false);
+          setLoading(true);
+          setTimeout(async () => {
+            if (current !== generation) return;
+            const dbRole = await fetchUserRole(session.user.id);
+            if (current === generation) { setRole(dbRole); setLoading(false); }
+          }, 0);
 
           if (event === 'SIGNED_IN' && session.user) {
             setTimeout(async () => {
@@ -92,27 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setSession(session);
-        setUser(session.user);
-        setIsDemo(false);
-        const dbRole = await fetchUserRole(session.user.id);
-        setRole(dbRole);
-      } else if (isDemoSession()) {
-        const demoSession = getDemoSession();
-        if (demoSession) {
-          setUser(createMockDemoUser());
-          setSession(demoSession as Session);
-          setRole('student');
-          setIsDemo(true);
-        }
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => { generation++; subscription.unsubscribe(); };
   }, []);
 
   const ensureStudyGroupsUser = async (user: User) => {

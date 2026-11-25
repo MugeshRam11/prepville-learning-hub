@@ -425,7 +425,7 @@ export const QuestionBankManager: React.FC = () => {
         review_status: formData.is_published ? 'approved' : formData.review_status
       };
 
-      const { error } = await supabase.rpc('save_bank_question', {
+      const { data: savedId, error } = await supabase.rpc('save_bank_question', {
         p_id: editingId,
         p_question: practiceQuestion.parse({ ...payload, answer_config: {...formData.answer_config}, marking_rubric: formData.marking_rubric, answer_key: formData.answer_key, solution: formData.solution,
           subquestions: formData.subquestions.map(part => ({ ...part, answer_config: {...part.answer_config} })) })
@@ -433,7 +433,7 @@ export const QuestionBankManager: React.FC = () => {
       if (error) throw error;
 
       toast.success(
-        editingId ? 'Question and subquestions updated successfully.' : 'New question created in Question Bank.'
+        editingId && savedId !== editingId ? 'Revision saved. Earlier attempts retain the archived version.' : editingId ? 'Question updated.' : 'New question created in Question Bank.'
       );
       setIsFormOpen(false);
       fetchQuestions();

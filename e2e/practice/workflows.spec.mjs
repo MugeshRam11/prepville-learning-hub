@@ -18,11 +18,13 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
     const fixture={programme:'MYP',subject:'mathematics',myp_year:'Year 2',strand:'Algebra',topic:'Linear equations',
       difficulty:'medium',question_type:'single',marks:2,answer_type:'short_answer',answer_key:'3',is_published:true,review_status:'approved'};
     for(let n=1;n<=13;n++) await db.query('select save_bank_question($1)',[JSON.stringify({...fixture,question_text:'Solve equation '+n})]);
-    await context.addInitScript(()=>{
-      localStorage.setItem('demo_session','{}'); localStorage.setItem('demo_user_active','true');
-      if(location.pathname.startsWith('/admin')) localStorage.setItem('demo_is_admin','true');
-      else localStorage.removeItem('demo_is_admin');
-    });
+    await context.addInitScript(({admin,student})=>{
+      const id=location.pathname.startsWith('/admin') ? admin : student;
+      const user={id,aud:'authenticated',role:'authenticated',email:id+'@example.test',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()};
+      const exp=Math.floor(Date.now()/1000)+3600;
+      const token=btoa(JSON.stringify({alg:'HS256',typ:'JWT'}))+'.'+btoa(JSON.stringify({sub:id,role:'authenticated',exp}))+'.c3ludGhldGlj';
+      localStorage.setItem('sb-127-auth-token',JSON.stringify({user,access_token:token,refresh_token:'fixture',token_type:'bearer',expires_at:exp,expires_in:3600}));
+    },{admin,student});
     // Exercise actual migrations through a local adapter for the PostgREST requests in this journey.
     await context.route('**/*',async route=>{
       const url=new URL(route.request().url());
@@ -32,6 +34,7 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
       const body=req.postDataJSON() || {};
       let data=[],total;
       try {
+        if(path==='user_roles') data=(await db.query("select role from user_roles where user_id=$1 and role='admin'",[params.get('user_id').slice(3)])).rows;
         if(path==='rpc/save_bank_question') data=(await db.query('select save_bank_question($1,$2,$3) id',[JSON.stringify(body.p_question),body.p_id,body.p_batch])).rows[0].id;
         if(path==='question_bank' && req.method()==='PATCH') await db.query('update question_bank set review_status=$1,is_published=$2 where id=$3',[body.review_status,body.is_published,params.get('id').slice(3)]);
         if(path==='question_bank' && req.method()==='GET') data=(await db.query('select * from question_bank order by created_at desc limit 20')).rows;

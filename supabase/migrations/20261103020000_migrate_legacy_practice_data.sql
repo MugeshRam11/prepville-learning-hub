@@ -98,7 +98,7 @@ BEGIN
       CASE WHEN v_sub_count > 0 THEN 'multi_part' ELSE 'single' END,
       v_rec_q.question_text,
       v_rec_q.question_image_url,
-      GREATEST(1, v_sub_count),
+      (select greatest(1, coalesce(sum(greatest(1, coalesce(marks,1))),0)) from public.practice_sub_questions where question_id=v_rec_q.legacy_qid),
       false,
       'review_pending',
       v_rec_q.created_by,
