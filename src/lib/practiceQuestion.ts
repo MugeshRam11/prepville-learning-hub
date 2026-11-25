@@ -29,4 +29,3 @@ export const practiceQuestion = z.object({
 });
 
 export type PracticeQuestionRequest = z.infer<typeof practiceQuestion>;
-

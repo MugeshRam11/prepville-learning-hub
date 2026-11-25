@@ -16,4 +16,3 @@ begin
 end $$;
 alter table public.question_bank add constraint practice_safe_config check(practice_private.valid_answer_config(answer_config)) not valid;
 alter table public.question_subquestions add constraint practice_safe_part_config check(practice_private.valid_answer_config(answer_config)) not valid;
-

@@ -66,7 +66,7 @@ begin
  evaluated_at=case when g.earned is not null then now() end,attempt_status=case when g.earned is null then 'submitted' else 'evaluated' end
  from (select case when count(earned)=count(*) then sum(earned) end earned,sum(maximum) maximum
  from public.practice_part_results where session_question_id=p_item) g where sq.id=p_item;
- update public.practice_sessions set score=(select case when count(r.earned)=count(*) then round(100.0*sum(r.earned)/sum(r.maximum),2) end
+ update public.practice_sessions set score=(select case when count(distinct r.session_question_id)=practice_sessions.total_questions and count(r.earned)=count(*) then round(100.0*sum(r.earned)/sum(r.maximum),2) end
  from public.practice_part_results r join public.practice_session_questions sq on sq.id=r.session_question_id where sq.session_id=sid)
  where id=sid and is_completed;
 end $$;

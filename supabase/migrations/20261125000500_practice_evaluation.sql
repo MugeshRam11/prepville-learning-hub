@@ -100,7 +100,7 @@ begin
      perform practice_private.grade(sq.id,sq.student_answer);
    end loop;
    update public.practice_sessions set is_completed=true,completed_at=now(),completed_questions=s.total_questions,
-   score=(select case when count(earned)=count(*) then round(100.0*sum(earned)/sum(maximum),2) end
+   score=(select case when count(distinct r.session_question_id)=s.total_questions and count(earned)=count(*) then round(100.0*sum(earned)/sum(maximum),2) end
     from public.practice_part_results r join public.practice_session_questions i on i.id=r.session_question_id where i.session_id=s.id)
    where id=s.id returning * into s;
  end if;

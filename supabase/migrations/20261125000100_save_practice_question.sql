@@ -70,4 +70,3 @@ begin
 end $$;
 revoke all on function public.save_bank_question(jsonb,uuid,uuid) from public,anon;
 grant execute on function public.save_bank_question(jsonb,uuid,uuid) to authenticated;
-

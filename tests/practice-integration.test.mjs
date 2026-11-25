@@ -117,6 +117,11 @@ test('Practice migrations, authoring, student ownership, evaluation and 10k cata
   const query="select id,count(*) over() as total from practice_catalogue where search_document @@ plainto_tsquery('simple','Fractions') and attempt_status='unattempted' order by created_at desc,id offset 120 limit 12";
   const page=(await db.query(query)).rows;
   assert.equal(page.length,12); assert.equal(page[0].total,10000);
+  assert.equal((await row("select count(*) n from practice_catalogue where is_correct=true and myp_year='Year 3' and strand='Algebra' and topic='Linear equations'")).n,4);
+  assert.equal((await row("select count(*) n from practice_catalogue where is_correct=false")).n,0);
+  await as('authenticated',other);
+  assert.equal((await row("select count(*) n from practice_catalogue where attempt_status<>'unattempted'")).n,0);
+  await as('authenticated',student);
   const plan=await db.query('explain (analyze,buffers) '+query);
   t.diagnostic(plan.rows.map(r=>r['QUERY PLAN']).join('\n'));
 });
