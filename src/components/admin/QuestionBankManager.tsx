@@ -41,6 +41,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { renderFinalText } from '@/lib/renderFinalText';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
 import { CSVImportModal } from './CSVImportModal';
 
 export interface BankQuestion {
@@ -1060,26 +1061,14 @@ export const QuestionBankManager: React.FC = () => {
                 </span>
               </div>
 
-              <Textarea
-                placeholder="Write question here. e.g. Solve for $x$ given: $$3x^2 - 12 = 0$$"
+              <UnifiedMathEditor
                 value={formData.question_text}
-                onChange={(e) => setFormData({ ...formData, question_text: e.target.value })}
-                rows={4}
-                className="font-mono text-sm"
-                required
+                onChange={(val) => setFormData({ ...formData, question_text: val })}
+                mode="mixed_prose"
+                placeholder="Write question here. e.g. Solve for $x$ given: $$3x^2 - 12 = 0$$"
+                ariaLabel="Question Text with Math"
+                minHeight="120px"
               />
-
-              {/* Live Rendered KaTeX Box */}
-              {formData.question_text && (
-                <div className="p-3 bg-indigo-50/40 border border-indigo-100 rounded-lg">
-                  <div className="text-[10px] uppercase font-bold text-indigo-700 tracking-wider mb-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> Live Render Preview
-                  </div>
-                  <div className="text-sm text-slate-900 leading-relaxed font-serif">
-                    {renderFinalText(formData.question_text)}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Marks & Image URL */}
@@ -1161,11 +1150,13 @@ export const QuestionBankManager: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs font-semibold text-slate-700">Correct Answer Key *</Label>
-                      <Input
-                        placeholder="e.g. x = 5"
+                      <UnifiedMathEditor
                         value={formData.answer_key}
-                        onChange={(e) => setFormData({ ...formData, answer_key: e.target.value })}
-                        className="mt-1 h-9 font-mono text-sm bg-white"
+                        onChange={(val) => setFormData({ ...formData, answer_key: val })}
+                        mode="pure_latex"
+                        placeholder="e.g. x = 5 or \frac{3}{4}"
+                        ariaLabel="Correct Answer Key"
+                        minHeight="42px"
                       />
                     </div>
 
@@ -1192,12 +1183,13 @@ export const QuestionBankManager: React.FC = () => {
                     <Label className="text-xs font-semibold text-slate-700">
                       Step-by-Step Marking Rubric & Solution
                     </Label>
-                    <Textarea
-                      placeholder="Detail step 1, step 2, and scoring breakdown..."
+                    <UnifiedMathEditor
                       value={formData.solution}
-                      onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
-                      rows={3}
-                      className="mt-1 text-sm font-mono bg-white"
+                      onChange={(val) => setFormData({ ...formData, solution: val })}
+                      mode="mixed_prose"
+                      placeholder="Detail step 1, step 2, and scoring breakdown... Use $...$ for formulas"
+                      ariaLabel="Step-by-Step Marking Rubric & Solution"
+                      minHeight="90px"
                     />
                   </div>
                 </div>
@@ -1236,24 +1228,21 @@ export const QuestionBankManager: React.FC = () => {
                         </Button>
                       </div>
 
-                      <Textarea
-                        placeholder={`Subquestion text for (${sub.label})... Use $...$ for formulas`}
-                        value={sub.sub_question_text}
-                        onChange={(e) => {
-                          const updated = [...formData.subquestions];
-                          updated[idx].sub_question_text = e.target.value;
-                          setFormData({ ...formData, subquestions: updated });
-                        }}
-                        rows={2}
-                        className="text-xs font-mono"
-                      />
-
-                      {/* Live preview for subquestion text */}
-                      {sub.sub_question_text && (
-                        <div className="p-2 bg-indigo-50/30 rounded text-xs text-slate-800 font-serif border border-indigo-100/60">
-                          {renderFinalText(sub.sub_question_text)}
-                        </div>
-                      )}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground font-semibold">Subquestion Text</Label>
+                        <UnifiedMathEditor
+                          value={sub.sub_question_text}
+                          onChange={(val) => {
+                            const updated = [...formData.subquestions];
+                            updated[idx].sub_question_text = val;
+                            setFormData({ ...formData, subquestions: updated });
+                          }}
+                          mode="mixed_prose"
+                          placeholder={`Subquestion text for (${sub.label})... Use $...$ for formulas`}
+                          ariaLabel={`Subquestion (${sub.label}) text`}
+                          minHeight="80px"
+                        />
+                      </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         <div>
@@ -1294,30 +1283,34 @@ export const QuestionBankManager: React.FC = () => {
 
                         <div className="col-span-2">
                           <Label className="text-[10px] text-muted-foreground font-semibold">Protected Answer Key *</Label>
-                          <Input
-                            placeholder="Official answer key"
+                          <UnifiedMathEditor
                             value={sub.answer_key || ''}
-                            onChange={(e) => {
+                            onChange={(val) => {
                               const updated = [...formData.subquestions];
-                              updated[idx].answer_key = e.target.value;
+                              updated[idx].answer_key = val;
                               setFormData({ ...formData, subquestions: updated });
                             }}
-                            className="h-7 text-xs font-mono"
+                            mode="pure_latex"
+                            placeholder="Official answer key"
+                            ariaLabel={`Part (${sub.label}) Answer Key`}
+                            minHeight="38px"
                           />
                         </div>
                       </div>
 
                       <div>
                         <Label className="text-[10px] text-muted-foreground font-semibold">Solution / Rubric</Label>
-                        <Input
-                          placeholder="Step-by-step scoring rubric"
+                        <UnifiedMathEditor
                           value={sub.solution || ''}
-                          onChange={(e) => {
+                          onChange={(val) => {
                             const updated = [...formData.subquestions];
-                            updated[idx].solution = e.target.value;
+                            updated[idx].solution = val;
                             setFormData({ ...formData, subquestions: updated });
                           }}
-                          className="h-7 text-xs"
+                          mode="mixed_prose"
+                          placeholder="Step-by-step scoring rubric"
+                          ariaLabel={`Part (${sub.label}) Solution`}
+                          minHeight="70px"
                         />
                       </div>
                     </div>

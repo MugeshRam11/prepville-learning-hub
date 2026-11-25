@@ -18,7 +18,8 @@ import ImageDropZone from '@/components/answer-types/image-drop/ImageDropZone';
 import StepBuilder from '@/components/answer-types/arrange-order/StepBuilder';
 import SmartMathInput from '@/components/answer-types/smart-math/SmartMathInput';
 import SmartMathPlayer from '@/components/answer-types/smart-math/SmartMathPlayer';
-import RichTextEditor from '@/components/admin/RichTextEditor';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
+import { extractCanonicalAnswerText } from '@/lib/canonicalMath';
 import ImageFillBlanksPlayer from '@/components/answer-types/image-fill-blanks/ImageFillBlanksPlayer';
 import VennDiagramPlayer from '@/components/answer-types/venn-diagram/VennDiagramPlayer';
 import { createDefaultVennConfig } from '@/components/answer-types/venn-diagram/VennDiagramEditor';
@@ -65,25 +66,30 @@ const AnswerBlock: React.FC<AnswerBlockProps> = ({
 
   const renderAnswerComponent = () => {
     switch (answerType) {
-      case 'text_equation':
+      case 'text_equation': {
+        const textValue = extractCanonicalAnswerText(value);
         return (
           <div className="space-y-3">
             {wordLimit && (
               <div className="flex justify-end">
-                <Badge variant={getWordCount(value?.text) > wordLimit ? 'destructive' : 'secondary'}>
-                  {getWordCount(value?.text || '')} / {wordLimit} words
+                <Badge variant={getWordCount(textValue) > wordLimit ? 'destructive' : 'secondary'}>
+                  {getWordCount(textValue)} / {wordLimit} words
                 </Badge>
               </div>
             )}
 
-            {/* Equation Text Editor - Object-based equation UX */}
-            <RichTextEditor
-              value={value?.text || ''}
-              onChange={handleTextEquationChange}
+            <UnifiedMathEditor
+              value={textValue}
+              onChange={(canonicalVal) => onChange(canonicalVal)}
               placeholder={placeholder}
+              mode="mixed_prose"
+              disabled={disabled}
+              ariaLabel="Mathematical Response"
+              minHeight="120px"
             />
           </div>
         );
+      }
 
       case 'graph_plot': {
         const flatCfg = config as any;

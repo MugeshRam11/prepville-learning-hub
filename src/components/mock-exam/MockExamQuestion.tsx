@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Save, Check, Eye, Flag, ChevronRight, Lightbulb, ThumbsUp, ArrowRight, ZoomIn, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import EquationEditor from '@/components/admin/EquationEditor';
 import InteractiveGraphCanvas from '@/components/answer-types/graph-plot/InteractiveGraphCanvas';
-import MathKeyboard from './MathKeyboard';
+import UnifiedMathEditor from '@/components/math/UnifiedMathEditor';
+import { extractCanonicalAnswerText } from '@/lib/canonicalMath';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import type { Question } from '@/pages/MockExamStart';
@@ -46,7 +46,6 @@ const MockExamQuestion = ({
   const [showPreview, setShowPreview] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [showMathKeyboard, setShowMathKeyboard] = useState(false);
   const [confidence, setConfidence] = useState<'low' | 'medium' | 'high' | null>(null);
 
   useEffect(() => {
@@ -263,16 +262,6 @@ const MockExamQuestion = ({
             </svg>
             {showGraph ? 'Hide Graph' : 'Show Graph Tool'}
           </Button>
-
-          <Button
-            variant={showMathKeyboard ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowMathKeyboard(!showMathKeyboard)}
-            className="gap-2"
-          >
-            <Calculator className="w-4 h-4" />
-            {showMathKeyboard ? 'Hide Math Keyboard' : 'Math Keyboard'}
-          </Button>
           
           <Button
             variant="outline"
@@ -336,42 +325,11 @@ const MockExamQuestion = ({
           )}
         </AnimatePresence>
 
-        {/* Math Keyboard Section */}
-        <AnimatePresence>
-          {showMathKeyboard && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <Card className="border-2 border-primary/30 bg-gradient-to-b from-primary/5 to-transparent">
-                <CardHeader className="pb-2">
-                  <h3 className="font-medium text-foreground flex items-center gap-2">
-                    <Calculator className="w-4 h-4 text-primary" />
-                    Smart Math Keyboard
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Use fractions, roots, powers, and symbols for your mathematical answers
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <MathKeyboard
-                    value={currentAnswer}
-                    onChange={handleAnswerChange}
-                    placeholder="Enter your mathematical expression..."
-                  />
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Answer Section */}
         <Card className="border-2 border-primary/20">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Your Answer</h3>
+              <h3 className="font-semibold text-foreground">Your Mathematical Solution</h3>
               <div className="flex items-center gap-2">
                 {/* Confidence selector */}
                 <div className="flex items-center gap-1 text-xs">
@@ -397,28 +355,20 @@ const MockExamQuestion = ({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Math-enabled Answer Editor */}
+            {/* Unified Math Editor */}
             <div className="space-y-2">
-              <EquationEditor
-                value={currentAnswer}
+              <UnifiedMathEditor
+                value={extractCanonicalAnswerText(currentAnswer)}
                 onChange={handleAnswerChange}
-                placeholder="Type your answer here... Use math notation, fractions, symbols, and equations directly."
-                className="min-h-[200px]"
+                placeholder="Type your answer... Use the palette above for fractions, roots, matrices, or write LaTeX directly."
+                minHeight="160px"
+                mode="mixed_prose"
+                ariaLabel="Mock exam mathematical response"
               />
               
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                 <span>Words: {currentAnswer ? wordCount : 0}</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPreview(!showPreview)}
-                    className="flex items-center gap-1 h-8"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    {showPreview ? 'Hide Preview' : 'Preview'}
-                  </Button>
-                </div>
+                <span>IB MYP Mathematics Standard Delimiters ($...$, $$...$$)</span>
               </div>
             </div>
 

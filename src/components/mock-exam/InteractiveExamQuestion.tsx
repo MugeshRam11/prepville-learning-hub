@@ -14,7 +14,7 @@ import DragDropMatcher from '@/components/answer-types/drag-drop/DragDropMatcher
 import ImageDropZone from '@/components/answer-types/image-drop/ImageDropZone';
 import StepBuilder from '@/components/answer-types/arrange-order/StepBuilder';
 import SmartMathInput from '@/components/answer-types/smart-math/SmartMathInput';
-import EquationEditor from '@/components/admin/EquationEditor';
+import UnifiedMathEditor from '@/components/math/UnifiedMathEditor';
 
 import type { 
   InteractiveQuestion, 
@@ -227,14 +227,17 @@ const InteractiveExamQuestion = ({
           <Card className="border-2 border-muted bg-card">
             <CardHeader className="pb-2">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Badge variant="secondary">Text Response</Badge>
+                <Badge variant="secondary">Mathematical & Text Response</Badge>
               </h3>
             </CardHeader>
             <CardContent>
-              <EquationEditor
+              <UnifiedMathEditor
                 value={currentAnswer || ''}
                 onChange={(val) => onAnswerChange(question.id, val)}
-                placeholder="Type your answer here. Use math templates for equations..."
+                placeholder="Type your answer here... Use math palette or LaTeX syntax for equations ($...$, $$...$$)."
+                mode="mixed_prose"
+                minHeight="140px"
+                ariaLabel="Interactive exam text and mathematical response"
               />
             </CardContent>
           </Card>

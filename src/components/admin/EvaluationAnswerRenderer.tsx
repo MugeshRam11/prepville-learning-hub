@@ -872,15 +872,6 @@ const TableInputReview: React.FC<{
 // ═══════════════════════════════════════════════
 // Smart Math — Visual Review
 // ═══════════════════════════════════════════════
-const renderLatexSafe = (latex: string): string => {
-  if (!latex) return '';
-  try {
-    const katex = (window as any).katex;
-    if (katex) return katex.renderToString(latex, { displayMode: false, throwOnError: false });
-  } catch { /* fallback */ }
-  return latex;
-};
-
 const SmartMathReview: React.FC<{
   config: any;
   studentAnswer: any;
@@ -901,19 +892,9 @@ const SmartMathReview: React.FC<{
   const isExactMatch = expectedAnswers.some(ea => ea.latex === studentLatex);
   const matchStatus = isExactMatch ? 'correct' : (evaluationMode === 'manual_only' ? 'manual_review' : 'incorrect');
 
-  // Lazy-load katex for rendering
-  const [katexLoaded, setKatexLoaded] = React.useState(false);
-  React.useEffect(() => {
-    import('katex').then(mod => {
-      (window as any).katex = mod.default;
-      setKatexLoaded(true);
-    });
-  }, []);
-
   const renderMath = (latex: string) => {
     if (!latex) return <span className="text-muted-foreground text-sm italic">No answer</span>;
-    if (!katexLoaded) return <span className="font-mono text-sm">{latex}</span>;
-    return <span dangerouslySetInnerHTML={{ __html: renderLatexSafe(latex) }} />;
+    return <span>{renderLatexContent(latex)}</span>;
   };
 
   return (

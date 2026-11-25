@@ -34,7 +34,8 @@ import StepBuilder from '@/components/answer-types/arrange-order/StepBuilder';
 import SmartMathInput from '@/components/answer-types/smart-math/SmartMathInput';
 import SmartMathPlayer from '@/components/answer-types/smart-math/SmartMathPlayer';
 import TableAnswerValidator, { validateTableAnswers } from '@/components/answer-types/table-input/TableAnswerValidator';
-import RichTextEditor from '@/components/admin/RichTextEditor';
+import UnifiedMathEditor from '@/components/math/UnifiedMathEditor';
+import { extractCanonicalAnswerText } from '@/lib/canonicalMath';
 import ImageFillBlanksPlayer from '@/components/answer-types/image-fill-blanks/ImageFillBlanksPlayer';
 import VennDiagramPlayer from '@/components/answer-types/venn-diagram/VennDiagramPlayer';
 import { createDefaultVennConfig } from '@/components/answer-types/venn-diagram/VennDiagramEditor';
@@ -690,18 +691,8 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
 
       case 'text_equation':
       default: {
-        const textValue = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
-        const wordCount = getWordCount(textValue);
-
-        const handleTextChange = (text: string) => {
-          onChange({ text, equations });
-        };
-
-        const handleEquationsChange = (newEqs: any[]) => {
-          setEquations(newEqs);
-          const currentText = typeof value === 'object' && value?.text !== undefined ? value.text : (typeof value === 'string' ? value : '');
-          onChange({ text: currentText, equations: newEqs });
-        };
+        const canonicalText = extractCanonicalAnswerText(value);
+        const wordCount = getWordCount(canonicalText);
 
         return (
           <div className="space-y-3">
@@ -713,11 +704,14 @@ const InteractiveAnswerBlock: React.FC<InteractiveAnswerBlockProps> = ({
               </div>
             )}
             
-            <RichTextEditor
-              value={textValue}
-              onChange={handleTextChange}
-              placeholder={placeholder}
+            <UnifiedMathEditor
+              value={canonicalText}
+              onChange={(newVal) => onChange(newVal)}
+              placeholder={placeholder || 'Type your mathematical answer or explanation...'}
               disabled={disabled}
+              mode="mixed_prose"
+              minHeight="140px"
+              ariaLabel="Mathematical solution editor"
             />
           </div>
         );

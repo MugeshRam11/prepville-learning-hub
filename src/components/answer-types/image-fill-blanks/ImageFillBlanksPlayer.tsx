@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
-import MathLiveKeyboard from '@/components/mock-exam/MathLiveKeyboard';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
 import { normalizeMath } from '@/lib/mathFormat';
 import type { ImageFillBlanksConfig, FillZone } from './ImageFillBlanksEditor';
 
@@ -199,15 +199,16 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
                 </button>
               </div>
 
-              {/* MathLive input + keyboard toggle */}
+              {/* MathLive input */}
               <div className="px-5 py-4">
-                <MathLiveKeyboard
+                <UnifiedMathEditor
                   value={draftValue}
                   onChange={setDraftValue}
                   onSubmit={handleConfirm}
                   placeholder={activeZone.placeholder || 'Type or use the keyboard…'}
-                  showKeyboard={true}
-                  hideSubmit
+                  mode="pure_latex"
+                  ariaLabel="Image fill blank math response"
+                  minHeight="42px"
                 />
               </div>
 

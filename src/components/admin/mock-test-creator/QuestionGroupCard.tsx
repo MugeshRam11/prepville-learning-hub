@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, X, ChevronDown, ChevronUp, GripVertical, Blocks } from 'lucide-react';
-import RichTextEditor from '../RichTextEditor';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
 
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
@@ -73,10 +73,13 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
             <label className="text-sm font-medium mb-1 block">
               {hasSubs ? 'Shared Stem / Passage' : 'Question Text'} *
             </label>
-            <RichTextEditor
+            <UnifiedMathEditor
               value={group.stem}
               onChange={(v) => onUpdate({ stem: v })}
-              placeholder={hasSubs ? 'Enter shared stem, passage, or context...' : 'Enter question text...'}
+              placeholder={hasSubs ? 'Enter shared stem, passage, or context... Use $...$ for formulas' : 'Enter question text... Use $...$ for formulas'}
+              mode="mixed_prose"
+              ariaLabel="Question Stem or Text"
+              minHeight="90px"
             />
           </div>
 
@@ -243,10 +246,13 @@ const QuestionGroupCard: React.FC<QuestionGroupCardProps> = ({
           ) : !hasSubs ? (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-              <RichTextEditor
+              <UnifiedMathEditor
                 value={group.answerKey}
                 onChange={(v) => onUpdate({ answerKey: v })}
-                placeholder="Correct answer..."
+                placeholder="Correct answer formula or text... Use $...$ for formulas"
+                mode="mixed_prose"
+                ariaLabel="Question Answer Key"
+                minHeight="42px"
               />
             </div>
           ) : null}

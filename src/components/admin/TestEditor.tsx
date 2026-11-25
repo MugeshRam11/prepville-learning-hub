@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Plus, Sparkles } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
-import MathRichEditor from '@/components/admin/MathRichEditor';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
 
 type TestType = Database['public']['Enums']['test_type'];
 type DifficultyLevel = Database['public']['Enums']['difficulty_level'];
@@ -319,49 +319,60 @@ const TestEditor = ({ test, topics, onClose, onSave }: TestEditorProps) => {
                   <div>
                     <label className="block text-sm font-medium mb-2 flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-primary" />
-                      Question Text (supports LaTeX & Word paste)
+                      Question Text (supports LaTeX & mathematical formulas)
                     </label>
-                    <MathRichEditor
+                    <UnifiedMathEditor
                       value={question.question_text || ''}
                       onChange={(value) => updateQuestion(index, 'question_text', value)}
-                      placeholder="Enter your question here... Use $x^2$ for inline math or paste from Word"
+                      placeholder="Enter your question here... Use $x^2$ for inline math"
+                      mode="mixed_prose"
+                      ariaLabel="Question text"
+                      minHeight="100px"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Option A</label>
-                      <MathRichEditor
+                      <UnifiedMathEditor
                         value={question.option_a || ''}
                         onChange={(value) => updateQuestion(index, 'option_a', value)}
                         placeholder="Option A (supports math)"
-                        className="min-h-[60px]"
+                        mode="mixed_prose"
+                        ariaLabel="Option A"
+                        minHeight="50px"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Option B</label>
-                      <MathRichEditor
+                      <UnifiedMathEditor
                         value={question.option_b || ''}
                         onChange={(value) => updateQuestion(index, 'option_b', value)}
                         placeholder="Option B (supports math)"
-                        className="min-h-[60px]"
+                        mode="mixed_prose"
+                        ariaLabel="Option B"
+                        minHeight="50px"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Option C</label>
-                      <MathRichEditor
+                      <UnifiedMathEditor
                         value={question.option_c || ''}
                         onChange={(value) => updateQuestion(index, 'option_c', value)}
                         placeholder="Option C (supports math)"
-                        className="min-h-[60px]"
+                        mode="mixed_prose"
+                        ariaLabel="Option C"
+                        minHeight="50px"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Option D</label>
-                      <MathRichEditor
+                      <UnifiedMathEditor
                         value={question.option_d || ''}
                         onChange={(value) => updateQuestion(index, 'option_d', value)}
                         placeholder="Option D (supports math)"
-                        className="min-h-[60px]"
+                        mode="mixed_prose"
+                        ariaLabel="Option D"
+                        minHeight="50px"
                       />
                     </div>
                   </div>
@@ -396,11 +407,13 @@ const TestEditor = ({ test, topics, onClose, onSave }: TestEditorProps) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Explanation (Optional)</label>
-                    <MathRichEditor
+                    <UnifiedMathEditor
                       value={question.explanation || ''}
                       onChange={(value) => updateQuestion(index, 'explanation', value)}
                       placeholder="Explain the correct answer... (supports math)"
-                      className="min-h-[60px]"
+                      mode="mixed_prose"
+                      ariaLabel="Question explanation"
+                      minHeight="60px"
                     />
                   </div>
                 </CardContent>

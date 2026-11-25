@@ -7,7 +7,7 @@ import {
   MousePointer2, Circle, Minus, Trash2, RotateCcw,
   ZoomIn, ZoomOut, Type, X, CheckCircle2
 } from 'lucide-react';
-import MathLiveKeyboard from '@/components/mock-exam/MathLiveKeyboard';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
 import { normalizeMath } from '@/lib/mathFormat';
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -622,13 +622,14 @@ const GraphPlotPlayer: React.FC<GraphPlotPlayerProps> = ({
 
               {/* MathLive input */}
               <div className="px-5 py-4">
-                <MathLiveKeyboard
+                <UnifiedMathEditor
                   value={draftAnswer}
                   onChange={setDraftAnswer}
                   onSubmit={confirmBlank}
                   placeholder="Type or use the equation keyboard…"
-                  showKeyboard={true}
-                  hideSubmit
+                  mode="pure_latex"
+                  ariaLabel="Graph blank math response"
+                  minHeight="42px"
                 />
               </div>
 

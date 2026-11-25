@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Plus, Minus, Upload, X, BarChart3, AlertCircle, Blocks } from 'lucide-react';
-import RichTextEditor from './RichTextEditor';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
 import ImageUpload from './ImageUpload';
 
 import { Textarea } from '@/components/ui/textarea';
@@ -180,10 +180,13 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Question Text */}
             <div>
               <Label>Question Text</Label>
-              <RichTextEditor
+              <UnifiedMathEditor
                 value={newQuestionData.question_text}
                 onChange={(value) => setNewQuestionData({...newQuestionData, question_text: value})}
-                placeholder="Enter the question text..."
+                placeholder="Enter the question text... Use $...$ for formulas"
+                mode="mixed_prose"
+                ariaLabel="Question Text"
+                minHeight="100px"
               />
             </div>
 
@@ -244,10 +247,13 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <Label>Answer Key</Label>
-              <RichTextEditor
+              <UnifiedMathEditor
                 value={newQuestionData.answer_key}
                 onChange={(value) => setNewQuestionData({...newQuestionData, answer_key: value})}
-                placeholder="Enter the correct answer and explanation..."
+                placeholder="Enter the correct answer or explanation... Use $...$ for formulas"
+                mode="mixed_prose"
+                ariaLabel="Answer Key"
+                minHeight="60px"
               />
             </div>
 
@@ -295,10 +301,13 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Question Text */}
             <div>
               <label className="block text-sm font-medium mb-2">Question Text *</label>
-              <RichTextEditor
+              <UnifiedMathEditor
                 value={question.question_text}
                 onChange={(value) => updateQuestion(question.id, 'question_text', value)}
-                placeholder="Enter your question here with full text formatting support..."
+                placeholder="Enter your question here with full mathematical formatting support... Use $...$ for formulas"
+                mode="mixed_prose"
+                ariaLabel="Question Text"
+                minHeight="100px"
               />
             </div>
 
@@ -422,10 +431,13 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
             {/* Answer Key */}
             <div>
               <label className="block text-sm font-medium mb-2">Answer Key</label>
-              <RichTextEditor
+              <UnifiedMathEditor
                 value={question.answer_key}
                 onChange={(value) => updateQuestion(question.id, 'answer_key', value)}
-                placeholder="Enter the correct answer or explanation..."
+                placeholder="Enter the correct answer or explanation... Use $...$ for formulas"
+                mode="mixed_prose"
+                ariaLabel="Answer Key"
+                minHeight="60px"
               />
             </div>
 
@@ -478,10 +490,13 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
                     <CardContent className="space-y-3">
                       <div>
                         <label className="block text-xs font-medium mb-1">Sub-question Text *</label>
-                        <RichTextEditor
+                        <UnifiedMathEditor
                           value={subQuestion.sub_question_text}
                           onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'sub_question_text', value)}
-                          placeholder="Enter sub-question with full text formatting support..."
+                          placeholder="Enter sub-question with full mathematical formatting support... Use $...$ for formulas"
+                          mode="mixed_prose"
+                          ariaLabel="Sub-question Text"
+                          minHeight="80px"
                         />
                       </div>
 
@@ -540,10 +555,13 @@ const QuestionBuilder = ({ questions, setQuestions }) => {
 
                       <div>
                         <label className="block text-xs font-medium mb-1">Answer Key</label>
-                        <RichTextEditor
+                        <UnifiedMathEditor
                           value={subQuestion.answer_key}
                           onChange={(value) => updateSubQuestion(question.id, subQuestion.id, 'answer_key', value)}
-                          placeholder="Enter the correct answer..."
+                          placeholder="Enter the correct answer... Use $...$ for formulas"
+                          mode="mixed_prose"
+                          ariaLabel="Sub-question Answer Key"
+                          minHeight="50px"
                         />
                       </div>
                     </CardContent>

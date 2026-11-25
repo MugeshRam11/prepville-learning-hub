@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, GripVertical } from 'lucide-react';
-import RichTextEditor from '../RichTextEditor';
+import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
 import ImageUpload from '../ImageUpload';
 import AnswerBlockTypeSelector from '../AnswerBlockTypeSelector';
 
@@ -45,10 +45,13 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
         </Button>
       </div>
 
-      <RichTextEditor
+      <UnifiedMathEditor
         value={subQuestion.text}
         onChange={(v) => onUpdate(subQuestion.id, { text: v })}
-        placeholder={`Enter sub-question (${subQuestion.label}) text...`}
+        placeholder={`Enter sub-question (${subQuestion.label}) text... Use $...$ for formulas`}
+        mode="mixed_prose"
+        ariaLabel={`Sub-question (${subQuestion.label}) text`}
+        minHeight="80px"
       />
 
       <ImageUpload
@@ -177,10 +180,13 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
       ) : (
         <div>
           <label className="text-xs font-medium text-muted-foreground">Answer Key</label>
-          <RichTextEditor
+          <UnifiedMathEditor
             value={subQuestion.answerKey}
             onChange={(v) => onUpdate(subQuestion.id, { answerKey: v })}
-            placeholder="Correct answer..."
+            placeholder="Correct answer formula or text..."
+            mode="mixed_prose"
+            ariaLabel={`Sub-question (${subQuestion.label}) Answer Key`}
+            minHeight="42px"
           />
         </div>
       )}

@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Upload, Download, CheckCircle, AlertCircle, FileText, Loader2, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { validateMathExpression } from '@/lib/canonicalMath';
+import { renderFinalText } from '@/lib/renderFinalText';
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -110,6 +112,30 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
             rowErrors.push('Duplicate question text in this CSV');
           } else {
             seenQuestions.add(qText.toLowerCase());
+
+            // 1b. Mathematical syntax validation for question_text
+            const qMathCheck = validateMathExpression(qText);
+            if (!qMathCheck.isValid) {
+              rowErrors.push(`Math syntax error in question_text: ${qMathCheck.errors.join(', ')}`);
+            }
+          }
+
+          // 1c. Mathematical syntax validation for answer_key
+          const aKey = row.answer_key?.trim();
+          if (aKey) {
+            const aCheck = validateMathExpression(aKey);
+            if (!aCheck.isValid) {
+              rowErrors.push(`Math syntax error in answer_key: ${aCheck.errors.join(', ')}`);
+            }
+          }
+
+          // 1d. Mathematical syntax validation for solution
+          const sol = row.solution?.trim();
+          if (sol) {
+            const solCheck = validateMathExpression(sol);
+            if (!solCheck.isValid) {
+              rowErrors.push(`Math syntax error in solution: ${solCheck.errors.join(', ')}`);
+            }
           }
 
           // 2. Topic
@@ -369,8 +395,10 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
                             {r.data.difficulty || 'medium'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="truncate max-w-[280px]">
-                          {r.data.question_text}
+                        <TableCell className="max-w-[280px]">
+                          <div className="font-serif text-slate-800 line-clamp-2">
+                            {renderFinalText(r.data.question_text || '')}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
