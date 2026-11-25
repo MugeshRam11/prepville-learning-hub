@@ -100,6 +100,19 @@ const PracticeSessionWorkspace: React.FC = () => {
 
   // Time tracking
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const cachePrefix = useRef('');
+  const focusedAt = useRef(Date.now());
+  const focusedItem = useRef('');
+  const perQuestionSeconds = useRef(new Map<string,number>());
+  const recordTime = (id: string) => {
+    const now = Date.now();
+    if (focusedItem.current === id) {
+      const delta = Math.floor((now - focusedAt.current) / 1000);
+      perQuestionSeconds.current.set(id,(perQuestionSeconds.current.get(id) || 0) + delta);
+      focusedAt.current += delta * 1000;
+    }
+    return perQuestionSeconds.current.get(id) || 0;
+  };
   const dirty = useRef(new Map<string, { answer: string; seconds: number }>());
   const saving = useRef<Promise<void> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -115,7 +128,12 @@ const PracticeSessionWorkspace: React.FC = () => {
           p_session_question_id: id, p_answer: draft.answer, p_time_spent_seconds: draft.seconds
         });
         if (error || !data) throw new Error(error?.message || 'Draft could not be saved');
-        if (dirty.current.get(id) === draft) dirty.current.delete(id);
+        if (dirty.current.get(id) === draft) {
+          dirty.current.delete(id);
+          const key = cachePrefix.current + id;
+          try { if (localStorage.getItem(key) === JSON.stringify(draft)) localStorage.removeItem(key); }
+          catch { /* The server acknowledged this draft even if local storage is unavailable. */ }
+        }
       }
     };
     setIsSaving(true);
@@ -151,6 +169,7 @@ const PracticeSessionWorkspace: React.FC = () => {
         throw new Error('Practice session not found or access unauthorized.');
       }
       setSession(sessData);
+      cachePrefix.current = 'practice-draft/' + sessData.user_id + '/' + sessData.id + '/';
 
       // Fetch session questions
       const { data: psqData, error: psqErr } = await supabase
@@ -185,6 +204,21 @@ const PracticeSessionWorkspace: React.FC = () => {
           }
         }
 
+        const cacheKey = cachePrefix.current + psq.id;
+        let cached: string | null = null;
+        try { cached = localStorage.getItem(cacheKey); } catch { /* Server drafts remain available. */ }
+        perQuestionSeconds.current.set(psq.id, psq.time_spent_seconds);
+        if (cached) {
+          if (sessData.is_completed || ['submitted','evaluated'].includes(psq.attempt_status)) localStorage.removeItem(cacheKey);
+          else {
+            try {
+              const draft = JSON.parse(cached);
+              initialAnswers[psq.id] = JSON.parse(draft.answer);
+              dirty.current.set(psq.id,draft);
+              perQuestionSeconds.current.set(psq.id, Math.max(psq.time_spent_seconds,draft.seconds));
+            } catch { localStorage.removeItem(cacheKey); }
+          }
+        }
         return {
           id: psq.id,
           session_id: psq.session_id,
@@ -203,7 +237,8 @@ const PracticeSessionWorkspace: React.FC = () => {
       setQuestions(enrichedQuestions);
       answerRef.current = initialAnswers;
       setAnswers(initialAnswers);
-      setElapsedSeconds(Math.max(0,...enrichedQuestions.map(q=>q.time_spent_seconds)));
+      setElapsedSeconds([...perQuestionSeconds.current.values()].reduce((sum,t)=>sum+t,0));
+      if (dirty.current.size) void flush().catch(() => toast.error('Recovered draft is waiting to sync'));
 
       if (sessData.is_completed) {
         setShowSummaryModal(true);
@@ -231,6 +266,14 @@ const PracticeSessionWorkspace: React.FC = () => {
   }, [session?.is_completed]);
 
   const currentQ = questions[currentIndex] || null;
+
+  useEffect(() => {
+    if (!currentQ || session?.is_completed) return;
+    const id = currentQ.id;
+    focusedItem.current = id;
+    focusedAt.current = Date.now();
+    return () => { recordTime(id); focusedItem.current = ''; };
+  },[currentQ?.id,session?.is_completed]);
 
   // Fetch solution for a specific submitted question
   const fetchSolution = useCallback(async (sessionQuestionId: string) => {
@@ -267,7 +310,10 @@ const PracticeSessionWorkspace: React.FC = () => {
       ? {...answerRef.current[id], [partId]: val} : val;
     answerRef.current = {...answerRef.current, [id]: response};
     setAnswers(answerRef.current);
-    dirty.current.set(id,{answer: JSON.stringify(response), seconds: elapsedSeconds});
+    const draft = {answer: JSON.stringify(response), seconds: recordTime(id)};
+    dirty.current.set(id,draft);
+    try { localStorage.setItem(cachePrefix.current + id, JSON.stringify(draft)); }
+    catch { toast.warning('This browser cannot keep an offline copy of your draft.'); }
     setIsSaving(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => void flush().catch(() => toast.error('Draft save failed. Retry before leaving.')), 400);
@@ -291,7 +337,7 @@ const PracticeSessionWorkspace: React.FC = () => {
       const { data: submitResult, error } = await supabase.rpc('submit_practice_question_answer', {
         p_session_question_id: sqId,
         p_answer: payload,
-        p_time_spent_seconds: elapsedSeconds
+        p_time_spent_seconds: recordTime(sqId)
       });
 
       if (error) throw error;

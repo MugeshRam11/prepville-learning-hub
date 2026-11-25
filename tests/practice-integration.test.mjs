@@ -94,6 +94,9 @@ test('Practice migrations, authoring, student ownership, evaluation and 10k cata
   assert.equal((await row('select count(*) n from question_bank where id=$1',[id])).n,0);
   assert.equal((await row('select prompt from practice_session_questions where id=$1',[qs[0].id])).prompt.question_text,'Find the value of x');
   await as('authenticated',admin);
+  const revised=await save({...input,question_text:'Revised prompt'},id);
+  assert.notEqual(revised,id);
+  assert.equal((await row('select question_text from question_bank where id=$1',[id])).question_text,'Find the value of x');
   const algebra=await save({...input,question_text:'Simplify',answer_type:'text_equation',answer_key:'2x^{2}+1'});
   const choice=await save({...input,question_text:'Choose',answer_type:'multiple_choice',answer_config:{options:[{id:'A',content:'four'},{id:'B',content:'five'}]},answer_key:'A'});
   const tolerance=await save({...input,answer_config:{tolerance:0.05}});

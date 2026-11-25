@@ -15,6 +15,11 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
     await db.exec('set role authenticated');
     const login=async id=>db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);
     await login(admin);
+    const mock=randomUUID();
+    await db.query('insert into mock_tests values($1,true)',[mock]);
+    await db.query("insert into mock_questions(id,mock_test_id,question_number,question_text,marks,answer_key) values(gen_random_uuid(),$1,1,'Synthetic mock prompt',2,'3')",[mock]);
+    let mockAttempt, mockEvaluation;
+
     const fixture={programme:'MYP',subject:'mathematics',myp_year:'Year 2',strand:'Algebra',topic:'Linear equations',
       difficulty:'medium',question_type:'single',marks:2,answer_type:'short_answer',answer_key:'3',is_published:true,review_status:'approved'};
     for(let n=1;n<=13;n++) await db.query('select save_bank_question($1)',[JSON.stringify({...fixture,question_text:'Solve equation '+n})]);
@@ -34,6 +39,13 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
       const body=req.postDataJSON() || {};
       let data=[],total;
       try {
+        if(path==='/auth/v1/user') data={id:student,role:'authenticated',aud:'authenticated',user_metadata:{},app_metadata:{}};
+        if(path==='mock_tests') data={id:mock,title:'Synthetic mock exam',subject:'mathematics',topic:'Algebra'};
+        if(path==='rpc/student_mock_prompts') data=(await db.query("select student_mock_prompts($1::uuid[]) as prompt",[body.p_tests])).rows.map(r=>r.prompt);
+        if(path==='test_attempts' && req.method()==='POST') { mockAttempt={...body,id:randomUUID()}; data=mockAttempt; }
+        if(path==='exam_evaluations' && req.method()==='POST') mockEvaluation=body;
+        if(path==='rpc/start_single_question_attempt') data=(await db.query('select * from start_single_question_attempt($1)',[body.p_question_id])).rows;
+        if(path==='rpc/submit_practice_question_answer') data=(await db.query('select * from submit_practice_question_answer($1,$2,$3)',[body.p_session_question_id,body.p_answer,body.p_time_spent_seconds])).rows;
         if(path==='user_roles') data=(await db.query("select role from user_roles where user_id=$1 and role='admin'",[params.get('user_id').slice(3)])).rows;
         if(path==='rpc/save_bank_question') data=(await db.query('select save_bank_question($1,$2,$3) id',[JSON.stringify(body.p_question),body.p_id,body.p_batch])).rows[0].id;
         if(path==='question_bank' && req.method()==='PATCH') await db.query('update question_bank set review_status=$1,is_published=$2 where id=$3',[body.review_status,body.is_published,params.get('id').slice(3)]);
@@ -59,6 +71,11 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
     });
     await page.goto('/admin/practice/create');
     await expect(page.getByText('Question Bank Management')).toBeVisible();
+    await page.getByRole('button',{name:'New Question',exact:true}).click();
+    await page.getByPlaceholder('e.g. Linear Equations and Inequalities').fill('Draft topic');
+    await page.getByRole('textbox',{name:'Question Text with Math'}).fill('Simplify $x+x$');
+    await page.getByRole('button',{name:'Save to Question Bank'}).click();
+    await expect.poll(async ()=>(await db.query("select review_status from question_bank where topic='Draft topic'")).rows[0]?.review_status).toBe('draft');
     await page.getByRole('button',{name:'Bulk Import (CSV)'}).click();
     await page.locator('input[type=file]').setInputFiles({name:'questions.csv',mimeType:'text/csv',
       buffer:Buffer.from('programme,subject,myp_year,strand,topic,difficulty,question_text,marks,answer_key,solution\nMYP,mathematics,Year 2,Algebra,Imported topic,easy,Find three,2,3,Count to three')});
@@ -86,5 +103,20 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
     await page.getByRole('button',{name:'Yes, Finish & Score'}).click();
     await expect(page.getByText('Practice Session Summary')).toBeVisible();
     await expect(page.getByText('50%',{exact:true})).toBeVisible();
+    await page.goto('/practice');
+    await page.getByRole('button',{name:'Start Practice'}).first().click();
+    await editor.fill('3');
+    await page.getByRole('button',{name:'Submit Answer',exact:true}).click();
+    await expect(page.getByText('Answer Key',{exact:true})).toBeVisible();
+    await page.setViewportSize({width:1280,height:900});
+    await page.goto('/mock-exams/unified/'+mock);
+    await page.getByRole('button',{name:/Enter Fullscreen/}).click();
+    await expect(page.getByText('Synthetic mock prompt').first()).toBeVisible();
+    await page.getByRole('button',{name:'Submit',exact:true}).click();
+    await page.getByRole('button',{name:'Submit Exam',exact:true}).click();
+    await expect(page).toHaveURL(/mock-exams\/submitted/);
+    expect(mockAttempt.test_id).toBe(mock);
+    expect(mockEvaluation.test_attempt_id).toBe(mockAttempt.id);
+
   } finally {await db.close();}
 });

@@ -186,8 +186,8 @@ export const QuestionBankManager: React.FC = () => {
 
   const fetchQuestions = async () => {
     setLoading(true);
+    const request = ++sequence.current;
     try {
-      const request = ++sequence.current;
       let query = supabase.from('question_bank').select('*', { count: 'exact' })
         .eq('programme', 'MYP').eq('subject', 'mathematics');
       if (filterYear !== 'all') query = query.eq('myp_year', filterYear);
@@ -243,7 +243,7 @@ export const QuestionBankManager: React.FC = () => {
       console.error('Fetch error:', err);
       toast.error('Failed to load questions.');
     } finally {
-      setLoading(false);
+      if (request === sequence.current) setLoading(false);
     }
   };
 
@@ -518,7 +518,7 @@ export const QuestionBankManager: React.FC = () => {
               IB MYP Mathematics
             </span>
             <span className="text-xs text-indigo-200">
-              Canonical Question Bank • Day 3 Secure Engine
+              Question Bank
             </span>
           </div>
           <h2 className="text-2xl font-black tracking-tight">Question Bank Management</h2>
@@ -612,7 +612,7 @@ export const QuestionBankManager: React.FC = () => {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="all">All Questions</SelectItem>
                 <SelectItem value="published">Published</SelectItem>
                 <SelectItem value="archived">Archived</SelectItem>
                 <SelectItem value="review_pending">Review Pending</SelectItem>
@@ -628,7 +628,7 @@ export const QuestionBankManager: React.FC = () => {
         <CardHeader className="p-4 border-b bg-slate-50/50 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-bold">
-              Questions ({filteredQuestions.length})
+              Questions ({total})
             </CardTitle>
             <CardDescription className="text-xs">
               Showing questions matching the current curriculum filter criteria.
