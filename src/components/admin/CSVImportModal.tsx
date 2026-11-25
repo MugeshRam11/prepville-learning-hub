@@ -1,3 +1,4 @@
+import { practiceQuestion } from '@/lib/practiceQuestion';
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import {
@@ -76,10 +77,11 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setGlobalError(null);
+    setValidatedRows([]);
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    if (!selectedFile.name.endsWith('.csv')) {
+    if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
       setGlobalError('Please select a valid CSV file.');
       return;
     }
@@ -207,9 +209,10 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
       for (const item of validRows) {
         const row = item.data;
         const { error } = await supabase.rpc('save_bank_question', {
-          p_batch: batch, p_question: { ...row, marks: Number(row.marks),
+          p_batch: batch, p_question: practiceQuestion.parse({ ...row, programme: row.programme?.trim(), subject: row.subject?.trim(),
+            strand: row.strand?.trim(), myp_year: row.myp_year?.trim(), marks: Number(row.marks),
             difficulty: row.difficulty?.trim().toLowerCase() || 'medium', question_type: 'single',
-            answer_type: 'text_equation', review_status: 'review_pending', is_published: false }
+            answer_type: 'text_equation', review_status: 'review_pending', is_published: false })
         });
         if (error) {
           if (error.code === '23505') duplicates++;
@@ -394,7 +397,7 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
                 Importing...
               </>
             ) : (
-              `Import ${validRows.length} Valid Question(s) as Draft`
+              `Import ${validRows.length} Valid Question(s) for Review`
             )}
           </Button>
         </DialogFooter>

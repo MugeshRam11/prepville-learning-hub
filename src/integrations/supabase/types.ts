@@ -1,3 +1,4 @@
+import type { PracticeQuestionRequest } from '@/lib/practiceQuestion';
 export type Json =
   | string
   | number
@@ -2755,7 +2756,7 @@ export type Database = {
       student_mock_prompts: {Args: {p_tests:string[]}; Returns: (Omit<Database['public']['Tables']['mock_questions']['Row'],'answer_key'> & {mock_sub_questions: Omit<Database['public']['Tables']['mock_sub_questions']['Row'],'answer_key'>[]})[] }
       flag_practice_question: { Args: { p_item: string; p_flag: boolean }; Returns: undefined }
       review_practice_part: { Args: { p_item: string; p_part: string; p_marks: number }; Returns: undefined }
-      save_bank_question: { Args: { p_question: Json; p_id?: string | null; p_batch?: string }; Returns: string }
+      save_bank_question: { Args: { p_question: PracticeQuestionRequest; p_id?: string | null; p_batch?: string }; Returns: string }
       generate_practice_session: {
         Args: {
           p_title: string

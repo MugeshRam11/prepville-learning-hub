@@ -1,3 +1,4 @@
+import { practiceQuestion } from '@/lib/practiceQuestion';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -426,8 +427,8 @@ export const QuestionBankManager: React.FC = () => {
 
       const { error } = await supabase.rpc('save_bank_question', {
         p_id: editingId,
-        p_question: { ...payload, answer_config: {...formData.answer_config}, marking_rubric: formData.marking_rubric, answer_key: formData.answer_key, solution: formData.solution,
-          subquestions: formData.subquestions.map(part => ({ ...part, answer_config: {...part.answer_config} })) }
+        p_question: practiceQuestion.parse({ ...payload, answer_config: {...formData.answer_config}, marking_rubric: formData.marking_rubric, answer_key: formData.answer_key, solution: formData.solution,
+          subquestions: formData.subquestions.map(part => ({ ...part, answer_config: {...part.answer_config} })) })
       });
       if (error) throw error;
 
