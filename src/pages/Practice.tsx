@@ -32,6 +32,8 @@ import { cn } from '@/lib/utils';
 export interface QuestionBankItem {
   id: string;
   question_text: string;
+  attempt_status: string;
+  is_correct: boolean | null;
   image_url: string | null;
   topic: string;
   subtopic: string | null;
@@ -67,12 +69,8 @@ const MYP_YEARS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'] as const;
 
 const QUESTION_TYPES = [
   { value: 'all', label: 'All Types' },
-  { value: 'numeric', label: 'Numeric' },
-  { value: 'expression', label: 'Expression / Equation' },
-  { value: 'multiple_choice', label: 'Multiple Choice' },
-  { value: 'multi_part', label: 'Multi-Part' },
-  { value: 'proof', label: 'Proof / Derivation' },
-  { value: 'long_answer', label: 'Structured / Long Answer' }
+  { value: 'single', label: 'Single' },
+  { value: 'multi_part', label: 'Multi-part' }
 ];
 
 const difficultyBadgeColors: Record<string, string> = {
@@ -96,16 +94,16 @@ const Practice: React.FC = () => {
   const [totalQuestionsCount, setTotalQuestionsCount] = useState(0);
   const [page, setPage] = useState(1);
 
-  // Student Attempted Question Map (question_id -> { status, is_correct })
-  const [attemptMap, setAttemptMap] = useState<Record<string, { status: string; isCorrect: boolean | null }>>({});
-
+  const requestSequence = React.useRef(0);
+  const [topic, setTopic] = useState('');
+  const [graded, setGraded] = useState(false);
   // Filters
   const [search, setSearch] = useState('');
   const [selectedStrand, setSelectedStrand] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
-  const [attemptFilter, setAttemptFilter] = useState<'all' | 'unattempted' | 'completed'>('all');
+  const [attemptFilter, setAttemptFilter] = useState('all');
 
   // Generator Modal
   const [generatorOpen, setGeneratorOpen] = useState(false);
@@ -114,54 +112,24 @@ const Practice: React.FC = () => {
   const [sessions, setSessions] = useState<PracticeSessionRecord[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
-  // Fetch student attempt history
-  const fetchAttemptMap = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const { data, error } = await supabase
-        .from('practice_session_questions')
-        .select(`
-          question_id,
-          attempt_status,
-          is_correct,
-          practice_sessions!inner(user_id)
-        `)
-        .eq('practice_sessions.user_id', user.id);
-
-      if (error) {
-        console.warn('Failed to load user question attempts:', error.message);
-        return;
-      }
-
-      const map: Record<string, { status: string; isCorrect: boolean | null }> = {};
-      (data || []).forEach((row: any) => {
-        if (row.question_id) {
-          if (!map[row.question_id] || row.attempt_status === 'submitted' || row.attempt_status === 'evaluated') {
-            map[row.question_id] = {
-              status: row.attempt_status,
-              isCorrect: row.is_correct
-            };
-          }
-        }
-      });
-      setAttemptMap(map);
-    } catch (err) {
-      console.warn('Error fetching attempt map:', err);
-    }
+  useEffect(() => {
+    let active = true;
+    supabase.from('practice_catalogue').select('id').not('is_correct', 'is', null).limit(1)
+      .then(({data}) => { if (active) setGraded(Boolean(data?.length)); });
+    return () => { active = false; };
   }, [user?.id]);
-
   // Fetch Questions from Question Bank
   const fetchQuestions = useCallback(async () => {
+    const request = ++requestSequence.current;
     setLoadingQuestions(true);
     try {
       let query = supabase
-        .from('question_bank')
-        .select('id, question_text, image_url, topic, subtopic, strand, myp_year, difficulty, question_type, marks, created_at', { count: 'exact' })
-        .eq('programme', 'MYP')
-        .eq('subject', 'mathematics')
-        .eq('is_published', true)
-        .eq('review_status', 'approved');
-
+        .from('practice_catalogue')
+        .select('id, question_text, image_url, topic, subtopic, strand, myp_year, difficulty, question_type, marks, created_at, attempt_status, is_correct', { count: 'exact' });
+      if (topic.trim()) query = query.ilike('topic', '%' + topic.trim() + '%');
+      if (attemptFilter === 'unattempted') query = query.eq('attempt_status', 'unattempted');
+      if (attemptFilter === 'attempted') query = query.neq('attempt_status', 'unattempted');
+      if (attemptFilter === 'correct' || attemptFilter === 'incorrect') query = query.eq('is_correct', attemptFilter === 'correct');
       if (selectedStrand !== 'all') {
         query = query.eq('strand', selectedStrand);
       }
@@ -175,7 +143,7 @@ const Practice: React.FC = () => {
         query = query.eq('question_type', selectedType);
       }
       if (search.trim()) {
-        query = query.or(`question_text.ilike.%${search.trim()}%,topic.ilike.%${search.trim()}%`);
+        query = query.textSearch('search_document', search.trim(), { type: 'plain', config: 'simple' });
       }
 
       const from = (page - 1) * PAGE_SIZE;
@@ -183,7 +151,8 @@ const Practice: React.FC = () => {
 
       const { data, count, error } = await query
         .order('created_at', { ascending: false })
-        .range(from, to);
+        .order('id').range(from, to);
+      if (request !== requestSequence.current) return;
 
       if (error) throw error;
 
@@ -193,9 +162,9 @@ const Practice: React.FC = () => {
       console.error('Error fetching question bank:', err);
       toast.error('Failed to load questions from Question Bank');
     } finally {
-      setLoadingQuestions(false);
+      if (request === requestSequence.current) setLoadingQuestions(false);
     }
-  }, [selectedStrand, selectedYear, selectedDifficulty, selectedType, search, page]);
+  }, [selectedStrand, selectedYear, selectedDifficulty, selectedType, search, page, topic, attemptFilter, user?.id]);
 
   // Fetch User Practice Sessions
   const fetchSessions = useCallback(async () => {
@@ -225,34 +194,16 @@ const Practice: React.FC = () => {
   }, [fetchQuestions]);
 
   useEffect(() => {
-    fetchAttemptMap();
-  }, [fetchAttemptMap]);
-
-  useEffect(() => {
     if (activeTab === 'sessions') {
       fetchSessions();
     }
   }, [activeTab, fetchSessions]);
 
-  // Filter questions client-side for attemptFilter if specified
-  const displayedQuestions = useMemo(() => {
-    if (attemptFilter === 'all') return questions;
-    return questions.filter((q) => {
-      const att = attemptMap[q.id];
-      if (attemptFilter === 'unattempted') {
-        return !att || att.status === 'unattempted';
-      }
-      if (attemptFilter === 'completed') {
-        return att && (att.status === 'submitted' || att.status === 'evaluated');
-      }
-      return true;
-    });
-  }, [questions, attemptMap, attemptFilter]);
-
+  const displayedQuestions = questions;
   const totalPages = Math.max(1, Math.ceil(totalQuestionsCount / PAGE_SIZE));
 
   const resetFilters = () => {
-    setSearch('');
+    setSearch(''); setTopic('');
     setSelectedStrand('all');
     setSelectedYear('all');
     setSelectedDifficulty('all');
@@ -279,7 +230,7 @@ const Practice: React.FC = () => {
                   <span className="text-xs text-indigo-300">Independent Question Bank</span>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-                  Practice & Problem Solving
+                  Practice Mathematics
                 </h1>
                 <p className="text-sm md:text-base text-indigo-200/90 max-w-2xl">
                   Explore individual MYP Mathematics questions, build precision with step-by-step solutions,
@@ -294,7 +245,7 @@ const Practice: React.FC = () => {
                   className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold shadow-lg shadow-indigo-500/25 gap-2"
                 >
                   <Sparkles className="w-5 h-5 text-amber-300" />
-                  Generate Custom Session
+                  Create My Practice Paper
                 </Button>
               </div>
             </div>
@@ -459,30 +410,11 @@ const Practice: React.FC = () => {
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t text-xs">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground font-medium">Attempt Status:</span>
-                      <Button
-                        variant={attemptFilter === 'all' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        className="h-7 text-xs px-2.5"
-                        onClick={() => setAttemptFilter('all')}
-                      >
-                        All
-                      </Button>
-                      <Button
-                        variant={attemptFilter === 'unattempted' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        className="h-7 text-xs px-2.5"
-                        onClick={() => setAttemptFilter('unattempted')}
-                      >
-                        Unattempted
-                      </Button>
-                      <Button
-                        variant={attemptFilter === 'completed' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        className="h-7 text-xs px-2.5"
-                        onClick={() => setAttemptFilter('completed')}
-                      >
-                        Solved / Attempted
-                      </Button>
+                      <select aria-label="Attempt status" value={attemptFilter} onChange={e => {setAttemptFilter(e.target.value); setPage(1);}}>
+                        {['all','unattempted','attempted', ...(graded ? ['correct','incorrect'] : [])].map(status =>
+                          <option key={status} value={status}>{status}</option>)}
+                      </select>
+                      <Input aria-label="Topic" placeholder="Topic" value={topic} onChange={e => {setTopic(e.target.value); setPage(1);}} />
                     </div>
 
                     {(search || selectedStrand !== 'all' || selectedYear !== 'all' || selectedDifficulty !== 'all' || selectedType !== 'all' || attemptFilter !== 'all') && (
@@ -521,7 +453,7 @@ const Practice: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {displayedQuestions.map((q) => {
-                    const attempt = attemptMap[q.id];
+                    const attempt = { status: q.attempt_status };
                     const isCompleted = attempt && (attempt.status === 'submitted' || attempt.status === 'evaluated');
 
                     return (
@@ -567,7 +499,7 @@ const Practice: React.FC = () => {
                             {isCompleted ? (
                               <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                                 <CheckCircle2 className="w-4 h-4" />
-                                <span>Solved</span>
+                                <span>{q.is_correct === null ? 'Submitted' : q.is_correct ? 'Correct' : 'Incorrect'}</span>
                               </div>
                             ) : attempt?.status === 'draft' ? (
                               <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
@@ -586,7 +518,7 @@ const Practice: React.FC = () => {
                               className="h-8 text-xs gap-1.5 font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
                               onClick={() => navigate(`/practice/question/${q.id}`)}
                             >
-                              <span>{isCompleted ? 'Review' : 'Solve'}</span>
+                              <span>Start Practice</span>
                               <ArrowRight className="w-3 h-3" />
                             </Button>
                           </div>

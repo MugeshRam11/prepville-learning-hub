@@ -2720,6 +2720,9 @@ export type Database = {
       }
     }
     Views: {
+      practice_catalogue: { Row: Database['public']['Tables']['question_bank']['Row'] & {
+        search_document: string; attempt_status: string; is_correct: boolean | null
+      }; Relationships: [] }
       user_progress_summary: {
         Row: {
           avg_score_percentage: number | null
