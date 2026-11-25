@@ -2741,6 +2741,7 @@ export type Database = {
       }
     }
     Functions: {
+      save_bank_question: { Args: { p_question: Json; p_id?: string | null; p_batch?: string }; Returns: string }
       generate_practice_session: {
         Args: {
           p_title: string
