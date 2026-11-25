@@ -14,10 +14,8 @@ const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminAssignments = lazy(() => import('@/pages/AdminAssignments'));
 const AdminStudentsProgress = lazy(() => import('@/pages/AdminStudentsProgress'));
 const AdminEvaluation = lazy(() => import('@/pages/AdminEvaluation'));
-const AdminTests = lazy(() => import('@/pages/AdminTests'));
 const AdminQuickTestCreate = lazy(() => import('@/pages/AdminQuickTestCreate'));
 const AdminQuestions = lazy(() => import('@/pages/AdminQuestions'));
-const AdminPracticeCreate = lazy(() => import('@/pages/AdminPracticeCreate'));
 const AdminReports = lazy(() => import('@/pages/AdminReports'));
 const AdminMockTests = lazy(() => import('@/pages/AdminMockTests'));
 const AdminMockTestCreate = lazy(() => import('@/pages/AdminMockTestCreate'));
@@ -248,7 +246,7 @@ export const AdminRoutes: React.FC = () => {
         path="/tests"
         element={
           <AdminProtectedRoute>
-            <AdminTests />
+            <Navigate replace to="/admin/questions" />
           </AdminProtectedRoute>
         }
       />
@@ -256,7 +254,7 @@ export const AdminRoutes: React.FC = () => {
         path="/admin/tests"
         element={
           <AdminProtectedRoute>
-            <AdminTests />
+            <Navigate replace to="/admin/questions" />
           </AdminProtectedRoute>
         }
       />
@@ -302,7 +300,7 @@ export const AdminRoutes: React.FC = () => {
         path="/practice/create"
         element={
           <AdminProtectedRoute>
-            <AdminPracticeCreate />
+            <Navigate replace to="/admin/questions" />
           </AdminProtectedRoute>
         }
       />
@@ -310,7 +308,7 @@ export const AdminRoutes: React.FC = () => {
         path="/admin/practice/create"
         element={
           <AdminProtectedRoute>
-            <AdminPracticeCreate />
+            <Navigate replace to="/admin/questions" />
           </AdminProtectedRoute>
         }
       />
@@ -318,7 +316,7 @@ export const AdminRoutes: React.FC = () => {
         path="/practice/edit/:id"
         element={
           <AdminProtectedRoute>
-            <AdminPracticeCreate />
+            <Navigate replace to="/admin/questions" />
           </AdminProtectedRoute>
         }
       />
@@ -326,7 +324,7 @@ export const AdminRoutes: React.FC = () => {
         path="/admin/practice/edit/:id"
         element={
           <AdminProtectedRoute>
-            <AdminPracticeCreate />
+            <Navigate replace to="/admin/questions" />
           </AdminProtectedRoute>
         }
       />

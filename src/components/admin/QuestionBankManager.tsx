@@ -116,6 +116,11 @@ export const QuestionBankManager: React.FC = () => {
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [kind, setKind] = useState('all');
+  const [topic, setTopic] = useState('');
+  const sequence = React.useRef(0);
   const [filterYear, setFilterYear] = useState<string>('all');
   const [filterStrand, setFilterStrand] = useState<string>('all');
   const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
@@ -169,18 +174,26 @@ export const QuestionBankManager: React.FC = () => {
 
   useEffect(() => {
     fetchQuestions();
-  }, []);
+  }, [page, kind, topic, searchQuery, filterYear, filterStrand, filterDifficulty, filterStatus]);
 
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const { data: qData, error: qErr } = await supabase
-        .from('question_bank')
-        .select('*')
-        .eq('programme', 'MYP')
-        .eq('subject', 'mathematics')
-        .order('created_at', { ascending: false });
-
+      const request = ++sequence.current;
+      let query = supabase.from('question_bank').select('*', { count: 'exact' })
+        .eq('programme', 'MYP').eq('subject', 'mathematics');
+      if (filterYear !== 'all') query = query.eq('myp_year', filterYear);
+      if (filterStrand !== 'all') query = query.eq('strand', filterStrand);
+      if (filterDifficulty !== 'all') query = query.eq('difficulty', filterDifficulty);
+      if (kind !== 'all') query = query.eq('question_type', kind);
+      if (topic.trim()) query = query.ilike('topic', '%' + topic.trim() + '%');
+      if (filterStatus === 'published') query = query.eq('is_published', true);
+      else if (filterStatus !== 'all') query = query.eq('review_status', filterStatus);
+      if (searchQuery.trim()) query = query.textSearch('search_document', searchQuery, { type: 'plain', config: 'simple' });
+      const { data: qData, error: qErr, count } = await query.order('created_at', { ascending: false })
+        .order('id').range(page * 20, page * 20 + 19);
+      if (request !== sequence.current) return;
+      setTotal(count ?? 0);
       if (qErr) {
         console.warn('question_bank fetch error:', qErr.message);
         setQuestions([]);
@@ -215,7 +228,7 @@ export const QuestionBankManager: React.FC = () => {
         solution: answerKeyMap[q.id]?.solution || ''
       }));
 
-      setQuestions(formattedQuestions);
+      if (request === sequence.current) setQuestions(formattedQuestions);
     } catch (err: any) {
       console.error('Fetch error:', err);
       toast.error('Failed to load questions.');
@@ -440,17 +453,17 @@ export const QuestionBankManager: React.FC = () => {
   };
 
   const handleDeleteQuestion = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this question? This will remove its subquestions and answer keys.')) {
+    if (!window.confirm('Archive this question and remove it from the catalogue?')) {
       return;
     }
 
     try {
-      const { error } = await supabase.from('question_bank').delete().eq('id', id);
+      const { error } = await supabase.from('question_bank').update({ review_status: 'archived', is_published: false }).eq('id', id);
       if (error) throw error;
-      toast.success('Question deleted successfully.');
-      setQuestions((prev) => prev.filter((q) => q.id !== id));
+      toast.success('Question archived.');
+      fetchQuestions();
     } catch (err: any) {
-      toast.error(`Delete failed: ${err.message}`);
+      toast.error(`Archive failed: ${err.message}`);
     }
   };
 
@@ -482,38 +495,7 @@ export const QuestionBankManager: React.FC = () => {
     }));
   };
 
-  // Audit Metrics Calculation
-  const metrics: AuditMetrics = useMemo(() => {
-    return {
-      total: questions.length,
-      published: questions.filter((q) => q.is_published).length,
-      reviewPending: questions.filter((q) => q.review_status === 'review_pending').length,
-      draft: questions.filter((q) => q.review_status === 'draft').length,
-      multiPart: questions.filter((q) => q.question_type === 'multi_part').length
-    };
-  }, [questions]);
-
-  // Filtered questions
-  const filteredQuestions = useMemo(() => {
-    return questions.filter((q) => {
-      if (filterYear !== 'all' && q.myp_year !== filterYear) return false;
-      if (filterStrand !== 'all' && q.strand !== filterStrand) return false;
-      if (filterDifficulty !== 'all' && q.difficulty !== filterDifficulty) return false;
-      if (filterStatus === 'published' && !q.is_published) return false;
-      if (filterStatus === 'draft' && q.is_published) return false;
-      if (filterStatus === 'review_pending' && q.review_status !== 'review_pending') return false;
-
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchesTopic = q.topic.toLowerCase().includes(query);
-        const matchesText = q.question_text.toLowerCase().includes(query);
-        const matchesCommand = q.command_term?.toLowerCase().includes(query);
-        if (!matchesTopic && !matchesText && !matchesCommand) return false;
-      }
-      return true;
-    });
-  }, [questions, filterYear, filterStrand, filterDifficulty, filterStatus, searchQuery]);
-
+  const filteredQuestions = questions;
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -554,30 +536,15 @@ export const QuestionBankManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Audit Metrics Bar (D3-01 / D3-02) */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="p-3 bg-slate-50 border shadow-none">
-          <div className="text-[11px] font-semibold text-muted-foreground uppercase">Total In Bank</div>
-          <div className="text-xl font-black text-slate-800">{metrics.total}</div>
-        </Card>
-        <Card className="p-3 bg-emerald-50/60 border-emerald-100 shadow-none">
-          <div className="text-[11px] font-semibold text-emerald-800 uppercase">Published</div>
-          <div className="text-xl font-black text-emerald-700">{metrics.published}</div>
-        </Card>
-        <Card className="p-3 bg-amber-50/60 border-amber-100 shadow-none">
-          <div className="text-[11px] font-semibold text-amber-800 uppercase">Review Pending</div>
-          <div className="text-xl font-black text-amber-700">{metrics.reviewPending}</div>
-        </Card>
-        <Card className="p-3 bg-slate-100/60 border shadow-none">
-          <div className="text-[11px] font-semibold text-slate-700 uppercase">Draft</div>
-          <div className="text-xl font-black text-slate-700">{metrics.draft}</div>
-        </Card>
-        <Card className="p-3 bg-indigo-50/60 border-indigo-100 shadow-none col-span-2 md:col-span-1">
-          <div className="text-[11px] font-semibold text-indigo-800 uppercase">Multi-Part</div>
-          <div className="text-xl font-black text-indigo-700">{metrics.multiPart}</div>
-        </Card>
+      <div className="flex flex-wrap gap-3 items-center">
+        <Input className="w-40" aria-label="Topic" placeholder="Topic" value={topic} onChange={e => {setTopic(e.target.value); setPage(0);}} />
+        <select aria-label="Question type" value={kind} onChange={e => {setKind(e.target.value); setPage(0);}}>
+          <option value="all">All question types</option><option value="single">Single</option><option value="multi_part">Multi-part</option>
+        </select>
+        <Button disabled={!page} onClick={() => setPage(page - 1)}>Previous</Button>
+        <span>{total} questions · Page {page + 1}</span>
+        <Button disabled={(page + 1) * 20 >= total} onClick={() => setPage(page + 1)}>Next</Button>
       </div>
-
       {/* Filter Toolbar */}
       <Card className="border-border/60 shadow-sm">
         <CardContent className="p-4">
@@ -587,12 +554,12 @@ export const QuestionBankManager: React.FC = () => {
               <Input
                 placeholder="Search topic or equation..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {setPage(0); setSearchQuery(e.target.value);}}
                 className="pl-9 h-9 text-sm"
               />
             </div>
 
-            <Select value={filterYear} onValueChange={setFilterYear}>
+            <Select value={filterYear} onValueChange={v => { setPage(0); setFilterYear(v); }}>
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All MYP Years" />
               </SelectTrigger>
@@ -604,7 +571,7 @@ export const QuestionBankManager: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filterStrand} onValueChange={setFilterStrand}>
+            <Select value={filterStrand} onValueChange={v => { setPage(0); setFilterStrand(v); }}>
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All Strands" />
               </SelectTrigger>
@@ -616,7 +583,7 @@ export const QuestionBankManager: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
+            <Select value={filterDifficulty} onValueChange={v => { setPage(0); setFilterDifficulty(v); }}>
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All Difficulties" />
               </SelectTrigger>
@@ -628,13 +595,14 @@ export const QuestionBankManager: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={v => { setPage(0); setFilterStatus(v); }}>
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
                 <SelectItem value="review_pending">Review Pending</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
@@ -807,9 +775,9 @@ export const QuestionBankManager: React.FC = () => {
                             variant="ghost"
                             className="h-7 w-7 text-slate-500 hover:text-rose-600"
                             onClick={() => handleDeleteQuestion(q.id)}
-                            title="Delete question"
+                            title="Archive question"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Archive className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       </TableCell>
@@ -1106,7 +1074,7 @@ export const QuestionBankManager: React.FC = () => {
                           onClick={() => handleRemoveSubquestion(idx)}
                           className="h-6 w-6 text-rose-500 hover:text-rose-700"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Archive className="w-3.5 h-3.5" />
                         </Button>
                       </div>
 

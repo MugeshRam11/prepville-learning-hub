@@ -53,7 +53,6 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     { id: 'students-progress', label: 'Student Progress', icon: BarChart3, path: '/admin/students-progress' },
     { id: 'evaluation', label: 'Evaluation Center', icon: FileText, path: '/admin/evaluation' },
     { id: 'questions', label: 'Question Bank', icon: Database, path: '/admin/questions' },
-    { id: 'tests', label: 'Practice Sets (Legacy)', icon: FileText, path: '/admin/tests' },
     { id: 'mock-tests', label: 'Mock Tests', icon: ClipboardList, path: '/admin/mock-tests' },
     { id: 'study-materials', label: 'Study Materials', icon: Upload, path: '/admin/study-materials' },
     { id: 'reports', label: 'Progress Reports', icon: BarChart3, path: '/admin/reports' },
