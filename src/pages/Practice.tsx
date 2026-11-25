@@ -105,6 +105,25 @@ const Practice: React.FC = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [attemptFilter, setAttemptFilter] = useState('all');
 
+  const [selected, setSelected] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+  const manualToken = React.useRef(crypto.randomUUID());
+  const selectQuestions = (ids: string[]) => {
+    manualToken.current = crypto.randomUUID();
+    setSelected(ids);
+  };
+  const createSelected = async () => {
+    setCreating(true);
+    try {
+      const {data,error} = await supabase.rpc('generate_practice_session', {
+        p_count: selected.length, p_title: 'My Practice Paper',
+        p_filters: { question_ids: selected, request_id: manualToken.current }
+      });
+      if (error) throw error;
+      navigate('/practice/session/' + data[0].session_id);
+    } catch (error) { toast.error((error as Error).message); }
+    finally { setCreating(false); }
+  };
   // Generator Modal
   const [generatorOpen, setGeneratorOpen] = useState(false);
 
@@ -465,6 +484,10 @@ const Practice: React.FC = () => {
                         )}
                       >
                         <CardHeader className="p-4 pb-2 space-y-2">
+                          <label className="flex gap-2 text-xs items-center"><input type="checkbox" checked={selected.includes(q.id)}
+                            disabled={creating || (!selected.includes(q.id) && selected.length >= 50)}
+                            onChange={e => selectQuestions(e.target.checked ? [...selected,q.id] : selected.filter(id => id !== q.id))} />
+                            Question {q.id.slice(0,8)}</label>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <Badge variant="outline" className="text-[11px] font-mono px-1.5 py-0">
@@ -529,6 +552,11 @@ const Practice: React.FC = () => {
                 </div>
               )}
 
+              <div className="flex flex-wrap items-center gap-3">
+                <span>{selected.length} of 50 selected</span>
+                <Button disabled={!selected.length || creating} onClick={createSelected}>Create Practice Paper</Button>
+                <Button variant="outline" disabled={!selected.length || creating} onClick={() => selectQuestions([])}>Clear selection</Button>
+              </div>
               {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t pt-4">
@@ -670,7 +698,7 @@ const Practice: React.FC = () => {
       </main>
 
       {/* Generator Modal */}
-      <PracticeSessionGeneratorModal
+      {generatorOpen && <PracticeSessionGeneratorModal
         isOpen={generatorOpen}
         onClose={() => {
           setGeneratorOpen(false);
@@ -681,7 +709,7 @@ const Practice: React.FC = () => {
           strand: selectedStrand !== 'all' ? selectedStrand : undefined,
           difficulty: selectedDifficulty !== 'all' ? selectedDifficulty : undefined
         }}
-      />
+      />}
 
       <GlobalChatbot subject="Mathematics" />
     </div>

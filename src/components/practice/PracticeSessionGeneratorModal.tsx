@@ -51,6 +51,9 @@ export const PracticeSessionGeneratorModal: React.FC<PracticeSessionGeneratorMod
   const [mypYear, setMypYear] = useState<string>(initialFilters?.myp_year || 'all');
   const [strand, setStrand] = useState<string>(initialFilters?.strand || 'all');
   const [difficulty, setDifficulty] = useState<string>(initialFilters?.difficulty || 'all');
+  const [topic,setTopic] = useState('');
+  const [kind,setKind] = useState('');
+  const identity = React.useRef({signature: '', token: crypto.randomUUID()});
   const [unattemptedOnly, setUnattemptedOnly] = useState(true);
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -62,14 +65,17 @@ export const PracticeSessionGeneratorModal: React.FC<PracticeSessionGeneratorMod
         myp_year: mypYear !== 'all' ? mypYear : null,
         strand: strand !== 'all' ? strand : null,
         difficulty: difficulty !== 'all' ? difficulty : null,
+        topic: topic.trim() || null, question_type: kind || null,
         unattempted_only: unattemptedOnly
       };
 
+      const signature = JSON.stringify([count, title, filters]);
+      if (identity.current.signature !== signature) identity.current = {signature, token: crypto.randomUUID()};
       // Call secure backend generation RPC (PV-19)
       const { data, error } = await supabase.rpc('generate_practice_session', {
         p_title: title.trim() || 'Personalized Practice Session',
         p_count: count,
-        p_filters: filters
+        p_filters: {...filters, request_id: identity.current.token}
       });
 
       if (error) throw error;
@@ -107,6 +113,10 @@ export const PracticeSessionGeneratorModal: React.FC<PracticeSessionGeneratorMod
         </DialogHeader>
 
         <form onSubmit={handleGenerate} className="space-y-5 py-2">
+          <Input aria-label="Topic" placeholder="Topic" value={topic} onChange={e=>setTopic(e.target.value)} />
+          <select aria-label="Question type" value={kind} onChange={e=>setKind(e.target.value)}>
+            <option value="">All types</option><option value="single">Single</option><option value="multi_part">Multi-part</option>
+          </select>
           {/* Session Title */}
           <div>
             <Label className="text-xs font-semibold text-slate-700">Session Name</Label>
