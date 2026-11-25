@@ -81,6 +81,11 @@ DROP POLICY IF EXISTS "Users can view questions of published sets" ON public.pra
 DROP POLICY IF EXISTS "Admins can manage all practice sub questions" ON public.practice_sub_questions;
 DROP POLICY IF EXISTS "Users can view sub questions of published sets" ON public.practice_sub_questions;
 
+drop policy if exists "Users can view published mock questions" on public.mock_questions;
+drop policy if exists "Users can view published mock sub questions" on public.mock_sub_questions;
+drop policy if exists "Users can view sections of published tests" on public.mock_test_sections;
+drop policy if exists "Users can view sub questions of published sets" on public.practice_sub_questions;
+
 -- 3. Re-enable RLS on all affected tables
 ALTER TABLE public.mock_tests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mock_questions ENABLE ROW LEVEL SECURITY;

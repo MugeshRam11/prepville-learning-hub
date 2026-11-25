@@ -47,10 +47,7 @@ const MockExamSubjectView = () => {
       const {
         data,
         error
-      } = await supabase.from('mock_questions').select(`
-          *,
-          mock_sub_questions (*)
-        `).in('mock_test_id', fetchedTestIds).order('question_number');
+      } = await supabase.rpc('student_mock_prompts', {p_tests: fetchedTestIds});
       if (error) throw error;
       
       const fetchedQuestions = data || [];

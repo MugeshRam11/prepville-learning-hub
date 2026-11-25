@@ -157,7 +157,7 @@ BEGIN
             THEN v_rec_sub.answer_type 
             ELSE 'text_equation' 
           END,
-          COALESCE(v_rec_sub.answer_block_config, '{}'::jsonb),
+          '{}'::jsonb,
           v_rec_sub.command_term,
           v_rec_sub.sub_question_text,
           v_rec_sub.sub_question_image_url,

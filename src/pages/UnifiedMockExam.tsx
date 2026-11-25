@@ -129,11 +129,7 @@ const UnifiedMockExamContent = () => {
       setIsLoading(true);
       try {
         if (resolvedTestId) {
-          const { data: questionsData, error } = await supabase
-            .from('mock_questions')
-            .select(`*, mock_sub_questions (*)`)
-            .eq('mock_test_id', resolvedTestId)
-            .order('question_number');
+          const { data: questionsData, error } = await supabase.rpc('student_mock_prompts', {p_tests: [resolvedTestId]});
 
           if (error) throw error;
 

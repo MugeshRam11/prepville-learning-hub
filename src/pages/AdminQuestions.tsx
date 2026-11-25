@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PracticeGrading } from '@/components/admin/PracticeGrading';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionBankManager from '@/components/admin/QuestionBankManager';
 
@@ -11,6 +12,7 @@ const AdminQuestions = () => {
       <div className="flex-1 ml-64 p-6">
         <div className="max-w-7xl mx-auto">
           <QuestionBankManager />
+          <PracticeGrading />
         </div>
       </div>
     </div>

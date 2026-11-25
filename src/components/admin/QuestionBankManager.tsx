@@ -42,6 +42,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { renderFinalText } from '@/lib/renderFinalText';
 import { UnifiedMathEditor } from '@/components/math/UnifiedMathEditor';
+import { PracticeMarkingFields, type PracticeAnswerConfig } from './PracticeMarkingFields';
 import { CSVImportModal } from './CSVImportModal';
 
 export interface BankQuestion {
@@ -67,6 +68,7 @@ export interface BankQuestion {
   updated_at: string;
   subquestions?: BankSubquestion[];
   answer_key?: string;
+  marking_rubric?: string[];
   solution?: string;
 }
 
@@ -78,8 +80,11 @@ export interface BankSubquestion {
   answer_type: 'text_equation' | 'short_answer' | 'multiple_choice' | 'working_box';
   command_term?: string;
   sub_question_text: string;
+  answer_config?: PracticeAnswerConfig;
+  sub_question_image_url?: string;
   order_index: number;
   answer_key?: string;
+  marking_rubric?: string[];
   solution?: string;
 }
 
@@ -151,6 +156,8 @@ export const QuestionBankManager: React.FC = () => {
     is_published: boolean;
     review_status: 'draft' | 'review_pending' | 'approved' | 'rejected';
     answer_key: string;
+    marking_rubric?: string[];
+    answer_config?: PracticeAnswerConfig;
     solution: string;
     subquestions: BankSubquestion[];
   }>({
@@ -202,12 +209,12 @@ export const QuestionBankManager: React.FC = () => {
 
       // Fetch answer keys for single questions
       const qIds = (qData || []).map((q: any) => q.id);
-      let answerKeyMap: Record<string, { answer_key: string; solution: string }> = {};
+      let answerKeyMap: Record<string, { answer_key: string; solution: string; marking_rubric: string[] }> = {};
 
       if (qIds.length > 0) {
         const { data: akData } = await supabase
           .from('question_answer_keys')
-          .select('question_id, answer_key, solution')
+          .select('question_id, answer_key, solution, marking_rubric')
           .in('question_id', qIds);
 
         if (akData) {
@@ -215,7 +222,7 @@ export const QuestionBankManager: React.FC = () => {
             if (ak.question_id) {
               answerKeyMap[ak.question_id] = {
                 answer_key: ak.answer_key || '',
-                solution: ak.solution || ''
+                solution: ak.solution || '', marking_rubric: ak.marking_rubric || []
               };
             }
           });
@@ -224,6 +231,7 @@ export const QuestionBankManager: React.FC = () => {
 
       const formattedQuestions: BankQuestion[] = (qData || []).map((q: any) => ({
         ...q,
+        marking_rubric: answerKeyMap[q.id]?.marking_rubric,
         answer_key: answerKeyMap[q.id]?.answer_key || '',
         solution: answerKeyMap[q.id]?.solution || ''
       }));
@@ -275,15 +283,15 @@ export const QuestionBankManager: React.FC = () => {
         const subIds = subData.map((s: any) => s.id);
         const { data: subKeys } = await supabase
           .from('question_answer_keys')
-          .select('subquestion_id, answer_key, solution')
+          .select('subquestion_id, answer_key, solution, marking_rubric')
           .in('subquestion_id', subIds);
 
-        const subKeysMap: Record<string, { answer_key: string; solution: string }> = {};
+        const subKeysMap: Record<string, { answer_key: string; solution: string; marking_rubric: string[] }> = {};
         (subKeys || []).forEach((k: any) => {
           if (k.subquestion_id) {
             subKeysMap[k.subquestion_id] = {
               answer_key: k.answer_key || '',
-              solution: k.solution || ''
+              solution: k.solution || '', marking_rubric: k.marking_rubric || []
             };
           }
         });
@@ -297,6 +305,7 @@ export const QuestionBankManager: React.FC = () => {
           command_term: s.command_term,
           sub_question_text: s.sub_question_text,
           order_index: s.order_index,
+          marking_rubric: subKeysMap[s.id]?.marking_rubric, answer_config: s.answer_config, sub_question_image_url: s.sub_question_image_url,
           answer_key: subKeysMap[s.id]?.answer_key || '',
           solution: subKeysMap[s.id]?.solution || ''
         }));
@@ -317,6 +326,7 @@ export const QuestionBankManager: React.FC = () => {
       answer_type: question.answer_type,
       is_published: question.is_published,
       review_status: question.review_status,
+      marking_rubric: question.marking_rubric, answer_config: question.answer_config,
       answer_key: question.answer_key || '',
       solution: question.solution || '',
       subquestions: subs
@@ -337,7 +347,7 @@ export const QuestionBankManager: React.FC = () => {
         const subIds = subData.map((s: any) => s.id);
         const { data: subKeys } = await supabase
           .from('question_answer_keys')
-          .select('subquestion_id, answer_key, solution')
+          .select('subquestion_id, answer_key, solution, marking_rubric')
           .in('subquestion_id', subIds);
 
         const keyMap: Record<string, any> = {};
@@ -413,8 +423,8 @@ export const QuestionBankManager: React.FC = () => {
 
       const { error } = await supabase.rpc('save_bank_question', {
         p_id: editingId,
-        p_question: { ...payload, answer_key: formData.answer_key, solution: formData.solution,
-          subquestions: formData.subquestions.map(part => ({ ...part })) }
+        p_question: { ...payload, answer_config: {...formData.answer_config}, marking_rubric: formData.marking_rubric, answer_key: formData.answer_key, solution: formData.solution,
+          subquestions: formData.subquestions.map(part => ({ ...part, answer_config: {...part.answer_config} })) }
       });
       if (error) throw error;
 
@@ -1029,16 +1039,17 @@ export const QuestionBankManager: React.FC = () => {
                     </div>
                   </div>
 
+                  <PracticeMarkingFields value={formData} change={fields => setFormData({...formData, ...fields, answer_type: formData.answer_type})} />
                   <div>
                     <Label className="text-xs font-semibold text-slate-700">
-                      Step-by-Step Marking Rubric & Solution
+                      Step-by-step solution
                     </Label>
                     <UnifiedMathEditor
                       value={formData.solution}
                       onChange={(val) => setFormData({ ...formData, solution: val })}
                       mode="mixed_prose"
                       placeholder="Detail step 1, step 2, and scoring breakdown... Use $...$ for formulas"
-                      ariaLabel="Step-by-Step Marking Rubric & Solution"
+                      ariaLabel="Step-by-step solution"
                       minHeight="90px"
                     />
                   </div>
@@ -1149,7 +1160,12 @@ export const QuestionBankManager: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label className="text-[10px] text-muted-foreground font-semibold">Solution / Rubric</Label>
+                        <label>Part answer type <select value={sub.answer_type} onChange={e => setFormData({...formData,subquestions: formData.subquestions.map((part,i) => i===idx ? {...part, answer_type:e.target.value as BankSubquestion['answer_type']} : part)})}>
+                          {['short_answer','multiple_choice','text_equation','working_box'].map(kind=><option key={kind}>{kind}</option>)}
+                        </select></label>
+                        <Input aria-label="Part image URL" placeholder="Optional part image URL" value={sub.sub_question_image_url || ''} onChange={e=>setFormData({...formData,subquestions:formData.subquestions.map((part,i)=>i===idx?{...part,sub_question_image_url:e.target.value}:part)})} />
+                        <PracticeMarkingFields value={sub} change={fields=>setFormData({...formData,subquestions:formData.subquestions.map((part,i)=>i===idx?{...part,...fields,answer_type:part.answer_type}:part)})} />
+                        <Label>Part solution</Label>
                         <UnifiedMathEditor
                           value={sub.solution || ''}
                           onChange={(val) => {

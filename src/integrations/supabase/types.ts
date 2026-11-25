@@ -237,6 +237,9 @@ export type Database = {
       }
       practice_session_questions: {
         Row: {
+          prompt: Json
+          flagged: boolean
+          marks_earned: number | null
           id: string
           session_id: string
           question_id: string
@@ -2720,6 +2723,7 @@ export type Database = {
       }
     }
     Views: {
+      practice_review_queue: { Row: { session_question_id: string; part_id: string; answer: Json; maximum: number; earned: number | null; evaluation: string; question_text: string; sub_question_text: string | null; answer_key: string; marking_rubric: Json; evaluated_at: string | null }; Relationships: [] }
       practice_catalogue: { Row: Database['public']['Tables']['question_bank']['Row'] & {
         search_document: string; attempt_status: string; is_correct: boolean | null
       }; Relationships: [] }
@@ -2744,6 +2748,9 @@ export type Database = {
       }
     }
     Functions: {
+      student_mock_prompts: {Args: {p_tests:string[]}; Returns: (Omit<Database['public']['Tables']['mock_questions']['Row'],'answer_key'> & {mock_sub_questions: Omit<Database['public']['Tables']['mock_sub_questions']['Row'],'answer_key'>[]})[] }
+      flag_practice_question: { Args: { p_item: string; p_flag: boolean }; Returns: undefined }
+      review_practice_part: { Args: { p_item: string; p_part: string; p_marks: number }; Returns: undefined }
       save_bank_question: { Args: { p_question: Json; p_id?: string | null; p_batch?: string }; Returns: string }
       generate_practice_session: {
         Args: {

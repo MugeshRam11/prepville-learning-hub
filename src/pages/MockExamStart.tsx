@@ -83,14 +83,7 @@ const MockExamStart = () => {
         console.log('Loading test data for testId:', testId);
         
         // Fetch mock questions for this test
-        const { data: questionsData, error: questionsError } = await supabase
-          .from('mock_questions')
-          .select(`
-            *,
-            mock_sub_questions (*)
-          `)
-          .eq('mock_test_id', testId)
-          .order('question_number');
+        const { data: questionsData, error: questionsError } = await supabase.rpc('student_mock_prompts', {p_tests: [testId]});
 
         if (questionsError) throw questionsError;
 

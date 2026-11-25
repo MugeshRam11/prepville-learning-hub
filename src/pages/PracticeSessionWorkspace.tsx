@@ -161,62 +161,10 @@ const PracticeSessionWorkspace: React.FC = () => {
 
       if (psqErr) throw psqErr;
 
-      // Fetch corresponding question_bank records
-      const questionIds = (psqData || []).map((q: any) => q.question_id);
-      const { data: qbData, error: qbErr } = await supabase
-        .from('question_bank')
-        .select('id, question_text, image_url, strand, myp_year, topic, subtopic, difficulty, question_type, answer_type, answer_config, marks')
-        .in('id', questionIds);
-
-      if (qbErr) throw qbErr;
-
-      const qbMap = new Map((qbData || []).map((q: any) => [q.id, q]));
-
-      // Fetch subquestions for any multi-part questions
-      const multiPartIds = (qbData || [])
-        .filter((q: any) => q.question_type === 'multi_part')
-        .map((q: any) => q.id);
-
-      let subMap = new Map<string, any[]>();
-      if (multiPartIds.length > 0) {
-        const { data: subsData } = await supabase
-          .from('question_subquestions')
-          .select('id, question_id, label, sub_question_text, sub_question_image_url, answer_type, answer_config, marks, order_index')
-          .in('question_id', multiPartIds)
-          .order('order_index');
-
-        (subsData || []).forEach((sq: any) => {
-          const list = subMap.get(sq.question_id) || [];
-          list.push({
-            id: sq.id,
-            label: sq.label || 'a',
-            sub_question_text: sq.sub_question_text || '',
-            sub_question_image_url: sq.sub_question_image_url,
-            marks: sq.marks || 1,
-            answer_type: sq.answer_type || 'text_equation',
-            answer_block_config: { type: (sq.answer_type as any) || 'text_equation', ...(sq.answer_config as any || {}) }
-          });
-          subMap.set(sq.question_id, list);
-        });
-      }
-
-      // Merge into complete SessionQuestionItem list
       const initialAnswers: Record<string, any> = {};
       const enrichedQuestions: SessionQuestionItem[] = (psqData || []).map((psq: any) => {
-        const qb = qbMap.get(psq.question_id) || {
-          id: psq.question_id,
-          question_text: 'Question prompt',
-          image_url: null,
-          strand: 'Mathematics',
-          myp_year: 'Year 5',
-          topic: 'Mathematics',
-          subtopic: null,
-          difficulty: 'medium',
-          question_type: 'numeric',
-          marks: 1
-        };
-
-        const subquestions = subMap.get(psq.question_id) || [
+        const qb = psq.prompt;
+        const subquestions = qb.question_type === 'multi_part' ? qb.parts : [
           {
             id: qb.id,
             label: '1',
@@ -251,6 +199,7 @@ const PracticeSessionWorkspace: React.FC = () => {
         };
       });
 
+      setFlaggedIds(new Set((psqData || []).filter(q=>q.flagged).map(q=>q.id)));
       setQuestions(enrichedQuestions);
       answerRef.current = initialAnswers;
       setAnswers(initialAnswers);
@@ -410,12 +359,15 @@ const PracticeSessionWorkspace: React.FC = () => {
   };
 
   // Flag toggle
-  const toggleFlag = (sqId: string) => {
-    setFlaggedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(sqId)) next.delete(sqId);
-      else next.add(sqId);
-      return next;
+  const toggleFlag = async (sqId: string) => {
+    if (session?.is_completed) return;
+    const next = !flaggedIds.has(sqId);
+    const {error} = await supabase.rpc('flag_practice_question',{p_item:sqId,p_flag:next});
+    if (error) { toast.error(error.message); return; }
+    setFlaggedIds(prev => {
+      const flags = new Set(prev);
+      if (next) flags.add(sqId); else flags.delete(sqId);
+      return flags;
     });
   };
 
@@ -790,6 +742,7 @@ const PracticeSessionWorkspace: React.FC = () => {
                             </div>
                           )}
 
+                          {Array.isArray(sol.marking_rubric) && sol.marking_rubric.map((line,i) => <p key={i}>{renderLatexContent(String(line))}</p>)}
                           {sol.solution && (
                             <div className="space-y-1">
                               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">

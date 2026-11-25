@@ -155,14 +155,7 @@ const PracticeExam = () => {
 
         // Fetch from database
         if (testId) {
-          const { data: questionsData, error } = await supabase
-            .from('mock_questions')
-            .select(`
-              *,
-              mock_sub_questions (*)
-            `)
-            .eq('mock_test_id', testId)
-            .order('question_number');
+          const { data: questionsData, error } = await supabase.rpc('student_mock_prompts', {p_tests: [testId]});
 
           if (error) throw error;
 

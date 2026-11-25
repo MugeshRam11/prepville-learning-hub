@@ -29,12 +29,12 @@ begin
    end if;
  end if;
  insert into public.question_bank(id,programme,subject,myp_year,strand,topic,subtopic,difficulty,question_type,
- command_term,question_text,image_url,marks,answer_type,is_published,review_status,created_by,import_batch_id)
+ command_term,question_text,image_url,marks,answer_type,answer_config,is_published,review_status,created_by,import_batch_id)
  values(qid,q.programme,q.subject,q.myp_year,q.strand,q.topic,q.subtopic,q.difficulty,q.question_type,q.command_term,
- q.question_text,q.image_url,q.marks,q.answer_type,coalesce(q.is_published,false),coalesce(q.review_status,'draft'),auth.uid(),p_batch)
+ q.question_text,q.image_url,q.marks,q.answer_type,coalesce(q.answer_config,'{}'),coalesce(q.is_published,false),coalesce(q.review_status,'draft'),auth.uid(),p_batch)
  on conflict(id) do update set myp_year=q.myp_year,strand=q.strand,topic=q.topic,subtopic=q.subtopic,difficulty=q.difficulty,
  question_type=q.question_type,command_term=q.command_term,question_text=q.question_text,image_url=q.image_url,
- marks=q.marks,answer_type=q.answer_type,is_published=q.is_published,review_status=q.review_status;
+ marks=q.marks,answer_type=q.answer_type,answer_config=excluded.answer_config,is_published=q.is_published,review_status=q.review_status;
  if q.question_type='multi_part' then
    for item in select value from jsonb_array_elements(p_question->'subquestions') loop
      part:=jsonb_populate_record(null::public.question_subquestions,item);
@@ -43,10 +43,10 @@ begin
      if nullif(trim(part.sub_question_text),'') is null or nullif(trim(part.label),'') is null or part.id=any(parts)
        then raise exception 'Invalid part'; end if;
      part.id:=coalesce(part.id,gen_random_uuid());
-     insert into public.question_subquestions(id,question_id,label,marks,answer_type,command_term,sub_question_text,order_index)
-     values(part.id,qid,part.label,part.marks,part.answer_type,part.command_term,part.sub_question_text,cardinality(parts))
+     insert into public.question_subquestions(id,question_id,label,marks,answer_type,answer_config,command_term,sub_question_text,sub_question_image_url,order_index)
+     values(part.id,qid,part.label,part.marks,part.answer_type,coalesce(part.answer_config,'{}'),part.command_term,part.sub_question_text,part.sub_question_image_url,cardinality(parts))
      on conflict(id) do update set label=part.label,marks=part.marks,answer_type=part.answer_type,
-     command_term=part.command_term,sub_question_text=part.sub_question_text,order_index=cardinality(parts);
+     answer_config=excluded.answer_config,sub_question_image_url=part.sub_question_image_url,command_term=part.command_term,sub_question_text=part.sub_question_text,order_index=cardinality(parts);
      insert into public.question_answer_keys(subquestion_id,answer_key,solution,marking_rubric)
      values(part.id,coalesce(item->>'answer_key',''),item->>'solution',coalesce(item->'marking_rubric','[]'))
      on conflict(subquestion_id) do update set answer_key=excluded.answer_key,solution=excluded.solution,

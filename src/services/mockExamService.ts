@@ -67,11 +67,7 @@ export async function getPublishedMockTests(): Promise<PublishedMockTest[]> {
 export async function getMockTestWithQuestions(testId: string) {
   const [testResult, questionsResult, sectionsResult] = await Promise.all([
     supabase.from("mock_tests").select("*").eq("id", testId).single(),
-    supabase
-      .from("mock_questions")
-      .select("*, mock_sub_questions(*)")
-      .eq("mock_test_id", testId)
-      .order("question_number"),
+    supabase.rpc("student_mock_prompts",{p_tests:[testId]}),
     supabase
       .from("mock_test_sections")
       .select("*")
