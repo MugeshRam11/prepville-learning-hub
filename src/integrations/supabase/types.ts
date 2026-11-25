@@ -192,6 +192,10 @@ export type Database = {
       }
       practice_sessions: {
         Row: {
+          session_mode: "study" | "paper"
+          completed_at: string | null
+          evaluation_status: string
+          request_id: string | null
           id: string
           user_id: string
           title: string
@@ -2800,7 +2804,7 @@ export type Database = {
         }
         Returns: {
           completed: boolean
-          score: number
+          score: number | null
           total_completed: number
           total_questions: number
         }[]

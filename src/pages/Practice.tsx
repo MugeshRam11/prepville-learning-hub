@@ -705,6 +705,8 @@ const Practice: React.FC = () => {
           fetchSessions();
         }}
         initialFilters={{
+          topic: topic.trim() || undefined,
+          question_type: selectedType === 'all' ? undefined : selectedType,
           myp_year: selectedYear !== 'all' ? selectedYear : undefined,
           strand: selectedStrand !== 'all' ? selectedStrand : undefined,
           difficulty: selectedDifficulty !== 'all' ? selectedDifficulty : undefined

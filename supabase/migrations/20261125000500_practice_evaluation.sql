@@ -34,7 +34,7 @@ revoke all on schema practice_private from public,anon,authenticated;
 create function practice_private.grade(sqid uuid,response text) returns void language plpgsql set search_path='' as $$
 declare
  sq public.practice_session_questions; q public.question_bank; item record; answers jsonb; val jsonb;
- submitted text; earned integer; total integer; pending boolean;
+ left_poly jsonb; right_poly jsonb; submitted text; earned integer; total integer; pending boolean;
 begin
  select * into strict sq from public.practice_session_questions where id=sqid for update;
  if sq.attempt_status in ('submitted','evaluated') then raise exception 'Answer already submitted'; end if;
@@ -60,6 +60,9 @@ begin
      submitted ~ '^[+-]?[0-9]{1,100}([.][0-9]{1,100})?$' and item.answer_key ~ '^[+-]?[0-9]{1,100}([.][0-9]{1,100})?$' then
      earned:=case when abs(submitted::numeric-item.answer_key::numeric)<=coalesce((item.answer_config->>'tolerance')::numeric,0)
        then item.marks else 0 end;
+   elsif item.answer_type='text_equation' then
+     left_poly:=practice_private.polynomial(submitted); right_poly:=practice_private.polynomial(item.answer_key);
+     if left_poly is not null and right_poly is not null then earned:=case when left_poly=right_poly then item.marks else 0 end; end if;
    end if;
    insert into public.practice_part_results(session_question_id,part_id,answer,maximum,earned,evaluation,evaluated_at)
    values(sqid,item.id,val,item.marks,earned,case when earned is null then 'pending' else 'automatic' end,

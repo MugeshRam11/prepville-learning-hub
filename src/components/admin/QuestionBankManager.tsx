@@ -63,7 +63,7 @@ export interface BankQuestion {
   answer_type: 'text_equation' | 'short_answer' | 'multiple_choice' | 'working_box';
   answer_config?: Record<string, any>;
   is_published: boolean;
-  review_status: 'draft' | 'review_pending' | 'approved' | 'rejected';
+  review_status: 'draft' | 'review_pending' | 'approved' | 'rejected' | 'archived';
   created_at: string;
   updated_at: string;
   subquestions?: BankSubquestion[];
@@ -154,7 +154,7 @@ export const QuestionBankManager: React.FC = () => {
     marks: number;
     answer_type: 'text_equation' | 'short_answer' | 'multiple_choice' | 'working_box';
     is_published: boolean;
-    review_status: 'draft' | 'review_pending' | 'approved' | 'rejected';
+    review_status: 'draft' | 'review_pending' | 'approved' | 'rejected' | 'archived';
     answer_key: string;
     marking_rubric?: string[];
     answer_config?: PracticeAnswerConfig;
@@ -212,11 +212,12 @@ export const QuestionBankManager: React.FC = () => {
       let answerKeyMap: Record<string, { answer_key: string; solution: string; marking_rubric: string[] }> = {};
 
       if (qIds.length > 0) {
-        const { data: akData } = await supabase
+        const { data: akData, error: keyError } = await supabase
           .from('question_answer_keys')
           .select('question_id, answer_key, solution, marking_rubric')
           .in('question_id', qIds);
 
+        if (keyError) throw keyError;
         if (akData) {
           akData.forEach((ak: any) => {
             if (ak.question_id) {
@@ -273,19 +274,21 @@ export const QuestionBankManager: React.FC = () => {
     let subs: BankSubquestion[] = [];
 
     if (question.question_type === 'multi_part') {
-      const { data: subData } = await supabase
+      const { data: subData,error: partError } = await supabase
         .from('question_subquestions')
         .select('*')
         .eq('question_id', question.id)
         .order('order_index', { ascending: true });
 
+      if (partError) { toast.error(partError.message); return; }
       if (subData && subData.length > 0) {
         const subIds = subData.map((s: any) => s.id);
-        const { data: subKeys } = await supabase
+        const { data: subKeys,error: keysError } = await supabase
           .from('question_answer_keys')
           .select('subquestion_id, answer_key, solution, marking_rubric')
           .in('subquestion_id', subIds);
 
+        if (keysError) { toast.error(keysError.message); return; }
         const subKeysMap: Record<string, { answer_key: string; solution: string; marking_rubric: string[] }> = {};
         (subKeys || []).forEach((k: any) => {
           if (k.subquestion_id) {
@@ -337,7 +340,7 @@ export const QuestionBankManager: React.FC = () => {
   const handleOpenPreview = async (question: BankQuestion) => {
     setPreviewQuestion(question);
     if (question.question_type === 'multi_part') {
-      const { data: subData } = await supabase
+      const { data: subData,error: partError } = await supabase
         .from('question_subquestions')
         .select('*')
         .eq('question_id', question.id)
@@ -345,7 +348,7 @@ export const QuestionBankManager: React.FC = () => {
 
       if (subData) {
         const subIds = subData.map((s: any) => s.id);
-        const { data: subKeys } = await supabase
+        const { data: subKeys,error: keysError } = await supabase
           .from('question_answer_keys')
           .select('subquestion_id, answer_key, solution, marking_rubric')
           .in('subquestion_id', subIds);
@@ -454,9 +457,7 @@ export const QuestionBankManager: React.FC = () => {
 
       if (error) throw error;
       toast.success(newStatus ? 'Question published' : 'Question reverted to draft');
-      setQuestions((prev) =>
-        prev.map((q) => (q.id === question.id ? { ...q, is_published: newStatus, review_status: newStatus ? 'approved' : 'draft' } : q))
-      );
+      fetchQuestions();
     } catch (err: any) {
       toast.error(`Failed to update status: ${err.message}`);
     }
@@ -730,6 +731,7 @@ export const QuestionBankManager: React.FC = () => {
                       <TableCell className="text-center">
                         <button
                           type="button"
+                          aria-label={q.is_published ? "Unpublish question" : "Approve and publish question"}
                           onClick={() => handleTogglePublish(q)}
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
                             q.is_published
@@ -752,7 +754,7 @@ export const QuestionBankManager: React.FC = () => {
                           ) : (
                             <>
                               <XCircle className="w-3 h-3 text-slate-500" />
-                              Draft
+                              {q.review_status === 'archived' ? 'Archived' : 'Draft'}
                             </>
                           )}
                         </button>

@@ -49,15 +49,22 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
+    let generation = 0;
     const { data: { subscription } } = supabaseAdmin.auth.onAuthStateChange(
-      async (event, session) => {
+      (_event, session) => {
+        const current = ++generation;
         if (session?.user) {
           setSession(session);
           setUser(session.user);
           setIsDemo(false);
-          const dbRole = await fetchUserRole(session.user.id);
-          setRole(dbRole);
-          setLoading(false);
+          setLoading(true);
+          // Auth emits INITIAL_SESSION as well as sign-in and refresh events.
+          // Query roles after the auth callback releases the session lock.
+          setTimeout(async () => {
+            if (current !== generation) return;
+            const dbRole = await fetchUserRole(session.user.id);
+            if (current === generation) { setRole(dbRole); setLoading(false); }
+          }, 0);
         } else {
           if (isDemoSession() && localStorage.getItem('demo_is_admin') === 'true') {
             setUser(createMockAdminUser());
@@ -74,22 +81,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     );
 
-    supabaseAdmin.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setSession(session);
-        setUser(session.user);
-        setIsDemo(false);
-        const dbRole = await fetchUserRole(session.user.id);
-        setRole(dbRole);
-      } else if (isDemoSession() && localStorage.getItem('demo_is_admin') === 'true') {
-        setUser(createMockAdminUser());
-        setRole('admin');
-        setIsDemo(true);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => { generation++; subscription.unsubscribe(); };
   }, []);
 
   const signIn = async (email: string, password: string) => {

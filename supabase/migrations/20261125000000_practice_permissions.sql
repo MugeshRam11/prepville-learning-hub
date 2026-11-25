@@ -1,5 +1,7 @@
 -- Use the protected assignment table as the authority for Practice administration.
 drop policy if exists "Allow authenticated write user_roles" on public.user_roles;
+drop policy if exists "Allow authenticated read user_roles" on public.user_roles;
+create policy "Read own role assignments" on public.user_roles for select to authenticated using (user_id=(select auth.uid()));
 revoke insert,update,delete,truncate on public.user_roles from public,anon,authenticated;
 create or replace function public.has_role(_user_id uuid,_role text)
 returns boolean language sql stable security definer set search_path='' as $$

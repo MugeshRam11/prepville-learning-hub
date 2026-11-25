@@ -27,6 +27,7 @@ interface PracticeSessionGeneratorModalProps {
     strand?: string;
     topic?: string;
     difficulty?: string;
+    question_type?: string;
   };
 }
 
@@ -51,8 +52,8 @@ export const PracticeSessionGeneratorModal: React.FC<PracticeSessionGeneratorMod
   const [mypYear, setMypYear] = useState<string>(initialFilters?.myp_year || 'all');
   const [strand, setStrand] = useState<string>(initialFilters?.strand || 'all');
   const [difficulty, setDifficulty] = useState<string>(initialFilters?.difficulty || 'all');
-  const [topic,setTopic] = useState('');
-  const [kind,setKind] = useState('');
+  const [topic,setTopic] = useState(initialFilters?.topic || '');
+  const [kind,setKind] = useState(initialFilters?.question_type || '');
   const identity = React.useRef({signature: '', token: crypto.randomUUID()});
   const [unattemptedOnly, setUnattemptedOnly] = useState(true);
 
@@ -140,14 +141,14 @@ export const PracticeSessionGeneratorModal: React.FC<PracticeSessionGeneratorMod
             <Slider
               value={[count]}
               onValueChange={(val) => setCount(val[0])}
-              min={5}
+              min={1}
               max={50}
-              step={5}
+              step={1}
               className="py-2"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-              <span>5 min</span>
-              <span className="text-indigo-600 font-semibold">50 (Client Target)</span>
+              <span>1 minimum</span>
+              <span className="text-indigo-600 font-semibold">50 maximum</span>
             </div>
           </div>
 
@@ -202,9 +203,9 @@ export const PracticeSessionGeneratorModal: React.FC<PracticeSessionGeneratorMod
           {/* Unattempted Only Toggle */}
           <div className="flex items-center justify-between p-3 bg-slate-50 border rounded-xl">
             <div>
-              <div className="text-xs font-bold text-slate-800">Prioritize Unattempted Questions</div>
+              <div className="text-xs font-bold text-slate-800">Unattempted questions only</div>
               <div className="text-[11px] text-muted-foreground">
-                Excludes questions you have previously submitted.
+                Excludes questions with saved drafts or submitted answers.
               </div>
             </div>
             <Switch

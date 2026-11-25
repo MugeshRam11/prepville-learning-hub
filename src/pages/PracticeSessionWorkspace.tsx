@@ -408,10 +408,10 @@ const PracticeSessionWorkspace: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top Header Bar */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="px-4 py-2.5 max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="px-4 py-2.5 max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           {/* Left: Back + Session Title */}
           <div className="flex items-center gap-3 min-w-0">
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/practice')}>
+            <Button variant="ghost" size="icon" className="shrink-0" onClick={async () => { try { await flush(); navigate('/practice'); } catch { toast.error('Retry saving before leaving'); } }}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="min-w-0">
@@ -430,7 +430,7 @@ const PracticeSessionWorkspace: React.FC = () => {
           </div>
 
           {/* Center: Progress & Timer */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-2 md:gap-6">
             <div className="w-48 space-y-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Submitted</span>
@@ -449,6 +449,7 @@ const PracticeSessionWorkspace: React.FC = () => {
             </div>
 
             {saveFailed && <Button onClick={() => void flush().catch(() => toast.error('Save failed'))}>Retry save</Button>}
+            {!isSaving && !saveFailed && <span className="text-xs">Saved</span>}
             {isSaving && (
               <div className="flex items-center gap-1 text-xs text-amber-600 font-medium animate-pulse">
                 <Save className="w-3.5 h-3.5" />
@@ -635,7 +636,7 @@ const PracticeSessionWorkspace: React.FC = () => {
                               : 'bg-indigo-100 text-indigo-800'
                           )}
                         >
-                          {currentQ.is_correct === true ? 'Evaluated Correct' : 'Submitted'}
+                          {currentQ.is_correct === true ? 'Evaluated Correct' : currentQ.is_correct === false ? 'Incorrect' : 'Pending review'}
                         </Badge>
                       )}
                     </CardTitle>
@@ -900,7 +901,7 @@ const PracticeSessionWorkspace: React.FC = () => {
                                 : 'bg-indigo-100 text-indigo-800'
                             )}
                           >
-                            {q.is_correct === true ? 'Correct' : 'Submitted'}
+                            {q.is_correct === true ? 'Correct' : q.is_correct === false ? 'Incorrect' : 'Pending review'}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] text-muted-foreground">
@@ -922,7 +923,7 @@ const PracticeSessionWorkspace: React.FC = () => {
             </Button>
             <Button
               size="sm"
-              onClick={() => navigate('/practice')}
+              onClick={async () => { try { await flush(); navigate('/practice'); } catch { toast.error('Retry saving before leaving'); } }}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
             >
               Back to Question Bank
