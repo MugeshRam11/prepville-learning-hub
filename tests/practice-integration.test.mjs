@@ -1,0 +1,119 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile,readdir} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import {PGlite} from '@electric-sql/pglite';
+
+test('Practice migrations, authoring, student ownership, evaluation and 10k catalogue', async t => {
+  const db = new PGlite();
+  t.after(() => db.close());
+  const row = async (sql,params=[]) => (await db.query(sql,params)).rows[0];
+  const as = async (role,id='') => {
+    await db.exec('reset role; set role ' + role);
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);
+  };
+  await db.exec(await readFile(new URL('./fixtures/practice-baseline.sql',import.meta.url),'utf8'));
+  for(const file of (await readdir('supabase/migrations')).filter(f=>f>='20260808').sort()) {
+    try { await db.exec(await readFile('supabase/migrations/'+file,'utf8')); }
+    catch(error) { throw new Error(file+': '+error.message,{cause:error}); }
+  }
+  const admin=randomUUID(),student=randomUUID(),other=randomUUID();
+  await db.query('insert into auth.users values ($1),($2),($3)',[admin,student,other]);
+  await db.query("insert into user_roles values ($1,'admin')",[admin]);
+  assert.equal((await row("select count(*) n from question_bank where myp_year is null and not is_published")).n,1);
+  await as('authenticated',admin);
+  const input={programme:'MYP',subject:'mathematics',myp_year:'Year 3',strand:'Algebra',topic:'Linear equations',
+    difficulty:'medium',question_type:'single',question_text:'Find x',marks:2,answer_type:'short_answer',answer_key:'4',
+    solution:'Divide by two',is_published:true,review_status:'approved'};
+  const save=async (q,id=null,batch=null)=>(await row('select save_bank_question($1,$2,$3) id',[JSON.stringify(q),id,batch])).id;
+  const id=await save(input);
+  await save({...input,question_text:'Find the value of x'},id);
+  const mock=randomUUID(),mockQuestion=randomUUID();
+  await db.query('insert into mock_tests values($1,true)',[mock]);
+  await db.query("insert into mock_questions(id,mock_test_id,question_text,answer_key) values($1,$2,'Mock prompt','Protected')",[mockQuestion,mock]);
+  const batch=randomUUID();
+  await save({...input,question_text:'Imported'},null,batch);
+  await assert.rejects(save({...input,question_text:'Imported'},null,batch),/Duplicate/);
+  const part={label:'a',marks:1,answer_type:'short_answer',sub_question_text:'Solve',answer_key:'3'};
+  const multi={...input,question_type:'multi_part',subquestions:[part,{...part,label:'b',answer_type:'working_box'}]};
+  await assert.rejects(save({...multi,marks:3}),/sum/);
+  assert.equal((await row('select count(*) n from question_bank')).n,3);
+  const multiId=await save(multi);
+  const parts=(await db.query('select id from question_subquestions where question_id=$1 order by order_index',[multiId])).rows;
+  const create=async (n,filters)=>(await row("select * from generate_practice_session('Paper',$1,$2)",[n,JSON.stringify(filters)])).session_id;
+  await as('postgres');
+  await db.exec("insert into question_bank(programme,topic,question_text,myp_year) values('DP','Unreleased','Restricted','Year 5')");
+  await as('anon');
+  await assert.rejects(save(input));
+  await as('authenticated',student);
+  assert.equal((await row('select count(*) n from question_answer_keys')).n,0);
+  assert.equal((await row('select count(*) n from question_bank')).n,2);
+  assert.equal((await row('select count(*) n from mock_questions')).n,0);
+  const delivered=(await row('select student_mock_prompts(array[$1::uuid]) as q',[mock])).q;
+  assert.equal(delivered.question_text,'Mock prompt');
+  assert.equal(delivered.answer_key,undefined);
+  await assert.rejects(save(input));
+  await assert.rejects(db.query("insert into user_roles values($1,'admin')",[student]));
+  await assert.rejects(create(50,{}),/Only 2/);
+  await assert.rejects(create(2,{question_ids:[id,id]}),/unique/);
+  const filters={question_ids:[id,multiId],request_id:randomUUID()};
+  const paper=await create(2,filters);
+  assert.equal(await create(2,filters),paper);
+  const qs=(await db.query('select id,question_id from practice_session_questions where session_id=$1 order by order_index',[paper])).rows;
+  assert.deepEqual(qs.map(q=>q.question_id),[id,multiId]);
+  const solution=key=>row('select * from get_practice_question_solution($1)',[key]);
+  const draft=(key,value)=>row('select save_practice_draft_answer($1,$2,2)',[key,value]);
+  await assert.rejects(solution(qs[0].id));
+  await assert.rejects(db.query("update practice_sessions set score=100"));
+  await assert.rejects(db.query("update practice_session_questions set attempt_status='submitted'"));
+  await draft(qs[0].id,'4');
+  const working=String.raw`\frac{x}{2}`;
+  await draft(qs[1].id,JSON.stringify({[parts[0].id]:'3',[parts[1].id]:working}));
+  await as('authenticated',other);
+  assert.equal((await row('select count(*) n from practice_sessions')).n,0);
+  await assert.rejects(draft(qs[0].id,'7'));
+  await as('authenticated',student);
+  const complete=key=>row('select * from complete_practice_session($1)',[key]);
+  assert.equal((await complete(paper)).score,null);
+  assert.equal((await solution(qs[0].id)).answer_key,'4');
+  assert.equal((await row('select earned from practice_part_results where session_question_id=$1',[qs[0].id])).earned,2);
+  assert.equal((await row('select answer from practice_part_results where part_id=$1',[parts[1].id])).answer,working);
+  await assert.rejects(draft(qs[0].id,'9'));
+  const start=()=>row('select * from start_single_question_attempt($1)',[id]);
+  const study=await start();
+  assert.equal((await start()).session_id,study.session_id);
+  const submit=()=>row("select * from submit_practice_question_answer($1,'4',1)",[study.session_question_id]);
+  assert.equal((await submit()).is_correct,true);
+  await assert.rejects(submit());
+  assert.equal((await complete(study.session_id)).score,'100.00');
+  await as('authenticated',admin);
+  await row("select review_practice_part($1,$2,1)",[qs[1].id,parts[1].id]);
+  assert.equal((await row("select score from practice_sessions where id=$1",[paper])).score,'100.00');
+  await db.query("update question_bank set is_published=false,review_status='archived' where id=$1",[id]);
+  await as('authenticated',student);
+  assert.equal((await row('select count(*) n from question_bank where id=$1',[id])).n,0);
+  assert.equal((await row('select prompt from practice_session_questions where id=$1',[qs[0].id])).prompt.question_text,'Find the value of x');
+  await as('authenticated',admin);
+  const algebra=await save({...input,question_text:'Simplify',answer_type:'text_equation',answer_key:'2x^{2}+1'});
+  const choice=await save({...input,question_text:'Choose',answer_type:'multiple_choice',answer_config:{options:[{id:'A',content:'four'},{id:'B',content:'five'}]},answer_key:'A'});
+  const tolerance=await save({...input,answer_config:{tolerance:0.05}});
+  await assert.rejects(save({...input,answer_key:''}),/marking key/);
+  await as('authenticated',student);
+  for (const [key,answer] of [[algebra,'1+x^2+x^2'],[choice,'A'],[tolerance,'4.04']]) {
+    const attempt=await row('select * from start_single_question_attempt($1)',[key]);
+    assert.equal((await row('select * from submit_practice_question_answer($1,$2,0)',[attempt.session_question_id,answer])).is_correct,true);
+  }
+  await assert.rejects(db.query('select review_practice_part($1,$2,1)',[qs[1].id,parts[1].id]));
+  await as('postgres');
+  await db.exec("begin; insert into question_bank(myp_year,topic,question_text,is_published,review_status) select 'Year 2','Fractions','Synthetic '||i,true,'approved' from generate_series(1,10000) i; insert into question_answer_keys(question_id,answer_key) select id,'1' from question_bank where topic='Fractions'; commit; analyze question_bank");
+  await as('authenticated',student);
+  const timer=performance.now();
+  const large=await create(50,{topic:'Fractions'});
+  t.diagnostic('50-question generation ms '+(performance.now()-timer).toFixed(1));
+  assert.equal((await row('select count(distinct question_id) n from practice_session_questions where session_id=$1',[large])).n,50);
+  const query="select id,count(*) over() as total from practice_catalogue where search_document @@ plainto_tsquery('simple','Fractions') and attempt_status='unattempted' order by created_at desc,id offset 120 limit 12";
+  const page=(await db.query(query)).rows;
+  assert.equal(page.length,12); assert.equal(page[0].total,10000);
+  const plan=await db.query('explain (analyze,buffers) '+query);
+  t.diagnostic(plan.rows.map(r=>r['QUERY PLAN']).join('\n'));
+});
