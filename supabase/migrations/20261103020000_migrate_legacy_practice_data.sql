@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS public.legacy_question_id_map (
 
 CREATE INDEX IF NOT EXISTS idx_legacy_map_new ON public.legacy_question_id_map(new_id);
 
+alter table public.question_bank alter myp_year drop not null, alter myp_year drop default;
+
 -- 2. Idempotent Data Migration Procedure
 DO $$
 DECLARE
@@ -86,7 +88,7 @@ BEGIN
       v_new_qid,
       'MYP',
       'mathematics',
-      'Year 4',
+      NULL,
       v_strand,
       COALESCE(NULLIF(TRIM(v_rec_q.topic), ''), 'General Mathematics'),
       CASE 
@@ -97,8 +99,8 @@ BEGIN
       v_rec_q.question_text,
       v_rec_q.question_image_url,
       GREATEST(1, v_sub_count),
-      (v_rec_q.is_published = true AND v_rec_q.is_archived = false),
-      CASE WHEN (v_rec_q.is_published = true AND v_rec_q.is_archived = false) THEN 'approved' ELSE 'draft' END,
+      false,
+      'review_pending',
       v_rec_q.created_by,
       v_rec_q.created_at,
       v_rec_q.updated_at
