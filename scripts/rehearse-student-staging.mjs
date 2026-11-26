@@ -1,12 +1,11 @@
 // Run only against the approved isolated rehearsal project. No outbound email steps.
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 const url = 'https://eiqojioufllxcsedodnv.supabase.co';
 const key = process.env.STAGING_PUBLISHABLE_KEY;
 const accounts = JSON.parse(
-  await readFile(process.env.STAGING_SYNTHETIC_CREDENTIALS, 'utf8'),
+  process.env.STAGING_SYNTHETIC_ACCOUNTS_JSON,
 );
 const fresh = () =>
   createClient(url, key, {

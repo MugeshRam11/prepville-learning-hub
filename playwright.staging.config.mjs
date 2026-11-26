@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 if (
   !process.env.STAGING_PUBLISHABLE_KEY ||
-  !process.env.STAGING_SYNTHETIC_CREDENTIALS
+  !process.env.STAGING_SYNTHETIC_ACCOUNTS_JSON
 )
   throw Error('Staging synthetic environment required');
 export default defineConfig({

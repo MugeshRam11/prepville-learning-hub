@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
-import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 test('staff publishes plotted multipart algebra and mobile learner submits it on hosted staging', async ({
   browser,
@@ -8,7 +7,7 @@ test('staff publishes plotted multipart algebra and mobile learner submits it on
   const url = 'https://eiqojioufllxcsedodnv.supabase.co',
     topic = 'Graph rehearsal ' + randomUUID().slice(0, 8);
   const passwords = JSON.parse(
-    await readFile(process.env.STAGING_SYNTHETIC_CREDENTIALS, 'utf8'),
+    process.env.STAGING_SYNTHETIC_ACCOUNTS_JSON,
   );
   async function login(role, width) {
     const client = createClient(url, process.env.STAGING_PUBLISHABLE_KEY, {
