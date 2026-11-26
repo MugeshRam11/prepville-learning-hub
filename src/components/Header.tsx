@@ -166,7 +166,7 @@ const Header = () => {
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 px-3"
-              onClick={() => navigate('/subscription')}
+              onClick={() => navigate('/settings')}
             >
               <User className="w-5 h-5" />
               <span>Account</span>
@@ -216,7 +216,7 @@ const Header = () => {
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-3"
-                    onClick={() => { navigate('/subscription'); setIsMenuOpen(false); }}
+                    onClick={() => { navigate('/settings'); setIsMenuOpen(false); }}
                   >
                     <User className="w-5 h-5" />
                     Account

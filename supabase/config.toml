@@ -56,3 +56,12 @@ verify_jwt = true
 
 [functions.purchase-ai-credits]
 verify_jwt = true
+
+[functions.deliver-support-mail]
+verify_jwt = false
+
+[functions.mail-events]
+verify_jwt = false
+
+[functions.cleanup-bank-uploads]
+verify_jwt = false

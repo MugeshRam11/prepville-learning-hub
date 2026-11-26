@@ -30,7 +30,7 @@ import { useXPSystem } from '@/hooks/useXPSystem';
 import { useProgressTracking } from '@/hooks/useProgressTracking';
 import { useSolvedQuestions } from '@/hooks/useSolvedQuestions';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useStudentAuth } from '@/hooks/useStudentAuth';
 import PerformanceCriteria from './PerformanceCriteria';
 import DynamicTopicProgress from './DynamicTopicProgress';
 import DynamicDailyChallenge from './DynamicDailyChallenge';
@@ -74,7 +74,7 @@ const StudentDashboard = () => {
   
   const { streakData } = useStreakTracker();
   const { xpData, loading: xpLoading } = useXPSystem();
-  const { user, isDemo } = useAuth();
+  const { user, isDemo } = useStudentAuth();
   const { 
     mockTestSolved, 
     subjectTestSolved, 
@@ -135,20 +135,16 @@ const StudentDashboard = () => {
         if (profileError) {
           console.error('Error fetching profile:', profileError);
         }
-        setProfileData(profile);
-
-        // Fetch test attempts to calculate real stats
-        const { data: attempts } = await supabase
-          .from('test_attempts')
-          .select('score, total_questions, completed_at')
-          .eq('user_id', user.id);
-
-        // Calculate total questions and correct answers
-        const total = attempts?.reduce((sum: number, a: any) => sum + (a.total_questions || 0), 0) || 0;
-        const correct = attempts?.reduce((sum: number, a: any) => sum + (a.score || 0), 0) || 0;
-        
-        setTotalQuestions(total);
-        setCorrectAnswers(correct);
+        const db=supabase as unknown as import('@supabase/supabase-js').SupabaseClient;
+        const [account,metrics]=await Promise.all([
+          db.from('student_accounts').select('display_name').eq('user_id',user.id).maybeSingle(),
+          db.rpc('my_practice_counts').single()
+        ]);
+        setProfileData({...profile,display_name:account.data?.display_name});
+        if(metrics.error) throw metrics.error;
+        const counts=metrics.data as {answered:number;correct:number};
+        setTotalQuestions(counts.answered);
+        setCorrectAnswers(counts.correct);
 
         // Calculate weekly completed from daily challenges
         const startOfWeek = new Date();
@@ -221,9 +217,9 @@ const StudentDashboard = () => {
 
   // Student data for display with real values
   const studentData = {
-    name: profileData?.first_name ? 
+    name: profileData?.display_name || (profileData?.first_name ?
       `${profileData.first_name}${profileData.last_name ? ` ${profileData.last_name}` : ''}` : 
-      profileData?.email?.split('@')[0] || 'Student',
+      profileData?.email?.split('@')[0] || 'Student'),
     avatar: getAvatarSource(),
     avatarEmoji: profileData?.avatar_emoji,
     avatarId: profileData?.avatar_id,

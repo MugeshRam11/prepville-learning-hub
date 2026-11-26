@@ -1,3 +1,4 @@
+import SupportDesk from '@/pages/SupportDesk';
 import React, { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES } from './routeConstants';
@@ -105,6 +106,7 @@ const AdminAuthGuard: React.FC<{ children: React.ReactElement }> = ({ children }
 export const AdminRoutes: React.FC = () => {
   return (
     <Routes>
+      {['/support','/admin/support'].map(path=><Route key={path} path={path} element={<AdminProtectedRoute><SupportDesk staff/></AdminProtectedRoute>}/>)}
       {/* Root Admin Routes */}
       <Route path="/" element={<AdminRootGuard />} />
       <Route path="/admin" element={<AdminRootGuard />} />

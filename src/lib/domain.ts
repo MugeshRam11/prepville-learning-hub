@@ -69,6 +69,7 @@ export const getActiveDomain = (): AppDomain => {
     pathname.startsWith('/level-details') ||
     pathname.startsWith('/subscription') ||
     pathname.startsWith('/notifications') ||
+    ['/support','/auth/callback','/reset-password','/settings'].includes(pathname) ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/quiz') ||
     pathname.startsWith('/quick-practice') ||

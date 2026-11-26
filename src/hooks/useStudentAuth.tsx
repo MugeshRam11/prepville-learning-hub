@@ -3,7 +3,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabaseStudent } from '@/lib/supabaseStudent';
 import { isDemoSession, getDemoSession, clearDemoSession, createDemoSession, DEMO_USER } from '@/lib/authService';
 import { fetchUserRole, UserAppRole } from '@/lib/roleService';
-import { sendSignupConfirmationEmailResend, sendPasswordResetEmailResend } from '@/lib/resendService';
 
 interface StudentAuthContextType {
   user: User | null;
@@ -101,7 +100,7 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           username: username,
           role: 'student'
@@ -109,10 +108,6 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     });
 
-    if (!error) {
-      const confirmUrl = `${window.location.origin}/confirm?email=${encodeURIComponent(email)}&user_id=${data.user?.id || ''}`;
-      await sendSignupConfirmationEmailResend(email, confirmUrl, username);
-    }
     return { error };
   };
 
@@ -133,13 +128,9 @@ export const StudentAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const resetPassword = async (email: string) => {
     const { error } = await supabaseStudent.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
-    if (!error) {
-      const resetUrl = `${window.location.origin}/login`;
-      await sendPasswordResetEmailResend(email, resetUrl);
-    }
     return { error };
   };
 

@@ -1,3 +1,4 @@
+import SupportDesk from '@/pages/SupportDesk';
 import React, { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES } from './routeConstants';
@@ -5,6 +6,10 @@ import DomainRedirect from './DomainRedirect';
 import StudentProtectedRoute from '@/components/StudentProtectedRoute';
 import { useStudentAuth } from '@/hooks/useStudentAuth';
 
+const StudentAccount=lazy(()=>import('@/pages/StudentAccount'));
+const AuthReturn=lazy(()=>import('@/pages/StudentAuthReturn'));
+const Privacy=lazy(()=>import('@/pages/PrivacyPolicy'));
+const Terms=lazy(()=>import('@/pages/TermsOfService'));
 // Lazy-loaded Student Pages
 const StudentLogin = lazy(() => import('@/pages/StudentLogin'));
 const StudentRegister = lazy(() => import('@/pages/StudentRegister'));
@@ -94,6 +99,11 @@ const StudentAuthGuard: React.FC<{ children: React.ReactElement }> = ({ children
 export const StudentRoutes: React.FC = () => {
   return (
     <Routes>
+      <Route path="/support" element={<StudentProtectedRoute><SupportDesk/></StudentProtectedRoute>}/>
+      <Route path="/auth/callback" element={<AuthReturn/>}/>
+      <Route path="/reset-password" element={<AuthReturn recovery/>}/>
+      <Route path="/settings" element={<StudentProtectedRoute><StudentAccount settings/></StudentProtectedRoute>}/>
+      <Route path="/privacy" element={<Privacy/>}/><Route path="/terms" element={<Terms/>}/>
       {/* Root Domain Route */}
       <Route path={ROUTES.STUDENT.ROOT} element={<StudentRootGuard />} />
 

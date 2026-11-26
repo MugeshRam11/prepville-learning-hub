@@ -81,7 +81,7 @@ const StudentRegister = () => {
       const { error } = await supabaseStudent.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: getDomainUrl('student', '/dashboard'),
+          redirectTo: getDomainUrl('student', '/auth/callback'),
         },
       });
       if (error) {
