@@ -22,7 +22,7 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
 
     const fixture={programme:'MYP',subject:'mathematics',myp_year:'Year 2',strand:'Algebra',topic:'Linear equations',
       difficulty:'medium',question_type:'single',marks:2,answer_type:'short_answer',answer_key:'3',is_published:true,review_status:'approved'};
-    for(let n=1;n<=13;n++) await db.query('select save_bank_question($1)',[JSON.stringify({...fixture,question_text:'Solve equation '+n})]);
+    for(let n=1;n<=29;n++) await db.query('select save_bank_question($1)',[JSON.stringify({...fixture,question_text:'Solve equation '+n})]);
     await context.addInitScript(({admin,student})=>{
       const id=location.pathname.startsWith('/admin') ? admin : student;
       const user={id,aud:'authenticated',role:'authenticated',email:id+'@example.test',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()};
@@ -46,6 +46,14 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
         if(path==='exam_evaluations' && req.method()==='POST') mockEvaluation=body;
         if(path==='rpc/start_single_question_attempt') data=(await db.query('select * from start_single_question_attempt($1)',[body.p_question_id])).rows;
         if(path==='rpc/submit_practice_question_answer') data=(await db.query('select * from submit_practice_question_answer($1,$2,$3)',[body.p_session_question_id,body.p_answer,body.p_time_spent_seconds])).rows;
+        if(path==='student_accounts') data=(await db.query('select * from student_accounts where user_id=$1',[student])).rows;
+        if(path==='rpc/save_student_account') data=(await db.query('select * from save_student_account($1,$2,$3)',[JSON.stringify(body.details),body.next_step,body.finish])).rows[0];
+        if(path==='rpc/support_action') data=(await db.query('select * from support_action($1,$2,$3)',[body.action,JSON.stringify(body.details),body.ticket])).rows[0];
+        if(path==='rpc/support_owner_email') data=(await db.query('select support_owner_email($1) address',[body.address ?? null])).rows[0].address;
+        if(['support_tickets','support_ticket_events','support_ticket_messages','support_ticket_attachments'].includes(path)){
+          const key=path==='support_tickets'?'id':'ticket_id',value=params.get(key)?.slice(3);
+          data=(await db.query('select * from '+path+(value?' where '+key+'=$1':''),value?[value]:[])).rows;
+        }
         if(path==='user_roles') data=(await db.query("select role from user_roles where user_id=$1 and role='admin'",[params.get('user_id').slice(3)])).rows;
         if(path==='rpc/save_bank_question') data=(await db.query('select save_bank_question($1,$2,$3) id',[JSON.stringify(body.p_question),body.p_id,body.p_batch])).rows[0].id;
         if(path==='question_bank' && req.method()==='PATCH') await db.query('update question_bank set review_status=$1,is_published=$2 where id=$3',[body.review_status,body.is_published,params.get('id').slice(3)]);
@@ -66,7 +74,7 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
         }
         if(path==='rpc/complete_practice_session') data=(await db.query('select * from complete_practice_session($1)',[body.p_session_id])).rows;
         if(path==='rpc/get_practice_question_solution') data=(await db.query('select * from get_practice_question_solution($1)',[body.p_session_question_id])).rows;
-        await route.fulfill({json:data,headers:{'content-range':'0-0/'+(total ?? data.length ?? 1),'access-control-expose-headers':'content-range'}});
+        await route.fulfill({json:data,headers:{'content-range':'0-0/'+(total ?? data?.length ?? 1),'access-control-expose-headers':'content-range'}});
       } catch(e) {await route.fulfill({status:400,json:{message:e.message,code:e.code}});}
     });
     await page.goto('/admin/practice/create');
@@ -88,11 +96,30 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
     await login(student);
     await page.setViewportSize({width:390,height:844});
     await page.goto('/practice');
-    await expect(page.getByText('Showing 12 of 14 approved questions')).toBeVisible();
-    await page.getByRole('checkbox').first().check();
-    await page.getByRole('button',{name:'Next',exact:true}).click();
-    await page.getByRole('checkbox').first().check();
-    await expect(page.getByText('2 of 50 selected')).toBeVisible();
+    await expect(page).toHaveURL(/onboarding/);
+    await page.getByLabel('Student name').fill('Demo learner');
+    await page.getByRole('button',{name:'Save and continue'}).click();
+    await page.getByLabel('MYP year').selectOption('3');
+    await page.getByLabel('School (optional)').fill('Synthetic school');
+    await page.getByRole('button',{name:'Save and continue'}).click();
+    await page.reload();
+    await page.getByLabel('Guardian involvement').selectOption('false');
+    await page.getByRole('button',{name:'Save and continue'}).click();
+    await page.getByRole('checkbox',{name:/acknowledge/}).check();
+    await page.getByRole('button',{name:'Complete onboarding'}).click();
+    await expect(page).toHaveURL(/dashboard/);
+    await page.goto('/practice');
+    await expect(page.getByText('Showing 12 of 30 approved questions')).toBeVisible();
+    for (const [idx,count] of [12,12,6].entries()) {
+      const boxes=page.getByRole('checkbox');
+      await expect(boxes).toHaveCount(count);
+      for(let i=0;i<count;i++) await boxes.nth(i).check();
+      await expect(page.getByText((idx===2?30:12*(idx+1))+' of 50 selected')).toBeVisible();
+      if(idx<2) {
+        await page.getByRole('button',{name:'Next',exact:true}).click();
+        await expect(boxes.first()).not.toBeChecked();
+      }
+    }
     await page.getByRole('button',{name:'Create Practice Paper',exact:true}).click();
     const editor=page.getByRole('textbox',{name:'Mathematical solution editor'});
     await editor.fill('3');
@@ -102,7 +129,7 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
     await page.getByRole('button',{name:'Complete Session'}).click();
     await page.getByRole('button',{name:'Yes, Finish & Score'}).click();
     await expect(page.getByText('Practice Session Summary')).toBeVisible();
-    await expect(page.getByText('50%',{exact:true})).toBeVisible();
+    await expect(page.getByText('3%',{exact:true})).toBeVisible();
     await page.goto('/practice');
     await page.getByRole('button',{name:'Start Practice'}).first().click();
     await editor.fill('3');
@@ -118,5 +145,30 @@ test('admin CSV import and publication, mobile selection, draft resume and paper
     expect(mockAttempt.test_id).toBe(mock);
     expect(mockEvaluation.test_attempt_id).toBe(mockAttempt.id);
 
+    await page.goto('/settings');
+    await page.getByRole('button',{name:'Learning',exact:true}).click();
+    await expect(page.getByLabel('School (optional)')).toHaveValue('Synthetic school');
+    await page.getByLabel('MYP year').selectOption('4');
+    await page.getByRole('button',{name:'Save changes'}).click();
+    await expect(page.getByRole('status').filter({hasText:'Changes saved'})).toBeVisible();
+    await page.getByRole('button',{name:'Plan & Billing'}).click();
+    await expect(page.getByText(/Pending Integration/)).toBeVisible();
+    await page.goto('/support');
+    await page.getByLabel('Subject').fill('Graph scale');
+    await page.getByLabel('Description').fill('Synthetic diagram needs a scale.');
+    await page.getByRole('button',{name:'Submit ticket'}).click();
+    await expect(page.getByRole('heading',{name:/Graph scale/})).toBeVisible();
+    const ticketUrl=page.url();
+    await login(admin);await page.goto('/admin/support');
+    await page.getByRole('button',{name:/Graph scale/}).click();
+    await page.getByLabel('Reply',{exact:true}).fill('Scale corrected.');
+    await page.getByRole('button',{name:'Send reply'}).click();
+    await expect(page.getByText('Scale corrected.',{exact:true})).toBeVisible();
+    await page.getByLabel('Status',{exact:true}).selectOption('resolved');
+    await expect(page.getByText('Status: resolved')).toBeVisible();
+    await login(student);await page.goto(ticketUrl);
+    await expect(page.getByText('Scale corrected.',{exact:true})).toBeVisible();
+    await expect(page.getByText('Status: resolved')).toBeVisible();
+    await page.screenshot({path:'test-results/synthetic-support.png',fullPage:true});
   } finally {await db.close();}
 });

@@ -20,6 +20,7 @@ test('Practice migrations, authoring, student ownership, evaluation and 10k cata
   const admin=randomUUID(),student=randomUUID(),other=randomUUID();
   await db.query('insert into auth.users values ($1),($2),($3)',[admin,student,other]);
   await db.query("insert into user_roles values ($1,'admin')",[admin]);
+  await db.query("insert into student_accounts(user_id,myp_year,completed_at) values($1,3,now()),($2,3,now())",[student,other]);
   assert.equal((await row("select count(*) n from question_bank where myp_year is null and not is_published")).n,1);
   await as('authenticated',admin);
   const input={programme:'MYP',subject:'mathematics',myp_year:'Year 3',strand:'Algebra',topic:'Linear equations',

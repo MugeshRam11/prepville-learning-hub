@@ -38,7 +38,7 @@ test('Security Audit - No private keys or service-role keys in client source', (
 });
 
 test('Security Audit - Edge functions do not contain hardcoded secret fallbacks', () => {
-  const otpFunction = fs.readFileSync('supabase/functions/send-otp/index.ts', 'utf8');
+  const otpFunction = ['send-otp/index.ts','_shared/guardian.ts'].map(path=>fs.readFileSync('supabase/functions/'+path,'utf8')).join('\n');
   const liveResendPattern = /re_[A-Za-z0-9]{25,}/;
   assert.strictEqual(
     liveResendPattern.test(otpFunction),

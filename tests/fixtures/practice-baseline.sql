@@ -25,3 +25,17 @@ create policy "Users can view sections of published tests" on mock_test_sections
 create policy "Users can view published mock questions" on mock_questions for select using(true);
 create policy "Users can view published mock sub questions" on mock_sub_questions for select using(true);
 create policy "Users can view sub questions of published sets" on practice_sub_questions for select using(true);
+
+create schema storage;
+create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+create table storage.objects(bucket_id text,name text);
+alter table storage.objects enable row level security;
+grant usage on schema storage to anon, authenticated;
+grant select,insert,update,delete on storage.objects to anon,authenticated;
+create policy historical_writes on storage.objects for all to authenticated using(true) with check(true);
+
+create role service_role;
+alter table auth.users add column email_confirmed_at timestamptz default now();
+alter table auth.users add column email text;
+
+alter table profiles add column email text,add column avatar_id integer,add column avatar_emoji text,add column avatar_name text;
