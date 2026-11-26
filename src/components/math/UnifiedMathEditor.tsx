@@ -75,6 +75,7 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
 }) => {
   const editorId = useId();
   const mathFieldRef = useRef<MathfieldElement | null>(null);
+  const [showSource, setShowSource] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lastInternalValueRef = useRef<string>(value);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -114,11 +115,11 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
 
     // Only update mf if external value differs from last internal emission
     const normalizedProp = normalizePureLatex(value);
-    if (mf.value !== normalizedProp && normalizedProp !== lastInternalValueRef.current) {
+    if (mf.value !== normalizedProp) {
       mf.value = normalizedProp;
       lastInternalValueRef.current = normalizedProp;
     }
-  }, [value, mode]);
+  }, [value, mode, showSource]);
 
   // MathLive event setup
   useEffect(() => {
@@ -155,7 +156,7 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
       mf.removeEventListener('keydown', handleKeydown);
       mf.removeEventListener('blur', handleBlurEvent);
     };
-  }, [onChange, onSubmit, onBlur, mode]);
+  }, [onChange, onSubmit, onBlur, mode, showSource]);
 
   // Toggle virtual keyboard
   const toggleKeyboard = useCallback(() => {
@@ -367,7 +368,7 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
       {/* Top Toolbar / Action Controls */}
       {showToolbar && (
         <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
-          <div className="flex items-center gap-1">
+          <div className="flex max-w-full flex-wrap items-center gap-1">
             <Button
               type="button"
               variant="outline"
@@ -420,7 +421,7 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex max-w-full flex-wrap items-center gap-1">
             {value && !disabled && !readOnly && (
               <Button
                 type="button"
@@ -480,6 +481,8 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
       {/* Primary Input Container */}
       {mode === 'pure_latex' ? (
         <div className="relative">
+          <button type="button" aria-pressed={showSource} className="mb-1 text-xs underline" onClick={()=>setShowSource(!showSource)}>{showSource?'Visual editor':'Edit LaTeX source'}</button>
+          {showSource ? <textarea aria-label={ariaLabel+' source'} className="w-full rounded border p-2 font-mono" value={value} disabled={disabled} readOnly={readOnly} onChange={e=>onChange(e.target.value)} onBlur={onBlur}/> :
           <math-field
             id={editorId}
             ref={mathFieldRef}
@@ -487,8 +490,8 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
             smart-mode="true"
             smart-superscript="true"
             remove-extraneous-parentheses="true"
-            disabled={disabled}
-            readonly={readOnly}
+            disabled={disabled || undefined}
+            readonly={readOnly || undefined}
             aria-label={ariaLabel}
             style={{
               display: 'block',
@@ -507,7 +510,7 @@ export const UnifiedMathEditor: React.FC<UnifiedMathEditorProps> = ({
               '--caret-color': 'hsl(var(--primary))',
               '--selection-background-color': 'hsl(var(--primary) / 0.2)',
             } as React.CSSProperties}
-          />
+          />}
         </div>
       ) : (
         <div className="space-y-3">

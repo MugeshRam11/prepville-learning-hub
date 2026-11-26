@@ -1,3 +1,4 @@
+import {DiagramImage} from '@/components/QuestionDiagram';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -61,7 +62,7 @@ const ImageFillBlanksReview: React.FC<ImageFillBlanksReviewProps> = ({ config, s
           <p className="text-xs font-medium text-muted-foreground">Student Attempt</p>
           <div className="relative rounded-lg overflow-hidden border bg-muted/10">
             {config.imageUrl ? (
-              <img src={config.imageUrl} alt="Question" className="w-full object-contain max-h-[420px]" />
+              <DiagramImage src={config.imageUrl} alt="Question" className="w-full object-contain max-h-[420px]" />
             ) : (
               <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">No image</div>
             )}
@@ -90,7 +91,7 @@ const ImageFillBlanksReview: React.FC<ImageFillBlanksReviewProps> = ({ config, s
           <p className="text-xs font-medium text-muted-foreground">Correct Answers</p>
           <div className="relative rounded-lg overflow-hidden border bg-muted/10">
             {config.imageUrl ? (
-              <img src={config.imageUrl} alt="Question" className="w-full object-contain max-h-[420px]" />
+              <DiagramImage src={config.imageUrl} alt="Question" className="w-full object-contain max-h-[420px]" />
             ) : (
               <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">No image</div>
             )}

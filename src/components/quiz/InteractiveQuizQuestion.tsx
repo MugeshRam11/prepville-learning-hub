@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -191,7 +192,7 @@ const InteractiveQuizQuestion = ({
                 transition={{ delay: 0.1 }}
               >
                 <div className="relative rounded-lg overflow-hidden border border-border bg-muted/30">
-                  <img
+                  <MockDiagram
                     src={question.questionImageUrl || question.graphImageUrl}
                     alt="Question diagram"
                     className="w-full max-h-80 object-contain cursor-pointer hover:scale-[1.02] transition-transform"

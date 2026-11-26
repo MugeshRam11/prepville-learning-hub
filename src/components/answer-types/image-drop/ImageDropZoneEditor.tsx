@@ -1,3 +1,5 @@
+import {DiagramImage} from '@/components/QuestionDiagram';
+import {uploadQuestionDiagram} from '@/lib/questionMedia';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,12 +82,8 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
     if (!file) return;
     setIsUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `${folder}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('question-images').upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('question-images').getPublicUrl(path);
-      update({ imageUrl: urlData.publicUrl });
+      const ref=await uploadQuestionDiagram(file);
+      update({ imageUrl: ref });
       toast.success('Image uploaded');
     } catch (err: any) {
       toast.error('Upload failed: ' + (err?.message || 'Unknown error'));
@@ -194,12 +192,8 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
   const uploadElementImage = async (elementId: string, file: File) => {
     setIsUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `${folder}/elements/${elementId}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('question-images').upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('question-images').getPublicUrl(path);
-      updateElement(elementId, { imageUrl: urlData.publicUrl });
+      const ref=await uploadQuestionDiagram(file);
+      updateElement(elementId, { imageUrl: ref });
       toast.success('Element image uploaded');
     } catch (err: any) {
       toast.error('Upload failed: ' + (err?.message || 'Unknown error'));
@@ -234,7 +228,7 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
                 )}
                 onClick={handleImageClick}
               >
-                <img src={config.imageUrl} alt="Question" className="w-full select-none pointer-events-none" draggable={false} />
+                <DiagramImage src={config.imageUrl} alt="Question" className="w-full select-none pointer-events-none" draggable={false} />
 
                 {/* Drop Zones Overlay */}
                 {config.zones.map(zone => (
@@ -278,7 +272,7 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
             <label className="flex flex-col items-center justify-center h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
               <Upload className="w-8 h-8 text-muted-foreground mb-2" />
               <span className="text-sm text-muted-foreground">{isUploading ? 'Uploading...' : 'Click to upload question image'}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
             </label>
           )}
           <Input
@@ -358,7 +352,7 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
                     {elem.imageUrl ? 'Change' : 'Upload'}
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
@@ -368,7 +362,7 @@ const ImageDropZoneEditor: React.FC<ImageDropZoneEditorProps> = ({ config, onCha
                     />
                   </label>
                   {elem.imageUrl ? (
-                    <img src={elem.imageUrl} alt={`Element ${idx + 1}`} className="h-8 w-8 object-contain rounded border" />
+                    <DiagramImage src={elem.imageUrl} alt={`Element ${idx + 1}`} className="h-8 w-8 object-contain rounded border" />
                   ) : (
                     <span className="text-xs text-muted-foreground">No image</span>
                   )}

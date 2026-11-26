@@ -1,3 +1,5 @@
+import QuestionMediaUploader from './QuestionMediaUploader';
+import QuestionDiagram from '@/components/QuestionDiagram';
 import { practiceQuestion } from '@/lib/practiceQuestion';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -957,12 +959,7 @@ export const QuestionBankManager: React.FC = () => {
 
               <div className="md:col-span-2">
                 <Label className="text-xs font-semibold text-slate-700">Diagram / Image URL (Optional)</Label>
-                <Input
-                  placeholder="https://... or /images/..."
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  className="mt-1 h-9"
-                />
+                <QuestionMediaUploader bank kind="stem" value={formData.image_url || ''} onChange={image_url=>setFormData(prev=>({...prev,image_url}))}/>
               </div>
             </div>
 
@@ -1166,7 +1163,7 @@ export const QuestionBankManager: React.FC = () => {
                         <label>Part answer type <select value={sub.answer_type} onChange={e => setFormData({...formData,subquestions: formData.subquestions.map((part,i) => i===idx ? {...part, answer_type:e.target.value as BankSubquestion['answer_type']} : part)})}>
                           {['short_answer','multiple_choice','text_equation','working_box'].map(kind=><option key={kind}>{kind}</option>)}
                         </select></label>
-                        <Input aria-label="Part image URL" placeholder="Optional part image URL" value={sub.sub_question_image_url || ''} onChange={e=>setFormData({...formData,subquestions:formData.subquestions.map((part,i)=>i===idx?{...part,sub_question_image_url:e.target.value}:part)})} />
+                        <QuestionMediaUploader bank kind="part" value={sub.sub_question_image_url || ''} onChange={url=>setFormData(prev=>({...prev,subquestions:prev.subquestions.map((part,i)=>i===idx?{...part,sub_question_image_url:url}:part)}))}/>
                         <PracticeMarkingFields value={sub} change={fields=>setFormData({...formData,subquestions:formData.subquestions.map((part,i)=>i===idx?{...part,...fields,answer_type:part.answer_type}:part)})} />
                         <Label>Part solution</Label>
                         <UnifiedMathEditor
@@ -1260,16 +1257,7 @@ export const QuestionBankManager: React.FC = () => {
                 {renderFinalText(previewQuestion.question_text)}
               </div>
 
-              {previewQuestion.image_url && (
-                <div className="border rounded-lg overflow-hidden max-h-60 flex justify-center bg-white p-2">
-                  <img
-                    src={previewQuestion.image_url}
-                    alt="Question Diagram"
-                    className="max-h-56 object-contain"
-                  />
-                </div>
-              )}
-
+              <QuestionDiagram value={previewQuestion.image_url} label="Question diagram"/>
               {/* Multi-part Subquestions Preview */}
               {previewSubquestions.length > 0 && (
                 <div className="space-y-3 pt-2">
@@ -1288,6 +1276,7 @@ export const QuestionBankManager: React.FC = () => {
                       </div>
                       <div className="text-sm font-serif text-slate-900">
                         {renderFinalText(sub.sub_question_text)}
+                        <QuestionDiagram value={sub.sub_question_image_url} label={'Part '+sub.label+' diagram'}/>
                       </div>
                       {sub.answer_key && (
                         <div className="p-2 bg-amber-50/60 rounded border border-amber-200/60 text-xs">

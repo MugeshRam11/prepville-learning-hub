@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -80,7 +81,7 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
           {/* Question image */}
           {question.questionImageUrl && (
             <div className="mt-4">
-              <img
+              <MockDiagram
                 src={question.questionImageUrl}
                 alt={`Question ${question.questionNumber}`}
                 className="max-w-full h-auto rounded-lg border shadow-sm"
@@ -131,7 +132,7 @@ const UnifiedQuestionCard: React.FC<UnifiedQuestionCardProps> = ({
                   {/* Sub-question image */}
                   {subQ.imageUrl && (
                     <div className="mb-4 ml-11">
-                      <img
+                      <MockDiagram
                         src={subQ.imageUrl}
                         alt={`Question ${question.questionNumber}${subQ.label}`}
                         className="max-w-full h-auto rounded-lg border shadow-sm"

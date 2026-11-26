@@ -1,3 +1,4 @@
+import {DiagramImage} from '@/components/QuestionDiagram';
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -89,7 +90,7 @@ const ImageFillBlanksPlayer: React.FC<ImageFillBlanksPlayerProps> = ({
 
       {/* Image with clickable blank zones */}
       <div className="relative border rounded-lg overflow-hidden bg-muted/10">
-        <img
+        <DiagramImage
           src={config.imageUrl}
           alt="Question diagram"
           className="w-full h-auto max-h-[600px] object-contain mx-auto select-none"

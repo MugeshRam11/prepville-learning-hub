@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -96,7 +97,7 @@ const ExamSubQuestionCard: React.FC<ExamSubQuestionCardProps> = ({
           {/* Sub-question image */}
           {subQuestion.imageUrl && (
             <div className="rounded-lg border overflow-hidden">
-              <img
+              <MockDiagram
                 src={subQuestion.imageUrl}
                 alt={`Q${parentQuestion.questionNumber}${subQuestion.label}`}
                 className="max-w-full h-auto"

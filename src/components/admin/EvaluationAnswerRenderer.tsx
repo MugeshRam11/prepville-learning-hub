@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 import React, { useState } from 'react';
 import DOMPurify from 'dompurify';
 import { renderFinalText as renderLatexContent } from '@/lib/renderFinalText';
@@ -213,7 +214,7 @@ const ImageDropZoneReview: React.FC<{
   const renderOverlay = (map: Record<string, any>, viewType: 'student' | 'correct') => (
     <div className="relative rounded-lg overflow-hidden border bg-muted/10">
       {imageUrl ? (
-        <img src={imageUrl} alt="Question diagram" className="w-full object-contain max-h-[420px]" />
+        <MockDiagram src={imageUrl} alt="Question diagram" className="w-full object-contain max-h-[420px]" />
       ) : (
         <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">No image configured</div>
       )}

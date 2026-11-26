@@ -1,3 +1,4 @@
+import {DiagramImage} from '@/components/QuestionDiagram';
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { cleanMathContent, normalizeMath, stripLatexFormatting } from '@/lib/mathFormat';
@@ -85,7 +86,7 @@ export const DraggableElementContent: React.FC<{
 
   if (display.kind === 'image') {
     return (
-      <img
+      <DiagramImage
         src={display.imageUrl}
         alt={normalizeText(element) || 'draggable element'}
         className={cn(styles.img, 'object-contain rounded', className)}
@@ -112,7 +113,7 @@ export const DraggableElementContent: React.FC<{
   // both
   return (
     <div className={cn('flex min-w-0 max-w-full', styles.wrap, className)}>
-      <img
+      <DiagramImage
         src={display.imageUrl}
         alt={display.text || 'draggable element'}
         className={cn(styles.img, 'object-contain rounded')}

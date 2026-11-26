@@ -1,3 +1,4 @@
+import {uploadQuestionDiagram} from '@/lib/questionMedia';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,19 +30,9 @@ export function useDiagramCropping() {
       const random = Math.random().toString(36).substring(7);
       const filename = `diagram-q${questionNumber}-p${pageNumber}-${timestamp}-${random}.png`;
 
-      const { error } = await supabase.storage
-        .from('question-images')
-        .upload(filename, blob, { contentType: 'image/png', cacheControl: '3600', upsert: false });
-
-      if (error) {
-        console.error('Upload error:', error);
-        toast.error('Failed to upload cropped diagram');
-        return null;
-      }
-
-      const { data: urlData } = supabase.storage.from('question-images').getPublicUrl(filename);
+      const ref=await uploadQuestionDiagram(new File([blob],filename,{type:'image/png'}));
       toast.success('Diagram cropped and saved!', { description: `Saved as ${filename}` });
-      return { url: urlData.publicUrl, filename };
+      return { url: ref, filename };
     } catch (error) {
       console.error('Cropping error:', error);
       toast.error('Failed to process cropped image');

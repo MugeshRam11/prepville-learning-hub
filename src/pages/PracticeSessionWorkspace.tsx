@@ -1,3 +1,4 @@
+import QuestionDiagram from '@/components/QuestionDiagram';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -479,7 +480,7 @@ const PracticeSessionWorkspace: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 md:gap-6">
             <div className="w-48 space-y-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Submitted</span>
+                <span>Answered</span>
                 <span className="font-mono font-medium">
                   {answeredCount} / {totalCount} ({progressPercent}%)
                 </span>
@@ -536,7 +537,7 @@ const PracticeSessionWorkspace: React.FC = () => {
       </header>
 
       {/* Main Workspace Body */}
-      <div className="flex-1 flex overflow-hidden min-h-0" style={{ height: 'calc(100vh - 53px)' }}>
+      <div className="flex-1 flex min-h-0 lg:h-[calc(100vh-53px)] lg:overflow-hidden">
         {/* Left Sidebar: 1..N Question Matrix Navigator */}
         <aside className="hidden lg:flex lg:flex-col w-72 border-r bg-card flex-shrink-0 min-h-0 overflow-hidden">
           <div className="p-4 border-b space-y-2">
@@ -605,9 +606,9 @@ const PracticeSessionWorkspace: React.FC = () => {
         </aside>
 
         {/* Workspace Split: Problem vs Solution / Input */}
-        <div className="flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
+        <div className="flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-2 lg:overflow-hidden">
           {/* LEFT: Question Statement */}
-          <div className="min-w-0 min-h-0 overflow-y-auto border-b lg:border-b-0 lg:border-r bg-background p-6 space-y-5">
+          <div className="min-w-0 min-h-0 lg:overflow-y-auto border-b lg:border-b-0 lg:border-r bg-background p-3 sm:p-6 space-y-5">
             <Card className="border border-border/80 shadow-sm">
               <CardHeader className="p-4 pb-3 bg-muted/20 border-b flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -629,20 +630,13 @@ const PracticeSessionWorkspace: React.FC = () => {
                   {renderLatexContent(currentQ.question.question_text)}
                 </div>
 
-                {currentQ.question.image_url && (
-                  <div className="rounded-xl border overflow-hidden max-w-lg mx-auto bg-white p-2">
-                    <img
-                      src={currentQ.question.image_url}
-                      alt="Question visual"
-                      className="max-h-72 object-contain mx-auto"
-                    />
-                  </div>
-                )}
+                <a className="block text-xs underline" href={'/support?question='+currentQ.question.id}>Report a question error</a>
+                <QuestionDiagram value={currentQ.question.image_url} label="Question diagram"/>
               </CardContent>
             </Card>
 
             {/* If multi-part, render subquestions */}
-            {currentQ.subquestions.length > 1 && (
+            {currentQ.question.question_type === 'multi_part' && (
               <div className="space-y-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Sub-Questions
@@ -657,6 +651,7 @@ const PracticeSessionWorkspace: React.FC = () => {
                     </CardHeader>
                     <CardContent className="p-4 text-xs font-serif leading-relaxed">
                       {renderLatexContent(sub.sub_question_text)}
+                      <QuestionDiagram value={sub.sub_question_image_url} label={'Part '+sub.label+' diagram'}/>
                     </CardContent>
                   </Card>
                 ))}
@@ -665,7 +660,7 @@ const PracticeSessionWorkspace: React.FC = () => {
           </div>
 
           {/* RIGHT: Answer Input & Unlocked Solutions */}
-          <div className="min-w-0 min-h-0 overflow-y-auto bg-muted/10 p-6 space-y-5 flex flex-col justify-between">
+          <div className="min-w-0 min-h-0 lg:overflow-y-auto bg-muted/10 p-3 sm:p-6 space-y-5 flex flex-col justify-between">
             <div className="space-y-5">
               {/* Answer Input */}
               <Card className="border border-border/80 shadow-sm">
@@ -809,7 +804,7 @@ const PracticeSessionWorkspace: React.FC = () => {
             </div>
 
             {/* Bottom Question Navigation Toolbar */}
-            <div className="flex items-center justify-between gap-3 pt-4 border-t">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t">
               <Button
                 variant="outline"
                 size="sm"

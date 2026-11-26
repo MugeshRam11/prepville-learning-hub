@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Image as ImageIcon, BarChart3 } from 'lucide-react';
@@ -79,7 +80,7 @@ const ExamSourcePanel: React.FC<ExamSourcePanelProps> = ({ question, className }
                 </span>
               </div>
               <div className="rounded-lg border overflow-hidden bg-white">
-                <img
+                <MockDiagram
                   src={question.questionImageUrl!}
                   alt={`Question ${question.questionNumber}`}
                   className="w-full h-auto"

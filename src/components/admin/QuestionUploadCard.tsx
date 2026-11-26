@@ -1,3 +1,4 @@
+import {uploadQuestionDiagram} from '@/lib/questionMedia';
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,25 +64,7 @@ const QuestionUploadCard: React.FC<QuestionUploadCardProps> = ({
       const extension = contentType.split('/')[1] || 'png';
       const fileName = `question-img-${timestamp}-${random}.${extension}`;
 
-      // Upload to Supabase storage
-      const {
-        data,
-        error
-      } = await supabase.storage.from('question-images').upload(fileName, blob, {
-        contentType,
-        cacheControl: '3600',
-        upsert: false
-      });
-      if (error) {
-        console.error('Image upload error:', error);
-        return null;
-      }
-
-      // Get public URL
-      const {
-        data: urlData
-      } = supabase.storage.from('question-images').getPublicUrl(fileName);
-      return urlData.publicUrl;
+      return await uploadQuestionDiagram(new File([blob],fileName,{type:contentType}));
     } catch (error) {
       console.error('Failed to upload image:', error);
       return null;

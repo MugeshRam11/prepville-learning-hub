@@ -1,3 +1,4 @@
+import {DiagramImage} from '@/components/QuestionDiagram';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -175,7 +176,7 @@ const ImageDropZone: React.FC<ImageDropZoneProps> = ({
           <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
             {/* Render the actual uploaded image */}
             {imageUrl ? (
-              <img
+              <DiagramImage
                 src={imageUrl}
                 alt="Question diagram"
                 className="w-full h-auto max-h-[500px] object-contain mx-auto"

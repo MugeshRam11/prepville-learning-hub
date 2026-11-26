@@ -33,6 +33,7 @@ interface ParsedRow {
   subtopic?: string;
   difficulty?: string;
   command_term?: string;
+  image_url?: string;
   question_text?: string;
   marks?: string | number;
   answer_key?: string;
@@ -57,10 +58,10 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ isOpen, onClose,
   const [importing, setImporting] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
-  const sampleCsvContent = `programme,subject,myp_year,strand,topic,difficulty,command_term,question_text,marks,answer_key,solution
-MYP,mathematics,Year 4,Algebra,Linear Equations,medium,Solve,Solve for $x$: $3x + 7 = 22$,2,5,"Step 1: Subtract 7: $3x = 15$. Step 2: Divide by 3: $x = 5$."
-MYP,mathematics,Year 5,Geometry and Trigonometry,Right-angled Triangles,hard,Calculate,"In triangle $ABC$ with $\\angle B = 90^\\circ$, $AB = 6\\text{ cm}$ and $BC = 8\\text{ cm}$. Calculate the length of hypotenuse $AC$.",3,10,"By Pythagorean theorem: $AC^2 = 6^2 + 8^2 = 36 + 64 = 100 \\implies AC = 10\\text{ cm}$."
-MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify $\\frac{14}{28}$ to its lowest terms.",1,1/2,"Divide numerator and denominator by 14 to get $\\frac{1}{2}$."`;
+  const sampleCsvContent = `programme,subject,myp_year,strand,topic,difficulty,command_term,question_text,marks,answer_key,solution,image_url
+MYP,mathematics,Year 4,Algebra,Linear Equations,medium,Solve,Solve for $x$: $3x + 7 = 22$,2,5,"Step 1: Subtract 7: $3x = 15$. Step 2: Divide by 3: $x = 5$.",
+MYP,mathematics,Year 5,Geometry and Trigonometry,Right-angled Triangles,hard,Calculate,"In triangle $ABC$ with $\\angle B = 90^\\circ$, $AB = 6\\text{ cm}$ and $BC = 8\\text{ cm}$. Calculate the length of hypotenuse $AC$.",3,10,"By Pythagorean theorem: $AC^2 = 6^2 + 8^2 = 36 + 64 = 100 \\implies AC = 10\\text{ cm}$.",
+MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify $\\frac{14}{28}$ to its lowest terms.",1,1/2,"Divide numerator and denominator by 14 to get $\\frac{1}{2}$.",`;
 
   const handleDownloadTemplate = () => {
     const blob = new Blob([sampleCsvContent], { type: 'text/csv;charset=utf-8;' });
@@ -107,6 +108,7 @@ MYP,mathematics,Year 3,Number,Fractions and Percentages,easy,Simplify,"Simplify 
           if (row.programme?.trim() !== 'MYP' || row.subject?.trim() !== 'mathematics') rowErrors.push('Expected MYP mathematics');
           if (!Number.isInteger(Number(row.marks)) || Number(row.marks) < 1) rowErrors.push('Expected positive whole marks');
           if (!row.answer_key?.trim()) rowErrors.push('Missing answer_key');
+          if (row.image_url && !(/^https:\/\/|^\/(?!\/)/i.test(row.image_url) && !/[\\\s]/.test(row.image_url))) rowErrors.push('Invalid image URL');
           const rowNum = index + 2; // header is row 1
 
           // 1. Mandatory Question Text

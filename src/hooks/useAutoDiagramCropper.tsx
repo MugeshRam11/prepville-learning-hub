@@ -1,3 +1,4 @@
+import {uploadQuestionDiagram} from '@/lib/questionMedia';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -113,17 +114,8 @@ export function useAutoDiagramCropper() {
       const sanitizedType = diagramType.replace(/[^a-z0-9]/gi, '-').toLowerCase();
       const filename = `cropped-${sanitizedType}-q${questionNumber}-p${pageNumber}-${timestamp}-${random}.png`;
 
-      const { error } = await supabase.storage
-        .from('question-images')
-        .upload(filename, blob, { contentType: 'image/png', cacheControl: '3600', upsert: false });
-
-      if (error) {
-        console.error('Upload error:', error);
-        return null;
-      }
-
-      const { data: urlData } = supabase.storage.from('question-images').getPublicUrl(filename);
-      return { url: urlData.publicUrl, filename };
+      const ref=await uploadQuestionDiagram(new File([blob],filename,{type:'image/png'}));
+      return { url: ref, filename };
     } catch (error) {
       console.error('Upload failed:', error);
       return null;

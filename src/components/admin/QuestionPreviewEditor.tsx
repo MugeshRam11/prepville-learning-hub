@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1198,7 +1199,7 @@ const QuestionPreviewEditor: React.FC<QuestionPreviewEditorProps> = ({
                     {/* Image Preview */}
                     {q.question_image_url && expandedQuestions.has(index) && (
                       <div className="mt-3 ml-8">
-                        <img
+                        <MockDiagram
                           src={q.question_image_url}
                           alt={`Question ${q.question_number} image`}
                           className="max-w-xs max-h-40 rounded border object-contain"

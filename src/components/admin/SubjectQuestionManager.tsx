@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -517,7 +518,7 @@ const SubjectQuestionManager = () => {
                   {/* Preview uploaded image */}
                   {(uploadedImageUrl || formData.question_image_url) && (
                     <div className="relative">
-                      <img 
+                      <MockDiagram
                         src={uploadedImageUrl || formData.question_image_url} 
                         alt="Question preview" 
                         className="max-w-full h-32 object-contain border rounded"
@@ -817,7 +818,7 @@ const SubjectQuestionManager = () => {
                 {/* Image Preview */}
                 {question.question_image_url && (
                   <div className="mb-4">
-                    <img 
+                    <MockDiagram
                       src={question.question_image_url} 
                       alt="Question" 
                       className="w-full h-32 object-cover border rounded-lg"

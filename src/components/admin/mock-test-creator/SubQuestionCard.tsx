@@ -54,7 +54,7 @@ const SubQuestionCard: React.FC<SubQuestionCardProps> = ({
         minHeight="80px"
       />
 
-      <ImageUpload
+      <ImageUpload kind="part"
         value={subQuestion.imageUrl}
         onChange={(url) => onUpdate(subQuestion.id, { imageUrl: url })}
         placeholder="Image (optional)"

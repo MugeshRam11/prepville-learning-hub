@@ -1,3 +1,4 @@
+import {MockDiagram} from '@/components/QuestionDiagram';
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -147,7 +148,7 @@ const AdminMockTestView = () => {
                     )}
                     {question.question_image_url && (
                       <div className="mb-2">
-                        <img src={question.question_image_url} alt="Question image" className="max-w-md rounded" />
+                        <MockDiagram src={question.question_image_url} alt="Question image" className="max-w-md rounded" />
                       </div>
                     )}
                     {question.answer_key && (
@@ -168,7 +169,7 @@ const AdminMockTestView = () => {
                             <div className="text-muted-foreground text-sm">{renderLatexContent(subQ.sub_question_text)}</div>
                             {subQ.sub_question_image_url && (
                               <div className="my-2">
-                                <img src={subQ.sub_question_image_url} alt="Sub-question image" className="max-w-sm rounded" />
+                                <MockDiagram src={subQ.sub_question_image_url} alt="Sub-question image" className="max-w-sm rounded" />
                               </div>
                             )}
                             {subQ.answer_key && (

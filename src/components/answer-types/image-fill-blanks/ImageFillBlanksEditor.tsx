@@ -1,3 +1,5 @@
+import {DiagramImage} from '@/components/QuestionDiagram';
+import {uploadQuestionDiagram} from '@/lib/questionMedia';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,12 +69,8 @@ const ImageFillBlanksEditor: React.FC<ImageFillBlanksEditorProps> = ({ config, o
     if (!file) return;
     setIsUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `${folder}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('question-images').upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('question-images').getPublicUrl(path);
-      update({ imageUrl: urlData.publicUrl });
+      const ref=await uploadQuestionDiagram(file);
+      update({ imageUrl: ref });
       toast.success('Image uploaded');
     } catch (err: any) {
       toast.error('Upload failed: ' + (err?.message || 'Unknown'));
@@ -193,7 +191,7 @@ const ImageFillBlanksEditor: React.FC<ImageFillBlanksEditorProps> = ({ config, o
                 className={cn("relative border rounded-lg overflow-hidden bg-muted/30", placingZone && "cursor-crosshair ring-2 ring-primary")}
                 onClick={handleImageClick}
               >
-                <img src={config.imageUrl} alt="Question" className="w-full select-none pointer-events-none" draggable={false} />
+                <DiagramImage src={config.imageUrl} alt="Question" className="w-full select-none pointer-events-none" draggable={false} />
                 {config.zones.map((zone, idx) => (
                   <div
                     key={zone.id}
@@ -228,7 +226,7 @@ const ImageFillBlanksEditor: React.FC<ImageFillBlanksEditorProps> = ({ config, o
             <label className="flex flex-col items-center justify-center h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
               <Upload className="w-8 h-8 text-muted-foreground mb-2" />
               <span className="text-sm text-muted-foreground">{isUploading ? 'Uploading...' : 'Click to upload image'}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
             </label>
           )}
           <Input className="mt-2" placeholder="Or paste image URL..." value={config.imageUrl} onChange={(e) => update({ imageUrl: e.target.value })} />
